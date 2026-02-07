@@ -1,0 +1,104 @@
+{
+  "tiers": {
+    "ultra-light": {
+      "name": "Ultra-Leicht",
+      "description": "< 500MB VRAM - Sofortiger Start"
+    },
+    "mobile": {
+      "name": "Mobil",
+      "description": "500MB - 1.5GB VRAM - Für Smartphones"
+    },
+    "balanced": {
+      "name": "Ausgewogen",
+      "description": "1.5GB - 3GB VRAM - Bestes Verhältnis"
+    },
+    "powerful": {
+      "name": "Leistungsstark",
+      "description": "3GB - 4GB VRAM - Tablet/leistungsstarkes Smartphone"
+    },
+    "desktop": {
+      "name": "Desktop",
+      "description": "4GB - 6GB VRAM - Laptop/PC"
+    },
+    "premium": {
+      "name": "Premium",
+      "description": "6GB+ VRAM - Erfordert leistungsstarke GPU"
+    }
+  },
+  "specialties": {
+    "general": "Allgemein",
+    "code": "Code",
+    "math": "Mathematik",
+    "vision": "Vision",
+    "reasoning": "Reasoning",
+    "function-calling": "MCP"
+  },
+  "models": {
+    "SmolLM2-135M-Instruct-q0f16-MLC": {
+      "description": "Kleinstes Modell. Sofortiger Start, für einfache Aufgaben."
+    },
+    "SmolLM2-360M-Instruct-q4f16_1-MLC": {
+      "description": "Sehr leicht, schnelle Antwort. Ideal für einfachen Chat."
+    },
+    "TinyLlama-1.1B-Chat-v1.0-q4f16_1-MLC": {
+      "description": "Klein aber leistungsfähig. Geeignet für ältere Smartphones."
+    },
+    "Llama-3.2-1B-Instruct-q4f16_1-MLC": {
+      "description": "Metas neuestes kleines Modell. Empfohlen für Mobilgeräte."
+    },
+    "Qwen2.5-0.5B-Instruct-q4f16_1-MLC": {
+      "description": "Alibabas leichtestes Modell. Sehr schnelle Antwort."
+    },
+    "Qwen3-0.6B-q4f16_1-MLC": {
+      "description": "Neueste Qwen-Serie. Klein aber intelligent."
+    },
+    "Qwen2.5-1.5B-Instruct-q4f16_1-MLC": {
+      "description": "Alibabas ausgewogenes Modell. Gutes Qualitäts-/Geschwindigkeitsverhältnis."
+    },
+    "SmolLM2-1.7B-Instruct-q4f16_1-MLC": {
+      "description": "HuggingFaces optimiertes Modell. Schnell und leistungsfähig."
+    },
+    "Qwen3-1.7B-q4f16_1-MLC": {
+      "description": "Qwen der nächsten Generation. Reasoning-fähig."
+    },
+    "gemma-2-2b-it-q4f16_1-MLC-1k": {
+      "description": "Googles Open-Source-Modell. Ausgewogene Leistung."
+    },
+    "Llama-3.2-3B-Instruct-q4f16_1-MLC": {
+      "description": "Metas leistungsstarkes kleines Modell. Empfohlen für allgemeine Nutzung."
+    },
+    "Qwen2.5-3B-Instruct-q4f16_1-MLC": {
+      "description": "Alibabas leistungsstarkes Mittelklasse-Modell."
+    },
+    "Qwen3-4B-q4f16_1-MLC": {
+      "description": "Qwen 4B der nächsten Generation. Sehr leistungsfähig, starkes Reasoning."
+    },
+    "Phi-3.5-mini-instruct-q4f16_1-MLC-1k": {
+      "description": "Microsofts Code-Modell. Niedrige Speicherversion."
+    },
+    "Phi-3.5-mini-instruct-q4f16_1-MLC": {
+      "description": "Microsofts leistungsstarkes Modell. Ideal für Code und Logik."
+    },
+    "Qwen2.5-Coder-3B-Instruct-q4f16_1-MLC": {
+      "description": "Qwen-Modell für Code-Schreiben optimiert."
+    },
+    "Qwen2.5-Math-1.5B-Instruct-q4f16_1-MLC": {
+      "description": "Für Mathematikprobleme optimiert."
+    },
+    "Llama-3.1-8B-Instruct-q4f16_1-MLC-1k": {
+      "description": "Metas leistungsstarkes 8B-Modell. Niedrige Kontext-Version."
+    },
+    "Hermes-3-Llama-3.1-8B-q4f16_1-MLC": {
+      "description": "Function-Calling-Unterstützung. Ideal für MCP-Integration."
+    },
+    "DeepSeek-R1-Distill-Llama-8B-q4f16_1-MLC": {
+      "description": "DeepSeek Reasoning-Modell. Für tiefes Denken."
+    },
+    "Qwen3-8B-q4f16_1-MLC": {
+      "description": "Neuestes und leistungsfähigstes Qwen. Premium-Erlebnis."
+    },
+    "Phi-3.5-vision-instruct-q4f16_1-MLC": {
+      "description": "Modell mit visuellem Verständnis. Kann Bilder analysieren."
+    }
+  }
+}

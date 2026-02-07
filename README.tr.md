@@ -1,0 +1,115 @@
+<p align="center">
+  <img src="izan-logo.png" alt="izan.io" width="180" />
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/license-AGPL--3.0-blue.svg" alt="AGPL-3.0" />
+  <img src="https://img.shields.io/badge/TypeScript-007ACC?logo=typescript&logoColor=white" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black" alt="React 19" />
+  <img src="https://img.shields.io/badge/MCP-Protocol-green" alt="MCP" />
+</p>
+
+<h1 align="center">izan.io</h1>
+<p align="center">
+  <strong>Yerel AI Asistan — Open Source, Şeffaf, Özgür</strong>
+</p>
+<p align="center">
+  <em>Bilgelik • Anlayış • Akıl</em>
+</p>
+
+<p align="center">
+  <a href="README.md">English</a> · <a href="README.de.md">Deutsch</a>
+</p>
+
+---
+
+## ⚡ Ne bu?
+
+**izan.io**, tüm AI modellerini tek platformda toplayan, gizliliğinizi ön planda tutan açık kaynak bir AI asistan platformudur. Kendi API anahtarlarınızla kendi verilerinizle çalışın.
+
+> 🚨 **Copyleft:** Bu proje [AGPL-3.0](./LICENSE) altındadır. Fork/ değiştirir/ türev oluşturursanız **kodunuzu da açık kaynak yapmak zorundasınız**. Ağ üzerinden sunulan türevler kaynak kodu sağlamalıdır. Detay: [LICENSE](./LICENSE)
+
+---
+
+## ✨ Öne Çıkanlar
+
+| Özellik | Açıklama |
+|--------|----------|
+| 🔐 **Gizlilik** | API anahtarları yalnızca tarayıcınızda. Sunucularımıza gönderilmez. |
+| 🧠 **Çoklu Sağlayıcı** | 17+ AI sağlayıcı desteklenir (aşağıda). |
+| 🤖 **Akıllı Ajanlar** | MCP ile bağlı ajanlar — web araması, kod, vb. |
+| 🌐 **MCP** | Hazır ve özel MCP sunucuları. |
+
+---
+
+## 🔌 Desteklenen Sağlayıcılar
+
+**OpenAI** · **Google** (Gemini) · **Groq** · **Mistral** · **xAI** (Grok) · **DeepSeek** · **Qwen** (DashScope) · **Together AI** · **Fireworks AI** · **Perplexity** · **Cerebras** · **Deep Infra** · **Cohere** · **Moonshot AI** (Kimi) · **MiniMax** · **OpenRouter** (yüzlerce model) · **Ollama** (yerel) · **Custom** (OpenAI uyumlu uç noktalar)
+
+---
+
+## 🏗️ Mimari
+
+```
+izan.io/
+├── apps/web/           # React + Vite web uygulaması
+├── packages/
+│   ├── agent-core/     # Ajan yönlendirme, araç çalıştırma, LLM-bağımsız
+│   ├── mcp-client/     # MCP protokol istemcisi
+│   ├── mcp-servers/    # Google, Bing, GoDaddy vb.
+│   ├── llm-proxy/      # LLM API proxy
+│   └── infra/          # CDK altyapı
+```
+
+---
+
+## 🚀 Hızlı Başlangıç
+
+**Gereksinimler:** Node.js 18+, npm 10+
+
+```bash
+git clone https://github.com/ekingunoncu/izan.io.git
+cd izan.io
+npm install
+npm run dev
+```
+
+`http://localhost:5173` adresini açın. Ayarlardan sağlayıcı ve API anahtarı ekleyip sohbet etmeye başlayın.
+
+`apps/web/.env.example` dosyasına bakın. API anahtarları tarayıcıda saklanır.
+
+---
+
+## 🛠️ Teknoloji
+
+React 19 · React Router 7 · Vite 7 · Tailwind CSS 4 · Zustand · IndexedDB (Dexie) · react-i18next · npm workspaces + Turbo
+
+---
+
+## 🤝 Katkı
+
+PR'lar memnuniyetle karşılanır. Detaylar: [CONTRIBUTING.md](./CONTRIBUTING.md)
+
+1. Fork → branch → commit → push → PR
+2. Katkılar AGPL-3.0 ile uyumlu olacaktır.
+
+---
+
+## 📜 Lisans
+
+**GNU Affero General Public License v3.0 (AGPL-3.0)**
+
+- ✅ Kullan, değiştir, dağıt
+- ⚠️ Türevler AGPL-3.0 altında olmalı
+- ⚠️ Ağ üzerinden sunulan türevler kaynak sağlamalı
+
+Detay: [LICENSE](./LICENSE)
+
+---
+
+<p align="center">
+  <strong>izan.io</strong> — Wisdom • Understanding • Intellect
+</p>
+<p align="center">
+  <sub>Fork et, geliştir, paylaş.</sub>
+</p>

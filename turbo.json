@@ -1,0 +1,19 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", "build/**"],
+      "env": [
+        "VITE_GA_MEASUREMENT_ID",
+        "VITE_CLARITY_PROJECT_ID",
+        "PUBLIC_SITE_URL",
+        "VITE_MCP_BASE_URL"
+      ]
+    },
+    "dev": { "cache": false, "persistent": true },
+    "lint": { "dependsOn": ["^lint"] },
+    "deploy": { "dependsOn": ["build"], "cache": false },
+    "clean": { "cache": false }
+  }
+}

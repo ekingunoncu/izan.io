@@ -1,0 +1,29 @@
+{
+  "name": "@izan/llm-proxy",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "node -e \"\""
+  },
+  "dependencies": {
+    "@ai-sdk/openai": "^3.0.26",
+    "@ai-sdk/google": "^3.0.22",
+    "@ai-sdk/groq": "^3.0.22",
+    "@ai-sdk/xai": "^3.0.48",
+    "@ai-sdk/mistral": "^3.0.19",
+    "@ai-sdk/togetherai": "^2.0.31",
+    "@ai-sdk/perplexity": "^3.0.18",
+    "@ai-sdk/cerebras": "^2.0.31",
+    "@ai-sdk/deepinfra": "^2.0.32",
+    "@ai-sdk/cohere": "^3.0.19",
+    "@ai-sdk/openai-compatible": "^2.0.28",
+    "@openrouter/ai-sdk-provider": "^2.1.1",
+    "ai": "^6.0.75"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0"
+  }
+}

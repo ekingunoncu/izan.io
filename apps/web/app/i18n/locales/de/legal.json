@@ -1,0 +1,47 @@
+{
+  "privacy": {
+    "title": "Datenschutzrichtlinie",
+    "description": "izan.io Datenschutzrichtlinie - Erfahren Sie, wie Ihre personenbezogenen Daten erhoben, verwendet und geschützt werden.",
+    "lastUpdated": "Zuletzt aktualisiert",
+    "intro": "Bei izan.io ('wir', 'uns') respektieren wir Ihre Privatsphäre. Diese Richtlinie beschreibt, wie Ihre personenbezogenen Daten bei der Nutzung der izan.io Webanwendung ('Dienst') erhoben, verwendet und geschützt werden.",
+    "sections": {
+      "dataWeStore": "Lokal gespeicherte Daten",
+      "dataWeStoreDesc": "izan.io speichert Ihre API-Schlüssel und Chat-Verlauf nur in Ihrem Browser (IndexedDB). Diese Daten werden nicht an unsere Server gesendet oder dort gespeichert.",
+      "thirdPartyServices": "Drittanbieterdienste",
+      "thirdPartyServicesDesc": "Wir verwenden Google Analytics, Google Ads und Microsoft Clarity zur Verbesserung unseres Dienstes und zur Anzeige von Werbung. Diese Dienste können Cookies verwenden und Browserdaten sammeln. Google: https://policies.google.com/privacy, Microsoft Clarity: https://privacy.microsoft.com/privacystatement",
+      "cookies": "Cookies",
+      "cookiesDesc": "Google Analytics, Google Ads und Microsoft Clarity verwenden Cookies für Verkehrsanalyse, Anzeigenpersonalisierung und Verhaltensanalyse (Session-Replay, Heatmaps). Sie können Ihre Einstellungen über den Cookie-Banner verwalten.",
+      "gdpr": "DSGVO",
+      "gdprDesc": "Für Nutzer in der EU: Sie haben das Recht auf Zugang, Berichtigung, Löschung und Portabilität Ihrer personenbezogenen Daten. Da Ihre Daten nur in Ihrem Browser gespeichert werden, reicht das Löschen der Browserdaten aus.",
+      "children": "Datenschutz für Kinder",
+      "childrenDesc": "Unser Dienst richtet sich nicht an Kinder unter 13 Jahren. Wir sammeln wissentlich keine personenbezogenen Daten von Kindern unter 13 Jahren.",
+      "changes": "Richtlinienänderungen",
+      "changesDesc": "Wir können diese Richtlinie aktualisieren. Änderungen werden auf dieser Seite veröffentlicht."
+    },
+    "contact": "Bei Fragen:",
+    "contactEmail": "privacy@izan.io"
+  },
+  "terms": {
+    "title": "Nutzungsbedingungen",
+    "description": "izan.io Nutzungsbedingungen - Regeln, die Sie bei der Nutzung unseres Dienstes befolgen müssen.",
+    "lastUpdated": "Zuletzt aktualisiert",
+    "intro": "Die Nutzung von izan.io ('Dienst') bedeutet die Annahme dieser Nutzungsbedingungen.",
+    "sections": {
+      "acceptance": "Akzeptanz der Bedingungen",
+      "acceptanceDesc": "Durch die Nutzung des Dienstes stimmen Sie diesen Bedingungen zu.",
+      "useOfService": "Nutzung des Dienstes",
+      "useOfServiceDesc": "Sie müssen den Dienst in Übereinstimmung mit den geltenden Gesetzen nutzen. Sie sind für die sichere Aufbewahrung Ihrer API-Schlüssel verantwortlich.",
+      "disclaimer": "Haftungsausschluss",
+      "disclaimerDesc": "Der Dienst wird 'wie besehen' bereitgestellt. Die Genauigkeit von KI-Antworten wird nicht garantiert.",
+      "termination": "Kündigung",
+      "terminationDesc": "Wir können Ihren Zugang zum Dienst jederzeit beenden.",
+      "contact": "Kontakt",
+      "contactDesc": "Bei Fragen: terms@izan.io"
+    }
+  },
+  "nav": {
+    "privacy": "Datenschutz",
+    "terms": "Nutzungsbedingungen",
+    "backToHome": "Zur Startseite"
+  }
+}

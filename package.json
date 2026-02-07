@@ -1,0 +1,38 @@
+{
+  "name": "izan",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Open-source AI assistant platform with MCP agent support — https://izan.io",
+  "keywords": ["ai", "assistant", "mcp", "agents", "open-source", "llm", "chatbot"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ekingunoncu/izan.io.git"
+  },
+  "homepage": "https://izan.io",
+  "bugs": {
+    "url": "https://github.com/ekingunoncu/izan.io/issues"
+  },
+  "author": "izan.io contributors",
+  "license": "AGPL-3.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*","packages/mcp-servers","packages/mcp-servers/*"
+  ],
+  "scripts": {
+    "dev": "turbo dev",
+    "dev:mcp": "npm run build -w @izan/mcp-servers-shared -w @izan/mcp-servers-general -w @izan/mcp-servers-bing -w @izan/mcp-servers-google -w @izan/mcp-servers-namecheap && dotenv -e .env -- npm run dev -w @izan/mcp-servers",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "deploy": "turbo deploy",
+    "deploy:infra": "npm run build && dotenv -e .env -- npm run deploy --workspace=@izan/infra",
+    "clean": "turbo clean",
+    "test:mcp": "npm run build -w @izan/mcp-servers-shared -w @izan/mcp-servers-general -w @izan/mcp-servers-bing -w @izan/mcp-servers-google -w @izan/mcp-servers-namecheap && npm run test -w @izan/mcp-servers",
+    "test:mcp:integration": "dotenv run -- npm run test:mcp"
+  },
+  "devDependencies": {
+    "dotenv-cli": "^11.0.0",
+    "turbo": "^2.3.0",
+    "typescript": "^5.6.0"
+  },
+  "packageManager": "npm@10.0.0"
+}

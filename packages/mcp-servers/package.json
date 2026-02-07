@@ -1,0 +1,21 @@
+{
+  "name": "@izan/mcp-servers",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx dev-server.ts",
+    "build": "echo 'No build output for mcp-servers root'",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "@izan/mcp-servers-bing": "*",
+    "@izan/mcp-servers-general": "*",
+    "@izan/mcp-servers-google": "*",
+    "@izan/mcp-servers-namecheap": "*",
+    "dotenv": "^16.4.7",
+    "tsx": "^4.19.0",
+    "vitest": "^2.1.0"
+  }
+}

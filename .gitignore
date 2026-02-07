@@ -1,0 +1,45 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build outputs
+dist/
+build/
+.vite/
+*.tsbuildinfo
+.react-router/
+
+# Environment (never commit secrets)
+.env
+.env.*
+!.env.example
+.env.local
+.env.*.local
+.env.development
+.env.production
+.env.test
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Turbo
+.turbo/
+
+# CDK
+cdk.out/
+cdk.context.json
+
+# Logs
+*.log
+npm-debug.log*
+
+# Testing
+coverage/

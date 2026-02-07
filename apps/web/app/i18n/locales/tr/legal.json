@@ -1,0 +1,47 @@
+{
+  "privacy": {
+    "title": "Gizlilik Politikası",
+    "description": "izan.io gizlilik politikası - Kişisel verilerinizin nasıl toplandığını, kullanıldığını ve korunduğunu öğrenin.",
+    "lastUpdated": "Son güncelleme",
+    "intro": "izan.io ('biz', 'bizim') olarak gizliliğinize saygı duyuyoruz. Bu politika, izan.io web uygulamasını ('Hizmet') kullandığınızda kişisel verilerinizin nasıl toplandığını, kullanıldığını ve korunduğunu açıklar.",
+    "sections": {
+      "dataWeStore": "Yerel Olarak Saklanan Veriler",
+      "dataWeStoreDesc": "izan.io, API anahtarlarınızı ve sohbet geçmişinizi yalnızca tarayıcınızda (IndexedDB) saklar. Bu veriler bizim sunucularımıza gönderilmez veya saklanmaz.",
+      "thirdPartyServices": "Üçüncü Taraf Hizmetleri",
+      "thirdPartyServicesDesc": "Hizmetimizi iyileştirmek ve reklam göstermek için Google Analytics, Google Ads ve Microsoft Clarity kullanıyoruz. Bu hizmetler çerezler kullanabilir ve tarayıcı verilerinizi toplayabilir. Google: https://policies.google.com/privacy, Microsoft Clarity: https://privacy.microsoft.com/privacystatement",
+      "cookies": "Çerezler",
+      "cookiesDesc": "Google Analytics, Google Ads ve Microsoft Clarity trafik analizi, reklam kişiselleştirmesi ve davranış analizi (session replay, heatmap) için çerezler kullanır. Cookie banner üzerinden tercihlerinizi yönetebilirsiniz.",
+      "gdpr": "KVKK ve GDPR",
+      "gdprDesc": "AB ve Türkiye'deki kullanıcılar için: Kişisel verilerinize erişim, düzeltme, silme ve taşınabilirlik haklarınız vardır. Verileriniz yalnızca tarayıcınızda saklandığı için silmek için tarayıcı verilerinizi temizlemeniz yeterlidir.",
+      "children": "Çocukların Gizliliği",
+      "childrenDesc": "Hizmetimiz 13 yaş altı çocuklara yönelik değildir. Bilerek 13 yaş altından kişisel veri toplamıyoruz.",
+      "changes": "Politika Değişiklikleri",
+      "changesDesc": "Bu politikayı güncelleyebiliriz. Değişiklikler bu sayfada yayınlanacaktır."
+    },
+    "contact": "Sorularınız için:",
+    "contactEmail": "privacy@izan.io"
+  },
+  "terms": {
+    "title": "Kullanım Koşulları",
+    "description": "izan.io kullanım koşulları - Hizmetimizi kullanırken uymanız gereken kurallar.",
+    "lastUpdated": "Son güncelleme",
+    "intro": "izan.io ('Hizmet') kullanımı, bu Kullanım Koşulları'nı kabul etmeniz anlamına gelir.",
+    "sections": {
+      "acceptance": "Koşulların Kabulü",
+      "acceptanceDesc": "Hizmeti kullanarak bu koşulları kabul etmiş olursunuz.",
+      "useOfService": "Hizmet Kullanımı",
+      "useOfServiceDesc": "Hizmeti yasalara uygun şekilde kullanmalısınız. API anahtarlarınızı güvenli tutmak sizin sorumluluğunuzdadır.",
+      "disclaimer": "Sorumluluk Reddi",
+      "disclaimerDesc": "Hizmet 'olduğu gibi' sunulmaktadır. AI yanıtlarının doğruluğu garanti edilmez.",
+      "termination": "Hizmetin Sona Ermesi",
+      "terminationDesc": "Hizmete erişiminizi herhangi bir zamanda durdurabiliriz.",
+      "contact": "İletişim",
+      "contactDesc": "Sorularınız için: terms@izan.io"
+    }
+  },
+  "nav": {
+    "privacy": "Gizlilik",
+    "terms": "Kullanım Koşulları",
+    "backToHome": "Ana Sayfa"
+  }
+}

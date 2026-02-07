@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://izan.io/sitemap.xml

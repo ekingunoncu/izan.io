@@ -1,0 +1,104 @@
+{
+  "tiers": {
+    "ultra-light": {
+      "name": "Ultra Hafif",
+      "description": "< 500MB VRAM - Anlık başlangıç"
+    },
+    "mobile": {
+      "name": "Mobil",
+      "description": "500MB - 1.5GB VRAM - Telefon için"
+    },
+    "balanced": {
+      "name": "Dengeli",
+      "description": "1.5GB - 3GB VRAM - En iyi oran"
+    },
+    "powerful": {
+      "name": "Güçlü",
+      "description": "3GB - 4GB VRAM - Tablet/güçlü telefon"
+    },
+    "desktop": {
+      "name": "Masaüstü",
+      "description": "4GB - 6GB VRAM - Laptop/PC"
+    },
+    "premium": {
+      "name": "Premium",
+      "description": "6GB+ VRAM - Güçlü GPU gerektirir"
+    }
+  },
+  "specialties": {
+    "general": "Genel",
+    "code": "Kod",
+    "math": "Matematik",
+    "vision": "Görsel",
+    "reasoning": "izan",
+    "function-calling": "MCP"
+  },
+  "models": {
+    "SmolLM2-135M-Instruct-q0f16-MLC": {
+      "description": "En küçük model. Anlık başlangıç, basit görevler için."
+    },
+    "SmolLM2-360M-Instruct-q4f16_1-MLC": {
+      "description": "Çok hafif, hızlı yanıt. Basit sohbet için ideal."
+    },
+    "TinyLlama-1.1B-Chat-v1.0-q4f16_1-MLC": {
+      "description": "Küçük ama yetenekli. Eski telefonlar için uygun."
+    },
+    "Llama-3.2-1B-Instruct-q4f16_1-MLC": {
+      "description": "Meta'nın en yeni küçük modeli. Mobil için önerilen."
+    },
+    "Qwen2.5-0.5B-Instruct-q4f16_1-MLC": {
+      "description": "Alibaba'nın en hafif modeli. Çok hızlı yanıt."
+    },
+    "Qwen3-0.6B-q4f16_1-MLC": {
+      "description": "En yeni Qwen serisi. Küçük ama akıllı."
+    },
+    "Qwen2.5-1.5B-Instruct-q4f16_1-MLC": {
+      "description": "Alibaba'nın dengeli modeli. İyi kalite/hız oranı."
+    },
+    "SmolLM2-1.7B-Instruct-q4f16_1-MLC": {
+      "description": "HuggingFace'in optimize modeli. Hızlı ve yetenekli."
+    },
+    "Qwen3-1.7B-q4f16_1-MLC": {
+      "description": "Yeni nesil Qwen. izan yetenekli."
+    },
+    "gemma-2-2b-it-q4f16_1-MLC-1k": {
+      "description": "Google'ın açık kaynak modeli. Dengeli performans."
+    },
+    "Llama-3.2-3B-Instruct-q4f16_1-MLC": {
+      "description": "Meta'nın güçlü küçük modeli. Genel kullanım için önerilen."
+    },
+    "Qwen2.5-3B-Instruct-q4f16_1-MLC": {
+      "description": "Alibaba'nın güçlü orta boy modeli."
+    },
+    "Qwen3-4B-q4f16_1-MLC": {
+      "description": "Yeni nesil Qwen 4B. Çok yetenekli, izan güçlü."
+    },
+    "Phi-3.5-mini-instruct-q4f16_1-MLC-1k": {
+      "description": "Microsoft'un kod modeli. Düşük bellek versiyonu."
+    },
+    "Phi-3.5-mini-instruct-q4f16_1-MLC": {
+      "description": "Microsoft'un güçlü modeli. Kod ve mantık için ideal."
+    },
+    "Qwen2.5-Coder-3B-Instruct-q4f16_1-MLC": {
+      "description": "Kod yazma için optimize edilmiş Qwen modeli."
+    },
+    "Qwen2.5-Math-1.5B-Instruct-q4f16_1-MLC": {
+      "description": "Matematik problemleri için optimize edilmiş."
+    },
+    "Llama-3.1-8B-Instruct-q4f16_1-MLC-1k": {
+      "description": "Meta'nın güçlü 8B modeli. Düşük context versiyonu."
+    },
+    "Hermes-3-Llama-3.1-8B-q4f16_1-MLC": {
+      "description": "Function calling destekli. MCP entegrasyonu için ideal."
+    },
+    "DeepSeek-R1-Distill-Llama-8B-q4f16_1-MLC": {
+      "description": "DeepSeek'in izan modeli. Derin düşünme için."
+    },
+    "Qwen3-8B-q4f16_1-MLC": {
+      "description": "En yeni ve en yetenekli Qwen. Premium deneyim."
+    },
+    "Phi-3.5-vision-instruct-q4f16_1-MLC": {
+      "description": "Görsel anlama yeteneği olan model. Resim analizi yapabilir."
+    }
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "privacy": {
+    "title": "Privacy Policy",
+    "description": "izan.io privacy policy - Learn how your personal data is collected, used, and protected.",
+    "lastUpdated": "Last updated",
+    "intro": "At izan.io ('we', 'us'), we respect your privacy. This policy describes how your personal data is collected, used, and protected when you use the izan.io web application ('Service').",
+    "sections": {
+      "dataWeStore": "Data We Store Locally",
+      "dataWeStoreDesc": "izan.io stores your API keys and chat history only in your browser (IndexedDB). This data is not sent to or stored on our servers.",
+      "thirdPartyServices": "Third-Party Services",
+      "thirdPartyServicesDesc": "We use Google Analytics, Google Ads and Microsoft Clarity to improve our service and display ads. These services may use cookies and collect browser data. Google: https://policies.google.com/privacy, Microsoft Clarity: https://privacy.microsoft.com/privacystatement",
+      "cookies": "Cookies",
+      "cookiesDesc": "Google Analytics, Google Ads and Microsoft Clarity use cookies for traffic analysis, ad personalization and behavioral analytics (session replay, heatmaps). You can manage your preferences via the cookie banner.",
+      "gdpr": "GDPR & CCPA",
+      "gdprDesc": "For users in the EU and California: You have the right to access, correct, delete, and port your personal data. Since your data is stored only in your browser, clearing browser data will delete it.",
+      "children": "Children's Privacy",
+      "childrenDesc": "Our Service is not intended for children under 13. We do not knowingly collect personal data from children under 13.",
+      "changes": "Policy Changes",
+      "changesDesc": "We may update this policy. Changes will be posted on this page."
+    },
+    "contact": "For questions:",
+    "contactEmail": "privacy@izan.io"
+  },
+  "terms": {
+    "title": "Terms of Service",
+    "description": "izan.io terms of service - Rules you must follow when using our service.",
+    "lastUpdated": "Last updated",
+    "intro": "Use of the izan.io ('Service') constitutes acceptance of these Terms of Service.",
+    "sections": {
+      "acceptance": "Acceptance of Terms",
+      "acceptanceDesc": "By using the Service, you agree to these terms.",
+      "useOfService": "Use of Service",
+      "useOfServiceDesc": "You must use the Service in compliance with applicable laws. You are responsible for keeping your API keys secure.",
+      "disclaimer": "Disclaimer",
+      "disclaimerDesc": "The Service is provided 'as is'. Accuracy of AI responses is not guaranteed.",
+      "termination": "Termination",
+      "terminationDesc": "We may terminate your access to the Service at any time.",
+      "contact": "Contact",
+      "contactDesc": "For questions: terms@izan.io"
+    }
+  },
+  "nav": {
+    "privacy": "Privacy",
+    "terms": "Terms",
+    "backToHome": "Back to Home"
+  }
+}
