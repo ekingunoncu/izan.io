@@ -20,7 +20,7 @@ import { isOriginAllowed } from './shared/src/types.js'
 function getCorsHeaders(origin?: string | null): Record<string, string> {
   const allowed = isOriginAllowed(origin)
   const base: Record<string, string> = {
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   }
   if (allowed && origin) base['Access-Control-Allow-Origin'] = origin
@@ -65,6 +65,25 @@ const server = createServer(async (req, res) => {
   if (req.method === 'OPTIONS') {
     res.writeHead(204, cors)
     res.end()
+    return
+  }
+
+  // GET /api/github-stars → proxy for GitHub API (matches production Lambda)
+  if (req.method === 'GET' && req.url?.startsWith('/api/github-stars')) {
+    try {
+      const ghRes = await fetch('https://api.github.com/repos/ekingunoncu/izan.io')
+      const data = (await ghRes.json()) as { stargazers_count?: number }
+      const stars = typeof data?.stargazers_count === 'number' ? data.stargazers_count : 0
+      res.writeHead(200, {
+        ...cors,
+        'Content-Type': 'application/json',
+        'Cache-Control': 'public, max-age=3600',
+      })
+      res.end(JSON.stringify({ stars }))
+    } catch {
+      res.writeHead(200, { ...cors, 'Content-Type': 'application/json' })
+      res.end(JSON.stringify({ stars: 0 }))
+    }
     return
   }
 

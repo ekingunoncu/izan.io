@@ -25,6 +25,16 @@ import {
   ChevronDown,
   ChevronRight,
 } from 'lucide-react'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '~/components/ui/alert-dialog'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
 import { useAgentStore, useUIStore, useMCPStore } from '~/store'
@@ -72,6 +82,8 @@ export function AgentEditPanel() {
   const [customMCPIds, setCustomMCPIds] = useState<string[]>([])
   const [linkedAgentIds, setLinkedAgentIds] = useState<string[]>([])
   const [expandedSection, setExpandedSection] = useState<string | null>('info')
+  const [resetDialogOpen, setResetDialogOpen] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
 
   // Sync local state when current agent changes (e.g. user switches agent)
   useEffect(() => {
@@ -104,12 +116,20 @@ export function AgentEditPanel() {
   }
 
   const handleReset = async () => {
-    if (!confirm(t('agents.resetConfirm'))) return
+    setResetDialogOpen(true)
+  }
+
+  const handleResetConfirm = async () => {
     await resetAgent(currentAgent.id)
+    setResetDialogOpen(false)
   }
 
   const handleDelete = async () => {
-    if (!confirm(t('agents.deleteConfirm'))) return
+    setDeleteDialogOpen(true)
+  }
+
+  const handleDeleteConfirm = async () => {
+    setDeleteDialogOpen(false)
     await deleteAgent(currentAgent.id)
     closeAgentEdit()
   }
@@ -153,14 +173,42 @@ export function AgentEditPanel() {
           <h2 className="text-lg font-semibold">{t('agents.editTitle')}</h2>
           <div className="flex items-center gap-1">
             {currentAgent.source === 'builtin' && currentAgent.isEdited && (
-              <Button variant="ghost" size="icon" className="h-11 w-11 min-h-[44px] min-w-[44px] sm:h-8 sm:w-8 sm:min-h-0 sm:min-w-0" onClick={handleReset} title={t('agents.resetToDefault')}>
-                <RotateCcw className="h-4 w-4" />
-              </Button>
+              <>
+                <Button variant="ghost" size="icon" className="h-11 w-11 min-h-[44px] min-w-[44px] sm:h-8 sm:w-8 sm:min-h-0 sm:min-w-0" onClick={handleReset} title={t('agents.resetToDefault')}>
+                  <RotateCcw className="h-4 w-4" />
+                </Button>
+                <AlertDialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>{t('agents.resetToDefault')}</AlertDialogTitle>
+                      <AlertDialogDescription>{t('agents.resetConfirm')}</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>{t('agents.cancel')}</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleResetConfirm}>{t('agents.resetToDefault')}</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </>
             )}
             {currentAgent.source === 'user' && (
-              <Button variant="ghost" size="icon" className="h-11 w-11 min-h-[44px] min-w-[44px] sm:h-8 sm:w-8 sm:min-h-0 sm:min-w-0 text-destructive" onClick={handleDelete} title={t('agents.delete')}>
-                <Trash2 className="h-4 w-4" />
-              </Button>
+              <>
+                <Button variant="ghost" size="icon" className="h-11 w-11 min-h-[44px] min-w-[44px] sm:h-8 sm:w-8 sm:min-h-0 sm:min-w-0 text-destructive" onClick={handleDelete} title={t('agents.delete')}>
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+                <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>{t('agents.delete')}</AlertDialogTitle>
+                      <AlertDialogDescription>{t('agents.deleteConfirm')}</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>{t('agents.cancel')}</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleDeleteConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">{t('agents.delete')}</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </>
             )}
             <Button variant="ghost" size="icon" className="h-11 w-11 min-h-[44px] min-w-[44px] sm:h-8 sm:w-8 sm:min-h-0 sm:min-w-0" onClick={closeAgentEdit}>
               <X className="h-4 w-4" />

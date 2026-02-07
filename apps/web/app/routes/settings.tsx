@@ -23,6 +23,16 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { useState, useEffect } from "react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "~/components/ui/alert-dialog";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import {
@@ -229,6 +239,7 @@ export default function Settings() {
   const [expandedProviderId, setExpandedProviderId] = useState<string | null>(null);
   // Built-in MCP section: collapsed by default, expand to see all servers
   const [builtinMcpExpanded, setBuiltinMcpExpanded] = useState(false);
+  const [deleteServerId, setDeleteServerId] = useState<string | null>(null);
 
   const enabledAgents = agents.filter((a) => a.enabled);
   // Built-in: show only name + description (no connection status, no API calls)
@@ -267,9 +278,14 @@ export default function Settings() {
     }
   };
 
-  const handleDeleteServer = async (serverId: string) => {
-    if (!confirm(t("settings.mcpDeleteConfirm"))) return;
-    await removeUserServer(serverId);
+  const handleDeleteServer = (serverId: string) => {
+    setDeleteServerId(serverId);
+  };
+
+  const handleDeleteServerConfirm = async () => {
+    if (!deleteServerId) return;
+    setDeleteServerId(null);
+    await removeUserServer(deleteServerId);
   };
 
   const toggleAgentForNewServer = (agentId: string) => {
@@ -807,6 +823,19 @@ export default function Settings() {
           </Card>
         </div>
       </main>
+
+      <AlertDialog open={deleteServerId !== null} onOpenChange={(open) => !open && setDeleteServerId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("settings.mcpDelete")}</AlertDialogTitle>
+            <AlertDialogDescription>{t("settings.mcpDeleteConfirm")}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("agents.cancel")}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteServerConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">{t("settings.mcpDelete")}</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

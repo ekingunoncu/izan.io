@@ -143,8 +143,8 @@ function MarkdownMessage({
         </button>
       </div>
       {isRaw ? (
-        <pre className="whitespace-pre-wrap break-words text-sm sm:text-base overflow-x-auto">
-          {text}
+        <pre className="font-mono text-sm sm:text-base whitespace-pre-wrap break-words overflow-x-auto p-3 rounded-lg bg-muted-foreground/10 mt-1">
+          <code className="block">{text}</code>
         </pre>
       ) : (
         <div className="markdown-content text-sm sm:text-base [&_p]:my-1 [&_h1]:text-lg [&_h2]:text-base [&_h3]:text-sm [&_ul]:my-1 [&_ol]:my-1 [&_li]:ml-4 [&_pre]:my-2 [&_pre]:p-3 [&_pre]:rounded-lg [&_pre]:bg-muted-foreground/10 [&_pre]:overflow-x-auto [&_code]:bg-muted-foreground/10 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_a]:underline [&_a]:text-primary">

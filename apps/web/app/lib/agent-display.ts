@@ -23,6 +23,13 @@ export function getAgentDisplayDescription(agent: Agent | null | undefined, t: T
   return translated !== key ? translated : agent.description
 }
 
+export function getAgentDetailedDescription(agent: Agent | null | undefined, t: TFunction): string {
+  if (!agent || agent.source === 'user') return agent?.description ?? ''
+  const key = `agents.builtin.${agent.id}.detailedDescription`
+  const translated = t(key)
+  return translated !== key ? translated : ''
+}
+
 export function getAgentWhatItDoes(agent: Agent | null | undefined, t: TFunction): string {
   if (!agent || agent.source === 'user') return agent?.description ?? ''
   const key = `agents.builtin.${agent.id}.whatItDoes`
@@ -37,10 +44,35 @@ export function getAgentMcps(agent: Agent | null | undefined, t: TFunction): str
   return translated !== key ? translated : ''
 }
 
+export function getAgentFeatures(agent: Agent | null | undefined, t: TFunction): string[] {
+  if (!agent || agent.source === 'user') return []
+  const features: string[] = []
+  for (let i = 1; i <= 4; i++) {
+    const key = `agents.builtin.${agent.id}.feature${i}`
+    const translated = t(key)
+    if (translated !== key) features.push(translated)
+  }
+  return features
+}
+
+export function getAgentHowToUse(agent: Agent | null | undefined, t: TFunction): string {
+  if (!agent || agent.source === 'user') return ''
+  const key = `agents.builtin.${agent.id}.howToUse`
+  const translated = t(key)
+  return translated !== key ? translated : ''
+}
+
+export function getAgentProTip(agent: Agent | null | undefined, t: TFunction): string {
+  if (!agent || agent.source === 'user') return ''
+  const key = `agents.builtin.${agent.id}.proTip`
+  const translated = t(key)
+  return translated !== key ? translated : ''
+}
+
 export function getAgentUsageExamples(agent: Agent | null | undefined, t: TFunction): string[] {
   if (!agent || agent.source === 'user') return []
   const examples: string[] = []
-  for (let i = 1; i <= 3; i++) {
+  for (let i = 1; i <= 5; i++) {
     const key = `agents.builtin.${agent.id}.usageExample${i}`
     const translated = t(key)
     if (translated !== key) examples.push(translated)
