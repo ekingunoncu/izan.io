@@ -3,7 +3,7 @@
  * https://models.dev/api.json
  */
 
-import type { ProviderId } from '@izan/llm-proxy'
+import type { ProviderId } from './llm-providers'
 import type { ModelInfo } from './providers'
 
 const MODELS_DEV_URL = 'https://models.dev/api.json'

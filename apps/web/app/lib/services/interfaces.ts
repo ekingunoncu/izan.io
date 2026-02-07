@@ -60,6 +60,13 @@ export interface ChatCompletionResult {
   finishReason: string
 }
 
+/** Optional model hyperparameters for chat completion */
+export interface LLMGenerationOptions {
+  temperature?: number
+  max_tokens?: number
+  top_p?: number
+}
+
 /**
  * ILLMService - Interface for LLM operations (cloud provider via proxy)
  */
@@ -69,17 +76,19 @@ export interface ILLMService {
   isConfigured(): boolean
   getProvider(): string | null
   getModel(): string | null
-  
+
   // Chat completion (streaming)
   streamChat(
     messages: ChatCompletionMessageParam[],
-    onChunk: (chunk: string) => void
+    onChunk: (chunk: string) => void,
+    options?: LLMGenerationOptions,
   ): Promise<void>
 
   // Chat completion with tools (non-streaming, returns tool_calls or text)
   chatWithTools(
     messages: ChatCompletionMessageParam[],
     tools: ChatCompletionTool[],
+    options?: LLMGenerationOptions,
   ): Promise<ChatCompletionResult>
 
   // Chat completion with tools (streaming - streams text, returns tool_calls when model calls tools)
@@ -87,6 +96,7 @@ export interface ILLMService {
     messages: ChatCompletionMessageParam[],
     tools: ChatCompletionTool[],
     onChunk: (chunk: string) => void,
+    options?: LLMGenerationOptions,
   ): Promise<ChatCompletionResult>
 
   // Generation control

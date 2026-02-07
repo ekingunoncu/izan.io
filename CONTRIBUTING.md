@@ -33,7 +33,6 @@ izan.io/
 │   ├── agent-core/     # Agent routing, tool execution
 │   ├── mcp-client/     # MCP protocol client
 │   ├── mcp-servers/    # Built-in MCP servers (Bing, Google, Namecheap, etc.)
-│   ├── llm-proxy/      # LLM API proxy (Vercel AI SDK)
 │   └── infra/          # AWS CDK infrastructure
 ```
 
@@ -101,7 +100,7 @@ npm run lint
 ## Adding a New LLM Provider
 
 1. Add provider config in `apps/web/app/lib/providers/index.ts`
-2. If it uses a non-standard API, add adapter in `packages/llm-proxy/src/providers.ts`
+2. Add endpoint in `apps/web/app/lib/llm-providers.ts` if needed
 3. Add i18n translations in all 3 locale files (`en`, `tr`, `de`)
 
 ## License

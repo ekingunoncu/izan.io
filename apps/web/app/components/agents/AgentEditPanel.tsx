@@ -81,6 +81,10 @@ export function AgentEditPanel() {
   const [implicitMCPIds, setImplicitMCPIds] = useState<string[]>([])
   const [customMCPIds, setCustomMCPIds] = useState<string[]>([])
   const [linkedAgentIds, setLinkedAgentIds] = useState<string[]>([])
+  const [temperature, setTemperature] = useState<number>(1)
+  const [maxTokens, setMaxTokens] = useState<number>(4096)
+  const [topP, setTopP] = useState<number>(1)
+  const [useDefaultParams, setUseDefaultParams] = useState(true)
   const [expandedSection, setExpandedSection] = useState<string | null>('info')
   const [resetDialogOpen, setResetDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -96,6 +100,11 @@ export function AgentEditPanel() {
       setImplicitMCPIds(currentAgent.implicitMCPIds);
       setCustomMCPIds(currentAgent.customMCPIds);
       setLinkedAgentIds(currentAgent.linkedAgentIds);
+      const hasCustomParams = currentAgent.temperature != null || currentAgent.maxTokens != null || currentAgent.topP != null;
+      setUseDefaultParams(!hasCustomParams);
+      setTemperature(currentAgent.temperature ?? 1);
+      setMaxTokens(currentAgent.maxTokens ?? 4096);
+      setTopP(currentAgent.topP ?? 1);
     }, 0);
     return () => clearTimeout(t);
   }, [currentAgent]);
@@ -103,7 +112,7 @@ export function AgentEditPanel() {
   if (!currentAgent) return null
 
   const handleSave = async () => {
-    await updateAgent(currentAgent.id, {
+    const updates: Parameters<typeof updateAgent>[1] = {
       name: name.trim() || currentAgent.name,
       description: description.trim(),
       icon: selectedIcon,
@@ -111,7 +120,17 @@ export function AgentEditPanel() {
       implicitMCPIds,
       customMCPIds,
       linkedAgentIds,
-    })
+    }
+    if (!useDefaultParams) {
+      updates.temperature = temperature
+      updates.maxTokens = maxTokens
+      updates.topP = topP
+    } else {
+      updates.temperature = undefined
+      updates.maxTokens = undefined
+      updates.topP = undefined
+    }
+    await updateAgent(currentAgent.id, updates)
     closeAgentEdit()
   }
 
@@ -269,6 +288,73 @@ export function AgentEditPanel() {
               className="w-full min-h-[120px] rounded-md border bg-background px-3 py-2 text-sm resize-y focus:outline-none focus:ring-2 focus:ring-ring"
               rows={5}
             />
+          </CollapsibleSection>
+
+          {/* Model Parameters Section */}
+          <CollapsibleSection
+            title={t('agents.modelParams')}
+            subtitle={t('agents.modelParamsDesc')}
+            isOpen={expandedSection === 'modelParams'}
+            onToggle={() => toggleSection('modelParams')}
+          >
+            <div className="space-y-4">
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={useDefaultParams}
+                  onChange={(e) => setUseDefaultParams(e.target.checked)}
+                  className="rounded border-input"
+                />
+                {t('agents.useDefault')}
+              </label>
+              {!useDefaultParams && (
+                <>
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between">
+                      <label className="text-sm font-medium">{t('agents.temperature')}</label>
+                      <span className="text-sm text-muted-foreground">{temperature}</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={0}
+                      max={2}
+                      step={0.1}
+                      value={temperature}
+                      onChange={(e) => setTemperature(Number(e.target.value))}
+                      className="w-full accent-primary"
+                    />
+                    <p className="text-xs text-muted-foreground">{t('agents.temperatureDesc')}</p>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">{t('agents.maxTokens')}</label>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={128000}
+                      value={maxTokens}
+                      onChange={(e) => setMaxTokens(Math.max(1, Math.min(128000, Number(e.target.value) || 4096)))}
+                    />
+                    <p className="text-xs text-muted-foreground">{t('agents.maxTokensDesc')}</p>
+                  </div>
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between">
+                      <label className="text-sm font-medium">{t('agents.topP')}</label>
+                      <span className="text-sm text-muted-foreground">{topP}</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={0}
+                      max={1}
+                      step={0.05}
+                      value={topP}
+                      onChange={(e) => setTopP(Number(e.target.value))}
+                      className="w-full accent-primary"
+                    />
+                    <p className="text-xs text-muted-foreground">{t('agents.topPDesc')}</p>
+                  </div>
+                </>
+              )}
+            </div>
           </CollapsibleSection>
 
           {/* Implicit MCPs */}

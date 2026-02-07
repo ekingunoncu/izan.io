@@ -10,6 +10,7 @@ export type {
   ChatCompletionTool,
   ChatCompletionMessageToolCall,
   ChatCompletionResult,
+  LLMGenerationOptions,
   StreamingMessageHandler,
   ProgressHandler,
 } from './interfaces'

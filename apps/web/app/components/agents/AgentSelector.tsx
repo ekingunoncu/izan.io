@@ -18,6 +18,7 @@ import {
   Lightbulb,
   Check,
   X,
+  Star,
 } from 'lucide-react'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
@@ -55,7 +56,7 @@ export function AgentSelector({ onClose }: AgentSelectorProps) {
   const { t } = useTranslation('common')
   const navigate = useNavigate()
   const [search, setSearch] = useState('')
-  const { agents, currentAgentId, selectAgent, searchAgents, getAgentSlug } = useAgentStore()
+  const { agents, currentAgentId, favoriteAgentIds, selectAgent, searchAgents, getAgentSlug, toggleFavoriteAgent } = useAgentStore()
   const { openCreateAgent } = useUIStore()
 
   const filtered = search.trim() ? searchAgents(search) : agents.filter(a => a.enabled)
@@ -75,11 +76,18 @@ export function AgentSelector({ onClose }: AgentSelectorProps) {
     onClose()
   }
 
-  // Separate builtin and user agents; put general first
+  // Favorites first (in user's order), then builtin, then user
+  const favoriteAgents = filtered
+    .filter(a => favoriteAgentIds.includes(a.id))
+    .sort((a, b) => {
+      const ia = favoriteAgentIds.indexOf(a.id)
+      const ib = favoriteAgentIds.indexOf(b.id)
+      return ia - ib
+    })
   const builtinAgents = filtered
-    .filter(a => a.source === 'builtin')
+    .filter(a => a.source === 'builtin' && !favoriteAgentIds.includes(a.id))
     .sort((a, b) => (a.id === 'general' ? -1 : b.id === 'general' ? 1 : 0))
-  const userAgents = filtered.filter(a => a.source === 'user')
+  const userAgents = filtered.filter(a => a.source === 'user' && !favoriteAgentIds.includes(a.id))
 
   return (
     <div className="flex flex-col h-full max-h-[70vh]">
@@ -114,15 +122,42 @@ export function AgentSelector({ onClose }: AgentSelectorProps) {
           </p>
         )}
 
+        {favoriteAgents.length > 0 && (
+          <>
+            <p className="text-xs text-muted-foreground px-2 pt-1 pb-1 font-medium">{t('agents.favorites')}</p>
+            {favoriteAgents.map(agent => (
+              <AgentListItem
+                key={agent.id}
+                agent={agent}
+                isSelected={currentAgentId === agent.id}
+                isFavorite
+                onSelect={() => handleSelect(agent.id)}
+                onToggleFavorite={(e) => {
+                  e.stopPropagation()
+                  toggleFavoriteAgent(agent.id)
+                }}
+              />
+            ))}
+          </>
+        )}
+
         {builtinAgents.length > 0 && (
           <>
-            <p className="text-xs text-muted-foreground px-2 pt-1 pb-1 font-medium">{t('agents.builtinLabel')}</p>
+            <p className={cn(
+              'text-xs text-muted-foreground px-2 pb-1 font-medium',
+              favoriteAgents.length > 0 ? 'pt-3' : 'pt-1'
+            )}>{t('agents.builtinLabel')}</p>
             {builtinAgents.map(agent => (
               <AgentListItem
                 key={agent.id}
                 agent={agent}
                 isSelected={currentAgentId === agent.id}
+                isFavorite={false}
                 onSelect={() => handleSelect(agent.id)}
+                onToggleFavorite={(e) => {
+                  e.stopPropagation()
+                  toggleFavoriteAgent(agent.id)
+                }}
               />
             ))}
           </>
@@ -136,7 +171,12 @@ export function AgentSelector({ onClose }: AgentSelectorProps) {
                 key={agent.id}
                 agent={agent}
                 isSelected={currentAgentId === agent.id}
+                isFavorite={false}
                 onSelect={() => handleSelect(agent.id)}
+                onToggleFavorite={(e) => {
+                  e.stopPropagation()
+                  toggleFavoriteAgent(agent.id)
+                }}
               />
             ))}
           </>
@@ -157,21 +197,28 @@ export function AgentSelector({ onClose }: AgentSelectorProps) {
 function AgentListItem({
   agent,
   isSelected,
+  isFavorite,
   onSelect,
+  onToggleFavorite,
 }: {
   agent: Agent
   isSelected: boolean
+  isFavorite: boolean
   onSelect: () => void
+  onToggleFavorite: (e: React.MouseEvent) => void
 }) {
   const { t } = useTranslation('common')
   // getAgentIcon returns a component from a fixed map, not created during render
   const Icon = getAgentIcon(agent.icon)
 
   return (
-    <button
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onSelect}
+      onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onSelect()}
       className={cn(
-        'w-full px-3 py-2.5 rounded-lg flex items-center gap-3 transition-colors text-left',
+        'w-full px-3 py-2.5 rounded-lg flex items-center gap-3 transition-colors text-left cursor-pointer',
         isSelected ? 'bg-primary/10 text-primary' : 'hover:bg-muted'
       )}
     >
@@ -193,7 +240,16 @@ function AgentListItem({
         </div>
         <p className="text-xs text-muted-foreground truncate">{getAgentDisplayDescription(agent, t)}</p>
       </div>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-7 w-7 flex-shrink-0"
+        onClick={onToggleFavorite}
+        aria-label={isFavorite ? t('agents.removeFromFavorites') : t('agents.addToFavorites')}
+      >
+        <Star className={cn('h-4 w-4', isFavorite ? 'fill-amber-400 text-amber-500' : 'text-muted-foreground')} />
+      </Button>
       {isSelected && <Check className="h-4 w-4 text-primary flex-shrink-0" />}
-    </button>
+    </div>
   )
 }

@@ -20,6 +20,9 @@
 <p align="center">
   <a href="README.tr.md">Türkçe</a> · <a href="README.de.md">Deutsch</a>
 </p>
+<p align="center">
+  <a href="https://izan.io">🌐 Try it live → izan.io</a>
+</p>
 
 ---
 
@@ -57,7 +60,6 @@ izan.io/
 │   ├── agent-core/     # Agent routing, tool execution, LLM-agnostic
 │   ├── mcp-client/     # MCP protocol client
 │   ├── mcp-servers/    # Google, Bing, Namecheap, etc.
-│   ├── llm-proxy/      # LLM API proxy
 │   └── infra/          # CDK infra
 ```
 
