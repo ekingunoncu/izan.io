@@ -56,7 +56,7 @@ izan.io/
 ├── packages/
 │   ├── agent-core/     # Agent-Routing, Tool-Ausführung, LLM-agnostisch
 │   ├── mcp-client/     # MCP-Protokoll-Client
-│   ├── mcp-servers/    # Google, Bing, GoDaddy etc.
+│   ├── mcp-servers/    # Google, Bing, Namecheap etc.
 │   ├── llm-proxy/      # LLM-API-Proxy
 │   └── infra/          # CDK-Infra
 ```

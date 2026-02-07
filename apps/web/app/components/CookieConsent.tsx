@@ -14,7 +14,7 @@ const CONSENT_KEY = "izan_cookie_consent";
 function getLangFromRoute(matches: ReturnType<typeof useMatches>): SupportedLanguage {
   const m = matches.find((r) => r.params && "lang" in r.params);
   const lang = m?.params?.lang;
-  return lang && isSupportedLanguage(lang) ? lang : "tr";
+  return lang && isSupportedLanguage(lang) ? lang : "en";
 }
 
 export function CookieConsent() {

@@ -59,7 +59,7 @@ function getIcon(iconId: string) {
 export function AgentEditPanel() {
   const { t, i18n } = useTranslation('common')
   const location = useLocation()
-  const lang = (i18n.language || 'tr').split('-')[0] as string
+  const lang = (i18n.language || 'en').split('-')[0] as string
   const { currentAgent, agents, updateAgent, resetAgent, deleteAgent } = useAgentStore()
   const { closeAgentEdit } = useUIStore()
   const { userServers } = useMCPStore()

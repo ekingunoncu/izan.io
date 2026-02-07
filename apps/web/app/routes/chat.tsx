@@ -41,7 +41,7 @@ export default function Chat() {
   const location = useLocation();
   const navigate = useNavigate();
   const { agentSlug } = useParams();
-  const lang = (i18n.language || "tr").split("-")[0];
+  const lang = (i18n.language || "en").split("-")[0];
   const settingsPath = isSupportedLanguage(lang) ? `/${lang}/settings` : "/tr/settings";
   const {
     initialize: initModel,

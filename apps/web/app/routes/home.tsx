@@ -22,7 +22,7 @@ import {
 import type { Route } from "./+types/home";
 
 export function meta({ params }: Route.MetaArgs) {
-  const lang = params.lang || "tr";
+  const lang = params.lang || "en";
 
   const titles: Record<string, string> = {
     tr: "izan.io - Yerel AI Asistan",

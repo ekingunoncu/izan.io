@@ -30,12 +30,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
     langMatch?.params?.lang && isSupportedLanguage(langMatch.params.lang)
       ? langMatch.params.lang
       : null;
-  // When route has no lang (e.g. /chat), use stored preference; otherwise default to "tr"
+  // When route has no lang (e.g. /chat), use stored preference; otherwise default to "en"
   const lang =
     langFromParams ??
     (typeof globalThis.window === "undefined"
-      ? "tr"
-      : getStoredLanguagePreference() ?? "tr");
+      ? "en"
+      : getStoredLanguagePreference() ?? "en");
 
   // Sync i18n with URL lang so /en/agents shows English (BOTH server and client).
   // Must run synchronously before render to avoid hydration mismatch.

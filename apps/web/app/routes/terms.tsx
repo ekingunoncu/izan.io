@@ -21,7 +21,7 @@ const LEGAL_LAST_UPDATED = "2026-02-07";
 const SITE_URL = "https://izan.io";
 
 export function meta({ params }: Route.MetaArgs) {
-  const lang = params.lang || "tr";
+  const lang = params.lang || "en";
   const titles: Record<string, string> = {
     tr: "Kullanım Koşulları",
     en: "Terms of Service",
