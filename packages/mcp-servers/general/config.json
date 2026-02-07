@@ -1,0 +1,6 @@
+{
+  "id": "general",
+  "name": "General",
+  "description": "General MCP server (get_time, random_number, uuid, calculate, generate_password)",
+  "category": "general"
+}

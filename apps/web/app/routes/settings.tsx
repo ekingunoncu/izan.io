@@ -205,6 +205,8 @@ export default function Settings() {
     addUserServer,
     removeUserServer,
     setServerAgents,
+    disabledBuiltinMCPIds,
+    setDisabledBuiltinMCPIds,
   } = useMCPStore();
   const { agents } = useAgentStore();
   const {
@@ -237,8 +239,8 @@ export default function Settings() {
   const [providerSearch, setProviderSearch] = useState("");
   // Expanded provider for API key (accordion)
   const [expandedProviderId, setExpandedProviderId] = useState<string | null>(null);
-  // Built-in MCP section: collapsed by default, expand to see all servers
-  const [builtinMcpExpanded, setBuiltinMcpExpanded] = useState(false);
+  // Built-in MCP section: expanded by default so users can disable servers
+  const [builtinMcpExpanded, setBuiltinMcpExpanded] = useState(true);
   const [deleteServerId, setDeleteServerId] = useState<string | null>(null);
 
   const enabledAgents = agents.filter((a) => a.enabled);
@@ -312,6 +314,13 @@ export default function Settings() {
   const handleLanguageChange = (code: SupportedLanguage) => {
     setStoredLanguagePreference(code);
     navigate(`/${code}/settings`);
+  };
+
+  const toggleBuiltinMCP = async (serverId: string) => {
+    const disabled = disabledBuiltinMCPIds.includes(serverId)
+      ? disabledBuiltinMCPIds.filter((id) => id !== serverId)
+      : [...disabledBuiltinMCPIds, serverId];
+    await setDisabledBuiltinMCPIds(disabled);
   };
 
   return (
@@ -499,28 +508,46 @@ export default function Settings() {
                 </span>
               </button>
               {builtinMcpExpanded &&
-                DEFAULT_MCP_SERVERS.map((config) => (
-                <div
-                  key={config.id}
-                  className="flex items-start gap-2 rounded-lg border p-3"
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium truncate text-sm">
-                        {config.name}
-                      </p>
-                      <span className="text-xs bg-slate-300/80 text-slate-800 dark:bg-muted dark:text-muted-foreground px-1.5 py-0.5 rounded">
-                        {t("settings.mcpBuiltin")}
-                      </span>
+                DEFAULT_MCP_SERVERS.map((config) => {
+                  const isDisabled = disabledBuiltinMCPIds.includes(config.id);
+                  return (
+                    <div
+                      key={config.id}
+                      className="flex items-start gap-2 rounded-lg border p-3"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          {isDisabled ? (
+                            <XCircle className="h-4 w-4 text-muted-foreground flex-shrink-0" aria-hidden />
+                          ) : (
+                            <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-500 flex-shrink-0" aria-hidden />
+                          )}
+                          <p className="font-medium truncate text-sm">
+                            {config.name}
+                          </p>
+                          <span className="text-xs bg-slate-300/80 text-slate-800 dark:bg-muted dark:text-muted-foreground px-1.5 py-0.5 rounded">
+                            {t("settings.mcpBuiltin")}
+                          </span>
+                        </div>
+                        {config.description && (
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {config.description}
+                          </p>
+                        )}
+                      </div>
+                      <Button
+                        variant={isDisabled ? "outline" : "secondary"}
+                        size="sm"
+                        className="text-xs h-7 flex-shrink-0"
+                        onClick={() => toggleBuiltinMCP(config.id)}
+                      >
+                        {isDisabled
+                          ? t("settings.mcpBuiltinEnable")
+                          : t("settings.mcpBuiltinDisable")}
+                      </Button>
                     </div>
-                    {config.description && (
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {config.description}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              ))}
+                  );
+                })}
             </CardContent>
           </Card>
 

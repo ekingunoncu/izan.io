@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Link, useParams, useNavigate } from "react-router";
+import { Link, useParams, useNavigate, useLoaderData } from "react-router";
 import { useTranslation } from "react-i18next";
 import {
   ArrowLeft,
@@ -24,7 +24,7 @@ import {
   CardTitle,
 } from "~/components/ui/card";
 import { useAgentStore, useMCPStore } from "~/store";
-import { initializeDatabase } from "~/lib/db";
+import { initializeDatabase, DEFAULT_AGENTS } from "~/lib/db";
 import {
   getAgentDisplayName,
   getAgentDisplayDescription,
@@ -56,8 +56,14 @@ const AGENT_COLORS: Record<string, string> = Object.fromEntries(
   ])
 );
 
-export function clientLoader() {
-  return null;
+/** Loader runs at build time (prerender) and on client nav - provides agent for SEO */
+export function loader({ params }: Route.LoaderArgs) {
+  const agent = params.agentSlug
+    ? DEFAULT_AGENTS.find(
+        (a) => a.slug === params.agentSlug || a.id === params.agentSlug
+      ) ?? null
+    : null;
+  return { agent };
 }
 
 export function meta({ params }: Route.MetaArgs) {
@@ -71,6 +77,7 @@ export default function AgentDetail() {
   const { t } = useTranslation("common");
   const { lang, agentSlug } = useParams();
   const navigate = useNavigate();
+  const { agent: loaderAgent } = useLoaderData<typeof loader>();
   const {
     initialize: initAgent,
     getAgentBySlug,
@@ -88,7 +95,8 @@ export default function AgentDetail() {
     init();
   }, [initAgent, initMCP]);
 
-  const agent = agentSlug ? getAgentBySlug(agentSlug) : null;
+  // Prefer loaderData (prerender + initial load) - avoids IndexedDB wait for builtin agents
+  const agent = loaderAgent ?? (agentSlug ? getAgentBySlug(agentSlug) : null);
 
   const handleUseAgent = async () => {
     if (!agent) return;
@@ -97,7 +105,8 @@ export default function AgentDetail() {
     navigate(`/chat/${getAgentSlug(agent)}`);
   };
 
-  if (!isInitialized) {
+  // Show loading only when we have no loaderData and store isn't ready (custom agent nav)
+  if (!agent && !loaderAgent && !isInitialized) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">

@@ -41,3 +41,30 @@ export { IzanMCPClient } from './client.js'
 // Registry (multi-server management)
 export { MCPServerRegistry } from './registry.js'
 export type { ServerStateChangeHandler } from './registry.js'
+
+// Built-in server discovery (auto-generated)
+export {
+  BUILTIN_BACKEND_SERVERS,
+  BUILTIN_CLIENT_SERVER,
+  BUILTIN_MCP_SERVER_METADATA,
+} from './builtin-servers.generated.js'
+export type { BuiltinServerMetadata } from './builtin-servers.generated.js'
+
+import { BUILTIN_MCP_SERVER_METADATA } from './builtin-servers.generated.js'
+import type { MCPServerConfig, ServerCategory } from './types.js'
+
+/**
+ * Build full MCPServerConfig[] from built-in metadata with resolved URLs.
+ * @param mcpBaseUrl - Base URL for backend MCP (e.g. https://example.com/api or /api)
+ */
+export function getBuiltinMCPServerConfigs(mcpBaseUrl: string): MCPServerConfig[] {
+  const base = mcpBaseUrl.replace(/\/$/, '')
+  return BUILTIN_MCP_SERVER_METADATA.map((m) => ({
+    id: m.id,
+    name: m.name,
+    description: m.description,
+    category: m.category,
+    url: m.urlType === 'client' ? m.url! : `${base}/${m.id}/mcp`,
+    source: 'builtin' as const,
+  }))
+}

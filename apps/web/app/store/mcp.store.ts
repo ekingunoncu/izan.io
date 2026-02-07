@@ -13,6 +13,7 @@ import {
   ensureDomainCheckServer,
   shutdownDomainCheckServer,
 } from '~/lib/mcp/domain-check-server'
+import { storageService } from '~/lib/services'
 
 interface MCPState {
   registry: MCPServerRegistry | null
@@ -22,12 +23,22 @@ interface MCPState {
   userServers: UserMCPServer[]
   /** Currently active MCP server IDs (connected for the current agent) */
   activeServerIds: Set<string>
+  /** Built-in MCP server IDs that are globally disabled */
+  disabledBuiltinMCPIds: string[]
+  /** Last agent we activated MCPs for (for re-activation when disabled changes) */
+  lastActivatedAgent: Agent | null
   isInitialized: boolean
   error: string | null
 
   // Lifecycle
   initialize: () => Promise<void>
   reconnect: () => Promise<void>
+
+  /**
+   * Set globally disabled built-in MCP server IDs.
+   * Persists to preferences and re-activates current agent's MCPs.
+   */
+  setDisabledBuiltinMCPIds: (ids: string[]) => Promise<void>
 
   /**
    * Activate MCPs for a specific agent.
@@ -75,6 +86,8 @@ export const useMCPStore = create<MCPState>((set, get) => ({
   servers: [],
   userServers: [],
   activeServerIds: new Set(),
+  disabledBuiltinMCPIds: [],
+  lastActivatedAgent: null,
   isInitialized: false,
   error: null,
 
@@ -97,9 +110,16 @@ export const useMCPStore = create<MCPState>((set, get) => ({
     set({ registry })
 
     try {
-      // Load user servers from IndexedDB (metadata only, no connection)
-      const userServers = await db.mcpServers.toArray()
-      set({ userServers, isInitialized: true, error: null })
+      const [userServers, prefs] = await Promise.all([
+        db.mcpServers.toArray(),
+        storageService.getPreferences(),
+      ])
+      set({
+        userServers,
+        disabledBuiltinMCPIds: prefs.disabledBuiltinMCPIds ?? [],
+        isInitialized: true,
+        error: null,
+      })
     } catch (error) {
       const message =
         error instanceof Error ? error.message : 'MCP initialization failed'
@@ -107,15 +127,27 @@ export const useMCPStore = create<MCPState>((set, get) => ({
     }
   },
 
+  setDisabledBuiltinMCPIds: async (ids) => {
+    await storageService.updatePreferences({ disabledBuiltinMCPIds: ids })
+    set({ disabledBuiltinMCPIds: ids })
+    const { lastActivatedAgent } = get()
+    if (lastActivatedAgent) {
+      await get().activateAgentMCPs(lastActivatedAgent)
+    }
+  },
+
   /**
    * Activate MCPs needed by a specific agent.
    * Connects implicit + custom MCPs, disconnects unneeded ones.
+   * Respects globally disabled built-in MCPs.
    */
   activateAgentMCPs: async (agent: Agent) => {
-    const { registry, userServers, activeServerIds } = get()
+    const { registry, userServers, activeServerIds, disabledBuiltinMCPIds } = get()
     if (!registry) {
       return
     }
+
+    set({ lastActivatedAgent: agent })
 
     // For builtin agents: use IMPLICIT_AGENT_SERVERS unless user has edited (isEdited) → then respect agent.implicitMCPIds
     let implicitIds: string[]
@@ -126,12 +158,15 @@ export const useMCPStore = create<MCPState>((set, get) => ({
     } else {
       implicitIds = agent.implicitMCPIds
     }
+    // Filter out globally disabled built-in MCPs
+    const disabledSet = new Set(disabledBuiltinMCPIds)
+    const effectiveImplicitIds = implicitIds.filter(id => !disabledSet.has(id))
 
     // Determine which servers this agent needs
     const neededIds = new Set<string>()
 
-    // 1. Implicit (builtin) MCP IDs
-    for (const mcpId of implicitIds) {
+    // 1. Implicit (builtin) MCP IDs (excluding disabled)
+    for (const mcpId of effectiveImplicitIds) {
       neededIds.add(mcpId)
     }
 
@@ -201,7 +236,15 @@ export const useMCPStore = create<MCPState>((set, get) => ({
     if (registry) {
       await registry.disconnectAll()
     }
-    set({ isInitialized: false, error: null, registry: null, servers: [], userServers: [], activeServerIds: new Set() })
+    set({
+      isInitialized: false,
+      error: null,
+      registry: null,
+      servers: [],
+      userServers: [],
+      activeServerIds: new Set(),
+      lastActivatedAgent: null,
+    })
     await get().initialize()
   },
 
@@ -352,9 +395,10 @@ export const useMCPStore = create<MCPState>((set, get) => ({
   /**
    * Get tools available for a specific agent.
    * For builtin agents: IMPLICIT_AGENT_SERVERS unless isEdited → then agent.implicitMCPIds.
+   * Respects globally disabled built-in MCPs.
    */
   getToolsForAgent: (agent: Agent) => {
-    const { registry } = get()
+    const { registry, disabledBuiltinMCPIds } = get()
     if (!registry) {
       return []
     }
@@ -368,6 +412,9 @@ export const useMCPStore = create<MCPState>((set, get) => ({
       implicitIds = agent.implicitMCPIds
     }
 
+    const disabledSet = new Set(disabledBuiltinMCPIds)
+    const effectiveImplicitIds = implicitIds.filter(id => !disabledSet.has(id))
+
     const tools: MCPToolInfo[] = []
     const seenToolKeys = new Set<string>()
 
@@ -379,8 +426,8 @@ export const useMCPStore = create<MCPState>((set, get) => ({
       }
     }
 
-    // 1. Implicit MCP tools
-    for (const mcpId of implicitIds) {
+    // 1. Implicit MCP tools (excluding disabled)
+    for (const mcpId of effectiveImplicitIds) {
       const server = registry.getServer(mcpId)
       if (server?.status === 'connected') {
         server.tools.forEach(addUnique)

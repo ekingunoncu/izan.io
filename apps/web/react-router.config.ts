@@ -13,5 +13,7 @@ export default {
     ...LANGUAGES.flatMap((lang) =>
       AGENT_SLUGS.map((slug) => `/${lang}/agents/${slug}`)
     ),
+    ...LANGUAGES.map((lang) => `/${lang}/privacy`),
+    ...LANGUAGES.map((lang) => `/${lang}/terms`),
   ],
 } satisfies Config;

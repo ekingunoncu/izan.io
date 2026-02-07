@@ -95,7 +95,12 @@ export class StorageService implements IStorageService {
       await db.preferences.add(DEFAULT_PREFERENCES)
       return DEFAULT_PREFERENCES
     }
-    return prefs
+    // Merge with defaults for backward compatibility (e.g. new fields like disabledBuiltinMCPIds)
+    return {
+      ...DEFAULT_PREFERENCES,
+      ...prefs,
+      disabledBuiltinMCPIds: prefs.disabledBuiltinMCPIds ?? DEFAULT_PREFERENCES.disabledBuiltinMCPIds,
+    }
   }
 
   async updatePreferences(updates: Partial<UserPreferences>): Promise<void> {

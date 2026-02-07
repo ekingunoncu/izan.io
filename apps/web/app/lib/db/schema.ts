@@ -101,6 +101,8 @@ export interface UserPreferences {
   selectedModel: string | null
   /** API keys per provider, stored client-side in IndexedDB */
   providerKeys: Record<string, string>
+  /** Built-in MCP server IDs that are globally disabled */
+  disabledBuiltinMCPIds: string[]
 }
 
 import { BUILTIN_AGENT_DEFINITIONS } from '@izan/agents'
@@ -143,4 +145,5 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   selectedProvider: null,
   selectedModel: null,
   providerKeys: {},
+  disabledBuiltinMCPIds: [],
 }

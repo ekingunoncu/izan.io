@@ -272,6 +272,25 @@ export class IzanStack extends cdk.Stack {
         )
       : undefined
 
+    // CloudFront Function: rewrite /path to /path/index.html so S3 serves prerendered HTML
+    // (S3 REST API has no "directory index" - /tr/agents/domain-expert must become
+    //  tr/agents/domain-expert/index.html where the prerendered file lives)
+    const indexRewriteFn = new cloudfront.Function(this, 'IndexRewriteFn', {
+      code: cloudfront.FunctionCode.fromInline(`
+function handler(event) {
+  var request = event.request;
+  var uri = request.uri;
+  if (uri.endsWith('/')) {
+    request.uri += 'index.html';
+  } else if (!uri.includes('.')) {
+    request.uri += '/index.html';
+  }
+  return request;
+}
+      `.trim()),
+      comment: 'Rewrite path to index.html for React Router prerendered routes',
+    })
+
     const distribution = new cloudfront.Distribution(this, 'Distribution', {
       comment: 'izan.io CDN',
       domainNames: certificate ? DOMAIN_NAMES : undefined,
@@ -281,6 +300,12 @@ export class IzanStack extends cdk.Stack {
         viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
         cachePolicy: cloudfront.CachePolicy.CACHING_OPTIMIZED,
         allowedMethods: cloudfront.AllowedMethods.ALLOW_GET_HEAD,
+        functionAssociations: [
+          {
+            function: indexRewriteFn,
+            eventType: cloudfront.FunctionEventType.VIEWER_REQUEST,
+          },
+        ],
       },
       additionalBehaviors: mcpBehaviors,
       defaultRootObject: 'index.html',
@@ -288,13 +313,13 @@ export class IzanStack extends cdk.Stack {
         {
           httpStatus: 403,
           responseHttpStatus: 200,
-          responsePagePath: '/index.html',
+          responsePagePath: '/__spa-fallback.html',
           ttl: cdk.Duration.seconds(0),
         },
         {
           httpStatus: 404,
           responseHttpStatus: 200,
-          responsePagePath: '/index.html',
+          responsePagePath: '/__spa-fallback.html',
           ttl: cdk.Duration.seconds(0),
         },
       ],

@@ -62,7 +62,7 @@ export function GitHubStarButton() {
         {t("github.starOnGitHub")}
         {stars !== null && (
           <span className="flex items-center gap-0.5 text-muted-foreground">
-            <Star className="h-3.5 w-3.5 fill-current" />
+            <Star className="h-3.5 w-3.5 fill-current text-yellow-500" />
             {stars >= 1000 ? `${(stars / 1000).toFixed(1)}k` : stars}
           </span>
         )}

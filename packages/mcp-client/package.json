@@ -11,7 +11,8 @@
     }
   },
   "scripts": {
-    "build": "tsc",
+    "discover:builtin": "tsx scripts/discover-builtin-servers.ts",
+    "build": "npm run discover:builtin && tsc",
     "clean": "rm -rf dist",
     "lint": "eslint src/"
   },
@@ -19,5 +20,8 @@
     "@mcp-b/transports": "^0.1.0",
     "@modelcontextprotocol/sdk": "^1.12.1",
     "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "tsx": "^4.21.0"
   }
 }

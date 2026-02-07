@@ -4,9 +4,11 @@
  * Convention: {serverId}/mcp under base (e.g. general → /api/general/mcp)
  * In production: CloudFront at /api/{serverId}/mcp
  * In development: localhost:3100/api/{serverId}/mcp
+ *
+ * Built-in servers are auto-discovered from @izan/mcp-client (packages/mcp-servers + mcp-client-side).
  */
 import { IMPLICIT_AGENT_SERVERS } from '@izan/agents'
-import type { MCPServerConfig } from '@izan/mcp-client'
+import { getBuiltinMCPServerConfigs, type MCPServerConfig } from '@izan/mcp-client'
 
 /** Resolve MCP base URL (absolute, no trailing slash) - required for new URL() in MCP client */
 function getMcpBaseUrl(): string {
@@ -35,60 +37,17 @@ function getMcpBaseUrl(): string {
   return pathBase
 }
 
-const MCP_BASE = getMcpBaseUrl()
-
 /**
  * All built-in MCP servers.
- * Convention: {base}/{serverId}/mcp (e.g. /api/general/mcp)
+ * Auto-discovered from packages/mcp-servers and mcp-client-side via @izan/mcp-client.
  */
-export const DEFAULT_MCP_SERVERS: MCPServerConfig[] = [
-  {
-    id: 'general',
-    name: 'General',
-    description: 'General MCP server (get_time, random_number, uuid, calculate, generate_password)',
-    url: `${MCP_BASE}/general/mcp`,
-    category: 'general',
-    source: 'builtin',
-  },
-  {
-    id: 'bing',
-    name: 'Bing Search',
-    description: 'Search the web using Bing',
-    url: `${MCP_BASE}/bing/mcp`,
-    category: 'web_search',
-    source: 'builtin',
-  },
-  {
-    id: 'google',
-    name: 'Google Search',
-    description: 'Search the web using Google',
-    url: `${MCP_BASE}/google/mcp`,
-    category: 'web_search',
-    source: 'builtin',
-  },
-  {
-    id: 'namecheap',
-    name: 'Namecheap Domain',
-    description: 'Check domain availability and get suggestions',
-    url: `${MCP_BASE}/namecheap/mcp`,
-    category: 'custom',
-    source: 'builtin',
-  },
-  {
-    id: 'domain-check-client',
-    name: 'Domain Check (Client)',
-    description: 'Fast RDAP bulk availability check. No API key. 1–15 domains.',
-    url: 'tab://izan-domain-check',
-    category: 'custom',
-    source: 'builtin',
-  },
-]
+export const DEFAULT_MCP_SERVERS = getBuiltinMCPServerConfigs(getMcpBaseUrl())
 
 /**
  * Mapping from agent ID → built-in MCP server IDs.
  * Source: @izan/agents (auto-discovered from packages/agents)
  */
-export { IMPLICIT_AGENT_SERVERS } from '@izan/agents'
+export { IMPLICIT_AGENT_SERVERS }
 
 /**
  * Get the built-in MCP server configs for a given agent ID.
