@@ -42,13 +42,17 @@ export class IzanStack extends cdk.Stack {
     natUserData.addCommands(
       'echo "net.ipv4.ip_forward=1" >> /etc/sysctl.conf',
       'sysctl -p',
-      'iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE',
+      'for i in 1 2 3 4 5 6 7 8 9 10; do ip route | grep -q default && break; sleep 2; done',
+      'iptables -P FORWARD ACCEPT',
+      'iptables -A FORWARD -j ACCEPT',
+      'IF=$(ip route | grep default | awk \'{print $5}\' | head -1)',
+      '[ -n "$IF" ] && iptables -t nat -A POSTROUTING -o "$IF" -j MASQUERADE || iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE',
     )
 
     const natInstance = new ec2.Instance(this, 'NatInstance', {
       vpc,
       instanceType: ec2.InstanceType.of(ec2.InstanceClass.T4G, ec2.InstanceSize.NANO),
-      machineImage: ec2.MachineImage.latestAmazonLinux2023({
+      machineImage: ec2.MachineImage.latestAmazonLinux2({
         cpuType: ec2.AmazonLinuxCpuType.ARM_64,
       }),
       vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
