@@ -9,13 +9,15 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { BUILTIN_AGENT_DEFINITIONS } from "@izan/agents";
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const LANGUAGES = ["tr", "en", "de"] as const;
 const DEFAULT_LANG = "en";
 
-/** Built-in agent slugs for sitemap (matches app/lib/db/schema.ts) */
-const AGENT_SLUGS = ["general", "web-search", "domain-expert"];
+/** Built-in agent slugs for sitemap (from packages/agents) */
+const AGENT_SLUGS = BUILTIN_AGENT_DEFINITIONS.map((a) => a.slug);
 
 /** Routes to include in sitemap (under :lang). Excludes chat (client-only), settings (private). */
 const SITEMAP_ROUTES = [

@@ -7,6 +7,7 @@
 
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js'
+import { TabClientTransport } from '@mcp-b/transports'
 import type { MCPToolInfo, MCPToolCallResult, MCPToolContent } from './types.js'
 
 /**
@@ -31,7 +32,7 @@ function createMcpFetch(): typeof fetch {
 
 export class IzanMCPClient {
   private client: Client | null = null
-  private transport: StreamableHTTPClientTransport | null = null
+  private transport: StreamableHTTPClientTransport | TabClientTransport | null = null
   private _isConnected = false
   private readonly _serverId: string
 
@@ -50,9 +51,9 @@ export class IzanMCPClient {
   }
 
   /**
-   * Connect to an MCP server via Streamable HTTP transport.
-   * @param serverUrl - Full URL to the MCP endpoint (e.g. "https://example.com/mcp")
-   * @param headers - Optional custom headers to include in every request
+   * Connect to an MCP server via Streamable HTTP transport or TabServerTransport.
+   * @param serverUrl - Full URL to the MCP endpoint (e.g. "https://example.com/mcp") or "tab://server-name" for TabServerTransport
+   * @param headers - Optional custom headers to include in every request (ignored for TabServerTransport)
    */
   async connect(
     serverUrl: string,
@@ -67,10 +68,20 @@ export class IzanMCPClient {
       { capabilities: {} },
     )
 
-    this.transport = new StreamableHTTPClientTransport(new URL(serverUrl), {
-      fetch: createMcpFetch(),
-      requestInit: headers ? { headers } : undefined,
-    })
+    // Check if this is a TabServerTransport connection (tab:// protocol)
+    if (serverUrl.startsWith('tab://')) {
+      const channelId = serverUrl.replace('tab://', '')
+      // targetOrigin should be the current window origin for same-origin communication
+      const targetOrigin = typeof window !== 'undefined' ? window.location.origin : '*'
+      this.transport = new TabClientTransport({ targetOrigin, channelId })
+      console.log(`[izan-mcp-client] Using TabClientTransport for ${this._serverId} (${channelId})`)
+    } else {
+      // Regular HTTP transport
+      this.transport = new StreamableHTTPClientTransport(new URL(serverUrl), {
+        fetch: createMcpFetch(),
+        requestInit: headers ? { headers } : undefined,
+      })
+    }
 
     this.client.onerror = (error) => {
       console.error(`[izan-mcp] Client error (${this._serverId}):`, error)

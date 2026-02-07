@@ -9,7 +9,6 @@ import {
   Sparkles,
   ChevronRight,
   Code2,
-  Globe,
   TrendingUp,
   Newspaper,
   Users,
@@ -25,6 +24,8 @@ import {
   Star,
   Check,
 } from "lucide-react";
+import { BUILTIN_AGENT_DEFINITIONS } from "@izan/agents";
+import { getAgentIcon } from "~/components/agents/AgentSelector";
 import { PROVIDERS } from "~/lib/providers";
 import { GitHubStarButton } from "~/components/GitHubStarButton";
 import { Button } from "~/components/ui/button";
@@ -77,25 +78,19 @@ export function meta({ params }: Route.MetaArgs) {
   ];
 }
 
+const HOME_SHOWCASE_AGENTS = BUILTIN_AGENT_DEFINITIONS.filter(
+  (def) => def.homeShowcase
+).map((def) => ({
+  titleKey: def.homeShowcase!.titleKey,
+  descKey: def.homeShowcase!.descKey,
+  icon: getAgentIcon(def.homeShowcase!.icon),
+  active: true,
+  agentId: def.id,
+  color: def.homeShowcase!.color,
+}));
+
 const AGENTS = [
-  {
-    titleKey: "home.agentDomainTitle",
-    descKey: "home.agentDomainDesc",
-    icon: Globe,
-    active: true,
-    agentId: "domain-expert",
-    color:
-      "bg-violet-400/80 text-violet-900 dark:bg-violet-500/10 dark:text-violet-400",
-  },
-  {
-    titleKey: "home.agentWebSearchTitle",
-    descKey: "home.agentWebSearchDesc",
-    icon: Globe,
-    active: true,
-    agentId: "web-search",
-    color:
-      "bg-blue-400/80 text-blue-900 dark:bg-blue-500/10 dark:text-blue-400",
-  },
+  ...HOME_SHOWCASE_AGENTS,
   {
     titleKey: "home.agentTradingTitle",
     descKey: "home.agentTradingDesc",

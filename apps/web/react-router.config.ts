@@ -1,7 +1,8 @@
 import type { Config } from "@react-router/dev/config";
+import { BUILTIN_AGENT_DEFINITIONS } from "@izan/agents";
 
 const LANGUAGES = ["tr", "en", "de"];
-const AGENT_SLUGS = ["general", "web-search", "domain-expert"];
+const AGENT_SLUGS = BUILTIN_AGENT_DEFINITIONS.map((a) => a.slug);
 
 export default {
   ssr: false,

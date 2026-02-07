@@ -478,12 +478,25 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
       // Build message history
       const allMessages = [...messages, userMessage]
+      
+      // Normalize role values and filter out system messages (already sent separately)
+      const normalizeRole = (role: string): 'user' | 'assistant' => {
+        const normalized = role.toLowerCase()
+        if (normalized === 'assistant' || normalized === 'ai' || normalized === 'bot') {
+          return 'assistant'
+        }
+        // Default to 'user' for 'user', 'human', 'system', or any other value
+        return 'user'
+      }
+      
       const chatMessages: ChatCompletionMessageParam[] = [
         { role: 'system', content: systemContent },
-        ...allMessages.map(msg => ({
-          role: msg.role as 'user' | 'assistant' | 'system',
-          content: msg.content,
-        })),
+        ...allMessages
+          .filter(msg => msg.role !== 'system') // Remove system messages (already sent)
+          .map(msg => ({
+            role: normalizeRole(msg.role),
+            content: msg.content,
+          })),
       ]
 
       const isAborted = () => abortController.signal.aborted

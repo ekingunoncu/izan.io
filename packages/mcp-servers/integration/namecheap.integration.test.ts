@@ -74,7 +74,7 @@ describe('Namecheap MCP integration', () => {
     const { result } = parseBody(res)
     const tools = (result as { tools?: { name: string }[] }).tools ?? []
     const names = tools.map((t) => t.name)
-    const expected = ['check_domain', 'suggest_domains', 'check_domains_bulk', 'list_tlds', 'get_domain_info', 'whois_lookup']
+    const expected = ['get_domain_price', 'suggest_domains', 'get_domains_price', 'list_tlds', 'get_domain_info', 'whois_lookup']
     for (const n of expected) {
       expect(names).toContain(n)
     }
@@ -87,24 +87,24 @@ describe('Namecheap MCP integration', () => {
       process.env.NAMECHEAP_API_KEY &&
       process.env.NAMECHEAP_CLIENT_IP
     ),
-  )('tools/call check_domain without API returns error message', async () => {
-    const res = await callTool('check_domain', { domain: 'example.com' })
+  )('tools/call get_domain_price without API returns error message', async () => {
+    const res = await callTool('get_domain_price', { domain: 'example.com' })
     expect(res.statusCode).toBe(200)
     const { result } = parseBody(res)
     const content = (result as { content?: { text: string }[] }).content ?? []
     expect(content[0].text).toMatch(/NAMECHEAP|not configured|whitelisted/i)
   })
 
-  it('tools/call check_domain with invalid domain format returns validation', async () => {
-    const res = await callTool('check_domain', { domain: 'invalid' })
+  it('tools/call get_domain_price with invalid domain format returns validation', async () => {
+    const res = await callTool('get_domain_price', { domain: 'invalid' })
     expect(res.statusCode).toBe(200)
     const { result } = parseBody(res)
     const content = (result as { content?: { text: string }[] }).content ?? []
     expect(content[0].text).toMatch(/TLD|Invalid|include/i)
   })
 
-  it('tools/call check_domains_bulk with invalid input returns validation', async () => {
-    const res = await callTool('check_domains_bulk', { domains: 'no-dots-here' })
+  it('tools/call get_domains_price with invalid input returns validation', async () => {
+    const res = await callTool('get_domains_price', { domains: 'no-dots-here' })
     expect(res.statusCode).toBe(200)
     const { result } = parseBody(res)
     const content = (result as { content?: { text: string }[] }).content ?? []
@@ -144,16 +144,16 @@ describe('Namecheap MCP - real API (when NAMECHEAP_* env configured)', () => {
     !!process.env.NAMECHEAP_API_KEY &&
     !!process.env.NAMECHEAP_CLIENT_IP
 
-  it.skipIf(!hasCredentials)('check_domain returns availability', async () => {
-    const res = await callTool('check_domain', { domain: 'example.com' })
+  it.skipIf(!hasCredentials)('get_domain_price returns availability', async () => {
+    const res = await callTool('get_domain_price', { domain: 'example.com' })
     expect(res.statusCode).toBe(200)
     const { result } = parseBody(res)
     const text = (result as { content?: { text: string }[] })?.content?.[0]?.text ?? ''
     expect(text).toMatch(/AVAILABLE|NOT AVAILABLE|Domain:/)
   })
 
-  it.skipIf(!hasCredentials)('check_domains_bulk returns results', async () => {
-    const res = await callTool('check_domains_bulk', {
+  it.skipIf(!hasCredentials)('get_domains_price returns results', async () => {
+    const res = await callTool('get_domains_price', {
       domains: 'example.com, google.com, available-test-xyz12345.com',
     })
     expect(res.statusCode).toBe(200)

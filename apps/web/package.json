@@ -12,6 +12,8 @@
     "typecheck": "react-router typegen && tsc"
   },
   "dependencies": {
+    "@izan/agents": "*",
+    "@izan/mcp-client-side": "*",
     "@izan/llm-proxy": "*",
     "@izan/mcp-client": "*",
     "@microsoft/clarity": "^1.0.2",

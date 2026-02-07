@@ -36,6 +36,7 @@ import {
   getAgentProTip,
   getAgentUsageExamples,
 } from "~/lib/agent-display";
+import { BUILTIN_AGENT_DEFINITIONS } from "@izan/agents";
 import { DEFAULT_MCP_SERVERS } from "~/lib/mcp/config";
 import type { Route } from "./+types/agent-detail";
 
@@ -48,11 +49,12 @@ const AGENT_ICONS: Record<string, typeof Bot> = {
   zap: Zap,
 };
 
-const AGENT_COLORS: Record<string, string> = {
-  general: "bg-blue-400/80 text-blue-900 dark:bg-blue-500/10 dark:text-blue-400",
-  "web-search": "bg-emerald-400/80 text-emerald-900 dark:bg-emerald-500/10 dark:text-emerald-400",
-  "domain-expert": "bg-violet-400/80 text-violet-900 dark:bg-violet-500/10 dark:text-violet-400",
-};
+const AGENT_COLORS: Record<string, string> = Object.fromEntries(
+  BUILTIN_AGENT_DEFINITIONS.map((def) => [
+    def.id,
+    def.homeShowcase?.color ?? def.color ?? "bg-blue-400/80 text-blue-900 dark:bg-blue-500/10 dark:text-blue-400",
+  ])
+);
 
 export function clientLoader() {
   return null;
