@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="izan-logo.png" alt="izan.io" width="280" />
+  <img src="thumbnail.png" alt="izan.io" width="280" />
 </p>
 
 <p align="center">
