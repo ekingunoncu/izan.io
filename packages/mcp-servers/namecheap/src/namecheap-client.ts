@@ -70,12 +70,14 @@ function parseDomainCheckXml(
   return results
 }
 
-/** Check for API error in XML response */
+/** Check for API error in XML response. Returns error string with ErrorNumber for debugging. */
 function parseApiError(xml: string): string | null {
   const statusMatch = xml.match(/ApiResponse[^>]*Status="([^"]+)"/)
   if (statusMatch && statusMatch[1].toUpperCase() !== 'OK') {
-    const errMatch = xml.match(/ErrorMessage="([^"]*)"/)
-    return errMatch ? errMatch[1] : statusMatch[1]
+    const errNum = xml.match(/ErrorNumber="([^"]*)"/)?.[1]
+    const errMsg = xml.match(/ErrorMessage="([^"]*)"/)?.[1]
+    const err = errNum && errMsg ? `[${errNum}] ${errMsg}` : errMsg ?? statusMatch[1]
+    return err
   }
   return null
 }
@@ -118,12 +120,20 @@ export class NamecheapClient {
         DomainList: domain,
       })
       const url = `${BASE_URL}/xml.response?${params.toString()}`
-      const res = await fetch(url, { headers: { Accept: 'application/xml' } })
+      const res = await fetch(url, {
+        headers: { Accept: 'application/xml' },
+        signal: AbortSignal.timeout(15000),
+      })
       const xml = await res.text()
 
       const apiError = parseApiError(xml)
       if (apiError) {
-        console.warn('[namecheap] checkDomain failed:', { domain, apiError, xml: xml.slice(0, 200) })
+        console.warn('[namecheap] checkDomain failed:', {
+          domain,
+          apiError,
+          clientIp: this.clientIp,
+          xml: xml.slice(0, 300),
+        })
         return { domain, error: apiError }
       }
 
@@ -142,8 +152,14 @@ export class NamecheapClient {
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      console.warn('[namecheap] checkDomain error:', { domain, err: message })
-      return { domain, error: message }
+      const cause = err instanceof Error && err.cause ? String(err.cause) : undefined
+      console.warn('[namecheap] checkDomain error:', {
+        domain,
+        err: message,
+        cause,
+        url: `${BASE_URL}/xml.response`,
+      })
+      return { domain, error: cause ?? message }
     }
   }
 
@@ -173,6 +189,7 @@ export class NamecheapClient {
         console.warn('[namecheap] checkDomainsBulk failed:', {
           domainCount: domains.length,
           apiError,
+          clientIp: this.clientIp,
           domains: domains.slice(0, 5),
         })
         return domains.map((domain) => ({ domain, available: false, error: apiError }))
