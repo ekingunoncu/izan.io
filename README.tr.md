@@ -56,7 +56,7 @@ izan.io/
 ├── packages/
 │   ├── agent-core/     # Ajan yönlendirme, araç çalıştırma, LLM-bağımsız
 │   ├── mcp-client/     # MCP protokol istemcisi
-│   ├── mcp-servers/    # Google, Bing, GoDaddy vb.
+│   ├── mcp-servers/    # Google, Bing, Namecheap vb.
 │   ├── llm-proxy/      # LLM API proxy
 │   └── infra/          # CDK altyapı
 ```

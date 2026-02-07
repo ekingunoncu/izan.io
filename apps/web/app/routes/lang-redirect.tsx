@@ -6,8 +6,9 @@ import { detectBrowserLanguage } from "~/i18n";
 // Server (prerender): return data instead of redirect so SPA fallback gets 200
 export function loader({ request }: Route.LoaderArgs) {
   const acceptLang = request.headers.get("Accept-Language") || "";
-  let lang = "tr";
+  let lang = "en";
   if (acceptLang.startsWith("de")) lang = "de";
+  else if (acceptLang.startsWith("tr")) lang = "tr";
   else if (acceptLang.startsWith("en")) lang = "en";
   return { redirectTo: `/${lang}` };
 }

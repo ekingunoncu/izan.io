@@ -7,7 +7,7 @@
     <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr" />
     <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en" />
     <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/tr" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en" />
     <priority>1</priority>
     <changefreq>weekly</changefreq>
   </url>
@@ -17,7 +17,7 @@
     <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr" />
     <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en" />
     <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/tr" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en" />
     <priority>1</priority>
     <changefreq>weekly</changefreq>
   </url>
@@ -27,7 +27,7 @@
     <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr" />
     <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en" />
     <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/tr" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en" />
     <priority>1</priority>
     <changefreq>weekly</changefreq>
   </url>
@@ -37,7 +37,7 @@
     <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/agents" />
     <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/agents" />
     <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/agents" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/tr/agents" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/agents" />
     <priority>0.8</priority>
     <changefreq>weekly</changefreq>
   </url>
@@ -47,7 +47,7 @@
     <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/agents" />
     <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/agents" />
     <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/agents" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/tr/agents" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/agents" />
     <priority>0.8</priority>
     <changefreq>weekly</changefreq>
   </url>
@@ -57,7 +57,7 @@
     <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/agents" />
     <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/agents" />
     <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/agents" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/tr/agents" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/agents" />
     <priority>0.8</priority>
     <changefreq>weekly</changefreq>
   </url>
@@ -67,7 +67,7 @@
     <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/privacy" />
     <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/privacy" />
     <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/privacy" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/tr/privacy" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/privacy" />
     <priority>0.6</priority>
     <changefreq>monthly</changefreq>
   </url>
@@ -77,7 +77,7 @@
     <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/privacy" />
     <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/privacy" />
     <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/privacy" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/tr/privacy" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/privacy" />
     <priority>0.6</priority>
     <changefreq>monthly</changefreq>
   </url>
@@ -87,7 +87,7 @@
     <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/privacy" />
     <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/privacy" />
     <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/privacy" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/tr/privacy" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/privacy" />
     <priority>0.6</priority>
     <changefreq>monthly</changefreq>
   </url>
@@ -97,7 +97,7 @@
     <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/terms" />
     <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/terms" />
     <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/terms" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/tr/terms" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/terms" />
     <priority>0.6</priority>
     <changefreq>monthly</changefreq>
   </url>
@@ -107,7 +107,7 @@
     <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/terms" />
     <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/terms" />
     <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/terms" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/tr/terms" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/terms" />
     <priority>0.6</priority>
     <changefreq>monthly</changefreq>
   </url>
@@ -117,7 +117,7 @@
     <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/terms" />
     <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/terms" />
     <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/terms" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/tr/terms" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/terms" />
     <priority>0.6</priority>
     <changefreq>monthly</changefreq>
   </url>

@@ -38,8 +38,8 @@ i18n
   .use(initReactI18next)
   .init({
     resources,
-    lng: 'tr',
-    fallbackLng: 'tr',
+    lng: 'en',
+    fallbackLng: 'en',
     supportedLngs: ['tr', 'en', 'de'],
     defaultNS: 'common',
     ns: ['common', 'models', 'legal'],
@@ -67,11 +67,12 @@ export function setStoredLanguagePreference(lang: SupportedLanguage): void {
 export function detectBrowserLanguage(): SupportedLanguage {
   const stored = getStoredLanguagePreference()
   if (stored) return stored
-  if (typeof navigator === 'undefined') return 'tr'
-  const lang = navigator.language || 'tr'
+  if (typeof navigator === 'undefined') return 'en'
+  const lang = navigator.language || 'en'
   if (lang.startsWith('de')) return 'de'
   if (lang.startsWith('en')) return 'en'
-  return 'tr'
+  if (lang.startsWith('tr')) return 'tr'
+  return 'en'
 }
 
 export default i18n

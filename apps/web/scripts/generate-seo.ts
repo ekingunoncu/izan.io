@@ -12,7 +12,7 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const LANGUAGES = ["tr", "en", "de"] as const;
-const DEFAULT_LANG = "tr";
+const DEFAULT_LANG = "en";
 
 /** Routes to include in sitemap (under :lang). Excludes chat (client-only), settings (private). */
 const SITEMAP_ROUTES = [

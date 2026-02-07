@@ -8,7 +8,7 @@ import { SUPPORTED_LANGUAGES, isSupportedLanguage } from "~/i18n";
 export function loader({ params }: Route.LoaderArgs) {
   const { lang } = params;
   if (!lang || !isSupportedLanguage(lang)) {
-    throw redirect("/tr");
+    throw redirect("/en");
   }
   return { lang };
 }
@@ -17,7 +17,7 @@ export function loader({ params }: Route.LoaderArgs) {
 export function clientLoader({ params }: Route.ClientLoaderArgs) {
   const { lang } = params;
   if (!lang || !isSupportedLanguage(lang)) {
-    throw redirect("/tr");
+    throw redirect("/en");
   }
   return { lang };
 }
@@ -52,7 +52,7 @@ export function meta({ params: _params }: Route.MetaArgs) {
       tagName: "link" as const,
       rel: "alternate",
       hrefLang: "x-default",
-      href: "https://izan.io/tr",
+      href: "https://izan.io/en",
     },
   ];
 }
