@@ -107,6 +107,133 @@ body {
   background: var(--color-foreground);
 }
 
+/* ===== Homepage Visual Effects ===== */
+
+/* Floating animation for decorative elements */
+@keyframes float {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  33% { transform: translateY(-12px) rotate(1deg); }
+  66% { transform: translateY(4px) rotate(-1deg); }
+}
+
+@keyframes float-delayed {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  33% { transform: translateY(8px) rotate(-1deg); }
+  66% { transform: translateY(-14px) rotate(1deg); }
+}
+
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(1.05); }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-float-delayed {
+  animation: float-delayed 7s ease-in-out infinite;
+}
+
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradient-shift 8s ease infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 3s ease-in-out infinite;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.6s ease-out both;
+}
+
+/* Hero gradient blob */
+.hero-blob {
+  filter: blur(80px);
+  opacity: 0.3;
+}
+.dark .hero-blob {
+  opacity: 0.15;
+}
+
+/* Glassmorphism card */
+.glass-card {
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+.dark .glass-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Section with colored background */
+.section-dark {
+  background: linear-gradient(135deg, hsl(240 10% 4%) 0%, hsl(240 15% 8%) 50%, hsl(260 12% 6%) 100%);
+}
+.dark .section-dark {
+  background: linear-gradient(135deg, hsl(240 10% 6%) 0%, hsl(240 15% 10%) 50%, hsl(260 12% 8%) 100%);
+}
+
+/* Gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, hsl(220 90% 56%), hsl(280 80% 60%), hsl(160 70% 50%));
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradient-shift 6s ease infinite;
+}
+
+/* Timeline connector line */
+.timeline-line {
+  position: relative;
+}
+.timeline-line::before {
+  content: '';
+  position: absolute;
+  left: 1.25rem;
+  top: 2.75rem;
+  bottom: -1rem;
+  width: 2px;
+  background: linear-gradient(to bottom, var(--color-primary), transparent);
+  opacity: 0.2;
+}
+.timeline-line:last-child::before {
+  display: none;
+}
+
+/* Step connector for horizontal layout */
+.step-connector {
+  position: relative;
+}
+.step-connector::after {
+  content: '';
+  position: absolute;
+  top: 1.75rem;
+  right: -1.5rem;
+  width: 3rem;
+  height: 2px;
+  background: linear-gradient(to right, var(--color-primary), transparent);
+  opacity: 0.2;
+}
+@media (max-width: 639px) {
+  .step-connector::after {
+    display: none;
+  }
+}
+
 /* Legal pages – refined typography and cards */
 .legal-hero-title {
   letter-spacing: -0.02em;

@@ -14,6 +14,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const LANGUAGES = ["tr", "en", "de"] as const;
 const DEFAULT_LANG = "en";
 
+/** Built-in agent slugs for sitemap (matches app/lib/db/schema.ts) */
+const AGENT_SLUGS = ["general", "web-search", "domain-expert"];
+
 /** Routes to include in sitemap (under :lang). Excludes chat (client-only), settings (private). */
 const SITEMAP_ROUTES = [
   { path: "", priority: 1.0, changefreq: "weekly" as const },
@@ -52,6 +55,25 @@ ${alternateLinks}
 ${xDefault}
     <priority>${route.priority}</priority>
     <changefreq>${route.changefreq}</changefreq>
+  </url>`);
+    }
+  }
+
+  // Agent detail pages: /:lang/agents/:agentSlug
+  for (const slug of AGENT_SLUGS) {
+    const path = `agents/${slug}`;
+    for (const lang of LANGUAGES) {
+      const loc = `${SITE_URL}/${lang}/${path}`;
+      const alternateLinks = LANGUAGES.map(
+        (l) => `    <xhtml:link rel="alternate" hreflang="${l}" href="${SITE_URL}/${l}/${path}" />`
+      ).join("\n");
+      const xDefault = `    <xhtml:link rel="alternate" hreflang="x-default" href="${SITE_URL}/${DEFAULT_LANG}/${path}" />`;
+      urls.push(`  <url>
+    <loc>${loc}</loc>
+${alternateLinks}
+${xDefault}
+    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
   </url>`);
     }
   }

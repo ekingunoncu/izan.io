@@ -8,6 +8,7 @@ import { Github, Star } from "lucide-react";
 import { Button } from "~/components/ui/button";
 
 const GITHUB_REPO_URL = "https://github.com/ekingunoncu/izan.io";
+const GITHUB_STARS_PROXY = "/api/github-stars";
 const GITHUB_API_URL = "https://api.github.com/repos/ekingunoncu/izan.io";
 const CACHE_KEY = "izan_github_stars";
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
@@ -41,18 +42,37 @@ export function GitHubStarButton() {
 
   useEffect(() => {
     if (stars !== null) return; // already have cached
-    fetch(GITHUB_API_URL)
-      .then((res) => res.json())
-      .then((data) => {
+
+    async function fetchStars() {
+      // 1. Try our proxy first (avoids GitHub rate limit)
+      try {
+        const res = await fetch(GITHUB_STARS_PROXY);
+        const data = await res.json();
+        const n = data?.stars;
+        if (typeof n === "number") {
+          setStars(n);
+          setCachedStars(n);
+          return;
+        }
+      } catch {
+        // proxy failed, fall through to GitHub
+      }
+
+      // 2. Fallback: direct GitHub API (60 req/hour per IP)
+      try {
+        const res = await fetch(GITHUB_API_URL);
+        const data = await res.json();
         const n = data?.stargazers_count;
         if (typeof n === "number") {
           setStars(n);
           setCachedStars(n);
         }
-      })
-      .catch(() => {
-        // ignore - will show button without count
-      });
+      } catch {
+        // show button without count
+      }
+    }
+
+    fetchStars();
   }, [stars]);
 
   return (

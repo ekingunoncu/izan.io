@@ -158,6 +158,7 @@ export class IzanStack extends cdk.Stack {
       corsPreflight: {
         allowHeaders: ['Content-Type', 'Authorization'],
         allowMethods: [
+          apigwv2.CorsHttpMethod.GET,
           apigwv2.CorsHttpMethod.POST,
           apigwv2.CorsHttpMethod.OPTIONS,
         ],
@@ -193,6 +194,25 @@ export class IzanStack extends cdk.Stack {
       })
     }
 
+    // GET /api/github-stars → proxy for GitHub API (avoids client rate limits)
+    const githubStarsFn = new lambdaNode.NodejsFunction(this, 'GitHubStarsFn', {
+      functionName: 'izan-github-stars',
+      entry: path.join(MONOREPO_ROOT, 'packages', 'infra', 'handlers', 'github-stars.ts'),
+      handler: 'handler',
+      runtime: lambda.Runtime.NODEJS_20_X,
+      architecture: lambda.Architecture.ARM_64,
+      timeout: cdk.Duration.seconds(10),
+      memorySize: 128,
+    })
+    httpApi.addRoutes({
+      path: '/api/github-stars',
+      methods: [apigwv2.HttpMethod.GET],
+      integration: new apigwv2Integrations.HttpLambdaIntegration(
+        'GitHubStarsIntegration',
+        githubStarsFn,
+      ),
+    })
+
     // ─── CloudFront Distribution ────────────────────────────────────────
 
     // Origin Access Control for S3
@@ -221,6 +241,13 @@ export class IzanStack extends cdk.Stack {
         originRequestPolicy:
           cloudfront.OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER,
       }
+    }
+    // GitHub stars: cache 1 hour (avoids GitHub API rate limits)
+    mcpBehaviors['/api/github-stars'] = {
+      origin: apiOrigin,
+      viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+      cachePolicy: cloudfront.CachePolicy.CACHING_OPTIMIZED,
+      allowedMethods: cloudfront.AllowedMethods.ALLOW_GET_HEAD,
     }
 
     const distribution = new cloudfront.Distribution(this, 'Distribution', {
