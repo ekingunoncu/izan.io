@@ -51,7 +51,7 @@ export {
 export type { BuiltinServerMetadata } from './builtin-servers.generated.js'
 
 import { BUILTIN_MCP_SERVER_METADATA } from './builtin-servers.generated.js'
-import type { MCPServerConfig, ServerCategory } from './types.js'
+import type { MCPServerConfig } from './types.js'
 
 /**
  * Build full MCPServerConfig[] from built-in metadata with resolved URLs.
