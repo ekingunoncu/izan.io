@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="izan-logo.png" alt="izan.io" width="180" />
+  <img src="izan-logo.png" alt="izan.io" width="280" />
 </p>
 
 <p align="center">
@@ -80,16 +80,11 @@ See `apps/web/.env.example` for optional env vars. API keys are stored in the br
 
 ---
 
-## 🌐 Deploy & Custom Domain
+## 🌐 Deploy
 
 Deploy via `npm run deploy:infra` or GitHub Actions (push to `main`). The stack uses S3 + CloudFront.
 
-**To fix CloudFront 403 when accessing via izan.io:**
-
-1. Create an ACM certificate in **us-east-1** for `izan.io` and `www.izan.io` (AWS Console → Certificate Manager).
-2. Validate the certificate (DNS CNAME records).
-3. Set `IZAN_DOMAIN_CERTIFICATE_ARN` in `.env` or GitHub Secrets.
-4. (Optional) If using Route53: set `IZAN_HOSTED_ZONE_ID` to auto-create A records. Otherwise, add CNAME records manually: `izan.io` and `www.izan.io` → CloudFront distribution URL.
+**Custom domain (izan.io, www.izan.io):** Set `IZAN_DOMAIN_CERTIFICATE_ARN` to an ACM cert in **us-east-1** for those domains. CloudFront adds them to its domain list. DNS (A/CNAME records) is managed manually.
 
 ---
 

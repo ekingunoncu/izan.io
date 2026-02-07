@@ -51,7 +51,5 @@ jobs:
           NAMECHEAP_API_KEY: ${{ secrets.NAMECHEAP_API_KEY }}
           NAMECHEAP_CLIENT_IP: ${{ secrets.NAMECHEAP_CLIENT_IP }}
           NAMECHEAP_API_URL: ${{ secrets.NAMECHEAP_API_URL }}
-          # Custom domain (fixes CloudFront 403) - ACM cert must be in us-east-1
           IZAN_DOMAIN_CERTIFICATE_ARN: ${{ secrets.IZAN_DOMAIN_CERTIFICATE_ARN }}
-          IZAN_HOSTED_ZONE_ID: ${{ secrets.IZAN_HOSTED_ZONE_ID }}
         run: cd packages/infra && npx cdk deploy --require-approval never

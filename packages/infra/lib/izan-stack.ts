@@ -6,8 +6,6 @@ import * as ec2 from 'aws-cdk-lib/aws-ec2'
 import * as lambda from 'aws-cdk-lib/aws-lambda'
 import * as lambdaNode from 'aws-cdk-lib/aws-lambda-nodejs'
 import * as logs from 'aws-cdk-lib/aws-logs'
-import * as route53 from 'aws-cdk-lib/aws-route53'
-import * as targets from 'aws-cdk-lib/aws-route53-targets'
 import * as s3 from 'aws-cdk-lib/aws-s3'
 import * as s3deploy from 'aws-cdk-lib/aws-s3-deployment'
 import * as apigwv2 from 'aws-cdk-lib/aws-apigatewayv2'
@@ -302,32 +300,7 @@ export class IzanStack extends cdk.Stack {
       ],
     })
 
-    // Route53 records (optional) - point domain to CloudFront
-    const hostedZoneId = process.env.IZAN_HOSTED_ZONE_ID
-    if (hostedZoneId && certificate) {
-      const hostedZone = route53.HostedZone.fromHostedZoneAttributes(
-        this,
-        'HostedZone',
-        {
-          hostedZoneId,
-          zoneName: DOMAIN,
-        },
-      )
-      new route53.ARecord(this, 'AliasRecord', {
-        zone: hostedZone,
-        recordName: '', // apex (izan.io)
-        target: route53.RecordTarget.fromAlias(
-          new targets.CloudFrontTarget(distribution),
-        ),
-      })
-      new route53.ARecord(this, 'WwwAliasRecord', {
-        zone: hostedZone,
-        recordName: `www.${DOMAIN}`,
-        target: route53.RecordTarget.fromAlias(
-          new targets.CloudFrontTarget(distribution),
-        ),
-      })
-    }
+    // DNS (izan.io, www.izan.io) is managed manually - not by this stack
 
     // ─── S3 Deployment ──────────────────────────────────────────────────
     new s3deploy.BucketDeployment(this, 'WebsiteDeployment', {
