@@ -16,7 +16,7 @@
   "license": "AGPL-3.0",
   "workspaces": [
     "apps/*",
-    "packages/*","packages/mcp-servers","packages/mcp-servers/*"
+    "packages/*","packages/agents","packages/mcp-servers","packages/mcp-servers/*"
   ],
   "scripts": {
     "dev": "turbo dev",

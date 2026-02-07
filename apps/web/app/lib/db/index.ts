@@ -110,16 +110,18 @@ export async function initializeDatabase(): Promise<void> {
         }
       }
 
-      // Migration: fix implicitMCPIds for builtin agents (source of truth: DEFAULT_AGENTS)
+      // Migration: sync builtin agents from DEFAULT_AGENTS when not user-edited
       for (const defaultAgent of DEFAULT_AGENTS) {
         const existing = allAgents.find(a => a.id === defaultAgent.id && a.source === 'builtin')
         if (existing && !existing.isEdited) {
           const needsSync =
             existing.implicitMCPIds.length !== defaultAgent.implicitMCPIds.length ||
-            existing.implicitMCPIds.some((id, i) => id !== defaultAgent.implicitMCPIds[i])
+            existing.implicitMCPIds.some((id, i) => id !== defaultAgent.implicitMCPIds[i]) ||
+            existing.basePrompt !== defaultAgent.basePrompt
           if (needsSync) {
             await db.agents.update(defaultAgent.id, {
               implicitMCPIds: defaultAgent.implicitMCPIds,
+              basePrompt: defaultAgent.basePrompt,
               updatedAt: Date.now(),
             } as Record<string, unknown>)
           }

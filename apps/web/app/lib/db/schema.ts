@@ -103,9 +103,11 @@ export interface UserPreferences {
   providerKeys: Record<string, string>
 }
 
+import { BUILTIN_AGENT_DEFINITIONS } from '@izan/agents'
+
 /**
  * Default agents available in the system.
- * All prompts and labels are in English by default.
+ * Source: packages/agents (auto-discovered)
  */
 const now = Date.now()
 
@@ -120,62 +122,16 @@ export function slugify(name: string): string {
     .replace(/^-|-$/g, '') || 'agent'
 }
 
-export const DEFAULT_AGENTS: Agent[] = [
-  {
-    id: 'general',
-    slug: 'general',
-    name: 'General Assistant',
-    description: 'General purpose AI assistant. Helps with any topic.',
-    icon: 'bot',
-    basePrompt:
-      'You are a helpful AI assistant. Respond in English. Be kind and informative to the user.',
-    enabled: true,
-    category: 'general',
-    source: 'builtin',
-    implicitMCPIds: ['general'],
-    customMCPIds: [],
-    linkedAgentIds: [],
-    isEdited: false,
-    createdAt: now,
-    updatedAt: now,
-  },
-  {
-    id: 'web-search',
-    slug: 'web-search',
-    name: 'Web Search',
-    description: 'Searches the web and gathers information.',
-    icon: 'search',
-    basePrompt:
-      'You are a web research assistant. Search for user questions and provide detailed information. Respond in English.',
-    enabled: true,
-    category: 'web_search',
-    source: 'builtin',
-    implicitMCPIds: ['bing', 'google'],
-    customMCPIds: [],
-    linkedAgentIds: [],
-    isEdited: false,
-    createdAt: now,
-    updatedAt: now,
-  },
-  {
-    id: 'domain-expert',
-    slug: 'domain-expert',
-    name: 'Domain Expert',
-    description: 'Domain availability checking and registration insights.',
-    icon: 'globe',
-    basePrompt:
-      'You are a domain expert assistant. Help users check domain availability, suggest domain names, and provide registration insights. Use the domain check tools to verify availability. Respond in English.',
-    enabled: true,
-    category: 'custom',
-    source: 'builtin',
-    implicitMCPIds: ['namecheap'],
-    customMCPIds: [],
-    linkedAgentIds: [],
-    isEdited: false,
-    createdAt: now,
-    updatedAt: now,
-  },
-]
+export const DEFAULT_AGENTS: Agent[] = BUILTIN_AGENT_DEFINITIONS.map((def) => ({
+  ...def,
+  enabled: true,
+  source: 'builtin' as const,
+  customMCPIds: [],
+  linkedAgentIds: [],
+  isEdited: false,
+  createdAt: now,
+  updatedAt: now,
+}))
 
 /**
  * Default user preferences

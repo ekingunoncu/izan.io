@@ -5,6 +5,7 @@
 import { z } from 'zod'
 import type { ToolDef } from '@izan/mcp-servers-shared'
 import { NamecheapClient } from './namecheap-client.js'
+import { bulkCheckRDAP } from './rdap-helper.js'
 
 const checkDomainSchema = z.object({
   domain: z.string().describe("The domain name to check (e.g., 'example.com')"),
@@ -63,16 +64,16 @@ Register at Namecheap: https://www.namecheap.com/domains/registration/results/?d
   }
 }
 
-const checkDomain: ToolDef = {
-  name: 'check_domain',
+const getDomainPrice: ToolDef = {
+  name: 'get_domain_price',
   description:
-    'Check if a domain name is available for registration. Returns availability status.',
+    'Get Namecheap registration price for a domain. Use ONLY after confirming availability with check_domains_availability (domain-check-client). Returns availability, price, and premium status.',
   inputSchema: {
     type: 'object',
     properties: {
       domain: {
         type: 'string',
-        description: "The domain name to check (e.g., 'example.com')",
+        description: "The domain name to get price for (e.g., 'example.com')",
       },
     },
     required: ['domain'],
@@ -137,12 +138,54 @@ async function handleSuggestDomains(
   const tlds = ['com', 'io', 'net', 'co', 'app']
   const domainsToCheck = tlds.slice(0, maxResults).map((tld) => `${slug}.${tld}`)
 
-  const results = await client.checkDomainsBulk(domainsToCheck)
+  // 1. RDAP ile müsaitlik kontrolü (hızlı, API key gerektirmez)
+  const rdapResults = await bulkCheckRDAP(domainsToCheck, 4)
+  const rdapAvailableDomains = rdapResults
+    .filter((r) => r.available)
+    .map((r) => r.domain)
+
+  // 2. Sadece müsait domainler için Namecheap fiyat sorgusu
+  const namecheapResults =
+    rdapAvailableDomains.length > 0 ? await client.checkDomainsBulk(rdapAvailableDomains) : []
+
+  // 3. Sonuçları birleştir
+  const namecheapByDomain = new Map(
+    namecheapResults.map((r) => [r.domain.toLowerCase(), r]),
+  )
+  const results: Array<{
+    domain: string
+    available: boolean
+    isPremium?: boolean
+    premiumRegistrationPrice?: number
+    error?: string
+  }> = domainsToCheck.map((domain) => {
+    const rdap = rdapResults.find((r) => r.domain === domain)
+    if (!rdap?.available) {
+      // RDAP'te müsait değil
+      return {
+        domain,
+        available: false,
+        error: rdap?.error,
+      }
+    }
+    // RDAP'te müsait - Namecheap fiyatını kontrol et
+    const nc = namecheapByDomain.get(domain.toLowerCase())
+    return {
+      domain,
+      available: nc?.available ?? true, // RDAP'te müsait ama Namecheap'ta kontrol edilemediyse müsait say
+      isPremium: nc?.isPremium,
+      premiumRegistrationPrice: nc?.premiumRegistrationPrice,
+      error: nc?.error,
+    }
+  })
 
   const availableDomains = results
     .filter((r) => r.available)
     .map((r) => {
-      const premium = r.isPremium && r.premiumRegistrationPrice ? ` (premium $${r.premiumRegistrationPrice.toFixed(2)})` : ''
+      const premium =
+        'isPremium' in r && r.isPremium && 'premiumRegistrationPrice' in r && r.premiumRegistrationPrice
+          ? ` (premium $${r.premiumRegistrationPrice.toFixed(2)})`
+          : ''
       return `✅ ${r.domain}${premium}`
     })
   const unavailableDomains = results
@@ -174,7 +217,7 @@ async function handleSuggestDomains(
 const suggestDomains: ToolDef = {
   name: 'suggest_domains',
   description:
-    'Get domain suggestions for a keyword: builds keyword.com, .io, .net, .co, .app and checks availability.',
+    'Get domain suggestions for a keyword: builds keyword.com, .io, .net, .co, .app. Uses RDAP for availability, then Namecheap for pricing on available domains. For custom domain lists, use check_domains_availability first, then get_domains_price.',
   inputSchema: {
     type: 'object',
     properties: {
@@ -193,7 +236,7 @@ const suggestDomains: ToolDef = {
   handler: handleSuggestDomains,
 }
 
-// ─── check_domains_bulk ───────────────────────────────────────────────────
+// ─── get_domains_price ─────────────────────────────────────────────────────
 
 const checkDomainsBulkSchema = z.object({
   domains: z
@@ -252,16 +295,16 @@ async function handleCheckDomainsBulk(
   }
 }
 
-const checkDomainsBulk: ToolDef = {
-  name: 'check_domains_bulk',
+const getDomainsPrice: ToolDef = {
+  name: 'get_domains_price',
   description:
-    'Check availability for multiple domains at once. Comma-separated list, max 50 domains.',
+    'Get Namecheap registration prices for multiple domains. Use ONLY after confirming availability with check_domains_availability (domain-check-client). Comma-separated list, max 50 domains.',
   inputSchema: {
     type: 'object',
     properties: {
       domains: {
         type: 'string',
-        description: 'Comma-separated domains (e.g. "example.com, test.io, myapp.net")',
+        description: 'Comma-separated domains to get prices for (e.g. "example.com, test.io, myapp.net")',
       },
     },
     required: ['domains'],
@@ -433,9 +476,9 @@ const whoisLookup: ToolDef = {
 }
 
 export const TOOLS: ToolDef[] = [
-  checkDomain,
+  getDomainPrice,
   suggestDomains,
-  checkDomainsBulk,
+  getDomainsPrice,
   listTlds,
   getDomainInfo,
   whoisLookup,

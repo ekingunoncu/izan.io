@@ -5,6 +5,7 @@
  * In production: CloudFront at /api/{serverId}/mcp
  * In development: localhost:3100/api/{serverId}/mcp
  */
+import { IMPLICIT_AGENT_SERVERS } from '@izan/agents'
 import type { MCPServerConfig } from '@izan/mcp-client'
 
 /** Resolve MCP base URL (absolute, no trailing slash) - required for new URL() in MCP client */
@@ -73,20 +74,21 @@ export const DEFAULT_MCP_SERVERS: MCPServerConfig[] = [
     category: 'custom',
     source: 'builtin',
   },
+  {
+    id: 'domain-check-client',
+    name: 'Domain Check (Client)',
+    description: 'Fast RDAP bulk availability check. No API key. 1–15 domains.',
+    url: 'tab://izan-domain-check',
+    category: 'custom',
+    source: 'builtin',
+  },
 ]
 
 /**
  * Mapping from agent ID → built-in MCP server IDs.
- *
- * Each agent listed here will always have the specified servers
- * attached implicitly (not removable by the user).
- * Agents not listed here still receive tools from their category match.
+ * Source: @izan/agents (auto-discovered from packages/agents)
  */
-export const IMPLICIT_AGENT_SERVERS: Record<string, string[]> = {
-  'general': ['general'],
-  'web-search': ['bing', 'google'],
-  'domain-expert': ['namecheap'],
-}
+export { IMPLICIT_AGENT_SERVERS } from '@izan/agents'
 
 /**
  * Get the built-in MCP server configs for a given agent ID.

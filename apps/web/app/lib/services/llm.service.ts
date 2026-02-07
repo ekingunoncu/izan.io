@@ -15,6 +15,44 @@ interface StreamToolCallAccum {
 import type { ProviderId } from '@izan/llm-proxy'
 import { getChatUrl } from '../llm-providers'
 
+/**
+ * Normalize messages for APIs that only accept [user, assistant] roles.
+ * Merges system message content into the first user message.
+ */
+function normalizeMessagesForStrictRoles(
+  messages: ChatCompletionMessageParam[],
+): Array<{ role: 'user' | 'assistant'; content: string }> {
+  const systemParts: string[] = []
+  const chatOnly: Array<{ role: 'user' | 'assistant'; content: string }> = []
+
+  for (const msg of messages) {
+    const role = msg.role as string
+    const content = typeof msg.content === 'string' ? msg.content : ''
+    if (role === 'system') {
+      if (content) systemParts.push(content)
+    } else if (role === 'user' || role === 'assistant') {
+      chatOnly.push({ role, content })
+    }
+    // Skip tool/function messages for plain chat
+  }
+
+  if (systemParts.length === 0) return chatOnly
+
+  const systemContent = systemParts.join('\n\n')
+  if (chatOnly.length === 0) {
+    return [{ role: 'user', content: systemContent }]
+  }
+
+  const first = chatOnly[0]
+  if (first.role === 'user') {
+    return [
+      { role: 'user', content: systemContent + '\n\n' + first.content },
+      ...chatOnly.slice(1),
+    ]
+  }
+  return [{ role: 'user', content: systemContent }, ...chatOnly]
+}
+
 /** Parse SSE stream and yield parsed JSON objects for each data: line */
 async function* parseSSEStream(
   reader: ReadableStreamDefaultReader<Uint8Array>,
@@ -120,6 +158,7 @@ export class LLMService implements ILLMService {
     messages: ChatCompletionMessageParam[],
     onChunk: (chunk: string) => void,
   ): Promise<void> {
+    const normalizedMessages = normalizeMessagesForStrictRoles(messages)
     const response = await fetch(this.url, {
       method: 'POST',
       headers: {
@@ -130,14 +169,18 @@ export class LLMService implements ILLMService {
       cache: 'no-store',
       body: JSON.stringify({
         model: this.model,
-        messages,
+        messages: normalizedMessages,
         stream: true,
       }),
     })
 
     if (!response.ok) {
       const err = await response.json().catch(() => ({ error: response.statusText }))
-      throw new Error(err.error || `API error: ${response.status}`)
+      const errorMessage =
+        typeof err.error === 'string'
+          ? err.error
+          : err.error?.message || err.message || JSON.stringify(err.error) || `API error: ${response.status}`
+      throw new Error(errorMessage)
     }
 
     const reader = response.body?.getReader()
@@ -176,7 +219,11 @@ export class LLMService implements ILLMService {
 
     if (!response.ok) {
       const err = await response.json().catch(() => ({ error: response.statusText }))
-      throw new Error(err.error || `API error: ${response.status}`)
+      const errorMessage =
+        typeof err.error === 'string'
+          ? err.error
+          : err.error?.message || err.message || JSON.stringify(err.error) || `API error: ${response.status}`
+      throw new Error(errorMessage)
     }
 
     const reader = response.body?.getReader()
@@ -300,7 +347,11 @@ export class LLMService implements ILLMService {
 
     if (!response.ok) {
       const err = await response.json().catch(() => ({ error: response.statusText }))
-      throw new Error(err.error || `API error: ${response.status}`)
+      const errorMessage =
+        typeof err.error === 'string'
+          ? err.error
+          : err.error?.message || err.message || JSON.stringify(err.error) || `API error: ${response.status}`
+      throw new Error(errorMessage)
     }
 
     const data = (await response.json()) as {

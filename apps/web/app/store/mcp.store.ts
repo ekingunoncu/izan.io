@@ -9,6 +9,10 @@ import {
 import { DEFAULT_MCP_SERVERS, IMPLICIT_AGENT_SERVERS } from '~/lib/mcp/config'
 import { db, type UserMCPServer } from '~/lib/db'
 import type { Agent } from '~/lib/db/schema'
+import {
+  ensureDomainCheckServer,
+  shutdownDomainCheckServer,
+} from '~/lib/mcp/domain-check-server'
 
 interface MCPState {
   registry: MCPServerRegistry | null
@@ -113,10 +117,15 @@ export const useMCPStore = create<MCPState>((set, get) => ({
       return
     }
 
-    // For builtin agents, use IMPLICIT_AGENT_SERVERS as source of truth (fixes IndexedDB drift)
-    const implicitIds = agent.source === 'builtin'
-      ? (IMPLICIT_AGENT_SERVERS[agent.id] ?? [])
-      : agent.implicitMCPIds
+    // For builtin agents: use IMPLICIT_AGENT_SERVERS unless user has edited (isEdited) → then respect agent.implicitMCPIds
+    let implicitIds: string[]
+    if (agent.source === 'builtin' && agent.isEdited) {
+      implicitIds = agent.implicitMCPIds
+    } else if (agent.source === 'builtin') {
+      implicitIds = IMPLICIT_AGENT_SERVERS[agent.id] ?? []
+    } else {
+      implicitIds = agent.implicitMCPIds
+    }
 
     // Determine which servers this agent needs
     const neededIds = new Set<string>()
@@ -129,6 +138,15 @@ export const useMCPStore = create<MCPState>((set, get) => ({
     // 2. Custom MCP IDs from the agent
     for (const mcpId of agent.customMCPIds) {
       neededIds.add(mcpId)
+    }
+
+    // Handle domain-check-client lifecycle (TabServerTransport)
+    if (neededIds.has('domain-check-client')) {
+      // Start TabServerTransport server if needed
+      await ensureDomainCheckServer()
+    } else {
+      // Stop TabServerTransport server if not needed
+      await shutdownDomainCheckServer()
     }
 
     // Disconnect servers that are no longer needed
@@ -333,7 +351,7 @@ export const useMCPStore = create<MCPState>((set, get) => ({
 
   /**
    * Get tools available for a specific agent.
-   * Uses IMPLICIT_AGENT_SERVERS for builtin agents, agent.implicitMCPIds for user agents.
+   * For builtin agents: IMPLICIT_AGENT_SERVERS unless isEdited → then agent.implicitMCPIds.
    */
   getToolsForAgent: (agent: Agent) => {
     const { registry } = get()
@@ -341,9 +359,14 @@ export const useMCPStore = create<MCPState>((set, get) => ({
       return []
     }
 
-    const implicitIds = agent.source === 'builtin'
-      ? (IMPLICIT_AGENT_SERVERS[agent.id] ?? [])
-      : agent.implicitMCPIds
+    let implicitIds: string[]
+    if (agent.source === 'builtin' && agent.isEdited) {
+      implicitIds = agent.implicitMCPIds
+    } else if (agent.source === 'builtin') {
+      implicitIds = IMPLICIT_AGENT_SERVERS[agent.id] ?? []
+    } else {
+      implicitIds = agent.implicitMCPIds
+    }
 
     const tools: MCPToolInfo[] = []
     const seenToolKeys = new Set<string>()
