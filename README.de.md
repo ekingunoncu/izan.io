@@ -11,7 +11,7 @@
 
 <h1 align="center">izan.io</h1>
 <p align="center">
-  <strong>Lokaler KI-Assistent — Open Source, Transparent, Frei</strong>
+  <strong>Lokaler KI-Assistent - Open Source, Transparent, Frei</strong>
 </p>
 <p align="center">
   <em>Weisheit • Verständnis • Intellekt</em>
@@ -37,7 +37,7 @@
 |---------|--------------|
 | 🔐 **Privatsphäre** | API-Keys nur im Browser. Nie an unsere Server gesendet. |
 | 🧠 **Multi-Provider** | 17+ KI-Provider unterstützt (siehe unten). |
-| 🤖 **Smarte Agents** | MCP-vernetzte Agents — Websuche, Code, und mehr. |
+| 🤖 **Smarte Agents** | MCP-vernetzte Agents - Websuche, Code, und mehr. |
 | 🌐 **MCP** | Integrierte und eigene MCP-Server. |
 
 ---
@@ -108,7 +108,7 @@ Siehe [LICENSE](./LICENSE).
 ---
 
 <p align="center">
-  <strong>izan.io</strong> — Wisdom • Understanding • Intellect
+  <strong>izan.io</strong> - Wisdom • Understanding • Intellect
 </p>
 <p align="center">
   <sub>Fork it, build it, share it.</sub>

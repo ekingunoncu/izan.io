@@ -51,7 +51,7 @@ Use the [feature request template](https://github.com/ekingunoncu/izan.io/issues
 
 1. **Fork** the repo and create a branch from `main`
 2. **Name your branch** descriptively: `feature/add-x`, `fix/issue-123`, `docs/update-readme`
-3. **Make your changes** — keep PRs focused and small
+3. **Make your changes** - keep PRs focused and small
 4. **Test** your changes locally
 5. **Push** and open a Pull Request
 
@@ -96,7 +96,7 @@ npm run lint
 2. Add `package.json`, `tsconfig.json`, and `src/index.ts`
 3. Define tools in `src/tools.ts` using the shared `ToolDef` type
 4. Export a handler via `createHandler()` from `@izan/mcp-servers-shared`
-5. The CDK stack auto-discovers servers — no infra changes needed
+5. The CDK stack auto-discovers servers - no infra changes needed
 
 ## Adding a New LLM Provider
 

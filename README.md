@@ -11,7 +11,7 @@
 
 <h1 align="center">izan.io</h1>
 <p align="center">
-  <strong>Local AI Assistant — Open Source, Transparent, Free</strong>
+  <strong>Local AI Assistant - Open Source, Transparent, Free</strong>
 </p>
 <p align="center">
   <em>Wisdom • Understanding • Intellect</em>
@@ -37,7 +37,7 @@
 |---------|-------------|
 | 🔐 **Privacy** | API keys stored only in your browser. Never sent to our servers. |
 | 🧠 **Multi-Provider** | 17+ AI providers supported (see below). |
-| 🤖 **Smart Agents** | MCP-connected agents — web search, code, and more. |
+| 🤖 **Smart Agents** | MCP-connected agents - web search, code, and more. |
 | 🌐 **MCP** | Built-in and custom MCP servers. |
 
 ---
@@ -80,6 +80,19 @@ See `apps/web/.env.example` for optional env vars. API keys are stored in the br
 
 ---
 
+## 🌐 Deploy & Custom Domain
+
+Deploy via `npm run deploy:infra` or GitHub Actions (push to `main`). The stack uses S3 + CloudFront.
+
+**To fix CloudFront 403 when accessing via izan.io:**
+
+1. Create an ACM certificate in **us-east-1** for `izan.io` and `www.izan.io` (AWS Console → Certificate Manager).
+2. Validate the certificate (DNS CNAME records).
+3. Set `IZAN_DOMAIN_CERTIFICATE_ARN` in `.env` or GitHub Secrets.
+4. (Optional) If using Route53: set `IZAN_HOSTED_ZONE_ID` to auto-create A records. Otherwise, add CNAME records manually: `izan.io` and `www.izan.io` → CloudFront distribution URL.
+
+---
+
 ## 🛠️ Tech Stack
 
 React 19 · React Router 7 · Vite 7 · Tailwind CSS 4 · Zustand · IndexedDB (Dexie) · react-i18next · npm workspaces + Turbo
@@ -108,7 +121,7 @@ See [LICENSE](./LICENSE).
 ---
 
 <p align="center">
-  <strong>izan.io</strong> — Wisdom • Understanding • Intellect
+  <strong>izan.io</strong> - Wisdom • Understanding • Intellect
 </p>
 <p align="center">
   <sub>Fork it, build it, share it.</sub>

@@ -242,7 +242,7 @@ export default function Home() {
 
       <main>
         {/* ========== HERO ========== */}
-        <section className="relative py-20 sm:py-28 md:py-36 overflow-hidden">
+        <section className="relative py-14 sm:py-18 md:py-24 overflow-hidden section-hero">
           {/* Animated gradient blobs */}
           <div className="absolute inset-0 -z-10" aria-hidden>
             <div className="hero-blob animate-float absolute -top-32 -left-32 w-[500px] h-[500px] rounded-full bg-blue-500/30 dark:bg-blue-500/20" />
@@ -258,12 +258,12 @@ export default function Home() {
             }}
           />
 
-          <div className="container mx-auto px-4 sm:px-6 text-center max-w-4xl animate-slide-up">
+          <div className="container mx-auto px-4 sm:px-6 text-center max-w-4xl animate-slide-up relative z-10">
             <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-sm font-medium text-primary mb-8">
               <Sparkles className="h-4 w-4" />
               {t("home.heroBadge")}
             </span>
-            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-6 sm:mb-8 leading-[1.08]">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-6 sm:mb-8 leading-[1.15]">
               {t("home.heroTitle")}
               <span className="block mt-3 gradient-text">
                 {t("home.heroSubtitle")}
@@ -314,14 +314,13 @@ export default function Home() {
         </section>
 
         {/* ========== FEATURES - Bento Grid ========== */}
-        <section className="py-16 sm:py-24 md:py-32">
+        <section className="py-10 sm:py-14 md:py-20">
           <div className="container mx-auto px-4 sm:px-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
               {/* Feature 1 - Larger */}
-              <div className="md:col-span-2 group relative rounded-2xl border border-blue-200/60 dark:border-blue-500/20 bg-gradient-to-br from-blue-50 via-white to-indigo-50/50 dark:from-blue-950/40 dark:via-background dark:to-indigo-950/30 p-8 sm:p-10 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/10 hover:border-blue-300/80 dark:hover:border-blue-500/40 overflow-hidden">
-                <div className="absolute top-0 right-0 w-40 h-40 bg-blue-400/10 dark:bg-blue-400/5 rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-125 transition-transform duration-500" />
+              <div className="md:col-span-2 group relative rounded-2xl border border-blue-200/40 dark:border-blue-500/15 bg-blue-50/30 dark:bg-blue-950/25 p-8 sm:p-10 transition-all duration-300 hover:shadow-md hover:shadow-blue-500/5 hover:border-blue-200/60 dark:hover:border-blue-500/25 overflow-hidden">
                 <div className="relative">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-500 text-white shadow-lg shadow-blue-500/25 mb-6">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-500 text-white shadow-md shadow-blue-500/15 mb-6">
                     <Bot className="h-7 w-7" />
                   </div>
                   <h3 className="text-xl sm:text-2xl font-bold mb-3">
@@ -334,10 +333,9 @@ export default function Home() {
               </div>
 
               {/* Feature 2 */}
-              <div className="group relative rounded-2xl border border-emerald-200/60 dark:border-emerald-500/20 bg-gradient-to-br from-emerald-50 via-white to-teal-50/50 dark:from-emerald-950/40 dark:via-background dark:to-teal-950/30 p-8 sm:p-10 transition-all duration-300 hover:shadow-xl hover:shadow-emerald-500/10 hover:border-emerald-300/80 dark:hover:border-emerald-500/40 overflow-hidden">
-                <div className="absolute bottom-0 left-0 w-32 h-32 bg-emerald-400/10 dark:bg-emerald-400/5 rounded-full translate-y-1/2 -translate-x-1/2 group-hover:scale-125 transition-transform duration-500" />
+              <div className="group relative rounded-2xl border border-emerald-200/40 dark:border-emerald-500/15 bg-emerald-50/30 dark:bg-emerald-950/25 p-8 sm:p-10 transition-all duration-300 hover:shadow-md hover:shadow-emerald-500/5 hover:border-emerald-200/60 dark:hover:border-emerald-500/25 overflow-hidden">
                 <div className="relative">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-500 text-white shadow-lg shadow-emerald-500/25 mb-6">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-500 text-white shadow-md shadow-emerald-500/15 mb-6">
                     <Shield className="h-7 w-7" />
                   </div>
                   <h3 className="text-xl font-bold mb-3">
@@ -350,10 +348,9 @@ export default function Home() {
               </div>
 
               {/* Feature 3 - Full width */}
-              <div className="md:col-span-3 group relative rounded-2xl border border-amber-200/60 dark:border-amber-500/20 bg-gradient-to-r from-amber-50 via-white to-orange-50/50 dark:from-amber-950/40 dark:via-background dark:to-orange-950/30 p-8 sm:p-10 transition-all duration-300 hover:shadow-xl hover:shadow-amber-500/10 hover:border-amber-300/80 dark:hover:border-amber-500/40 overflow-hidden">
-                <div className="absolute top-0 right-1/4 w-48 h-48 bg-amber-400/10 dark:bg-amber-400/5 rounded-full -translate-y-1/2 group-hover:scale-110 transition-transform duration-500" />
+              <div className="md:col-span-3 group relative rounded-2xl border border-amber-200/40 dark:border-amber-500/15 bg-amber-50/30 dark:bg-amber-950/25 p-8 sm:p-10 transition-all duration-300 hover:shadow-md hover:shadow-amber-500/5 hover:border-amber-200/60 dark:hover:border-amber-500/25 overflow-hidden">
                 <div className="relative flex flex-col md:flex-row md:items-center gap-6">
-                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-amber-500 text-white shadow-lg shadow-amber-500/25">
+                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-amber-500 text-white shadow-md shadow-amber-500/15">
                     <Users className="h-7 w-7" />
                   </div>
                   <div>
@@ -371,43 +368,43 @@ export default function Home() {
         </section>
 
         {/* ========== AGENT SHOWCASE - Dark section ========== */}
-        <section className="relative py-20 sm:py-28 md:py-32 section-dark text-white overflow-hidden">
+        <section className="relative py-12 sm:py-16 md:py-20 section-dark text-white overflow-hidden">
           {/* Decorative glowing orbs */}
           <div className="absolute top-20 left-10 w-64 h-64 rounded-full bg-violet-600/20 blur-[100px]" aria-hidden />
           <div className="absolute bottom-10 right-10 w-48 h-48 rounded-full bg-blue-600/20 blur-[80px]" aria-hidden />
 
           <div className="container mx-auto px-4 sm:px-6 relative">
-            <div className="text-center mb-14 sm:mb-16">
-              <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-sm font-medium text-white/80 mb-6">
-                <Star className="h-4 w-4 text-amber-400" />
+            <div className="text-center mb-10 sm:mb-12">
+              <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-white/80 mb-4">
+                <Star className="h-3.5 w-3.5 text-amber-400" />
                 {t("home.agentShowcaseTitle")}
               </span>
-              <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3">
                 {t("home.agentShowcaseTitle")}
               </h2>
-              <p className="text-lg text-white/60 max-w-2xl mx-auto">
+              <p className="text-sm sm:text-base text-white/60 max-w-2xl mx-auto">
                 {t("home.agentShowcaseDesc")}
               </p>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 items-stretch">
               {AGENTS.map((agent) => {
                 const Icon = agent.icon;
                 const content = (
                   <div
-                    className={`group relative rounded-2xl border transition-all duration-300 p-6 sm:p-7 ${
+                    className={`group relative flex flex-col rounded-2xl border transition-all duration-300 p-5 sm:p-6 h-full min-h-[200px] ${
                       agent.active
                         ? "border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 hover:shadow-2xl hover:shadow-white/5 cursor-pointer hover:-translate-y-1"
                         : "border-white/5 bg-white/[0.02] opacity-60"
                     }`}
                   >
-                    <div className="flex items-center justify-between mb-5">
+                    <div className="flex items-center justify-between mb-4 shrink-0">
                       <div
-                        className={`flex h-12 w-12 items-center justify-center rounded-2xl ${agent.color}`}
+                        className={`flex h-10 w-10 items-center justify-center rounded-xl shrink-0 ${agent.color}`}
                       >
-                        <Icon className="h-6 w-6" />
+                        <Icon className="h-5 w-5" />
                       </div>
                       <span
-                        className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
+                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold shrink-0 ${
                           agent.active
                             ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
                             : "bg-white/5 text-white/40 border border-white/10"
@@ -418,18 +415,20 @@ export default function Home() {
                           : t("home.agentComingSoon")}
                       </span>
                     </div>
-                    <h3 className="text-lg font-bold mb-2 text-white">
+                    <h3 className="text-base font-bold mb-1.5 text-white shrink-0">
                       {t(agent.titleKey)}
                     </h3>
-                    <p className="text-sm leading-relaxed text-white/50">
+                    <p className="text-sm leading-relaxed text-white/50 flex-1 min-h-0">
                       {t(agent.descKey)}
                     </p>
-                    {agent.active && (
-                      <div className="mt-5 flex items-center gap-1.5 text-sm font-medium text-white/70 group-hover:text-white transition-colors">
-                        {t("home.agentActive")}
-                        <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                      </div>
-                    )}
+                    <div className="mt-4 shrink-0 h-5 flex items-center">
+                      {agent.active ? (
+                        <span className="flex items-center gap-1.5 text-xs font-medium text-white/70 group-hover:text-white transition-colors">
+                          {t("home.agentActive")}
+                          <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-1 transition-transform" />
+                        </span>
+                      ) : null}
+                    </div>
                   </div>
                 );
 
@@ -438,19 +437,24 @@ export default function Home() {
                     <Link
                       key={agent.titleKey}
                       to={`/${lang}/agents/${agent.agentId}`}
+                      className="block h-full"
                     >
                       {content}
                     </Link>
                   );
                 }
-                return <div key={agent.titleKey}>{content}</div>;
+                return (
+                  <div key={agent.titleKey} className="h-full">
+                    {content}
+                  </div>
+                );
               })}
             </div>
           </div>
         </section>
 
         {/* ========== HOW IT WORKS - Numbered Steps ========== */}
-        <section className="py-20 sm:py-28 md:py-32 bg-muted/30 dark:bg-muted/10">
+        <section className="py-12 sm:py-16 md:py-20 bg-muted/30 dark:bg-muted/10 section-muted-fade-from-dark">
           <div className="container mx-auto px-4 sm:px-6">
             <div className="text-center mb-14 sm:mb-20">
               <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4">
@@ -483,7 +487,7 @@ export default function Home() {
         </section>
 
         {/* ========== FLEXIBILITY - Gradient Border Cards ========== */}
-        <section className="py-20 sm:py-28 md:py-32 relative overflow-hidden">
+        <section className="py-12 sm:py-16 md:py-20 relative overflow-hidden section-light-fade">
           {/* Background decoration */}
           <div className="absolute -left-40 top-1/2 -translate-y-1/2 w-80 h-80 rounded-full bg-violet-400/10 dark:bg-violet-400/5 blur-[100px]" aria-hidden />
           <div className="absolute -right-40 top-1/3 w-64 h-64 rounded-full bg-blue-400/10 dark:bg-blue-400/5 blur-[80px]" aria-hidden />
@@ -536,7 +540,7 @@ export default function Home() {
         </section>
 
         {/* ========== ROADMAP - Timeline ========== */}
-        <section className="py-20 sm:py-28 md:py-32 bg-muted/30 dark:bg-muted/10">
+        <section className="py-12 sm:py-16 md:py-20 bg-muted/30 dark:bg-muted/10 section-muted-fade">
           <div className="container mx-auto px-4 sm:px-6">
             <div className="text-center mb-14 sm:mb-16">
               <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4">
@@ -589,7 +593,7 @@ export default function Home() {
         </section>
 
         {/* ========== PRIVACY CTA - Gradient card ========== */}
-        <section className="py-20 sm:py-28 md:py-32 relative overflow-hidden">
+        <section className="py-12 sm:py-16 md:py-20 relative overflow-hidden">
           <div className="container mx-auto px-4 sm:px-6">
             <Link
               to={`/${lang}/privacy`}
@@ -639,7 +643,7 @@ export default function Home() {
         </section>
 
         {/* ========== PROVIDERS - Clean grid ========== */}
-        <section className="py-20 sm:py-28 md:py-32 bg-muted/30 dark:bg-muted/10">
+        <section className="py-12 sm:py-16 md:py-20 bg-muted/30 dark:bg-muted/10 section-muted-fade">
           <div className="container mx-auto px-4 sm:px-6">
             <div className="text-center mb-14 sm:mb-16">
               <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4">

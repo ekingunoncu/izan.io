@@ -12,7 +12,7 @@ export type AgentCategory = ServerCategory
 
 /**
  * Defines an AI agent with its capabilities and tool access.
- * This is the core type used by the framework — not tied to UI or storage.
+ * This is the core type used by the framework - not tied to UI or storage.
  */
 export interface AgentDefinition {
   /** Unique identifier */
@@ -23,7 +23,7 @@ export interface AgentDefinition {
   description: string
   /** Icon identifier (e.g. lucide icon name) */
   icon: string
-  /** Agent category — also determines which MCP tools are available */
+  /** Agent category - also determines which MCP tools are available */
   category: AgentCategory
   /** System prompt sent to the LLM */
   systemPrompt: string

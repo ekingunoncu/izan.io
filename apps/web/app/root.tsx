@@ -56,7 +56,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   }, [langFromParams]);
 
   return (
-    <html lang={lang} suppressHydrationWarning>
+    <html lang={lang} className="dark" suppressHydrationWarning>
       <head>
         <meta charSet="UTF-8" />
         <meta
@@ -69,7 +69,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Links />
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){var c=document.cookie.match(/theme=([^;]+)/);var t=c?c[1]:localStorage.getItem('theme');if(!c&&t){document.cookie='theme='+t+';path=/;max-age=31536000;SameSite=Lax';}document.documentElement.classList.toggle('dark',t!=='light');})();`,
+            __html: `(function(){var t='dark';try{var c=document.cookie.match(/theme=([^;]+)/);var s=c?c[1]:null;if(!s&&typeof localStorage!=='undefined'){try{s=localStorage.getItem('theme');}catch(e){}}if(s==='light'||s==='dark')t=s;else{try{localStorage.setItem('theme','dark');}catch(e){}}try{if(!c)document.cookie='theme='+t+';path=/;max-age=31536000;SameSite=Lax';}catch(e){}document.documentElement.classList.toggle('dark',t!=='light');}catch(e){document.documentElement.classList.add('dark');}})();`,
           }}
         />
       </head>

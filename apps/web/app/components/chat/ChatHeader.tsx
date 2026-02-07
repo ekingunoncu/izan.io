@@ -67,7 +67,7 @@ function ModelQuickSelect({ onClose }: ModelQuickSelectProps) {
   const currentProviderObj = providers.find(p => p.id === selectedProvider)
 
   return (
-    <div className="absolute top-full right-0 mt-2 w-[min(20rem,calc(100vw-2rem))] min-w-0 sm:w-80 bg-popover border rounded-lg shadow-lg z-50 max-h-96 overflow-y-auto overflow-x-hidden scrollbar-thin">
+    <div className="absolute top-full right-0 mt-2 w-[min(20rem,calc(100vw-2rem))] min-w-0 sm:w-80 bg-popover border rounded-lg shadow-lg z-50 max-h-96 overflow-y-auto overflow-x-hidden">
       <div className="p-2">
         {configuredProviders.length > 1 && (
           <div className="flex flex-wrap gap-1 mb-2 px-1">
