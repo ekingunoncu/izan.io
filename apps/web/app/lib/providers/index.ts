@@ -5,7 +5,7 @@
  * Model data sourced from OpenCode's models.dev integration and provider docs.
  */
 
-import type { ProviderId } from '@izan/llm-proxy'
+import type { ProviderId } from '../llm-providers'
 
 /** Provider metadata */
 export interface ProviderInfo {

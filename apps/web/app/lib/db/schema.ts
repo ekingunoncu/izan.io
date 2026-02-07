@@ -26,6 +26,12 @@ export interface Agent {
   linkedAgentIds: string[]
   /** Whether the user has edited this agent's defaults */
   isEdited: boolean
+  /** Optional model hyperparameters (agent-specific overrides). 0–2 for temperature, OpenAI default 1 */
+  temperature?: number
+  /** Max tokens for response. Omit for provider default */
+  maxTokens?: number
+  /** Nucleus sampling top_p, 0–1, OpenAI default 1 */
+  topP?: number
   createdAt: number
   updatedAt: number
 }
@@ -103,6 +109,8 @@ export interface UserPreferences {
   providerKeys: Record<string, string>
   /** Built-in MCP server IDs that are globally disabled */
   disabledBuiltinMCPIds: string[]
+  /** Agent IDs the user has favorited (shown first in selector) */
+  favoriteAgentIds: string[]
 }
 
 import { BUILTIN_AGENT_DEFINITIONS } from '@izan/agents'
@@ -126,6 +134,9 @@ export function slugify(name: string): string {
 
 export const DEFAULT_AGENTS: Agent[] = BUILTIN_AGENT_DEFINITIONS.map((def) => ({
   ...def,
+  temperature: def.temperature ?? 1,
+  maxTokens: def.maxTokens,
+  topP: def.topP ?? 1,
   enabled: true,
   source: 'builtin' as const,
   customMCPIds: [],
@@ -146,4 +157,5 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   selectedModel: null,
   providerKeys: {},
   disabledBuiltinMCPIds: [],
+  favoriteAgentIds: [],
 }

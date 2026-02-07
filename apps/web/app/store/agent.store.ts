@@ -12,6 +12,7 @@ interface AgentState {
   currentAgentId: string | null
   currentAgent: Agent | null
   isInitialized: boolean
+  favoriteAgentIds: string[]
 
   // Lifecycle
   initialize: () => Promise<void>
@@ -29,7 +30,7 @@ interface AgentState {
   }) => Promise<Agent>
   updateAgent: (
     agentId: string,
-    updates: Partial<Pick<Agent, 'name' | 'description' | 'icon' | 'basePrompt' | 'enabled' | 'category' | 'implicitMCPIds' | 'customMCPIds' | 'linkedAgentIds'>>,
+    updates: Partial<Pick<Agent, 'name' | 'description' | 'icon' | 'basePrompt' | 'enabled' | 'category' | 'implicitMCPIds' | 'customMCPIds' | 'linkedAgentIds' | 'temperature' | 'maxTokens' | 'topP'>>,
   ) => Promise<void>
   deleteAgent: (agentId: string) => Promise<void>
   resetAgent: (agentId: string) => Promise<void>
@@ -46,6 +47,9 @@ interface AgentState {
   // Agent linking
   linkAgent: (agentId: string, targetAgentId: string) => Promise<void>
   unlinkAgent: (agentId: string, targetAgentId: string) => Promise<void>
+
+  // Favorites
+  toggleFavoriteAgent: (agentId: string) => Promise<void>
 }
 
 export const useAgentStore = create<AgentState>((set, get) => ({
@@ -53,6 +57,7 @@ export const useAgentStore = create<AgentState>((set, get) => ({
   currentAgentId: null,
   currentAgent: null,
   isInitialized: false,
+  favoriteAgentIds: [],
 
   // ─── Initialize from IndexedDB ─────────────────────────────────
 
@@ -69,6 +74,7 @@ export const useAgentStore = create<AgentState>((set, get) => ({
         agents,
         currentAgentId: agentId,
         currentAgent: agent || agents[0] || null,
+        favoriteAgentIds: prefs.favoriteAgentIds ?? [],
         isInitialized: true,
       })
     } catch (error) {
@@ -77,6 +83,7 @@ export const useAgentStore = create<AgentState>((set, get) => ({
         agents: DEFAULT_AGENTS,
         currentAgentId: 'general',
         currentAgent: DEFAULT_AGENTS[0],
+        favoriteAgentIds: [],
         isInitialized: true,
       })
     }
@@ -190,10 +197,14 @@ export const useAgentStore = create<AgentState>((set, get) => ({
       const needsNewSelection = s.currentAgentId === agentId
       return {
         agents: newAgents,
+        favoriteAgentIds: s.favoriteAgentIds.filter(id => id !== agentId),
         ...(needsNewSelection
           ? { currentAgentId: newAgents[0]?.id || null, currentAgent: newAgents[0] || null }
           : {}),
       }
+    })
+    await storageService.updatePreferences({
+      favoriteAgentIds: get().favoriteAgentIds,
     })
   },
 
@@ -337,5 +348,17 @@ export const useAgentStore = create<AgentState>((set, get) => ({
       agents: s.agents.map(a => a.id === agentId ? updated : a),
       currentAgent: s.currentAgentId === agentId ? updated : s.currentAgent,
     }))
+  },
+
+  // ─── Favorites ───────────────────────────────────────────────────
+
+  toggleFavoriteAgent: async (agentId: string) => {
+    const { favoriteAgentIds } = get()
+    const isFavorite = favoriteAgentIds.includes(agentId)
+    const newIds = isFavorite
+      ? favoriteAgentIds.filter(id => id !== agentId)
+      : [...favoriteAgentIds, agentId]
+    set({ favoriteAgentIds: newIds })
+    await storageService.updatePreferences({ favoriteAgentIds: newIds })
   },
 }))

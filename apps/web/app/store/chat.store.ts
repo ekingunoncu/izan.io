@@ -4,6 +4,7 @@ import i18n from '~/i18n'
 import type {
   ChatCompletionMessageParam,
   ChatCompletionTool,
+  LLMGenerationOptions,
 } from '~/lib/services/interfaces'
 import { storageService, llmService } from '~/lib/services'
 import type { Chat, Message, Agent } from '~/lib/db'
@@ -85,6 +86,15 @@ function buildLinkedAgentTools(agent: Agent): ChatCompletionTool[] {
 /** Max tool-calling rounds to prevent runaway tool chains */
 const MAX_TOOL_ROUNDS = 5
 
+/** Build LLM generation options from agent hyperparams (with defaults) */
+function getAgentGenerationOptions(agent: Agent | null): LLMGenerationOptions {
+  return {
+    temperature: agent?.temperature ?? 1,
+    max_tokens: agent?.maxTokens,
+    top_p: agent?.topP ?? 1,
+  }
+}
+
 /** Max depth for linked agent calls (A->B->C) */
 const MAX_AGENT_DEPTH = 3
 
@@ -122,13 +132,14 @@ async function streamPlainChat(
   updateAssistantMsg: (content: string) => void,
   persistMessage: (content: string) => Promise<void>,
   isAborted: () => boolean,
+  options?: LLMGenerationOptions,
 ): Promise<void> {
   let fullContent = ''
   await llmService.streamChat(chatMessages, (chunk) => {
     if (isAborted()) return
     fullContent += chunk
     updateAssistantMsg(fullContent)
-  })
+  }, options)
   if (fullContent) {
     await persistMessage(fullContent)
   }
@@ -143,6 +154,7 @@ async function runToolCallingLoop(
   updateAssistantMsg: (content: string) => void,
   persistMessage: (content: string) => Promise<void>,
   isAborted: () => boolean,
+  options?: LLMGenerationOptions,
 ): Promise<void> {
   let rounds = 0
   const statusParts: string[] = []
@@ -161,7 +173,7 @@ async function runToolCallingLoop(
       if (isAborted()) return
       fullContent += chunk
       updateAssistantMsg(prefix + fullContent)
-    })
+    }, options)
 
     if (isAborted()) break
 
@@ -256,13 +268,15 @@ async function executeLinkedAgentCall(
     { role: 'user', content: question },
   ]
 
+  const linkedOptions = getAgentGenerationOptions(targetAgent)
+
   try {
     if (allTools.length > 0) {
       // Tool-calling loop for the linked agent
       let rounds = 0
       while (rounds < MAX_TOOL_ROUNDS) {
         rounds++
-        const result = await llmService.chatWithTools(messages, allTools)
+        const result = await llmService.chatWithTools(messages, allTools, linkedOptions)
 
         if (result.toolCalls && result.toolCalls.length > 0) {
           messages.push({
@@ -314,7 +328,7 @@ async function executeLinkedAgentCall(
       let response = ''
       await llmService.streamChat(messages, (chunk) => {
         response += chunk
-      })
+      }, linkedOptions)
       return response
     }
   } catch (error) {
@@ -514,6 +528,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
       const persistMessage = (content: string) =>
         storageService.updateMessage(assistantMessage.id, content)
 
+      const llmOptions = getAgentGenerationOptions(agent)
+
       // Execute
       if (hasTools) {
         try {
@@ -525,13 +541,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
             updateAssistantMsg,
             persistMessage,
             isAborted,
+            llmOptions,
           )
         } catch {
           if (isAborted()) return
-          await streamPlainChat(chatMessages, updateAssistantMsg, persistMessage, isAborted)
+          await streamPlainChat(chatMessages, updateAssistantMsg, persistMessage, isAborted, llmOptions)
         }
       } else {
-        await streamPlainChat(chatMessages, updateAssistantMsg, persistMessage, isAborted)
+        await streamPlainChat(chatMessages, updateAssistantMsg, persistMessage, isAborted, llmOptions)
       }
     } catch (error) {
       if (abortController.signal.aborted) {

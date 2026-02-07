@@ -3,7 +3,26 @@
  * OpenAI-compatible providers: base URL + /chat/completions.
  */
 
-import type { ProviderId } from '@izan/llm-proxy'
+/** Supported LLM provider identifiers */
+export type ProviderId =
+  | 'openai'
+  | 'google'
+  | 'groq'
+  | 'xai'
+  | 'deepseek'
+  | 'openrouter'
+  | 'mistral'
+  | 'togetherai'
+  | 'fireworks'
+  | 'perplexity'
+  | 'cerebras'
+  | 'deepinfra'
+  | 'cohere'
+  | 'moonshot'
+  | 'minimax'
+  | 'ollama'
+  | 'qwen'
+  | 'custom'
 
 export interface ProviderEndpointConfig {
   baseURL: string

@@ -4,6 +4,7 @@ import type {
   ChatCompletionTool,
   ChatCompletionResult,
   ChatCompletionMessageToolCall,
+  LLMGenerationOptions,
 } from './interfaces'
 
 /** Partial tool call from stream delta (accumulated across chunks) */
@@ -12,8 +13,7 @@ interface StreamToolCallAccum {
   type?: string
   function?: { name?: string; arguments?: string }
 }
-import type { ProviderId } from '@izan/llm-proxy'
-import { getChatUrl } from '../llm-providers'
+import { getChatUrl, type ProviderId } from '../llm-providers'
 
 /**
  * Normalize messages for APIs that only accept [user, assistant] roles.
@@ -138,6 +138,7 @@ export class LLMService implements ILLMService {
   async streamChat(
     messages: ChatCompletionMessageParam[],
     onChunk: (chunk: string) => void,
+    options?: LLMGenerationOptions,
   ): Promise<void> {
     if (!this.isConfigured()) {
       throw new Error('LLM yapılandırılmadı. Ayarlardan bir provider ve model seçin.')
@@ -151,14 +152,24 @@ export class LLMService implements ILLMService {
       throw new Error('Geçersiz provider yapılandırması')
     }
 
-    await this.streamDirect(messages, onChunk)
+    await this.streamDirect(messages, onChunk, options)
   }
 
   private async streamDirect(
     messages: ChatCompletionMessageParam[],
     onChunk: (chunk: string) => void,
+    options?: LLMGenerationOptions,
   ): Promise<void> {
     const normalizedMessages = normalizeMessagesForStrictRoles(messages)
+    const body: Record<string, unknown> = {
+      model: this.model,
+      messages: normalizedMessages,
+      stream: true,
+    }
+    if (options?.temperature != null) body.temperature = options.temperature
+    if (options?.max_tokens != null) body.max_tokens = options.max_tokens
+    if (options?.top_p != null) body.top_p = options.top_p
+
     const response = await fetch(this.url, {
       method: 'POST',
       headers: {
@@ -167,11 +178,7 @@ export class LLMService implements ILLMService {
       },
       signal: this.abortController!.signal,
       cache: 'no-store',
-      body: JSON.stringify({
-        model: this.model,
-        messages: normalizedMessages,
-        stream: true,
-      }),
+      body: JSON.stringify(body),
     })
 
     if (!response.ok) {
@@ -199,7 +206,19 @@ export class LLMService implements ILLMService {
     messages: ChatCompletionMessageParam[],
     tools: ChatCompletionTool[],
     onChunk: (chunk: string) => void,
+    options?: LLMGenerationOptions,
   ): Promise<ChatCompletionResult> {
+    const body: Record<string, unknown> = {
+      model: this.model,
+      messages,
+      tools,
+      tool_choice: 'auto',
+      stream: true,
+    }
+    if (options?.temperature != null) body.temperature = options.temperature
+    if (options?.max_tokens != null) body.max_tokens = options.max_tokens
+    if (options?.top_p != null) body.top_p = options.top_p
+
     const response = await fetch(this.url, {
       method: 'POST',
       headers: {
@@ -208,13 +227,7 @@ export class LLMService implements ILLMService {
       },
       signal: this.abortController!.signal,
       cache: 'no-store',
-      body: JSON.stringify({
-        model: this.model,
-        messages,
-        tools,
-        tool_choice: 'auto',
-        stream: true,
-      }),
+      body: JSON.stringify(body),
     })
 
     if (!response.ok) {
@@ -300,6 +313,7 @@ export class LLMService implements ILLMService {
   async chatWithTools(
     messages: ChatCompletionMessageParam[],
     tools: ChatCompletionTool[],
+    options?: LLMGenerationOptions,
   ): Promise<ChatCompletionResult> {
     if (!this.isConfigured()) {
       throw new Error('LLM yapılandırılmadı. Ayarlardan bir provider ve model seçin.')
@@ -308,13 +322,14 @@ export class LLMService implements ILLMService {
     this.abortController?.abort()
     this.abortController = new AbortController()
 
-    return this.chatWithToolsDirect(messages, tools)
+    return this.chatWithToolsDirect(messages, tools, options)
   }
 
   async streamChatWithTools(
     messages: ChatCompletionMessageParam[],
     tools: ChatCompletionTool[],
     onChunk: (chunk: string) => void,
+    options?: LLMGenerationOptions,
   ): Promise<ChatCompletionResult> {
     if (!this.isConfigured()) {
       throw new Error('LLM yapılandırılmadı. Ayarlardan bir provider ve model seçin.')
@@ -323,13 +338,24 @@ export class LLMService implements ILLMService {
     this.abortController?.abort()
     this.abortController = new AbortController()
 
-    return this.streamDirectWithTools(messages, tools, onChunk)
+    return this.streamDirectWithTools(messages, tools, onChunk, options)
   }
 
   private async chatWithToolsDirect(
     messages: ChatCompletionMessageParam[],
     tools: ChatCompletionTool[],
+    options?: LLMGenerationOptions,
   ): Promise<ChatCompletionResult> {
+    const body: Record<string, unknown> = {
+      model: this.model,
+      messages,
+      tools,
+      tool_choice: 'auto',
+    }
+    if (options?.temperature != null) body.temperature = options.temperature
+    if (options?.max_tokens != null) body.max_tokens = options.max_tokens
+    if (options?.top_p != null) body.top_p = options.top_p
+
     const response = await fetch(this.url, {
       method: 'POST',
       headers: {
@@ -337,12 +363,7 @@ export class LLMService implements ILLMService {
         Authorization: `Bearer ${this.apiKey}`,
       },
       signal: this.abortController!.signal,
-      body: JSON.stringify({
-        model: this.model,
-        messages,
-        tools,
-        tool_choice: 'auto',
-      }),
+      body: JSON.stringify(body),
     })
 
     if (!response.ok) {

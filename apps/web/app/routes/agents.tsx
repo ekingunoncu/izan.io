@@ -17,6 +17,7 @@ import {
   MessageSquare,
   Lightbulb,
   Settings,
+  Star,
 } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import {
@@ -78,7 +79,7 @@ export default function Agents() {
   const { lang } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const { agents, initialize: initAgent, selectAgent, searchAgents, getAgentSlug, isInitialized } = useAgentStore();
+  const { agents, favoriteAgentIds, initialize: initAgent, selectAgent, searchAgents, getAgentSlug, toggleFavoriteAgent, isInitialized } = useAgentStore();
   const { initialize: initMCP } = useMCPStore();
   const [agentSearch, setAgentSearch] = useState("");
 
@@ -100,8 +101,11 @@ export default function Agents() {
   };
 
   const filteredAgents = agentSearch.trim() ? searchAgents(agentSearch) : agents;
-  const builtinAgents = filteredAgents.filter((a) => a.source === "builtin");
-  const userAgents = filteredAgents.filter((a) => a.source === "user");
+  const favoriteAgents = filteredAgents
+    .filter((a) => favoriteAgentIds.includes(a.id))
+    .sort((a, b) => favoriteAgentIds.indexOf(a.id) - favoriteAgentIds.indexOf(b.id));
+  const builtinAgents = filteredAgents.filter((a) => a.source === "builtin" && !favoriteAgentIds.includes(a.id));
+  const userAgents = filteredAgents.filter((a) => a.source === "user" && !favoriteAgentIds.includes(a.id));
 
   if (!isInitialized) {
     return (
@@ -116,6 +120,7 @@ export default function Agents() {
 
   const renderAgentCard = (agent: (typeof agents)[0]) => {
     const Icon = AGENT_ICONS[agent.icon] || Bot;
+    const isFavorite = favoriteAgentIds.includes(agent.id);
     const colorClass =
       agent.category === "web_search"
         ? "text-blue-500"
@@ -143,16 +148,30 @@ export default function Agents() {
         <CardHeader className="p-4 sm:p-6">
           <div className="flex items-start justify-between gap-2">
             <Icon className={cn("h-8 w-8 sm:h-10 sm:w-10 flex-shrink-0", colorClass)} />
-            {!agent.enabled && (
-              <span className="text-xs bg-slate-300/80 text-slate-800 dark:bg-muted dark:text-muted-foreground px-2 py-1 rounded">
-                {t("agents.comingSoon")}
-              </span>
-            )}
-            {agent.source === "user" && (
-              <span className="text-xs bg-primary/25 text-primary dark:bg-primary/10 dark:text-primary px-2 py-1 rounded">
-                {t("agents.userCreated")}
-              </span>
-            )}
+            <div className="flex items-center gap-2">
+              {!agent.enabled && (
+                <span className="text-xs bg-slate-300/80 text-slate-800 dark:bg-muted dark:text-muted-foreground px-2 py-1 rounded">
+                  {t("agents.comingSoon")}
+                </span>
+              )}
+              {agent.source === "user" && (
+                <span className="text-xs bg-primary/25 text-primary dark:bg-primary/10 dark:text-primary px-2 py-1 rounded">
+                  {t("agents.userCreated")}
+                </span>
+              )}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleFavoriteAgent(agent.id);
+                }}
+                aria-label={isFavorite ? t("agents.removeFromFavorites") : t("agents.addToFavorites")}
+              >
+                <Star className={cn("h-4 w-4", isFavorite ? "fill-amber-400 text-amber-500" : "text-muted-foreground")} />
+              </Button>
+            </div>
           </div>
           <CardTitle className="mt-4">{getAgentDisplayName(agent, t)}</CardTitle>
           <CardDescription>{getAgentDisplayDescription(agent, t)}</CardDescription>
@@ -220,6 +239,7 @@ export default function Agents() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+            {favoriteAgents.map(renderAgentCard)}
             {builtinAgents.map(renderAgentCard)}
             {userAgents.map(renderAgentCard)}
           </div>

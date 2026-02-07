@@ -7,6 +7,12 @@ export interface BuiltinAgentDefinition {
   basePrompt: string
   category: string
   implicitMCPIds: string[]
+  /** Default temperature 0–2. Lower = more deterministic. */
+  temperature?: number
+  /** Default max tokens for response. */
+  maxTokens?: number
+  /** Default top_p 0–1 for nucleus sampling. */
+  topP?: number
   homeShowcase?: {
     titleKey: string
     descKey: string
