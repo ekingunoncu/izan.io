@@ -11,7 +11,7 @@
 
 <h1 align="center">izan.io</h1>
 <p align="center">
-  <strong>Yerel AI Asistan — Open Source, Şeffaf, Özgür</strong>
+  <strong>Yerel AI Asistan - Open Source, Şeffaf, Özgür</strong>
 </p>
 <p align="center">
   <em>Bilgelik • Anlayış • Akıl</em>
@@ -37,7 +37,7 @@
 |--------|----------|
 | 🔐 **Gizlilik** | API anahtarları yalnızca tarayıcınızda. Sunucularımıza gönderilmez. |
 | 🧠 **Çoklu Sağlayıcı** | 17+ AI sağlayıcı desteklenir (aşağıda). |
-| 🤖 **Akıllı Ajanlar** | MCP ile bağlı ajanlar — web araması, kod, vb. |
+| 🤖 **Akıllı Ajanlar** | MCP ile bağlı ajanlar - web araması, kod, vb. |
 | 🌐 **MCP** | Hazır ve özel MCP sunucuları. |
 
 ---
@@ -108,7 +108,7 @@ Detay: [LICENSE](./LICENSE)
 ---
 
 <p align="center">
-  <strong>izan.io</strong> — Wisdom • Understanding • Intellect
+  <strong>izan.io</strong> - Wisdom • Understanding • Intellect
 </p>
 <p align="center">
   <sub>Fork et, geliştir, paylaş.</sub>

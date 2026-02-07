@@ -20,7 +20,7 @@ function createMcpFetch(): typeof fetch {
     const method = init?.method ?? 'GET'
 
     if (method === 'GET') {
-      // Skip SSE stream entirely — return 405 so the SDK treats it
+      // Skip SSE stream entirely - return 405 so the SDK treats it
       // as "server does not offer SSE" and moves on.
       return new Response(null, { status: 405, statusText: 'Method Not Allowed' })
     }

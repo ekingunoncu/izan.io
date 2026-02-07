@@ -1,17 +1,23 @@
 import * as cdk from 'aws-cdk-lib'
-import * as ec2 from 'aws-cdk-lib/aws-ec2'
-import * as s3 from 'aws-cdk-lib/aws-s3'
-import * as s3deploy from 'aws-cdk-lib/aws-s3-deployment'
+import * as certificatemanager from 'aws-cdk-lib/aws-certificatemanager'
 import * as cloudfront from 'aws-cdk-lib/aws-cloudfront'
 import * as origins from 'aws-cdk-lib/aws-cloudfront-origins'
+import * as ec2 from 'aws-cdk-lib/aws-ec2'
 import * as lambda from 'aws-cdk-lib/aws-lambda'
 import * as lambdaNode from 'aws-cdk-lib/aws-lambda-nodejs'
+import * as logs from 'aws-cdk-lib/aws-logs'
+import * as route53 from 'aws-cdk-lib/aws-route53'
+import * as targets from 'aws-cdk-lib/aws-route53-targets'
+import * as s3 from 'aws-cdk-lib/aws-s3'
+import * as s3deploy from 'aws-cdk-lib/aws-s3-deployment'
 import * as apigwv2 from 'aws-cdk-lib/aws-apigatewayv2'
 import * as apigwv2Integrations from 'aws-cdk-lib/aws-apigatewayv2-integrations'
-import * as logs from 'aws-cdk-lib/aws-logs'
 import * as path from 'node:path'
 import type { Construct } from 'constructs'
 import { discoverMcpServers } from './discover-mcp-servers'
+
+const DOMAIN = 'izan.io'
+const DOMAIN_NAMES = [DOMAIN, `www.${DOMAIN}`]
 
 /** Root of the monorepo (packages/infra/../../) */
 const MONOREPO_ROOT = path.resolve(__dirname, '..', '..', '..')
@@ -242,16 +248,36 @@ export class IzanStack extends cdk.Stack {
           cloudfront.OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER,
       }
     }
-    // GitHub stars: cache 1 hour (avoids GitHub API rate limits)
+    // GitHub stars: no cache (fresh count on every page load)
     mcpBehaviors['/api/github-stars'] = {
       origin: apiOrigin,
       viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
-      cachePolicy: cloudfront.CachePolicy.CACHING_OPTIMIZED,
+      cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
       allowedMethods: cloudfront.AllowedMethods.ALLOW_GET_HEAD,
     }
 
+    const certArn = process.env.IZAN_DOMAIN_CERTIFICATE_ARN
+    if (certArn) {
+      const certRegion = certArn.split(':')[3]
+      if (certRegion !== 'us-east-1') {
+        throw new Error(
+          `CloudFront requires ACM certificates in us-east-1. Your certificate is in ${certRegion}. ` +
+            `Create a new certificate in AWS Console → Certificate Manager (switch to us-east-1 region) for izan.io and www.izan.io, then set IZAN_DOMAIN_CERTIFICATE_ARN to that ARN.`,
+        )
+      }
+    }
+    const certificate = certArn
+      ? certificatemanager.Certificate.fromCertificateArn(
+          this,
+          'DomainCert',
+          certArn,
+        )
+      : undefined
+
     const distribution = new cloudfront.Distribution(this, 'Distribution', {
       comment: 'izan.io CDN',
+      domainNames: certificate ? DOMAIN_NAMES : undefined,
+      certificate,
       defaultBehavior: {
         origin: s3Origin,
         viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
@@ -276,6 +302,33 @@ export class IzanStack extends cdk.Stack {
       ],
     })
 
+    // Route53 records (optional) - point domain to CloudFront
+    const hostedZoneId = process.env.IZAN_HOSTED_ZONE_ID
+    if (hostedZoneId && certificate) {
+      const hostedZone = route53.HostedZone.fromHostedZoneAttributes(
+        this,
+        'HostedZone',
+        {
+          hostedZoneId,
+          zoneName: DOMAIN,
+        },
+      )
+      new route53.ARecord(this, 'AliasRecord', {
+        zone: hostedZone,
+        recordName: '', // apex (izan.io)
+        target: route53.RecordTarget.fromAlias(
+          new targets.CloudFrontTarget(distribution),
+        ),
+      })
+      new route53.ARecord(this, 'WwwAliasRecord', {
+        zone: hostedZone,
+        recordName: `www.${DOMAIN}`,
+        target: route53.RecordTarget.fromAlias(
+          new targets.CloudFrontTarget(distribution),
+        ),
+      })
+    }
+
     // ─── S3 Deployment ──────────────────────────────────────────────────
     new s3deploy.BucketDeployment(this, 'WebsiteDeployment', {
       sources: [
@@ -293,6 +346,13 @@ export class IzanStack extends cdk.Stack {
       value: `https://${distribution.distributionDomainName}`,
       description: 'CloudFront distribution URL',
     })
+
+    if (certificate) {
+      new cdk.CfnOutput(this, 'DomainURL', {
+        value: `https://${DOMAIN}`,
+        description: 'Custom domain URL (izan.io)',
+      })
+    }
 
     new cdk.CfnOutput(this, 'ApiGatewayURL', {
       value: httpApi.url ?? '',

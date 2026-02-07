@@ -214,7 +214,7 @@ export function AgentSidebar() {
 
       {/* Chat List */}
       {!isSidebarCollapsed && (
-        <div className="flex-1 overflow-y-auto scrollbar-thin px-2 py-2 space-y-1">
+        <div className="flex-1 overflow-y-auto px-2 py-2 space-y-1">
           {chats.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground text-sm">
               <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />

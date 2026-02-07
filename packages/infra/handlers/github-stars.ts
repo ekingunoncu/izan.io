@@ -16,7 +16,7 @@ export async function handler() {
       headers: {
         "Content-Type": "application/json",
         "Access-Control-Allow-Origin": "*",
-        "Cache-Control": "public, max-age=3600",
+        "Cache-Control": "no-store, no-cache",
       },
       body: JSON.stringify({ stars }),
     };

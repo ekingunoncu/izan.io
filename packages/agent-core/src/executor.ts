@@ -56,7 +56,7 @@ export class ToolExecutor {
       }
     }
 
-    // All retries exhausted — return last failed result
+    // All retries exhausted - return last failed result
     return lastResult!
   }
 

@@ -15,10 +15,15 @@ function getThemeFromCookie(): Theme | null {
 }
 
 export function getStoredTheme(): Theme {
+  if (typeof document === 'undefined') return 'dark'
   const fromCookie = getThemeFromCookie()
   if (fromCookie) return fromCookie
-  const stored = localStorage.getItem(STORAGE_KEY) as Theme | null
-  if (stored === 'light' || stored === 'dark') return stored
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY) as Theme | null
+    if (stored === 'light' || stored === 'dark') return stored
+  } catch {
+    // Gizli sekme vb. localStorage erişilemezse dark varsayılan
+  }
   return 'dark'
 }
 
