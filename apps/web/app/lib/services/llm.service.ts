@@ -13,7 +13,7 @@ interface StreamToolCallAccum {
   type?: string
   function?: { name?: string; arguments?: string }
 }
-import { getChatUrl, type ProviderId } from '../llm-providers'
+import { getChatUrl, getResponsesUrl, usesResponsesApi, type ProviderId } from '../llm-providers'
 
 /**
  * Normalize messages for APIs that only accept [user, assistant] roles.
@@ -135,6 +135,18 @@ export class LLMService implements ILLMService {
     )
   }
 
+  private get responsesUrl(): string {
+    if (!this.provider || !this.apiKey) return ''
+    return getResponsesUrl(
+      this.provider as ProviderId,
+      this.baseURL ?? undefined,
+    )
+  }
+
+  private get useResponsesApi(): boolean {
+    return usesResponsesApi(this.provider ?? '', this.model ?? '')
+  }
+
   async streamChat(
     messages: ChatCompletionMessageParam[],
     onChunk: (chunk: string) => void,
@@ -155,22 +167,45 @@ export class LLMService implements ILLMService {
     await this.streamDirect(messages, onChunk, options)
   }
 
+  /** Models that require max_completion_tokens instead of max_tokens (OpenAI o1, o3, o4) */
+  private usesMaxCompletionTokens(): boolean {
+    const m = (this.model ?? '').toLowerCase()
+    return m.startsWith('o1') || m.startsWith('o3') || m.startsWith('o4')
+  }
+
   private async streamDirect(
     messages: ChatCompletionMessageParam[],
     onChunk: (chunk: string) => void,
     options?: LLMGenerationOptions,
   ): Promise<void> {
     const normalizedMessages = normalizeMessagesForStrictRoles(messages)
-    const body: Record<string, unknown> = {
-      model: this.model,
-      messages: normalizedMessages,
-      stream: true,
-    }
+    const isResponsesApi = this.useResponsesApi && this.responsesUrl
+    const requestUrl = isResponsesApi ? this.responsesUrl : this.url
+
+    const body: Record<string, unknown> = isResponsesApi
+      ? {
+          model: this.model,
+          input: normalizedMessages,
+          stream: true,
+        }
+      : {
+          model: this.model,
+          messages: normalizedMessages,
+          stream: true,
+        }
     if (options?.temperature != null) body.temperature = options.temperature
-    if (options?.max_tokens != null) body.max_tokens = options.max_tokens
+    if (options?.max_tokens != null) {
+      if (isResponsesApi) {
+        body.max_output_tokens = options.max_tokens
+      } else if (this.usesMaxCompletionTokens()) {
+        body.max_completion_tokens = options.max_tokens
+      } else {
+        body.max_tokens = options.max_tokens
+      }
+    }
     if (options?.top_p != null) body.top_p = options.top_p
 
-    const response = await fetch(this.url, {
+    const response = await fetch(requestUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -194,11 +229,28 @@ export class LLMService implements ILLMService {
     if (!reader) throw new Error('Response body is not readable')
 
     const isAborted = () => this.abortController?.signal.aborted ?? false
-    for await (const parsed of parseSSEStream(reader, isAborted)) {
-      const err = parsed.error as { message?: string } | undefined
-      if (err) throw new Error(err.message || 'API error')
-      const content = (parsed.choices as Array<{ delta?: { content?: string } }>)?.[0]?.delta?.content
-      if (content) onChunk(content)
+    if (isResponsesApi) {
+      for await (const parsed of parseSSEStream(reader, isAborted)) {
+        const err = parsed.error as { message?: string } | undefined
+        if (err) throw new Error(err.message || 'API error')
+        if (parsed.type === 'response.failed') {
+          const resp = parsed.response as { error?: { message?: string } } | undefined
+          throw new Error(resp?.error?.message || 'API error')
+        }
+        if (parsed.type === 'response.output_text.delta') {
+          const delta = parsed.delta as string | undefined
+          if (delta) await Promise.resolve(onChunk(delta))
+        }
+      }
+    } else {
+      for await (const parsed of parseSSEStream(reader, isAborted)) {
+        const err = parsed.error as { message?: string } | undefined
+        if (err) throw new Error(err.message || 'API error')
+        const content = (parsed.choices as Array<{ delta?: { content?: string } }>)?.[0]?.delta?.content
+        if (content) {
+          await Promise.resolve(onChunk(content))
+        }
+      }
     }
   }
 
@@ -216,7 +268,13 @@ export class LLMService implements ILLMService {
       stream: true,
     }
     if (options?.temperature != null) body.temperature = options.temperature
-    if (options?.max_tokens != null) body.max_tokens = options.max_tokens
+    if (options?.max_tokens != null) {
+      if (this.usesMaxCompletionTokens()) {
+        body.max_completion_tokens = options.max_tokens
+      } else {
+        body.max_tokens = options.max_tokens
+      }
+    }
     if (options?.top_p != null) body.top_p = options.top_p
 
     const response = await fetch(this.url, {
@@ -267,7 +325,7 @@ export class LLMService implements ILLMService {
       if (reason) finishReason = reason
       if (delta?.content) {
         fullContent += delta.content
-        onChunk(delta.content)
+        await Promise.resolve(onChunk(delta.content))
       }
       if (delta?.tool_calls?.length) {
         for (const tc of delta.tool_calls) {
@@ -353,7 +411,13 @@ export class LLMService implements ILLMService {
       tool_choice: 'auto',
     }
     if (options?.temperature != null) body.temperature = options.temperature
-    if (options?.max_tokens != null) body.max_tokens = options.max_tokens
+    if (options?.max_tokens != null) {
+      if (this.usesMaxCompletionTokens()) {
+        body.max_completion_tokens = options.max_tokens
+      } else {
+        body.max_tokens = options.max_tokens
+      }
+    }
     if (options?.top_p != null) body.top_p = options.top_p
 
     const response = await fetch(this.url, {

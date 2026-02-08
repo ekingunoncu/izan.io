@@ -170,6 +170,7 @@
     "dismissBanner": "Schließen",
     "systemPrompt": "Du bist ein hilfreicher KI-Assistent. Antworte auf Deutsch. Sei freundlich und informativ gegenüber dem Benutzer.",
     "responseError": "[Fehler: Beim Generieren der Antwort ist etwas schiefgelaufen]",
+    "apiError": "Fehler: {{message}}",
     "maxStepsReached": "Maximale Anzahl von Schritten erreicht.",
     "modelResponding": "Modell antwortet...",
     "toolRunning": "Tool wird ausgeführt...",

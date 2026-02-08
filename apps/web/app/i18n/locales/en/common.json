@@ -170,6 +170,7 @@
     "dismissBanner": "Dismiss",
     "systemPrompt": "You are a helpful AI assistant. Respond in English. Be kind and informative to the user.",
     "responseError": "[Error: Something went wrong while generating the response]",
+    "apiError": "Error: {{message}}",
     "maxStepsReached": "Maximum number of steps reached.",
     "modelResponding": "Model is responding...",
     "toolRunning": "Running tool...",

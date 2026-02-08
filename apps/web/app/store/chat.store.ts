@@ -86,13 +86,16 @@ function buildLinkedAgentTools(agent: Agent): ChatCompletionTool[] {
 /** Max tool-calling rounds to prevent runaway tool chains */
 const MAX_TOOL_ROUNDS = 5
 
-/** Build LLM generation options from agent hyperparams (with defaults) */
+/** LLM options - only send params user explicitly set. Omit for provider defaults to avoid API errors. */
 function getAgentGenerationOptions(agent: Agent | null): LLMGenerationOptions {
-  return {
-    temperature: agent?.temperature ?? 1,
-    max_tokens: agent?.maxTokens,
-    top_p: agent?.topP ?? 1,
+  const opts: LLMGenerationOptions = {}
+  if (!agent) return opts
+  if (agent.isEdited) {
+    if (agent.temperature != null) opts.temperature = agent.temperature
+    if (agent.maxTokens != null) opts.max_tokens = agent.maxTokens
+    if (agent.topP != null) opts.top_p = agent.topP
   }
+  return opts
 }
 
 /** Max depth for linked agent calls (A->B->C) */
@@ -162,10 +165,12 @@ async function streamPlainChat(
   options?: LLMGenerationOptions,
 ): Promise<void> {
   let fullContent = ''
-  await llmService.streamChat(chatMessages, (chunk) => {
+  await llmService.streamChat(chatMessages, async (chunk) => {
     if (isAborted()) return
     fullContent += chunk
     updateAssistantMsg(fullContent)
+    // Yield to browser so streamed content can paint before next chunk
+    await new Promise<void>((r) => requestAnimationFrame(() => r()))
   }, options)
   if (fullContent) {
     await persistMessage(fullContent)
@@ -196,10 +201,11 @@ async function runToolCallingLoop(
 
     const prefix = statusParts.length > 0 ? statusParts.join('\n') + '\n\n' : ''
     let fullContent = ''
-    const result = await llmService.streamChatWithTools(chatMessages, allOpenAITools, (chunk) => {
+    const result = await llmService.streamChatWithTools(chatMessages, allOpenAITools, async (chunk) => {
       if (isAborted()) return
       fullContent += chunk
       updateAssistantMsg(prefix + fullContent)
+      await new Promise<void>((r) => requestAnimationFrame(() => r()))
     }, options)
 
     if (isAborted()) break
@@ -600,7 +606,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
         }
         return
       }
-      const errorContent = '\n\n[Hata: Yanıt oluşturulurken bir sorun oluştu]'
+      const apiMessage = error instanceof Error ? error.message : String(error)
+      const errorContent = '\n\n[' + i18n.t('chat.apiError', { message: apiMessage }) + ']'
       await storageService.updateMessage(assistantMessage.id, errorContent)
       set(state => ({
         messages: state.messages.map(m =>
