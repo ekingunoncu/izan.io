@@ -87,6 +87,8 @@ function ProviderKeyRow({
   providerName,
   apiKeyUrl,
   envHint,
+  descriptionKey,
+  pricingUrl,
   currentKey,
   onSave,
   onRemove,
@@ -98,6 +100,8 @@ function ProviderKeyRow({
   providerName: string;
   apiKeyUrl: string;
   envHint: string;
+  descriptionKey?: string;
+  pricingUrl?: string;
   currentKey: string | null;
   onSave: (key: string) => void;
   onRemove: () => void;
@@ -136,6 +140,9 @@ function ProviderKeyRow({
       </button>
       {isExpanded && (
         <div className="border-t px-4 py-4 space-y-3 bg-muted/30 rounded-b-lg">
+          {descriptionKey && (
+            <p className="text-sm text-muted-foreground">{t(descriptionKey)}</p>
+          )}
           <div className="flex flex-col sm:flex-row gap-2 sm:gap-2">
             <div className="relative flex-1 min-w-0">
               <Input
@@ -179,15 +186,31 @@ function ProviderKeyRow({
               )}
             </div>
           </div>
-          <a
-            href={apiKeyUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-sm text-primary hover:underline inline-flex items-center gap-1.5"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {t("settings.getApiKey")} <ExternalLink className="h-3.5 w-3.5" />
-          </a>
+          <div className="flex flex-wrap gap-2">
+            <a
+              href={apiKeyUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-primary hover:underline inline-flex items-center gap-1.5"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {t("settings.getApiKey")} <ExternalLink className="h-3.5 w-3.5" />
+            </a>
+            {pricingUrl && (
+              <>
+                <span className="text-muted-foreground">·</span>
+                <a
+                  href={pricingUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-primary hover:underline inline-flex items-center gap-1.5"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {t("settings.viewPricing")} <ExternalLink className="h-3.5 w-3.5" />
+                </a>
+              </>
+            )}
+          </div>
         </div>
       )}
     </div>
@@ -201,8 +224,8 @@ export default function Settings() {
   const location = useLocation();
   const from = (location.state as { from?: string })?.from;
   const backTo = from ?? `/${lang}`;
-  const serpApiInputRef = useRef<HTMLInputElement | null>(null);
-  const addApiKeyFromHash = location.hash?.slice(1) || null; // e.g. #serp_api -> serp_api
+  const addApiKeyInputRef = useRef<HTMLInputElement | null>(null);
+  const addApiKeyFromHash = location.hash?.slice(1) || null; // e.g. #serp_api or #coingecko_api
   const [theme, setTheme] = useTheme();
   const {
     servers,
@@ -266,8 +289,8 @@ export default function Settings() {
   useEffect(() => {
     if (!addApiKeyFromHash || hasFocusedForAddApiKey.current) return;
     const id = setTimeout(() => {
-      if (serpApiInputRef.current) {
-        serpApiInputRef.current.focus();
+      if (addApiKeyInputRef.current) {
+        addApiKeyInputRef.current.focus();
         hasFocusedForAddApiKey.current = true;
         window.history.replaceState(null, '', location.pathname + location.search);
       }
@@ -470,6 +493,8 @@ export default function Settings() {
                     providerName={def.name}
                     apiKeyUrl={def.url}
                     envHint={def.placeholder}
+                    descriptionKey={def.descriptionKey}
+                    pricingUrl={def.pricingUrl}
                     currentKey={currentKey}
                     onSave={(key) => setExternalApiKey(def.id, key)}
                     onRemove={() => removeExternalApiKey(def.id)}
@@ -479,7 +504,7 @@ export default function Settings() {
                         prev === def.id ? null : def.id
                       )
                     }
-                    inputRef={def.id === addApiKeyFromHash ? serpApiInputRef : undefined}
+                    inputRef={def.id === addApiKeyFromHash ? addApiKeyInputRef : undefined}
                   />
                 );
               })}

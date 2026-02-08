@@ -3,12 +3,12 @@
  * Uses TabServerTransport from @mcp-b/transports
  */
 
-import { Server } from '@modelcontextprotocol/sdk/server/index.js'
-import { ListToolsRequestSchema, CallToolRequestSchema } from '@modelcontextprotocol/sdk/types.js'
+import { z } from 'zod'
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { TabServerTransport } from '@mcp-b/transports'
-import { TOOLS } from './tools.js'
+import { handleCheckDomainsAvailability } from './tools.js'
 
-let serverInstance: Server | null = null
+let serverInstance: McpServer | null = null
 let transportInstance: TabServerTransport | null = null
 
 /**
@@ -20,7 +20,7 @@ export async function startDomainCheckServer(): Promise<boolean> {
     return false // Already running
   }
 
-  const server = new Server(
+  const server = new McpServer(
     {
       name: 'izan-domain-check',
       version: '0.1.0',
@@ -32,34 +32,25 @@ export async function startDomainCheckServer(): Promise<boolean> {
     },
   )
 
-  // Register tools/list handler
-  server.setRequestHandler(ListToolsRequestSchema, async () => {
-    return {
-      tools: TOOLS.map((tool) => ({
-        name: tool.name,
-        description: tool.description,
-        inputSchema: tool.inputSchema,
-      })),
-    }
-  })
-
-  // Register tools/call handler
-  server.setRequestHandler(CallToolRequestSchema, async (request) => {
-    const { name, arguments: args } = request.params
-
-    const tool = TOOLS.find((t) => t.name === name)
-    if (!tool) {
-      throw new Error(`Tool not found: ${name}`)
-    }
-
-    const result = await tool.handler((args ?? {}) as Record<string, unknown>)
-    return {
-      content:
-        'content' in result && Array.isArray(result.content)
-          ? result.content
-          : [{ type: 'text' as const, text: String(result) }],
-      isError: false,
-    }
+  server.registerTool('check_domains_availability', {
+    description:
+      'Fast bulk domain availability check via RDAP. No API key. 1–15 domains, parallel. Use BEFORE get_domain_price or get_domains_price (Namecheap) for pricing.',
+    inputSchema: {
+      domains: z
+        .string()
+        .describe(
+          'Comma-separated domains (e.g. "example.com, test.io, myapp.net"). Max 15.',
+        ),
+      concurrency: z
+        .number()
+        .min(1)
+        .max(10)
+        .optional()
+        .describe('Number of parallel workers (1–10, default 4)'),
+    },
+  }, async (args) => {
+    const result = await handleCheckDomainsAvailability(args)
+    return result
   })
 
   const transport = new TabServerTransport({

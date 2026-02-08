@@ -42,7 +42,7 @@ import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
 import { useAgentStore, useUIStore, useMCPStore, useExternalApiKeysStore } from '~/store'
 import { DEFAULT_MCP_SERVERS } from '~/lib/mcp/config'
-import { getAgentDisplayName, getAgentDisplayDescription, getAgentRequiredApiKeys } from '~/lib/agent-display'
+import { getAgentDisplayName, getAgentDisplayDescription, getAgentRequiredApiKeys, getAgentOptionalApiKeys } from '~/lib/agent-display'
 import { EXTERNAL_API_KEY_DEFINITIONS, type ExternalApiKeyDefinition } from '~/lib/external-api-keys'
 import { cn } from '~/lib/utils'
 
@@ -52,12 +52,14 @@ const ExternalKeyInputRow = ({
   onSave,
   t,
   inputRef,
+  required = true,
 }: {
   def: ExternalApiKeyDefinition
   currentKey: string | null
   onSave: (value: string) => void
   t: (key: string) => string
   inputRef?: React.RefObject<HTMLInputElement | null>
+  required?: boolean
 }) => {
   const [key, setKey] = useState(currentKey ?? '')
   const [showKey, setShowKey] = useState(false)
@@ -69,7 +71,7 @@ const ExternalKeyInputRow = ({
         <Key className="h-3.5 w-3.5" />
         {def.name}
       </label>
-      {!hasKey && (
+      {!hasKey && required && (
         <p className="text-xs text-amber-700 dark:text-amber-400">{t('agents.missingApiKeyBanner')}</p>
       )}
       <div className="flex gap-2">
@@ -244,6 +246,11 @@ export function AgentEditPanel() {
 
   const requiredApiKeys = getAgentRequiredApiKeys(currentAgent)
   const requiredKeyDefs = requiredApiKeys
+    .map((id) => EXTERNAL_API_KEY_DEFINITIONS.find((d) => d.id === id))
+    .filter(Boolean) as typeof EXTERNAL_API_KEY_DEFINITIONS
+
+  const optionalApiKeys = getAgentOptionalApiKeys(currentAgent)
+  const optionalKeyDefs = optionalApiKeys
     .map((id) => EXTERNAL_API_KEY_DEFINITIONS.find((d) => d.id === id))
     .filter(Boolean) as typeof EXTERNAL_API_KEY_DEFINITIONS
 
@@ -504,6 +511,41 @@ export function AgentEditPanel() {
                 ))}
                 <Link
                   to={`/${lang}/settings`}
+                  state={{ from: location.pathname }}
+                  onClick={closeAgentEdit}
+                  className="text-sm text-primary hover:underline inline-flex items-center gap-1"
+                >
+                  {t('agents.setApiKeyInSettings')} →
+                </Link>
+              </div>
+            </CollapsibleSection>
+          )}
+
+          {/* Optional API Keys (for agents with optionalApiKeys) */}
+          {optionalKeyDefs.length > 0 && (
+            <CollapsibleSection
+              title={t('agents.optionalApiKeys')}
+              subtitle={t('agents.optionalApiKeysDesc')}
+              isOpen={expandedSection === 'optional-api-keys'}
+              onToggle={() => toggleSection('optional-api-keys')}
+            >
+              <div className="space-y-3">
+                <p className="text-xs text-muted-foreground">
+                  {t('settings.externalApiKeyGlobalWarning')}
+                </p>
+                {optionalKeyDefs.map((def, idx) => (
+                  <ExternalKeyInputRow
+                    key={`${def.id}-${getExternalApiKey(def.id) ?? ''}`}
+                    def={def}
+                    currentKey={getExternalApiKey(def.id)}
+                    onSave={(value) => handleSaveExternalKey(def.id, value)}
+                    t={t}
+                    inputRef={idx === 0 ? apiKeyInputRef : undefined}
+                    required={false}
+                  />
+                ))}
+                <Link
+                  to={`/${lang}/settings#${optionalKeyDefs[0]?.id ?? 'coingecko_api'}`}
                   state={{ from: location.pathname }}
                   onClick={closeAgentEdit}
                   className="text-sm text-primary hover:underline inline-flex items-center gap-1"

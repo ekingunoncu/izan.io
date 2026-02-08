@@ -39,29 +39,29 @@ export const BUILTIN_BACKEND_SERVERS: BuiltinServerMetadata[] = [
 /** Client-side MCP servers (fixed URLs, TabServerTransport) */
 export const BUILTIN_CLIENT_SERVERS: BuiltinServerMetadata[] = [
   {
-    id: 'general',
-    name: 'General',
-    description: 'General MCP server (get_time, random_number, uuid, calculate, generate_password)',
-    category: 'general',
-    urlType: 'client',
-    url: 'tab://izan-general',
+    "id": "crypto-analysis-client",
+    "name": "Crypto Analysis (Client)",
+    "description": "Cryptocurrency market data, technical indicators (RSI/MACD/BB/EMA/SMA/ATR/Stochastic/ADX), fundamental scores, and full coin analysis via CoinGecko v3. No API key.",
+    "category": "custom",
+    "urlType": "client",
+    "url": "tab://izan-crypto-analysis"
   },
   {
-    id: 'domain-check-client',
-    name: 'Domain Check (Client)',
-    description: 'Fast RDAP bulk availability check. No API key. 1–15 domains.',
-    category: 'custom',
-    urlType: 'client',
-    url: 'tab://izan-domain-check',
+    "id": "domain-check-client",
+    "name": "Domain Check (Client)",
+    "description": "Fast RDAP bulk availability check. No API key. 1–15 domains.",
+    "category": "custom",
+    "urlType": "client",
+    "url": "tab://izan-domain-check"
   },
   {
-    id: 'crypto-analysis-client',
-    name: 'Crypto Analysis (Client)',
-    description: 'Cryptocurrency market data, technical indicators (RSI/MACD/BB/EMA/SMA/ATR/Stochastic/ADX), fundamental scores, and full coin analysis via CoinGecko v3. No API key.',
-    category: 'custom',
-    urlType: 'client',
-    url: 'tab://izan-crypto-analysis',
-  },
+    "id": "general",
+    "name": "General",
+    "description": "General MCP server (get_time, random_number, uuid, calculate, generate_password)",
+    "category": "general",
+    "urlType": "client",
+    "url": "tab://izan-general"
+  }
 ]
 
 /** @deprecated Use BUILTIN_CLIENT_SERVERS instead */

@@ -1,9 +1,11 @@
+import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Bot, MessageSquare, Plus } from 'lucide-react'
 import { Button } from '~/components/ui/button'
 import { MessageList } from './MessageList'
 import { MessageInput } from './MessageInput'
 import { MissingApiKeyBanner } from '~/components/agents/MissingApiKeyBanner'
+import { AgentChatBanner } from '~/components/agents/AgentChatBanner'
 import { useChatStore, useModelStore, useAgentStore } from '~/store'
 import { useProvidersWithModels } from '~/lib/use-providers-with-models'
 import { getAgentDisplayName } from '~/lib/agent-display'
@@ -53,7 +55,11 @@ function EmptyState({ onNewChat, agentName }: EmptyStateProps) {
   )
 }
 
-export function ChatWindow() {
+interface ChatWindowProps {
+  initialPrompt?: string
+}
+
+export function ChatWindow({ initialPrompt }: ChatWindowProps = {}) {
   const { t } = useTranslation('common')
   const { providers } = useProvidersWithModels()
   const { selectedProvider, selectedModel, isConfigured } = useModelStore()
@@ -91,6 +97,13 @@ export function ChatWindow() {
 
   const chatMessages: ChatMessage[] = messages.map(messageToChatMessage)
 
+  // Auto-create chat when navigating with initialPrompt (e.g. from "Try this prompt" on agent detail)
+  useEffect(() => {
+    if (initialPrompt && !currentChatId && currentAgentId) {
+      void createChat(currentAgentId)
+    }
+  }, [initialPrompt, currentChatId, currentAgentId, createChat])
+
   if (isLoadingMessages) {
     return (
       <div className="h-full flex items-center justify-center">
@@ -106,6 +119,7 @@ export function ChatWindow() {
     return (
       <div className="h-full min-h-0 flex flex-col">
         <MissingApiKeyBanner agent={currentAgent} className="px-4 pt-2" />
+        <AgentChatBanner agent={currentAgent} className="px-4 pt-2" />
         <EmptyState 
           onNewChat={handleNewChat} 
           agentName={getAgentDisplayName(currentAgent, t) || 'Agent'} 
@@ -117,10 +131,12 @@ export function ChatWindow() {
   return (
     <div className="h-full min-h-0 flex flex-col">
       <MissingApiKeyBanner agent={currentAgent} className="px-4 pt-2" />
+      <AgentChatBanner agent={currentAgent} className="px-4 pt-2" />
       <MessageList messages={chatMessages} isGenerating={isGenerating} />
 
       <div className="border-t bg-background/80 backdrop-blur-sm p-4 sm:p-6 flex-shrink-0 pb-[env(safe-area-inset-bottom)]">
         <MessageInput
+          initialPrompt={initialPrompt}
           onSend={handleSendMessage}
           onStop={stopGenerating}
           isGenerating={isGenerating}

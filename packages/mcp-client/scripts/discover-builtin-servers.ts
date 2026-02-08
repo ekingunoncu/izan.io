@@ -8,7 +8,9 @@ import { fileURLToPath } from 'node:url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const ROOT = join(__dirname, '..')
-const MCP_SERVERS_ROOT = join(ROOT, '..', 'mcp-servers')
+const PACKAGES = join(ROOT, '..')
+const MCP_SERVERS_ROOT = join(PACKAGES, 'mcp-servers')
+const MCP_BROWSER_SERVERS_ROOT = join(PACKAGES, 'mcp-browser-servers')
 
 interface ServerMetadata {
   id: string
@@ -16,6 +18,8 @@ interface ServerMetadata {
   description: string
   category: string
 }
+
+// ─── Backend (packages/mcp-servers) ─────────────────────────────────────────
 
 const backendServers: ServerMetadata[] = []
 
@@ -38,6 +42,32 @@ if (existsSync(MCP_SERVERS_ROOT)) {
   }
 }
 
+// ─── Client (packages/mcp-browser-servers) ────────────────────────────────────
+
+const clientServers: Array<ServerMetadata & { url: string }> = []
+
+if (existsSync(MCP_BROWSER_SERVERS_ROOT)) {
+  const entries = readdirSync(MCP_BROWSER_SERVERS_ROOT, { withFileTypes: true })
+  const serverDirs = entries
+    .filter((e) => e.isDirectory() && e.name !== 'integration')
+    .filter((e) => existsSync(join(MCP_BROWSER_SERVERS_ROOT, e.name, 'index.ts')))
+    .filter((e) => existsSync(join(MCP_BROWSER_SERVERS_ROOT, e.name, 'config.json')))
+    .map((e) => e.name)
+    .sort()
+
+  for (const dir of serverDirs) {
+    const configPath = join(MCP_BROWSER_SERVERS_ROOT, dir, 'config.json')
+    const contents = readFileSync(configPath, 'utf-8')
+    const config = JSON.parse(contents) as ServerMetadata
+    if (config.id && config.name && config.description && config.category) {
+      clientServers.push({
+        ...config,
+        url: `tab://izan-${dir}`,
+      })
+    }
+  }
+}
+
 const backendJson = JSON.stringify(
   backendServers.map((s) => ({
     id: s.id,
@@ -45,6 +75,19 @@ const backendJson = JSON.stringify(
     description: s.description,
     category: s.category,
     urlType: 'backend',
+  })),
+  null,
+  2,
+)
+
+const clientJson = JSON.stringify(
+  clientServers.map((s) => ({
+    id: s.id,
+    name: s.name,
+    description: s.description,
+    category: s.category,
+    urlType: 'client',
+    url: s.url,
   })),
   null,
   2,
@@ -67,32 +110,7 @@ export interface BuiltinServerMetadata {
 export const BUILTIN_BACKEND_SERVERS: BuiltinServerMetadata[] = ${backendJson}
 
 /** Client-side MCP servers (fixed URLs, TabServerTransport) */
-export const BUILTIN_CLIENT_SERVERS: BuiltinServerMetadata[] = [
-  {
-    id: 'general',
-    name: 'General',
-    description: 'General MCP server (get_time, random_number, uuid, calculate, generate_password)',
-    category: 'general',
-    urlType: 'client',
-    url: 'tab://izan-general',
-  },
-  {
-    id: 'domain-check-client',
-    name: 'Domain Check (Client)',
-    description: 'Fast RDAP bulk availability check. No API key. 1–15 domains.',
-    category: 'custom',
-    urlType: 'client',
-    url: 'tab://izan-domain-check',
-  },
-  {
-    id: 'crypto-analysis-client',
-    name: 'Crypto Analysis (Client)',
-    description: 'Cryptocurrency market data, technical indicators (RSI/MACD/BB/EMA/SMA/ATR/Stochastic/ADX), fundamental scores, and full coin analysis via CoinGecko v3. No API key.',
-    category: 'custom',
-    urlType: 'client',
-    url: 'tab://izan-crypto-analysis',
-  },
-]
+export const BUILTIN_CLIENT_SERVERS: BuiltinServerMetadata[] = ${clientJson}
 
 /** @deprecated Use BUILTIN_CLIENT_SERVERS instead */
 export const BUILTIN_CLIENT_SERVER: BuiltinServerMetadata = BUILTIN_CLIENT_SERVERS[0]
@@ -107,4 +125,4 @@ export const BUILTIN_MCP_SERVER_METADATA: BuiltinServerMetadata[] = [
 const outPath = join(ROOT, 'src', 'builtin-servers.generated.ts')
 mkdirSync(dirname(outPath), { recursive: true })
 writeFileSync(outPath, finalOutput, 'utf-8')
-console.log(`[discover-builtin-servers] Wrote ${outPath} (${backendServers.length} backend + 3 client)`)
+console.log(`[discover-builtin-servers] Wrote ${outPath} (${backendServers.length} backend + ${clientServers.length} client)`)

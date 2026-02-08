@@ -7,14 +7,18 @@ import {
   startCryptoAnalysisServer,
   stopCryptoAnalysisServer,
   isCryptoAnalysisServerRunning,
+  setCoinGeckoApiKey,
 } from '@izan/mcp-browser-servers'
 
 let serverStarted = false
 
 /**
- * Start the crypto-analysis MCP server if not already running
+ * Start the crypto-analysis MCP server if not already running.
+ * Pass optional CoinGecko API key for higher rate limits.
  */
-export async function ensureCryptoAnalysisServer(): Promise<void> {
+export async function ensureCryptoAnalysisServer(apiKey?: string | null): Promise<void> {
+  setCoinGeckoApiKey(apiKey ?? null)
+
   if (serverStarted || isCryptoAnalysisServerRunning()) {
     return
   }

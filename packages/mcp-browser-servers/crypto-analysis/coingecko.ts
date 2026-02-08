@@ -7,11 +7,6 @@
  */
 
 import { getCached, setCache, TTL } from './cache.js'
-import {
-  getCPGlobal,
-  getCPSimplePrice,
-  mapCPGlobalToGecko,
-} from './coinpaprika.js'
 import type {
   TrendingResponse,
   SearchResponse,
@@ -26,7 +21,17 @@ import type {
 
 const BASE_URL = 'https://api.coingecko.com/api/v3'
 
-/** Thrown when CoinGecko returns 429 - caller can try fallback (e.g. CoinPaprika) */
+/** Optional API key for higher rate limits. Set via setCoinGeckoApiKey (e.g. from user settings). */
+let coinGeckoApiKey: string | null = null
+
+/**
+ * Set CoinGecko API key for authenticated requests (higher rate limits).
+ * Call with key from user settings when crypto server starts.
+ */
+export function setCoinGeckoApiKey(key: string | null): void {
+  coinGeckoApiKey = key && key.trim() ? key.trim() : null
+}
+
 export class RateLimitError extends Error {
   constructor(message = 'CoinGecko API rate limit exceeded') {
     super(message)
@@ -85,7 +90,12 @@ async function cgFetch<T>(path: string, params?: Record<string, string>): Promis
     }
   }
 
-  const response = await fetch(url.toString())
+  const headers: Record<string, string> = {}
+  if (coinGeckoApiKey) {
+    headers['x-cg-demo-api-key'] = coinGeckoApiKey
+  }
+
+  const response = await fetch(url.toString(), { headers })
 
   if (response.status === 429) {
     // Rate limited - exponential backoff with up to 2 retries
@@ -94,7 +104,7 @@ async function cgFetch<T>(path: string, params?: Record<string, string>): Promis
       await new Promise((resolve) => setTimeout(resolve, backoffMs))
       tokens = 0 // force rate limiter to wait on next calls
       lastRequestTime = Date.now()
-      const retryResponse = await fetch(url.toString())
+      const retryResponse = await fetch(url.toString(), { headers })
       if (retryResponse.ok) {
         return retryResponse.json() as Promise<T>
       }
@@ -102,7 +112,9 @@ async function cgFetch<T>(path: string, params?: Record<string, string>): Promis
         throw new Error(`CoinGecko API error ${retryResponse.status}: ${await retryResponse.text()}`)
       }
     }
-    throw new RateLimitError('CoinGecko API rate limit exceeded after retries.')
+    throw new RateLimitError(
+      'CoinGecko API rate limit exceeded. Get a free API key at https://www.coingecko.com/en/developers/dashboard for higher limits.',
+    )
   }
 
   if (!response.ok) {
@@ -193,21 +205,9 @@ export async function getSimplePrice(options: {
   const key = `simple:${options.ids}:${options.vs_currencies ?? 'usd'}`
   const cached = getCached<SimplePriceResponse>(key)
   if (cached) return cached
-  try {
-    const data = await cgFetch<SimplePriceResponse>('/simple/price', params)
-    setCache(key, data, TTL.SIMPLE_PRICE)
-    return data
-  } catch (err) {
-    if (err instanceof RateLimitError && (options.vs_currencies ?? 'usd') === 'usd') {
-      const ids = options.ids.split(',').map((s) => s.trim())
-      const data = await getCPSimplePrice(ids)
-      if (Object.keys(data).length > 0) {
-        setCache(key, data, TTL.SIMPLE_PRICE)
-        return data
-      }
-    }
-    throw err
-  }
+  const data = await cgFetch<SimplePriceResponse>('/simple/price', params)
+  setCache(key, data, TTL.SIMPLE_PRICE)
+  return data
 }
 
 /**
@@ -237,6 +237,14 @@ export async function getCoinDetails(
   const data = await cgFetch<CoinDetail>(`/coins/${encodeURIComponent(id)}`, params)
   setCache(key, data, TTL.COIN_DETAILS)
   return data
+}
+
+/**
+ * Convert market_chart prices array to OHLC candles.
+ * Uses price as o=h=l=c (synthetic) when OHLC endpoint returns empty for small/illiquid coins.
+ */
+export function marketChartPricesToOHLC(prices: Array<[number, number]>): OHLCCandle[] {
+  return prices.map(([ts, price]) => [ts, price, price, price, price] as OHLCCandle)
 }
 
 /**
@@ -286,25 +294,14 @@ export async function getCoinMarketChart(
 /**
  * Get global cryptocurrency market data
  * Endpoint: /global
- * Falls back to CoinPaprika on CoinGecko 429
  */
 export async function getGlobalMarketData(): Promise<GlobalMarketData> {
   const key = 'global'
   const cached = getCached<GlobalMarketData>(key)
   if (cached) return cached
-  try {
-    const data = await cgFetch<GlobalMarketData>('/global')
-    setCache(key, data, TTL.GLOBAL)
-    return data
-  } catch (err) {
-    if (err instanceof RateLimitError) {
-      const cp = await getCPGlobal()
-      const data: GlobalMarketData = { data: mapCPGlobalToGecko(cp) } as GlobalMarketData
-      setCache(key, data, TTL.GLOBAL)
-      return data
-    }
-    throw err
-  }
+  const data = await cgFetch<GlobalMarketData>('/global')
+  setCache(key, data, TTL.GLOBAL)
+  return data
 }
 
 /**

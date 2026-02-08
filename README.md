@@ -55,12 +55,16 @@
 
 ```
 izan.io/
-├── apps/web/           # React + Vite web app
+├── apps/web/              # React + Vite web app
 ├── packages/
-│   ├── agent-core/     # Agent routing, tool execution, LLM-agnostic
-│   ├── mcp-client/     # MCP protocol client
-│   ├── mcp-servers/    # Google, Bing, Namecheap, etc.
-│   └── infra/          # CDK infra
+│   ├── agent-core/        # Agent routing, tool execution, LLM-agnostic
+│   ├── mcp-client/        # MCP protocol client
+│   ├── mcp-servers/       # Node.js MCP servers (serp-search, web-fetch, namecheap)
+│   ├── mcp-browser-servers/   # Browser MCP servers (client-side, TabServerTransport)
+│   │   ├── crypto-analysis/   # CoinGecko, technical indicators, analyze_coin
+│   │   ├── domain-check/      # RDAP + DoH domain availability
+│   │   └── general/           # get_time, random_number, uuid, calculate, generate_password
+│   └── infra/             # CDK infra
 ```
 
 ---
@@ -79,6 +83,17 @@ npm run dev
 Open `http://localhost:5173`. Add a provider and API key in settings, then start chatting.
 
 See `apps/web/.env.example` for optional env vars. API keys are stored in the browser.
+
+---
+
+## 📦 MCP Servers
+
+| Type | Package | Description |
+|------|---------|-------------|
+| **Node.js** | `mcp-servers/` | serp-search, web-fetch, namecheap (run server-side) |
+| **Browser** | `mcp-browser-servers/` | crypto-analysis (CoinGecko, indicators), domain-check (RDAP/DoH), general (time, uuid, calc, password) |
+
+Browser servers use `@mcp-b/transports` TabServerTransport and run entirely in the client. No API keys needed for domain-check or general; crypto-analysis supports optional CoinGecko API key for higher rate limits.
 
 ---
 

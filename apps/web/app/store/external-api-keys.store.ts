@@ -39,8 +39,8 @@ export const useExternalApiKeysStore = create<ExternalApiKeysState>((set, get) =
     const newKeys = { ...externalApiKeys, [id]: value }
     set({ externalApiKeys: newKeys })
     await storageService.updatePreferences({ externalApiKeys: newKeys })
-    // Trigger MCP reconnection so serp-search picks up new key (called from Settings/AgentEdit)
-    if (typeof window !== 'undefined' && id === 'serp_api') {
+    // Trigger MCP reconnection so serp-search / crypto-analysis pick up new key (called from Settings/AgentEdit)
+    if (typeof window !== 'undefined' && (id === 'serp_api' || id === 'coingecko_api')) {
       const { useMCPStore } = await import('./mcp.store')
       const mcp = useMCPStore.getState()
       if (mcp.lastActivatedAgent) {

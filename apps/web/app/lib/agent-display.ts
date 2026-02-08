@@ -12,6 +12,12 @@ export function getAgentRequiredApiKeys(agent: Agent | null | undefined): string
   return def?.requiredApiKeys ?? []
 }
 
+export function getAgentOptionalApiKeys(agent: Agent | null | undefined): string[] {
+  if (!agent || agent.source === 'user') return []
+  const def = BUILTIN_AGENT_DEFINITIONS.find((d) => d.id === agent.id)
+  return def?.optionalApiKeys ?? []
+}
+
 type TFunction = (key: string, options?: object) => string
 
 export function getAgentDisplayName(agent: Agent | null | undefined, t: TFunction): string {
@@ -94,4 +100,22 @@ export function getAgentSerpApiSection(agent: Agent | null | undefined, t: TFunc
   const title = t(titleKey)
   const description = t(descKey)
   return title !== titleKey && description !== descKey ? { title, description } : null
+}
+
+export function getAgentCoinGeckoApiSection(agent: Agent | null | undefined, t: TFunction): { title: string; description: string } | null {
+  if (!agent || agent.source === 'user' || agent.id !== 'crypto-analyst') return null
+  const titleKey = `agents.builtin.crypto-analyst.coingeckoApiSectionTitle`
+  const descKey = `agents.builtin.crypto-analyst.coingeckoApiSectionDesc`
+  const title = t(titleKey)
+  const description = t(descKey)
+  return title !== titleKey && description !== descKey ? { title, description } : null
+}
+
+export function getAgentChatBanner(agent: Agent | null | undefined, t: TFunction): { type: 'info' | 'warning'; message: string } | null {
+  if (!agent || agent.source === 'user') return null
+  const def = BUILTIN_AGENT_DEFINITIONS.find((d) => d.id === agent.id)
+  const banner = def?.chatBanner
+  if (!banner) return null
+  const message = t(banner.messageKey)
+  return message !== banner.messageKey ? { type: banner.type, message } : null
 }
