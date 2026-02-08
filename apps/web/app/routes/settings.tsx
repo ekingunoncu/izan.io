@@ -9,6 +9,7 @@ import {
   CheckCircle,
   XCircle,
   Key,
+  Gift,
   Eye,
   EyeOff,
   ExternalLink,
@@ -23,6 +24,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -83,12 +85,13 @@ export function meta() {
 }
 
 function ProviderKeyRow({
-  providerId: _providerId, // passed for parent keying, unused in row
+  providerId,
   providerName,
   apiKeyUrl,
   envHint,
   descriptionKey,
   pricingUrl,
+  hasFreeTier,
   currentKey,
   onSave,
   onRemove,
@@ -102,6 +105,7 @@ function ProviderKeyRow({
   envHint: string;
   descriptionKey?: string;
   pricingUrl?: string;
+  hasFreeTier?: boolean;
   currentKey: string | null;
   onSave: (key: string) => void;
   onRemove: () => void;
@@ -131,6 +135,19 @@ function ProviderKeyRow({
           <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
         )}
         <span className="font-medium flex-1 truncate">{providerName}</span>
+        {hasFreeTier && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="text-xs bg-emerald-400/90 text-emerald-950 dark:bg-emerald-900/40 dark:text-emerald-300 px-2 py-1 rounded-md flex items-center gap-1.5 flex-shrink-0 cursor-help">
+                <Gift className="h-3.5 w-3.5" />
+                {t("provider.freeTier")}
+              </span>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="max-w-xs">
+              {t(`provider.freeTierHint.${providerId}`)}
+            </TooltipContent>
+          </Tooltip>
+        )}
         {currentKey && (
           <span className="text-xs bg-emerald-400/90 text-emerald-950 dark:bg-emerald-900/40 dark:text-emerald-300 px-2 py-1 rounded-md flex items-center gap-1.5 flex-shrink-0">
             <CheckCircle className="h-3.5 w-3.5" />
@@ -455,6 +472,7 @@ export default function Settings() {
                     providerName={provider.name}
                     apiKeyUrl={provider.apiKeyUrl}
                     envHint={provider.envHint}
+                    hasFreeTier={provider.hasFreeTier}
                     currentKey={providerKeys[provider.id] ?? null}
                     onSave={(key) => setApiKey(provider.id, key)}
                     onRemove={() => removeApiKey(provider.id)}

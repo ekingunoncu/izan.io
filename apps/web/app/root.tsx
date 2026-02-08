@@ -11,6 +11,7 @@ import {
 import "./index.css";
 import { ClientInit } from "~/components/ClientInit";
 import { CookieConsent } from "~/components/CookieConsent";
+import { TooltipProvider } from "~/components/ui/tooltip";
 import { GitHubFeedbackWidget } from "~/components/GitHubFeedbackWidget";
 import { GoogleAnalytics } from "~/components/GoogleAnalytics";
 import { MicrosoftClarity } from "~/components/MicrosoftClarity";
@@ -74,12 +75,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
         />
       </head>
       <body>
-        <ClientInit />
-        <GoogleAnalytics />
-        <MicrosoftClarity />
-        {children}
+        <TooltipProvider delayDuration={300}>
+          <ClientInit />
+          <GoogleAnalytics />
+          <MicrosoftClarity />
+          {children}
         <GitHubFeedbackWidget />
         <CookieConsent />
+        </TooltipProvider>
         <ScrollRestoration />
         <Scripts />
       </body>

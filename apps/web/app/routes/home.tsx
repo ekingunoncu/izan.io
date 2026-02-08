@@ -27,6 +27,7 @@ import {
 import { BUILTIN_AGENT_DEFINITIONS } from "@izan/agents";
 import { getAgentIcon } from "~/components/agents/AgentSelector";
 import { PROVIDERS } from "~/lib/providers";
+import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip";
 import { GitHubStarButton } from "~/components/GitHubStarButton";
 import { Button } from "~/components/ui/button";
 import type { Route } from "./+types/home";
@@ -660,6 +661,18 @@ export default function Home() {
                   <span className="font-medium text-sm truncate flex-1">
                     {provider.name}
                   </span>
+                  {provider.hasFreeTier && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="text-xs bg-emerald-400/90 text-emerald-950 dark:bg-emerald-900/40 dark:text-emerald-300 px-2 py-0.5 rounded-md shrink-0 cursor-help">
+                          {t("provider.freeTier")}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-xs">
+                        {t(`provider.freeTierHint.${provider.id}`)}
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
                   <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
                 </a>
               ))}

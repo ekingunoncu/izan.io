@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import {
   Check,
   Key,
+  Gift,
   Eye,
   EyeOff,
   ExternalLink,
@@ -25,6 +26,7 @@ import {
 } from 'lucide-react'
 import { Button } from '~/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/ui/card'
+import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
 import { Input } from '~/components/ui/input'
 import { type ProviderInfo, type ModelInfo } from '~/lib/providers'
 import { useProvidersWithModels } from '~/lib/use-providers-with-models'
@@ -77,7 +79,20 @@ function ProviderCard({
             <Icon className="h-5 w-5 text-primary" />
             <CardTitle className="text-sm">{provider.name}</CardTitle>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 flex-wrap">
+            {provider.hasFreeTier && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="text-xs bg-emerald-400/90 text-emerald-950 dark:bg-emerald-900/40 dark:text-emerald-300 px-1.5 py-0.5 rounded flex items-center gap-1 cursor-help">
+                    <Gift className="h-3 w-3" />
+                    {t('provider.freeTier')}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-xs">
+                  {t(`provider.freeTierHint.${provider.id}`)}
+                </TooltipContent>
+              </Tooltip>
+            )}
             {hasKey && (
               <span className="text-xs bg-green-400/90 text-green-950 dark:bg-green-900 dark:text-green-300 px-1.5 py-0.5 rounded flex items-center gap-1">
                 <Key className="h-3 w-3" />

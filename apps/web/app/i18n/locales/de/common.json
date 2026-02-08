@@ -197,6 +197,16 @@
   "provider": {
     "selectTitle": "Provider auswählen",
     "selectDesc": "Wählen Sie einen KI-Provider und geben Sie Ihren API-Schlüssel ein. Schlüssel werden nur in Ihrem Browser gespeichert.",
+    "freeTier": "Kostenlos",
+    "freeTierHint": {
+      "google": "250 Anfragen/Tag, keine Kreditkarte nötig. aistudio.google.com",
+      "groq": "Tausende Tokens/Min, Tageslimit. Keine Kreditkarte nötig.",
+      "cerebras": "1 Million Tokens/Tag kostenlos.",
+      "cohere": "Trial API-Key kostenlos. Rate-Limit, kostenpflichtig für kommerzielle Nutzung.",
+      "togetherai": "DeepSeek-R1-Distill-Llama-70B-free Modell kostenlos. 25 $ Guthaben für neue Nutzer.",
+      "deepseek": "Trial-Guthaben für neue Konten.",
+      "ollama": "Vollständig kostenlos, lokal, kein API-Key nötig."
+    },
     "models": "{{provider}}-Modelle",
     "ready": "Bereit! Sie können mit dem Chatten beginnen.",
     "selectProvider": "Provider auswählen",

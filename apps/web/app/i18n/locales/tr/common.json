@@ -197,6 +197,16 @@
   "provider": {
     "selectTitle": "Provider Seçin",
     "selectDesc": "AI provider seçin ve API key'inizi girin. Key'ler sadece tarayıcınızda saklanır.",
+    "freeTier": "Ücretsiz",
+    "freeTierHint": {
+      "google": "250 istek/gün, kredi kartı gerekmez. aistudio.google.com",
+      "groq": "Dakikada binlerce token, günlük limit. Kredi kartı gerekmez.",
+      "cerebras": "Günde 1 milyon token ücretsiz.",
+      "cohere": "Trial API key ücretsiz. Rate limit var, ticari kullanım için ücretli.",
+      "togetherai": "DeepSeek-R1-Distill-Llama-70B-free modeli ücretsiz. Yeni kullanıcılara $25 kredi.",
+      "deepseek": "Yeni hesaplara deneme kredisi.",
+      "ollama": "Tamamen ücretsiz, yerel kullanım, API key gerekmez."
+    },
     "models": "{{provider}} Modelleri",
     "ready": "Hazır! Sohbet etmeye başlayabilirsiniz.",
     "selectProvider": "Provider Seç",

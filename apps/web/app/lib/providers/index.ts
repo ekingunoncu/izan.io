@@ -19,6 +19,8 @@ export interface ProviderInfo {
   envHint: string
   /** Models available for this provider */
   models: ModelInfo[]
+  /** Has a free tier (no credit card required for initial use). Sources: official docs. */
+  hasFreeTier?: boolean
 }
 
 /** Model metadata */
@@ -68,6 +70,7 @@ export const PROVIDERS: ProviderInfo[] = [
     icon: 'sparkles',
     apiKeyUrl: 'https://aistudio.google.com/apikey',
     envHint: 'GOOGLE_API_KEY',
+    hasFreeTier: true, // Free tier: 250 RPD, no credit card (aistudio.google.com)
     models: [
       { id: 'gemini-2.5-pro-preview-06-05', name: 'Gemini 2.5 Pro', description: 'En guclu Gemini.', contextWindow: 1_000_000, maxOutput: 65536, supportsTools: true, supportsVision: true, canReason: true, costIn: 1.25, costOut: 10.0 },
       { id: 'gemini-2.5-flash-preview-05-20', name: 'Gemini 2.5 Flash', description: 'Hizli ve ekonomik.', contextWindow: 1_000_000, maxOutput: 65536, supportsTools: true, supportsVision: true, canReason: true, costIn: 0.15, costOut: 0.6 },
@@ -82,6 +85,7 @@ export const PROVIDERS: ProviderInfo[] = [
     icon: 'zap',
     apiKeyUrl: 'https://console.groq.com/keys',
     envHint: 'GROQ_API_KEY',
+    hasFreeTier: true, // Free tier: tokens/min, no credit card
     models: [
       { id: 'qwen-qwq-32b', name: 'Qwen QwQ 32B', description: 'Qwen izan modeli.', contextWindow: 128_000, maxOutput: 50000, supportsTools: true, supportsVision: false, canReason: true, costIn: 0.29, costOut: 0.39 },
       { id: 'llama-3.3-70b-versatile', name: 'Llama 3.3 70B', description: 'Guclu acik kaynak model.', contextWindow: 128_000, maxOutput: 32768, supportsTools: true, supportsVision: false, canReason: false, costIn: 0.59, costOut: 0.79 },
@@ -131,6 +135,7 @@ export const PROVIDERS: ProviderInfo[] = [
     icon: 'brain',
     apiKeyUrl: 'https://platform.deepseek.com/',
     envHint: 'DEEPSEEK_API_KEY',
+    hasFreeTier: true, // Trial credits for new accounts
     models: [
       { id: 'deepseek-chat', name: 'DeepSeek Chat', description: 'Genel amacli sohbet.', contextWindow: 64_000, maxOutput: 8192, supportsTools: true, supportsVision: false, canReason: false, costIn: 0.14, costOut: 0.28 },
       { id: 'deepseek-reasoner', name: 'DeepSeek Reasoner', description: 'Derin dusunme ve izan.', contextWindow: 64_000, maxOutput: 8192, supportsTools: false, supportsVision: false, canReason: true, costIn: 0.55, costOut: 2.19 },
@@ -163,6 +168,7 @@ export const PROVIDERS: ProviderInfo[] = [
     icon: 'layers',
     apiKeyUrl: 'https://api.together.ai/settings/api-keys',
     envHint: 'TOGETHER_AI_API_KEY',
+    hasFreeTier: true, // DeepSeek-R1-Distill-Llama-70B-free model + $25 credits for new users
     models: [
       { id: 'Qwen/Qwen3-235B-A22B', name: 'Qwen 3 235B', description: 'En buyuk Qwen 3 MoE.', contextWindow: 128_000, maxOutput: 8192, supportsTools: true, supportsVision: false, canReason: true, costIn: 0.20, costOut: 0.60 },
       { id: 'Qwen/Qwen2.5-72B-Instruct-Turbo', name: 'Qwen 2.5 72B Turbo', description: 'Guclu ve hizli Qwen.', contextWindow: 128_000, maxOutput: 8192, supportsTools: true, supportsVision: false, canReason: false, costIn: 0.12, costOut: 0.18 },
@@ -170,6 +176,7 @@ export const PROVIDERS: ProviderInfo[] = [
       { id: 'Qwen/Qwen2.5-Coder-32B-Instruct', name: 'Qwen 2.5 Coder 32B', description: 'Kod yazma icin optimize.', contextWindow: 32_768, maxOutput: 8192, supportsTools: true, supportsVision: false, canReason: false, costIn: 0.12, costOut: 0.18 },
       { id: 'meta-llama/Llama-3.3-70B-Instruct-Turbo', name: 'Llama 3.3 70B Turbo', description: 'Hizli Llama.', contextWindow: 128_000, maxOutput: 8192, supportsTools: true, supportsVision: false, canReason: false, costIn: 0.18, costOut: 0.18 },
       { id: 'deepseek-ai/DeepSeek-R1', name: 'DeepSeek R1', description: 'Tam DeepSeek R1.', contextWindow: 64_000, maxOutput: 8192, supportsTools: false, supportsVision: false, canReason: true, costIn: 0.55, costOut: 2.19 },
+      { id: 'deepseek-ai/DeepSeek-R1-Distill-Llama-70B-free', name: 'DeepSeek R1 70B (Ücretsiz)', description: 'Ücretsiz izan modeli.', contextWindow: 131_072, maxOutput: 16384, supportsTools: false, supportsVision: false, canReason: true, costIn: 0, costOut: 0 },
       { id: 'mistralai/Mistral-Small-24B-Instruct-2501', name: 'Mistral Small 24B', description: 'Hafif Mistral modeli.', contextWindow: 32_768, maxOutput: 8192, supportsTools: true, supportsVision: false, canReason: false, costIn: 0.08, costOut: 0.18 },
     ],
   },
@@ -214,6 +221,7 @@ export const PROVIDERS: ProviderInfo[] = [
     icon: 'cpu',
     apiKeyUrl: 'https://inference.cerebras.ai/',
     envHint: 'CEREBRAS_API_KEY',
+    hasFreeTier: true, // 1M tokens/day free
     models: [
       { id: 'llama-3.3-70b', name: 'Llama 3.3 70B', description: 'Ultra hizli Llama.', contextWindow: 128_000, maxOutput: 8192, supportsTools: true, supportsVision: false, canReason: false, costIn: 0.85, costOut: 1.20 },
       { id: 'llama-4-scout-17b-16e-instruct', name: 'Llama 4 Scout', description: 'En yeni Llama.', contextWindow: 128_000, maxOutput: 8192, supportsTools: true, supportsVision: true, canReason: false, costIn: 0.15, costOut: 0.50 },
@@ -247,6 +255,7 @@ export const PROVIDERS: ProviderInfo[] = [
     icon: 'terminal',
     apiKeyUrl: 'https://dashboard.cohere.com/api-keys',
     envHint: 'COHERE_API_KEY',
+    hasFreeTier: true, // Trial API key free (rate limited)
     models: [
       { id: 'command-r-plus', name: 'Command R+', description: 'En guclu Cohere modeli.', contextWindow: 128_000, maxOutput: 4096, supportsTools: true, supportsVision: false, canReason: false, costIn: 2.5, costOut: 10.0 },
       { id: 'command-r', name: 'Command R', description: 'Hizli ve ekonomik.', contextWindow: 128_000, maxOutput: 4096, supportsTools: true, supportsVision: false, canReason: false, costIn: 0.15, costOut: 0.6 },
@@ -308,6 +317,7 @@ export const PROVIDERS: ProviderInfo[] = [
     icon: 'hard-drive',
     apiKeyUrl: 'https://ollama.com/',
     envHint: 'OLLAMA_HOST',
+    hasFreeTier: true, // Fully free, local, no API key needed
     models: [
       { id: 'qwen3:32b', name: 'Qwen 3 32B', description: 'Yerel Qwen 3 modeli.', contextWindow: 128_000, maxOutput: 8192, supportsTools: true, supportsVision: false, canReason: true, costIn: 0, costOut: 0 },
       { id: 'qwen3:8b', name: 'Qwen 3 8B', description: 'Hafif Qwen 3.', contextWindow: 128_000, maxOutput: 8192, supportsTools: true, supportsVision: false, canReason: true, costIn: 0, costOut: 0 },

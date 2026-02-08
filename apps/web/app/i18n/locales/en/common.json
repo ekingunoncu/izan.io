@@ -197,6 +197,16 @@
   "provider": {
     "selectTitle": "Select Provider",
     "selectDesc": "Choose an AI provider and enter your API key. Keys are stored only in your browser.",
+    "freeTier": "Free",
+    "freeTierHint": {
+      "google": "250 requests/day, no credit card required. aistudio.google.com",
+      "groq": "Thousands of tokens/min, daily limit. No credit card required.",
+      "cerebras": "1 million tokens/day free.",
+      "cohere": "Trial API key free. Rate limited, paid for commercial use.",
+      "togetherai": "DeepSeek-R1-Distill-Llama-70B-free model free. $25 credits for new users.",
+      "deepseek": "Trial credits for new accounts.",
+      "ollama": "Fully free, local use, no API key needed."
+    },
     "models": "{{provider}} Models",
     "ready": "Ready! You can start chatting.",
     "selectProvider": "Select Provider",
