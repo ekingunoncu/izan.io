@@ -93,7 +93,7 @@ export const useAgentStore = create<AgentState>((set, get) => ({
 
   selectAgent: async (agentId: string) => {
     const { agents } = get()
-    const agent = agents.find(a => a.id === agentId)
+    const agent = agents.find(a => a.id === agentId) ?? DEFAULT_AGENTS.find(a => a.id === agentId)
     if (!agent) {
       console.error('Agent not found:', agentId)
       return
@@ -103,11 +103,11 @@ export const useAgentStore = create<AgentState>((set, get) => ({
   },
 
   getAgentById: (agentId: string) => {
-    return get().agents.find(a => a.id === agentId)
+    return get().agents.find(a => a.id === agentId) ?? DEFAULT_AGENTS.find(a => a.id === agentId)
   },
 
   getAgentBySlug: (slug: string) => {
-    return get().agents.find(a => a.slug === slug || a.id === slug)
+    return get().agents.find(a => a.slug === slug || a.id === slug) ?? DEFAULT_AGENTS.find(a => a.slug === slug || a.id === slug)
   },
 
   getAgentSlug: (agent: Agent) => agent.slug,

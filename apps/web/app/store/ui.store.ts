@@ -16,6 +16,8 @@ interface UIState {
 
   // Agent edit panel (right drawer)
   isAgentEditOpen: boolean
+  /** When set, AgentEditPanel will expand this section and focus the first input (e.g. 'api-keys') */
+  agentEditExpandSection: string | null
 
   // Create agent dialog
   isCreateAgentOpen: boolean
@@ -32,8 +34,9 @@ interface UIState {
   openAgentSelector: () => void
   closeAgentSelector: () => void
   toggleAgentSelector: () => void
-  openAgentEdit: () => void
+  openAgentEdit: (options?: { expandSection?: string }) => void
   closeAgentEdit: () => void
+  clearAgentEditExpandSection: () => void
   openCreateAgent: () => void
   closeCreateAgent: () => void
   openMobileSidebar: () => void
@@ -49,6 +52,7 @@ export const useUIStore = create<UIState>((set) => ({
   isModelSelectorOpen: false,
   isAgentSelectorOpen: false,
   isAgentEditOpen: false,
+  agentEditExpandSection: null,
   isCreateAgentOpen: false,
   isMobileSidebarOpen: false,
 
@@ -84,12 +88,19 @@ export const useUIStore = create<UIState>((set) => ({
     set(state => ({ isAgentSelectorOpen: !state.isAgentSelectorOpen }))
   },
 
-  openAgentEdit: () => {
-    set({ isAgentEditOpen: true })
+  openAgentEdit: (options?: { expandSection?: string }) => {
+    set({
+      isAgentEditOpen: true,
+      agentEditExpandSection: options?.expandSection ?? null,
+    })
   },
 
   closeAgentEdit: () => {
-    set({ isAgentEditOpen: false })
+    set({ isAgentEditOpen: false, agentEditExpandSection: null })
+  },
+
+  clearAgentEditExpandSection: () => {
+    set({ agentEditExpandSection: null })
   },
 
   openCreateAgent: () => {

@@ -5,7 +5,7 @@
  * In production: CloudFront at /api/{serverId}/mcp
  * In development: localhost:3100/api/{serverId}/mcp
  *
- * Built-in servers are auto-discovered from @izan/mcp-client (packages/mcp-servers + mcp-client-side).
+ * Built-in servers are auto-discovered from @izan/mcp-client (packages/mcp-servers + mcp-browser-servers).
  */
 import { IMPLICIT_AGENT_SERVERS } from '@izan/agents'
 import { getBuiltinMCPServerConfigs, type MCPServerConfig } from '@izan/mcp-client'
@@ -39,7 +39,7 @@ function getMcpBaseUrl(): string {
 
 /**
  * All built-in MCP servers.
- * Auto-discovered from packages/mcp-servers and mcp-client-side via @izan/mcp-client.
+ * Auto-discovered from packages/mcp-servers and mcp-browser-servers via @izan/mcp-client.
  */
 export const DEFAULT_MCP_SERVERS = getBuiltinMCPServerConfigs(getMcpBaseUrl())
 

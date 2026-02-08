@@ -15,6 +15,9 @@ import {
   Lightbulb,
   BookOpen,
   Sparkles,
+  TrendingUp,
+  Key,
+  ExternalLink,
 } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import {
@@ -35,7 +38,9 @@ import {
   getAgentHowToUse,
   getAgentProTip,
   getAgentUsageExamples,
+  getAgentSerpApiSection,
 } from "~/lib/agent-display";
+import { MissingApiKeyBanner } from "~/components/agents/MissingApiKeyBanner";
 import { BUILTIN_AGENT_DEFINITIONS } from "@izan/agents";
 import { DEFAULT_MCP_SERVERS } from "~/lib/mcp/config";
 import type { Route } from "./+types/agent-detail";
@@ -47,6 +52,7 @@ const AGENT_ICONS: Record<string, typeof Bot> = {
   globe: Globe,
   "message-square": MessageSquare,
   zap: Zap,
+  "trending-up": TrendingUp,
 };
 
 const AGENT_COLORS: Record<string, string> = Object.fromEntries(
@@ -137,6 +143,7 @@ export default function AgentDetail() {
   const howToUse = getAgentHowToUse(agent, t);
   const proTip = getAgentProTip(agent, t);
   const usageExamples = getAgentUsageExamples(agent, t);
+  const serpApiSection = getAgentSerpApiSection(agent, t);
 
   const mcpIds = [...agent.implicitMCPIds, ...agent.customMCPIds];
   const mcpServers = mcpIds
@@ -189,6 +196,8 @@ export default function AgentDetail() {
             <ArrowLeft className="h-4 w-4" />
             {t("agents.detail.backToAgents")}
           </Link>
+
+          <MissingApiKeyBanner agent={agent} className="mb-6" />
 
           {/* Hero Section */}
           <div className="mb-10">
@@ -340,6 +349,46 @@ export default function AgentDetail() {
                   </div>
                 </div>
               </div>
+            </section>
+          )}
+
+          {/* Serp API & Pricing (web-search only) */}
+          {serpApiSection && (
+            <section className="mb-8">
+              <Card className="border-2 border-primary/20">
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Key className="h-5 w-5 text-primary" />
+                    {serpApiSection.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-muted-foreground leading-relaxed whitespace-pre-line">
+                    {serpApiSection.description}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <a
+                      href="https://serpapi.com/dashboard"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
+                    >
+                      {t("agents.builtin.web-search.serpApiGetKey")}
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
+                    <span className="text-muted-foreground">·</span>
+                    <a
+                      href="https://serpapi.com/pricing"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
+                    >
+                      {t("agents.builtin.web-search.serpApiViewPricing")}
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
+                  </div>
+                </CardContent>
+              </Card>
             </section>
           )}
 

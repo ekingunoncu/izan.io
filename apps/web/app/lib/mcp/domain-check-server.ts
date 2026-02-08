@@ -7,7 +7,7 @@ import {
   startDomainCheckServer,
   stopDomainCheckServer,
   isDomainCheckServerRunning,
-} from '@izan/mcp-client-side'
+} from '@izan/mcp-browser-servers'
 
 let serverStarted = false
 

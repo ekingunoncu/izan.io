@@ -101,6 +101,7 @@ export class StorageService implements IStorageService {
       ...prefs,
       disabledBuiltinMCPIds: prefs.disabledBuiltinMCPIds ?? DEFAULT_PREFERENCES.disabledBuiltinMCPIds,
       favoriteAgentIds: prefs.favoriteAgentIds ?? DEFAULT_PREFERENCES.favoriteAgentIds,
+      externalApiKeys: prefs.externalApiKeys ?? DEFAULT_PREFERENCES.externalApiKeys,
     }
   }
 

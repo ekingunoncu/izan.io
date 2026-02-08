@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@izan/agents": "*",
-    "@izan/mcp-client-side": "*",
+    "@izan/mcp-browser-servers": "*",
     "@izan/mcp-client": "*",
     "@microsoft/clarity": "^1.0.2",
     "@radix-ui/react-alert-dialog": "^1.1.15",

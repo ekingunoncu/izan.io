@@ -111,6 +111,8 @@ export interface UserPreferences {
   disabledBuiltinMCPIds: string[]
   /** Agent IDs the user has favorited (shown first in selector) */
   favoriteAgentIds: string[]
+  /** External API keys (e.g. serp_api) - user provides keys for MCP tools */
+  externalApiKeys: Record<string, string>
 }
 
 import { BUILTIN_AGENT_DEFINITIONS } from '@izan/agents'
@@ -158,4 +160,5 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   providerKeys: {},
   disabledBuiltinMCPIds: [],
   favoriteAgentIds: [],
+  externalApiKeys: {},
 }

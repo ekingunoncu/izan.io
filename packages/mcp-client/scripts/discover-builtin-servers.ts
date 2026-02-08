@@ -1,5 +1,5 @@
 /**
- * Discovers built-in MCP servers from packages/mcp-servers and packages/mcp-client-side.
+ * Discovers built-in MCP servers from packages/mcp-servers and packages/mcp-browser-servers.
  * Generates builtin-servers.generated.ts for @izan/mcp-client.
  */
 import { readdirSync, existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs'
@@ -66,24 +66,45 @@ export interface BuiltinServerMetadata {
 /** Backend MCP servers (URL resolved at runtime from MCP base) */
 export const BUILTIN_BACKEND_SERVERS: BuiltinServerMetadata[] = ${backendJson}
 
-/** Client-side MCP server (fixed URL) */
-export const BUILTIN_CLIENT_SERVER: BuiltinServerMetadata = {
-  id: 'domain-check-client',
-  name: 'Domain Check (Client)',
-  description: 'Fast RDAP bulk availability check. No API key. 1–15 domains.',
-  category: 'custom',
-  urlType: 'client',
-  url: 'tab://izan-domain-check',
-}
+/** Client-side MCP servers (fixed URLs, TabServerTransport) */
+export const BUILTIN_CLIENT_SERVERS: BuiltinServerMetadata[] = [
+  {
+    id: 'general',
+    name: 'General',
+    description: 'General MCP server (get_time, random_number, uuid, calculate, generate_password)',
+    category: 'general',
+    urlType: 'client',
+    url: 'tab://izan-general',
+  },
+  {
+    id: 'domain-check-client',
+    name: 'Domain Check (Client)',
+    description: 'Fast RDAP bulk availability check. No API key. 1–15 domains.',
+    category: 'custom',
+    urlType: 'client',
+    url: 'tab://izan-domain-check',
+  },
+  {
+    id: 'crypto-analysis-client',
+    name: 'Crypto Analysis (Client)',
+    description: 'Cryptocurrency market data, technical indicators (RSI/MACD/BB/EMA/SMA/ATR/Stochastic/ADX), fundamental scores, and full coin analysis via CoinGecko v3. No API key.',
+    category: 'custom',
+    urlType: 'client',
+    url: 'tab://izan-crypto-analysis',
+  },
+]
+
+/** @deprecated Use BUILTIN_CLIENT_SERVERS instead */
+export const BUILTIN_CLIENT_SERVER: BuiltinServerMetadata = BUILTIN_CLIENT_SERVERS[0]
 
 /** All built-in server metadata (for iteration) */
 export const BUILTIN_MCP_SERVER_METADATA: BuiltinServerMetadata[] = [
   ...BUILTIN_BACKEND_SERVERS,
-  BUILTIN_CLIENT_SERVER,
+  ...BUILTIN_CLIENT_SERVERS,
 ]
 `
 
 const outPath = join(ROOT, 'src', 'builtin-servers.generated.ts')
 mkdirSync(dirname(outPath), { recursive: true })
 writeFileSync(outPath, finalOutput, 'utf-8')
-console.log(`[discover-builtin-servers] Wrote ${outPath} (${backendServers.length} backend + 1 client)`)
+console.log(`[discover-builtin-servers] Wrote ${outPath} (${backendServers.length} backend + 3 client)`)

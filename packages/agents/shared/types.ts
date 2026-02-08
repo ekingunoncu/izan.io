@@ -7,6 +7,8 @@ export interface BuiltinAgentDefinition {
   basePrompt: string
   category: string
   implicitMCPIds: string[]
+  /** External API key IDs this agent requires (e.g. serp_api). User provides keys in Settings. */
+  requiredApiKeys?: string[]
   /** Default temperature 0–2. Lower = more deterministic. */
   temperature?: number
   /** Default max tokens for response. */

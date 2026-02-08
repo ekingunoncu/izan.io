@@ -115,15 +115,26 @@ async function executeToolCall(
   }
   const toolInfo = mcpTools.find(t => t.name === fnName)
   if (!toolInfo) {
-    return `Hata: Tool bulunamadı: ${fnName}`
+    return `Hata: Tool bulunamadı: ${fnName}. Mevcut araçlar: ${mcpTools.map(t => t.name).join(', ') || 'yok'}`
+  }
+  if (import.meta.env?.DEV) {
+    console.log('[chat] MCP tool call:', toolInfo.serverId, fnName, fnArgs)
   }
   const toolResult = await mcpStore.callTool(toolInfo.serverId, fnName, fnArgs)
-  return toolResult.success
+  const resultText = toolResult.success
     ? toolResult.content
         .filter((c): c is { type: 'text'; text: string } => c.type === 'text')
         .map(c => c.text)
         .join('\n')
     : `Hata: ${toolResult.error ?? 'Bilinmeyen hata'}`
+  if (import.meta.env?.DEV) {
+    if (!toolResult.success) {
+      console.error('[chat] MCP tool error:', toolInfo.serverId, fnName, toolResult.error)
+    } else if (fnName === 'fetch_url') {
+      console.log('[chat] fetch_url result preview:', resultText.slice(0, 200) + (resultText.length > 200 ? '...' : ''))
+    }
+  }
+  return resultText
 }
 
 /** Stream a plain chat response (no tools) and persist to storage */
@@ -471,6 +482,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
       // Get MCP tools
       let mcpTools = agent ? mcpStore.getToolsForAgent(agent) : []
+      if (import.meta.env?.DEV) {
+        console.log('[chat] Agent:', agentId, 'MCP tools:', mcpTools.map(t => `${t.serverId}:${t.name}`), 'error:', mcpStore.error, 'initialized:', mcpStore.isInitialized)
+      }
 
       if (mcpTools.length === 0 && agent && (mcpStore.error || !mcpStore.isInitialized)) {
         await useMCPStore.getState().reconnect()

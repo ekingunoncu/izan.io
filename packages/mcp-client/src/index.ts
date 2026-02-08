@@ -46,6 +46,7 @@ export type { ServerStateChangeHandler } from './registry.js'
 export {
   BUILTIN_BACKEND_SERVERS,
   BUILTIN_CLIENT_SERVER,
+  BUILTIN_CLIENT_SERVERS,
   BUILTIN_MCP_SERVER_METADATA,
 } from './builtin-servers.generated.js'
 export type { BuiltinServerMetadata } from './builtin-servers.generated.js'
