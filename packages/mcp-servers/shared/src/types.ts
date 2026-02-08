@@ -13,6 +13,11 @@ export type MCPToolContent =
 /** Tool handler return type - string or MCP content array */
 export type ToolHandlerResult = string | { content: MCPToolContent[] }
 
+/** Context passed to tool handlers (e.g. request headers for API keys) */
+export interface ToolHandlerContext {
+  headers?: Record<string, string>
+}
+
 /** Tool definition shape used by MCP servers */
 export interface ToolDef {
   name: string
@@ -22,7 +27,7 @@ export interface ToolDef {
     properties: Record<string, unknown>
     required?: string[]
   }
-  handler: (args: Record<string, unknown>) => Promise<ToolHandlerResult>
+  handler: (args: Record<string, unknown>, context?: ToolHandlerContext) => Promise<ToolHandlerResult>
 }
 
 /** JSON-RPC request */

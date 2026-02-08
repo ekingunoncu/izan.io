@@ -21,7 +21,7 @@ function getCorsHeaders(origin?: string | null): Record<string, string> {
   const allowed = isOriginAllowed(origin)
   const base: Record<string, string> = {
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-SerpApi-Key',
   }
   if (allowed && origin) base['Access-Control-Allow-Origin'] = origin
   return base
@@ -84,7 +84,7 @@ export function createHandler(
     }
   }
 
-  async function handleToolsCall(req: JsonRpcRequest): Promise<JsonRpcResponse> {
+  async function handleToolsCall(req: JsonRpcRequest, event: LambdaEvent): Promise<JsonRpcResponse> {
     const params = req.params as { name?: string; arguments?: Record<string, unknown> } | undefined
     const toolName = params?.name
     const toolArgs = params?.arguments ?? {}
@@ -101,8 +101,10 @@ export function createHandler(
       }
     }
 
+    const context = { headers: event.headers ?? {} }
+
     try {
-      const result = await tool.handler(toolArgs)
+      const result = await tool.handler(toolArgs, context)
       const content = normalizeContent(result)
       return {
         jsonrpc: '2.0',
@@ -124,7 +126,7 @@ export function createHandler(
     }
   }
 
-  async function handleRequest(req: JsonRpcRequest): Promise<JsonRpcResponse> {
+  async function handleRequest(req: JsonRpcRequest, event: LambdaEvent): Promise<JsonRpcResponse> {
     switch (req.method) {
       case 'initialize':
         return handleInitialize(req)
@@ -136,7 +138,7 @@ export function createHandler(
         return handleToolsList(req)
 
       case 'tools/call':
-        return handleToolsCall(req)
+        return handleToolsCall(req, event)
 
       case 'ping':
         return { jsonrpc: '2.0', id: req.id, result: {} }
@@ -197,7 +199,7 @@ export function createHandler(
         return { statusCode: 202, headers: jsonHeaders, body: '' }
       }
 
-      const rpcResponse = await handleRequest(rpcRequest)
+      const rpcResponse = await handleRequest(rpcRequest, event)
 
       return {
         statusCode: 200,

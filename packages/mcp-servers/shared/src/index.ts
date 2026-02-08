@@ -8,6 +8,7 @@ export { createHandler } from './handler.js'
 export type { ServerInfo } from './handler.js'
 export type {
   ToolDef,
+  ToolHandlerContext,
   ToolHandlerResult,
   MCPToolContent,
   JsonRpcRequest,

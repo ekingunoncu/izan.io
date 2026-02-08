@@ -21,7 +21,7 @@ function getCorsHeaders(origin?: string | null): Record<string, string> {
   const allowed = isOriginAllowed(origin)
   const base: Record<string, string> = {
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-SerpApi-Key',
   }
   if (allowed && origin) base['Access-Control-Allow-Origin'] = origin
   return base
@@ -41,7 +41,7 @@ function discoverMcpServers(): string[] {
 }
 
 const serverIds = discoverMcpServers()
-const handlers: Map<string, (event: { body?: string; httpMethod?: string; isBase64Encoded?: boolean }) => Promise<{ statusCode: number; headers: Record<string, string>; body: string }>> = new Map()
+const handlers: Map<string, (event: { body?: string; httpMethod?: string; headers?: Record<string, string>; isBase64Encoded?: boolean }) => Promise<{ statusCode: number; headers: Record<string, string>; body: string }>> = new Map()
 
 async function loadHandlers(): Promise<void> {
   for (const serverId of serverIds) {
@@ -112,11 +112,17 @@ const server = createServer(async (req, res) => {
   }
   const body = Buffer.concat(chunks).toString('utf-8')
 
+  const headers: Record<string, string> = {}
+  for (const [k, v] of Object.entries(req.headers)) {
+    if (typeof v === 'string') headers[k] = v
+    else if (Array.isArray(v)) headers[k] = v[0] ?? ''
+  }
+
   try {
     const handler = handlers.get(serverId)!
     const result = await handler({
       httpMethod: 'POST',
-      headers: origin ? { origin } : {},
+      headers,
       body,
       isBase64Encoded: false,
     })

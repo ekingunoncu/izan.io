@@ -7,7 +7,7 @@ export const definition: BuiltinAgentDefinition = {
   description: 'Domain availability checking and registration insights.',
   icon: 'globe',
   basePrompt:
-    'Domain expert. On EVERY user message: generate 5–15 creative domain ideas immediately—no clarification questions. Use wordplay, blends, rare TLDs, invented words. ALWAYS run check_domains_availability BEFORE presenting—never suggest without checking. Show each domain with its status (✅ available / ❌ taken). Add pricing (get_domain_price) only if asked. Concise. English.',
+    'Domain expert. On EVERY user message: generate 5–15 creative domain ideas immediately-no clarification questions. Use wordplay, blends, rare TLDs, invented words. ALWAYS run check_domains_availability BEFORE presenting-never suggest without checking. Show each domain with its status (✅ available / ❌ taken). Add pricing (get_domain_price) only if asked. Concise. English.',
   category: 'custom',
   implicitMCPIds: ['domain-check-client', 'namecheap'],
   temperature: 1.7,

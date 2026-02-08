@@ -10,9 +10,6 @@
     "test:watch": "vitest"
   },
   "devDependencies": {
-    "@izan/mcp-servers-bing": "*",
-    "@izan/mcp-servers-general": "*",
-    "@izan/mcp-servers-google": "*",
     "@izan/mcp-servers-namecheap": "*",
     "dotenv": "^16.4.7",
     "tsx": "^4.19.0",

@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Bot, User, Wrench, Loader2, Code } from 'lucide-react'
+import { Bot, User, Wrench, Loader2, ExternalLink } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { cn, stripThinkTags } from '~/lib/utils'
@@ -13,6 +13,7 @@ interface ChatMessage {
 
 interface MessageListProps {
   messages: ChatMessage[]
+  isGenerating?: boolean
 }
 
 /** Parse tool call and agent call lines from message content (strips <think> tags for display) */
@@ -104,6 +105,103 @@ function AgentCallBadge({ agentId }: { agentId: string }) {
   )
 }
 
+const linkPreviewCache = new Map<string, MicrolinkData | null>()
+
+type MicrolinkData = {
+  title?: string
+  description?: string
+  image?: { url: string }
+  publisher?: string
+}
+
+function LinkPreview({ url }: { url: string }) {
+  const [data, setData] = useState<MicrolinkData | null>(() => linkPreviewCache.get(url) ?? null)
+  const [loading, setLoading] = useState(!linkPreviewCache.has(url))
+
+  useEffect(() => {
+    if (linkPreviewCache.has(url)) return
+    const ctrl = new AbortController()
+    const apiUrl = `https://api.microlink.io/?url=${encodeURIComponent(url)}&screenshot=false`
+    fetch(apiUrl, { signal: ctrl.signal })
+      .then((r) => r.json())
+      .then((res) => {
+        if (res.status === 'success' && res.data) {
+          const d = res.data as MicrolinkData
+          linkPreviewCache.set(url, d)
+          setData(d)
+        } else {
+          linkPreviewCache.set(url, null)
+        }
+      })
+      .catch(() => linkPreviewCache.set(url, null))
+      .finally(() => setLoading(false))
+    return () => ctrl.abort()
+  }, [url])
+
+  if (loading || !data) return null
+  const hasContent = data.title || data.description || data.image?.url
+  if (!hasContent) return null
+
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="mt-2 flex gap-3 rounded-lg border bg-background/80 overflow-hidden hover:border-primary/30 transition-colors no-underline text-inherit max-w-full min-w-0"
+    >
+      {data.image?.url && (
+        <img
+          src={data.image.url}
+          alt=""
+          className="w-20 h-20 sm:w-24 sm:h-24 object-cover flex-shrink-0"
+        />
+      )}
+      <div className="min-w-0 flex-1 py-2 pr-2 flex flex-col justify-center gap-0.5">
+        {data.title && (
+          <span className="font-medium text-sm line-clamp-2 text-foreground">{data.title}</span>
+        )}
+        {data.description && (
+          <span className="text-xs text-muted-foreground line-clamp-2">{data.description}</span>
+        )}
+      </div>
+    </a>
+  )
+}
+
+/** Google-style link: title + URL below, truncate long URLs, optional preview */
+function LinkRenderer({
+  href,
+  children,
+}: {
+  href?: string | null
+  children?: React.ReactNode
+}) {
+  if (!href) return <>{children}</>
+  const url = href.startsWith('http') ? href : `https://${href}`
+  const displayUrl = url.replace(/^https?:\/\//, '').replace(/\/$/, '')
+  const isHttp = url.startsWith('http://') || url.startsWith('https://')
+
+  return (
+    <span className="block min-w-0 max-w-full overflow-hidden">
+      <a
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex flex-col gap-0.5 py-1 group no-underline min-w-0 max-w-full"
+      >
+        <span className="text-primary hover:underline font-medium inline-flex items-center gap-1 min-w-0 overflow-hidden">
+          <span className="truncate">{children}</span>
+          <ExternalLink className="h-3 w-3 opacity-60 group-hover:opacity-100 flex-shrink-0" />
+        </span>
+        <span className="text-xs text-emerald-600 dark:text-emerald-500 truncate block">
+          {displayUrl}
+        </span>
+      </a>
+      {isHttp && <LinkPreview url={url} />}
+    </span>
+  )
+}
+
 function ToolLoadingIndicator({ loadingText }: { loadingText?: string }) {
   const { t } = useTranslation('common')
   const text = loadingText ?? t('chat.toolRunning')
@@ -120,35 +218,62 @@ function MarkdownMessage({
   messageId,
   rawModeIds,
   onToggleRaw,
+  showActions,
 }: {
   text: string
   messageId: string
   rawModeIds: Set<string>
   onToggleRaw: (id: string) => void
+  showActions: boolean
 }) {
   const { t } = useTranslation('common')
   const isRaw = rawModeIds.has(messageId)
+  const [copied, setCopied] = useState(false)
+
+  const handleCopy = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    } catch {
+      // Ignore clipboard errors
+    }
+  }, [text])
 
   return (
-    <div className="rounded-2xl px-3 py-2 sm:px-4 bg-muted group relative">
-      <div className="absolute top-2 right-2 opacity-50 group-hover:opacity-100 transition-opacity">
-        <button
-          type="button"
-          onClick={() => onToggleRaw(messageId)}
-          className="p-1.5 rounded-md hover:bg-muted-foreground/10 text-muted-foreground hover:text-foreground"
-          title={isRaw ? t('chat.viewRendered') : t('chat.viewRaw')}
-          aria-label={isRaw ? t('chat.viewRendered') : t('chat.viewRaw')}
-        >
-          <Code className="h-3.5 w-3.5" />
-        </button>
-      </div>
+    <div className="rounded-2xl px-3 py-2 sm:px-4 bg-muted">
       {isRaw ? (
-        <pre className="font-mono text-sm sm:text-base whitespace-pre-wrap break-words overflow-x-auto p-3 rounded-lg bg-muted-foreground/10 mt-1">
+        <pre className="font-mono text-sm sm:text-base whitespace-pre-wrap break-words overflow-x-auto p-3 rounded-lg bg-muted-foreground/10">
           <code className="block">{text}</code>
         </pre>
       ) : (
-        <div className="markdown-content text-sm sm:text-base [&_p]:my-1 [&_h1]:text-lg [&_h2]:text-base [&_h3]:text-sm [&_ul]:my-1 [&_ol]:my-1 [&_li]:ml-4 [&_pre]:my-2 [&_pre]:p-3 [&_pre]:rounded-lg [&_pre]:bg-muted-foreground/10 [&_pre]:overflow-x-auto [&_code]:bg-muted-foreground/10 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_a]:underline [&_a]:text-primary">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
+        <div className="markdown-content text-sm sm:text-base min-w-0 [&_p]:my-1 [&_h1]:text-lg [&_h2]:text-base [&_h3]:text-sm [&_ul]:my-1 [&_ol]:my-1 [&_li]:ml-4 [&_pre]:my-2 [&_pre]:p-3 [&_pre]:rounded-lg [&_pre]:bg-muted-foreground/10 [&_pre]:overflow-x-auto [&_code]:bg-muted-foreground/10 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded break-words">
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            components={{ a: LinkRenderer }}
+          >
+            {text}
+          </ReactMarkdown>
+        </div>
+      )}
+      {showActions && (
+        <div className="mt-2 flex justify-between items-center">
+          <button
+            type="button"
+            onClick={handleCopy}
+            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors py-0.5 -mb-0.5"
+            aria-label={t('chat.copy')}
+          >
+            {copied ? t('chat.copied') : t('chat.copy')}
+          </button>
+          <button
+            type="button"
+            onClick={() => onToggleRaw(messageId)}
+            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors py-0.5 -mb-0.5"
+            aria-label={isRaw ? t('chat.viewRendered') : t('chat.viewRaw')}
+          >
+            {isRaw ? t('chat.viewRendered') : t('chat.viewRaw')}
+          </button>
         </div>
       )}
     </div>
@@ -159,10 +284,12 @@ function MessageBubble({
   message,
   rawModeIds,
   onToggleRaw,
+  isStreaming,
 }: {
   message: ChatMessage
   rawModeIds: Set<string>
   onToggleRaw: (id: string) => void
+  isStreaming?: boolean
 }) {
   const isUser = message.role === 'user'
 
@@ -220,6 +347,7 @@ function MessageBubble({
               messageId={message.id}
               rawModeIds={rawModeIds}
               onToggleRaw={onToggleRaw}
+              showActions={!isStreaming}
             />
           ) : !parsed?.isLoading && !parsed?.toolCalls.length && !parsed?.agentCalls.length ? (
             /* Empty assistant message (still generating) */
@@ -237,10 +365,15 @@ function MessageBubble({
   )
 }
 
-export function MessageList({ messages }: MessageListProps) {
+export function MessageList({ messages, isGenerating = false }: MessageListProps) {
   const { t } = useTranslation('common')
   const bottomRef = useRef<HTMLDivElement>(null)
   const [rawModeIds, setRawModeIds] = useState<Set<string>>(new Set())
+
+  const streamingMessageId =
+    isGenerating && messages.length > 0 && messages[messages.length - 1]?.role === 'assistant'
+      ? messages[messages.length - 1].id
+      : null
 
   const handleToggleRaw = (id: string) => {
     setRawModeIds((prev) => {
@@ -275,6 +408,7 @@ export function MessageList({ messages }: MessageListProps) {
           message={message}
           rawModeIds={rawModeIds}
           onToggleRaw={handleToggleRaw}
+          isStreaming={streamingMessageId === message.id}
         />
       ))}
       <div ref={bottomRef} />

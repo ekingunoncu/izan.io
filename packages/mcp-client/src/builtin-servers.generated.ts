@@ -14,47 +14,61 @@ export interface BuiltinServerMetadata {
 /** Backend MCP servers (URL resolved at runtime from MCP base) */
 export const BUILTIN_BACKEND_SERVERS: BuiltinServerMetadata[] = [
   {
-    "id": "bing",
-    "name": "Bing Search",
-    "description": "Search the web using Bing",
-    "category": "web_search",
-    "urlType": "backend"
-  },
-  {
-    "id": "general",
-    "name": "General",
-    "description": "General MCP server (get_time, random_number, uuid, calculate, generate_password)",
-    "category": "general",
-    "urlType": "backend"
-  },
-  {
-    "id": "google",
-    "name": "Google Search",
-    "description": "Search the web using Google",
-    "category": "web_search",
-    "urlType": "backend"
-  },
-  {
     "id": "namecheap",
     "name": "Namecheap Domain",
     "description": "Check domain availability and get suggestions",
     "category": "custom",
     "urlType": "backend"
+  },
+  {
+    "id": "serp-search",
+    "name": "Serp Search",
+    "description": "Search the web via SerpApi (Google, Bing, DuckDuckGo, Yahoo, etc.). Requires Serp API key.",
+    "category": "web_search",
+    "urlType": "backend"
+  },
+  {
+    "id": "web-fetch",
+    "name": "Web Fetch",
+    "description": "Fetch content from any public URL. For web research: retrieve pages, APIs, articles. GET or POST.",
+    "category": "web_search",
+    "urlType": "backend"
   }
 ]
 
-/** Client-side MCP server (fixed URL) */
-export const BUILTIN_CLIENT_SERVER: BuiltinServerMetadata = {
-  id: 'domain-check-client',
-  name: 'Domain Check (Client)',
-  description: 'Fast RDAP bulk availability check. No API key. 1–15 domains.',
-  category: 'custom',
-  urlType: 'client',
-  url: 'tab://izan-domain-check',
-}
+/** Client-side MCP servers (fixed URLs, TabServerTransport) */
+export const BUILTIN_CLIENT_SERVERS: BuiltinServerMetadata[] = [
+  {
+    id: 'general',
+    name: 'General',
+    description: 'General MCP server (get_time, random_number, uuid, calculate, generate_password)',
+    category: 'general',
+    urlType: 'client',
+    url: 'tab://izan-general',
+  },
+  {
+    id: 'domain-check-client',
+    name: 'Domain Check (Client)',
+    description: 'Fast RDAP bulk availability check. No API key. 1–15 domains.',
+    category: 'custom',
+    urlType: 'client',
+    url: 'tab://izan-domain-check',
+  },
+  {
+    id: 'crypto-analysis-client',
+    name: 'Crypto Analysis (Client)',
+    description: 'Cryptocurrency market data, technical indicators (RSI/MACD/BB/EMA/SMA/ATR/Stochastic/ADX), fundamental scores, and full coin analysis via CoinGecko v3. No API key.',
+    category: 'custom',
+    urlType: 'client',
+    url: 'tab://izan-crypto-analysis',
+  },
+]
+
+/** @deprecated Use BUILTIN_CLIENT_SERVERS instead */
+export const BUILTIN_CLIENT_SERVER: BuiltinServerMetadata = BUILTIN_CLIENT_SERVERS[0]
 
 /** All built-in server metadata (for iteration) */
 export const BUILTIN_MCP_SERVER_METADATA: BuiltinServerMetadata[] = [
   ...BUILTIN_BACKEND_SERVERS,
-  BUILTIN_CLIENT_SERVER,
+  ...BUILTIN_CLIENT_SERVERS,
 ]

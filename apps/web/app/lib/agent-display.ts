@@ -3,7 +3,14 @@
  * Built-in agents use translated names; custom agents use stored values.
  */
 
+import { BUILTIN_AGENT_DEFINITIONS } from '@izan/agents'
 import type { Agent } from '~/lib/db/schema'
+
+export function getAgentRequiredApiKeys(agent: Agent | null | undefined): string[] {
+  if (!agent || agent.source === 'user') return []
+  const def = BUILTIN_AGENT_DEFINITIONS.find((d) => d.id === agent.id)
+  return def?.requiredApiKeys ?? []
+}
 
 type TFunction = (key: string, options?: object) => string
 
@@ -78,4 +85,13 @@ export function getAgentUsageExamples(agent: Agent | null | undefined, t: TFunct
     if (translated !== key) examples.push(translated)
   }
   return examples
+}
+
+export function getAgentSerpApiSection(agent: Agent | null | undefined, t: TFunction): { title: string; description: string } | null {
+  if (!agent || agent.source === 'user' || agent.id !== 'web-search') return null
+  const titleKey = `agents.builtin.web-search.serpApiSectionTitle`
+  const descKey = `agents.builtin.web-search.serpApiSectionDesc`
+  const title = t(titleKey)
+  const description = t(descKey)
+  return title !== titleKey && description !== descKey ? { title, description } : null
 }

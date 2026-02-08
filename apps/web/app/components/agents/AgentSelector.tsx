@@ -19,6 +19,7 @@ import {
   Check,
   X,
   Star,
+  TrendingUp,
 } from 'lucide-react'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
@@ -42,6 +43,7 @@ const agentIconMap: Record<string, typeof Bot> = {
   'shield': Shield,
   'message-square': MessageSquare,
   'lightbulb': Lightbulb,
+  'trending-up': TrendingUp,
 }
 
 export function getAgentIcon(iconId: string) {

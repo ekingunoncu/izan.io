@@ -153,6 +153,36 @@
   </url>
 
   <url>
+    <loc>https://izan.io/tr/agents/crypto-analyst</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/agents/crypto-analyst" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/agents/crypto-analyst" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/agents/crypto-analyst" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/agents/crypto-analyst" />
+    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://izan.io/en/agents/crypto-analyst</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/agents/crypto-analyst" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/agents/crypto-analyst" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/agents/crypto-analyst" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/agents/crypto-analyst" />
+    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://izan.io/de/agents/crypto-analyst</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/agents/crypto-analyst" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/agents/crypto-analyst" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/agents/crypto-analyst" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/agents/crypto-analyst" />
+    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
     <loc>https://izan.io/tr/agents/domain-expert</loc>
     <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/agents/domain-expert" />
     <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/agents/domain-expert" />

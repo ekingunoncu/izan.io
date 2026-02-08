@@ -13,7 +13,16 @@ import {
   ensureDomainCheckServer,
   shutdownDomainCheckServer,
 } from '~/lib/mcp/domain-check-server'
+import {
+  ensureCryptoAnalysisServer,
+  shutdownCryptoAnalysisServer,
+} from '~/lib/mcp/crypto-analysis-server'
+import {
+  ensureGeneralServer,
+  shutdownGeneralServer,
+} from '~/lib/mcp/general-server'
 import { storageService } from '~/lib/services'
+import { useExternalApiKeysStore } from './external-api-keys.store'
 
 interface MCPState {
   registry: MCPServerRegistry | null
@@ -110,6 +119,7 @@ export const useMCPStore = create<MCPState>((set, get) => ({
     set({ registry })
 
     try {
+      await useExternalApiKeysStore.getState().initialize()
       const [userServers, prefs] = await Promise.all([
         db.mcpServers.toArray(),
         storageService.getPreferences(),
@@ -175,13 +185,25 @@ export const useMCPStore = create<MCPState>((set, get) => ({
       neededIds.add(mcpId)
     }
 
+    // Handle general lifecycle (TabServerTransport)
+    if (neededIds.has('general')) {
+      await ensureGeneralServer()
+    } else {
+      await shutdownGeneralServer()
+    }
+
     // Handle domain-check-client lifecycle (TabServerTransport)
     if (neededIds.has('domain-check-client')) {
-      // Start TabServerTransport server if needed
       await ensureDomainCheckServer()
     } else {
-      // Stop TabServerTransport server if not needed
       await shutdownDomainCheckServer()
+    }
+
+    // Handle crypto-analysis-client lifecycle (TabServerTransport)
+    if (neededIds.has('crypto-analysis-client')) {
+      await ensureCryptoAnalysisServer()
+    } else {
+      await shutdownCryptoAnalysisServer()
     }
 
     // Disconnect servers that are no longer needed
@@ -192,14 +214,31 @@ export const useMCPStore = create<MCPState>((set, get) => ({
     }
 
     // Connect servers that are needed but not yet connected
+    if (typeof window !== 'undefined' && import.meta.env?.DEV) {
+      console.log('[mcp] activateAgentMCPs:', agent.id, 'neededIds:', [...neededIds])
+    }
     for (const sid of neededIds) {
       const existing = registry.getServer(sid)
-      if (existing?.status === 'connected') continue
+      const isSerpSearch = sid === 'serp-search'
+      if (existing?.status === 'connected' && !isSerpSearch) continue
 
       // Check if it's a builtin server
       const builtinConfig = DEFAULT_MCP_SERVERS.find(s => s.id === sid)
       if (builtinConfig) {
-        await registry.addServer(builtinConfig)
+        if (typeof window !== 'undefined' && import.meta.env?.DEV) {
+          console.log('[mcp] Adding server:', sid, 'url:', builtinConfig.url)
+        }
+        let configToAdd = builtinConfig
+        if (isSerpSearch) {
+          const apiKey = useExternalApiKeysStore.getState().getExternalApiKey('serp_api')
+          if (apiKey) {
+            configToAdd = { ...builtinConfig, headers: { 'X-SerpApi-Key': apiKey } }
+          }
+          if (existing?.status === 'connected') {
+            await registry.removeServer(sid)
+          }
+        }
+        await registry.addServer(configToAdd)
         continue
       }
 
@@ -222,6 +261,9 @@ export const useMCPStore = create<MCPState>((set, get) => ({
     // Update state
     const allServers = registry.getServers()
     const failedServers = allServers.filter(s => s.status === 'error')
+    if (typeof window !== 'undefined' && import.meta.env?.DEV) {
+      console.log('[mcp] After activateAgentMCPs - servers:', allServers.map(s => ({ id: s.config.id, status: s.status, tools: s.tools.map(t => t.name) })))
+    }
     set({
       activeServerIds: neededIds,
       servers: allServers,
@@ -400,6 +442,9 @@ export const useMCPStore = create<MCPState>((set, get) => ({
   getToolsForAgent: (agent: Agent) => {
     const { registry, disabledBuiltinMCPIds } = get()
     if (!registry) {
+      if (typeof window !== 'undefined' && import.meta.env?.DEV) {
+        console.log('[mcp] getToolsForAgent: no registry')
+      }
       return []
     }
 
@@ -417,6 +462,10 @@ export const useMCPStore = create<MCPState>((set, get) => ({
 
     const tools: MCPToolInfo[] = []
     const seenToolKeys = new Set<string>()
+
+    if (typeof window !== 'undefined' && import.meta.env?.DEV) {
+      console.log('[mcp] getToolsForAgent:', agent.id, 'effectiveImplicitIds:', effectiveImplicitIds)
+    }
 
     const addUnique = (t: MCPToolInfo) => {
       const key = `${t.serverId}:${t.name}`
@@ -442,6 +491,9 @@ export const useMCPStore = create<MCPState>((set, get) => ({
       }
     }
 
+    if (typeof window !== 'undefined' && import.meta.env?.DEV) {
+      console.log('[mcp] getToolsForAgent result:', agent.id, 'tools:', tools.map(t => `${t.serverId}:${t.name}`), 'serverStatuses:', effectiveImplicitIds.map(id => ({ id, status: registry.getServer(id)?.status })))
+    }
     return tools
   },
 

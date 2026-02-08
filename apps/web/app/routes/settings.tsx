@@ -22,7 +22,7 @@ import {
   ChevronDown,
   ChevronRight,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -43,7 +43,8 @@ import {
   CardTitle,
 } from "~/components/ui/card";
 import { useTheme, type Theme } from "~/lib/theme";
-import { useMCPStore, useModelStore, useAgentStore } from "~/store";
+import { useMCPStore, useModelStore, useAgentStore, useExternalApiKeysStore } from "~/store";
+import { EXTERNAL_API_KEY_DEFINITIONS } from "~/lib/external-api-keys";
 import { DEFAULT_MCP_SERVERS } from "~/lib/mcp/config";
 import { getAgentDisplayName } from "~/lib/agent-display";
 import { cn } from "~/lib/utils";
@@ -91,6 +92,7 @@ function ProviderKeyRow({
   onRemove,
   isExpanded,
   onToggle,
+  inputRef,
 }: {
   providerId: string;
   providerName: string;
@@ -101,6 +103,7 @@ function ProviderKeyRow({
   onRemove: () => void;
   isExpanded: boolean;
   onToggle: () => void;
+  inputRef?: React.RefObject<HTMLInputElement | null>;
 }) {
   const { t } = useTranslation("common");
   const [key, setKey] = useState(currentKey ?? "");
@@ -136,6 +139,7 @@ function ProviderKeyRow({
           <div className="flex flex-col sm:flex-row gap-2 sm:gap-2">
             <div className="relative flex-1 min-w-0">
               <Input
+                ref={inputRef}
                 type={showKey ? "text" : "password"}
                 value={key}
                 onChange={(e) => setKey(e.target.value)}
@@ -197,6 +201,8 @@ export default function Settings() {
   const location = useLocation();
   const from = (location.state as { from?: string })?.from;
   const backTo = from ?? `/${lang}`;
+  const serpApiInputRef = useRef<HTMLInputElement | null>(null);
+  const addApiKeyFromHash = location.hash?.slice(1) || null; // e.g. #serp_api -> serp_api
   const [theme, setTheme] = useTheme();
   const {
     servers,
@@ -217,11 +223,18 @@ export default function Settings() {
     removeApiKey,
     initialize: initModel,
   } = useModelStore();
+  const {
+    getExternalApiKey,
+    setExternalApiKey,
+    removeExternalApiKey,
+    initialize: initExternalKeys,
+  } = useExternalApiKeysStore();
 
-  // Ensure model store is initialized (loads API keys from IndexedDB) when Settings mounts
+  // Ensure model store and external API keys are initialized when Settings mounts
   useEffect(() => {
     void initModel();
-  }, [initModel]);
+    void initExternalKeys();
+  }, [initModel, initExternalKeys]);
 
   // Add MCP server form state
   const [showAddForm, setShowAddForm] = useState(false);
@@ -239,9 +252,28 @@ export default function Settings() {
   const [providerSearch, setProviderSearch] = useState("");
   // Expanded provider for API key (accordion)
   const [expandedProviderId, setExpandedProviderId] = useState<string | null>(null);
+  const [expandedExternalKeyId, setExpandedExternalKeyId] = useState<string | null>(() => {
+    const hash = location.hash?.slice(1);
+    if (hash && EXTERNAL_API_KEY_DEFINITIONS.some((d) => d.id === hash)) return hash;
+    return null;
+  });
   // Built-in MCP section: expanded by default so users can disable servers
   const [builtinMcpExpanded, setBuiltinMcpExpanded] = useState(true);
   const [deleteServerId, setDeleteServerId] = useState<string | null>(null);
+
+  // When opened via #serp_api (Add API Key): focus the input once, then clear hash
+  const hasFocusedForAddApiKey = useRef(false);
+  useEffect(() => {
+    if (!addApiKeyFromHash || hasFocusedForAddApiKey.current) return;
+    const id = setTimeout(() => {
+      if (serpApiInputRef.current) {
+        serpApiInputRef.current.focus();
+        hasFocusedForAddApiKey.current = true;
+        window.history.replaceState(null, '', location.pathname + location.search);
+      }
+    }, 150);
+    return () => clearTimeout(id);
+  }, [addApiKeyFromHash, expandedExternalKeyId, location.pathname, location.search]);
 
   const enabledAgents = agents.filter((a) => a.enabled);
   // Built-in: show only name + description (no connection status, no API calls)
@@ -414,6 +446,43 @@ export default function Settings() {
                   </div>
                 );
               })()}
+            </CardContent>
+          </Card>
+
+          {/* External API Keys */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Key className="h-5 w-5" />
+                {t("settings.externalApiKeysTitle")}
+              </CardTitle>
+              <CardDescription>
+                {t("settings.externalApiKeysDesc")}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {EXTERNAL_API_KEY_DEFINITIONS.map((def) => {
+                const currentKey = getExternalApiKey(def.id);
+                return (
+                  <ProviderKeyRow
+                    key={def.id}
+                    providerId={def.id}
+                    providerName={def.name}
+                    apiKeyUrl={def.url}
+                    envHint={def.placeholder}
+                    currentKey={currentKey}
+                    onSave={(key) => setExternalApiKey(def.id, key)}
+                    onRemove={() => removeExternalApiKey(def.id)}
+                    isExpanded={expandedExternalKeyId === def.id}
+                    onToggle={() =>
+                      setExpandedExternalKeyId((prev) =>
+                        prev === def.id ? null : def.id
+                      )
+                    }
+                    inputRef={def.id === addApiKeyFromHash ? serpApiInputRef : undefined}
+                  />
+                );
+              })}
             </CardContent>
           </Card>
 
