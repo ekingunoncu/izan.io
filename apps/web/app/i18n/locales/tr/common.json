@@ -53,8 +53,8 @@
     "mcpBuiltinDisable": "Devre dışı bırak",
     "mcpDisconnected": "Henüz bağlanmadı",
     "mcpCustomTitle": "Özel MCP Sunucuları",
-    "mcpCustomDesc": "Kendi MCP sunucularınızı ekleyin ve istedikleri agentlara atayın.",
-    "mcpCorsWarning": "MCP sunucunuz izan.io'dan gelen isteklere izin vermelidir (CORS). Sunucunuzun yanıt başlıklarına Access-Control-Allow-Origin: https://izan.io ekleyin, aksi halde bağlantı başarısız olur.",
+    "mcpCustomDesc": "Kendi MCP sunucularınızı ekleyin. Agent sayfasından agentlara atayın.",
+    "mcpCorsWarning": "Bağlantı başarısız mı? Proxy ile otomatik tekrar deneriz. Anahtarlar tarayıcınızda kalır.",
     "mcpAddServer": "MCP Sunucusu Ekle",
     "mcpServerName": "Sunucu Adı",
     "mcpServerNamePlaceholder": "Örn: Şirket MCP",
@@ -75,7 +75,12 @@
     "mcpDeleteConfirm": "Bu MCP sunucusunu silmek istediğinizden emin misiniz?",
     "mcpSaveChanges": "Değişiklikleri Kaydet",
     "mcpUrlRequired": "Sunucu URL'si gereklidir",
-    "mcpNameRequired": "Sunucu adı gereklidir"
+    "mcpNameRequired": "Sunucu adı gereklidir",
+    "mcpAdvanced": "Gelişmiş (headers)",
+    "mcpHeaders": "Headers (JSON)",
+    "mcpHeadersPlaceholder": "{\"x-api-host\": \"...\", \"x-api-key\": \"...\"}",
+    "mcpHeadersHint": "JSON olarak header. API anahtarları tarayıcınızda kalır.",
+    "mcpHeadersInvalid": "Headers geçerli bir JSON objesi olmalı"
   },
   "home": {
     "heroBadge": "Açık Kaynak Agent Platformu",

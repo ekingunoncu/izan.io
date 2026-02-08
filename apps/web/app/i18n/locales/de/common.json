@@ -53,8 +53,8 @@
     "mcpBuiltinDisable": "Deaktivieren",
     "mcpDisconnected": "Nicht verbunden",
     "mcpCustomTitle": "Benutzerdefinierte MCP-Server",
-    "mcpCustomDesc": "Fügen Sie eigene MCP-Server hinzu und weisen Sie sie beliebigen Agenten zu.",
-    "mcpCorsWarning": "Ihr MCP-Server muss Anfragen von izan.io zulassen (CORS). Fügen Sie Access-Control-Allow-Origin: https://izan.io zu den Antwort-Headern Ihres Servers hinzu, sonst schlägt die Verbindung fehl.",
+    "mcpCustomDesc": "Fügen Sie eigene MCP-Server hinzu. Weisen Sie sie auf der Agent-Seite zu.",
+    "mcpCorsWarning": "Verbindung fehlgeschlagen? Wir versuchen es automatisch per Proxy. Schlüssel bleiben im Browser.",
     "mcpAddServer": "MCP-Server hinzufügen",
     "mcpServerName": "Servername",
     "mcpServerNamePlaceholder": "z.B. Firmen-MCP",
@@ -75,7 +75,12 @@
     "mcpDeleteConfirm": "Möchten Sie diesen MCP-Server wirklich löschen?",
     "mcpSaveChanges": "Änderungen speichern",
     "mcpUrlRequired": "Server-URL ist erforderlich",
-    "mcpNameRequired": "Servername ist erforderlich"
+    "mcpNameRequired": "Servername ist erforderlich",
+    "mcpAdvanced": "Erweitert (Headers)",
+    "mcpHeaders": "Headers (JSON)",
+    "mcpHeadersPlaceholder": "{\"x-api-host\": \"...\", \"x-api-key\": \"...\"}",
+    "mcpHeadersHint": "Headers als JSON. API-Schlüssel bleiben im Browser.",
+    "mcpHeadersInvalid": "Headers müssen ein gültiges JSON-Objekt sein"
   },
   "home": {
     "heroBadge": "Open-Source-Agent-Plattform",

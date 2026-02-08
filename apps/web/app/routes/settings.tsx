@@ -250,7 +250,7 @@ export default function Settings() {
     error,
     addUserServer,
     removeUserServer,
-    setServerAgents,
+    updateUserServer,
     disabledBuiltinMCPIds,
     setDisabledBuiltinMCPIds,
   } = useMCPStore();
@@ -281,12 +281,19 @@ export default function Settings() {
   const [newServerName, setNewServerName] = useState("");
   const [newServerUrl, setNewServerUrl] = useState("");
   const [newServerDesc, setNewServerDesc] = useState("");
-  const [newServerAgentIds, setNewServerAgentIds] = useState<string[]>([]);
+  const [newServerHeaders, setNewServerHeaders] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
-  // Edit agent assignment state
-  const [editingServerId, setEditingServerId] = useState<string | null>(null);
+  // Edit server details (name, url, headers, agents)
+  const [editingDetailsId, setEditingDetailsId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editUrl, setEditUrl] = useState("");
+  const [editDesc, setEditDesc] = useState("");
+  const [editHeaders, setEditHeaders] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
 
   // Provider search (client-side)
   const [providerSearch, setProviderSearch] = useState("");
@@ -315,9 +322,23 @@ export default function Settings() {
     return () => clearTimeout(id);
   }, [addApiKeyFromHash, expandedExternalKeyId, location.pathname, location.search]);
 
-  const enabledAgents = agents.filter((a) => a.enabled);
   // Built-in: show only name + description (no connection status, no API calls)
   const customServerStates = servers.filter((s) => s.config.source === "user");
+
+  const parseHeaders = (raw: string): Record<string, string> | null => {
+    if (!raw.trim()) return {};
+    try {
+      const parsed = JSON.parse(raw);
+      if (typeof parsed !== "object" || parsed === null) return null;
+      const out: Record<string, string> = {};
+      for (const [k, v] of Object.entries(parsed)) {
+        if (typeof k === "string" && typeof v === "string") out[k] = v;
+      }
+      return out;
+    } catch {
+      return null;
+    }
+  };
 
   const handleAddServer = async () => {
     if (!newServerName.trim()) {
@@ -328,6 +349,11 @@ export default function Settings() {
       setFormError(t("settings.mcpUrlRequired"));
       return;
     }
+    const headers = parseHeaders(newServerHeaders);
+    if (headers === null) {
+      setFormError(t("settings.mcpHeadersInvalid"));
+      return;
+    }
     setFormError(null);
     setIsAdding(true);
     try {
@@ -335,13 +361,14 @@ export default function Settings() {
         name: newServerName.trim(),
         url: newServerUrl.trim(),
         description: newServerDesc.trim(),
-        assignedAgentIds: newServerAgentIds,
+        headers: Object.keys(headers).length ? headers : undefined,
+        assignedAgentIds: [],
       });
       // Reset form
       setNewServerName("");
       setNewServerUrl("");
       setNewServerDesc("");
-      setNewServerAgentIds([]);
+      setNewServerHeaders("");
       setShowAddForm(false);
     } catch (err) {
       setFormError(
@@ -359,29 +386,52 @@ export default function Settings() {
   const handleDeleteServerConfirm = async () => {
     if (!deleteServerId) return;
     setDeleteServerId(null);
+    setEditingDetailsId(null);
     await removeUserServer(deleteServerId);
   };
 
-  const toggleAgentForNewServer = (agentId: string) => {
-    setNewServerAgentIds((prev) =>
-      prev.includes(agentId)
-        ? prev.filter((id) => id !== agentId)
-        : [...prev, agentId]
-    );
+  const startEditDetails = (us: (typeof userServers)[0]) => {
+    setEditingDetailsId(us.id);
+    setEditName(us.name);
+    setEditUrl(us.url);
+    setEditDesc(us.description ?? "");
+    setEditHeaders(us.headers ? JSON.stringify(us.headers, null, 2) : "");
+    setEditError(null);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingDetailsId) return;
+    if (!editName.trim()) {
+      setEditError(t("settings.mcpNameRequired"));
+      return;
+    }
+    if (!editUrl.trim()) {
+      setEditError(t("settings.mcpUrlRequired"));
+      return;
+    }
+    const headers = parseHeaders(editHeaders);
+    if (headers === null) {
+      setEditError(t("settings.mcpHeadersInvalid"));
+      return;
+    }
+    setEditError(null);
+    setIsSaving(true);
+    try {
+      await updateUserServer(editingDetailsId, {
+        name: editName.trim(),
+        url: editUrl.trim(),
+        description: editDesc.trim() || undefined,
+        headers: Object.keys(headers).length ? headers : undefined,
+      });
+      setEditingDetailsId(null);
+    } catch (err) {
+      setEditError(err instanceof Error ? err.message : "Failed to save");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const { providers, filterProviders: doFilter } = useProvidersWithModels();
-
-  const toggleAgentAssignment = async (
-    serverId: string,
-    agentId: string,
-    currentIds: string[]
-  ) => {
-    const newIds = currentIds.includes(agentId)
-      ? currentIds.filter((id) => id !== agentId)
-      : [...currentIds, agentId];
-    await setServerAgents(serverId, newIds);
-  };
 
   const handleLanguageChange = (code: SupportedLanguage) => {
     setStoredLanguagePreference(code);
@@ -694,7 +744,7 @@ export default function Settings() {
                 const serverState = customServerStates.find(
                   (s) => s.config.id === us.id
                 );
-                const isEditingAgents = editingServerId === us.id;
+                const isEditing = editingDetailsId === us.id;
 
                 return (
                   <div
@@ -747,11 +797,7 @@ export default function Settings() {
                           variant="ghost"
                           size="icon"
                           className="h-7 w-7"
-                          onClick={() =>
-                            setEditingServerId(
-                              isEditingAgents ? null : us.id
-                            )
-                          }
+                          onClick={() => startEditDetails(us)}
                           title={t("settings.mcpEdit")}
                         >
                           <Pencil className="h-3.5 w-3.5" />
@@ -768,65 +814,75 @@ export default function Settings() {
                       </div>
                     </div>
 
-                    {/* Assigned agents chips */}
-                    {us.assignedAgentIds.length > 0 && !isEditingAgents && (
-                      <div className="flex flex-wrap gap-1">
-                        <span className="text-xs text-muted-foreground mr-1">
-                          {t("settings.mcpAssignedAgents")}:
-                        </span>
-                        {us.assignedAgentIds.map((agentId) => {
-                          const agent = agents.find(
-                            (a) => a.id === agentId
-                          );
-                          return agent ? (
-                            <span
-                              key={agentId}
-                              className="text-xs bg-primary/20 text-primary dark:bg-primary/10 dark:text-primary px-1.5 py-0.5 rounded"
-                            >
-                              {getAgentDisplayName(agent, t)}
-                            </span>
-                          ) : null;
-                        })}
-                      </div>
-                    )}
-
-                    {/* Edit agent assignment */}
-                    {isEditingAgents && (
-                      <div className="border-t pt-2 space-y-2">
-                        <p className="text-xs font-medium">
-                          {t("settings.mcpAssignAgents")}
-                        </p>
-                        <div className="flex flex-wrap gap-2">
-                          {enabledAgents.map((agent) => (
-                            <button
-                              key={agent.id}
-                              type="button"
-                              onClick={() =>
-                                toggleAgentAssignment(
-                                  us.id,
-                                  agent.id,
-                                  us.assignedAgentIds
-                                )
-                              }
-                              className={cn(
-                                "text-xs px-2 py-1 rounded-md border transition-colors cursor-pointer",
-                                us.assignedAgentIds.includes(agent.id)
-                                  ? "bg-primary text-primary-foreground border-primary"
-                                  : "bg-background hover:bg-muted border-border"
-                              )}
-                            >
-                              {getAgentDisplayName(agent, t)}
-                            </button>
-                          ))}
+                    {/* Edit form */}
+                    {isEditing && (
+                      <div className="border-t pt-3 space-y-3">
+                        {editError && (
+                          <p className="text-xs text-destructive">{editError}</p>
+                        )}
+                        <div>
+                          <label className="text-xs font-medium block mb-1">
+                            {t("settings.mcpServerName")}
+                          </label>
+                          <Input
+                            value={editName}
+                            onChange={(e) => setEditName(e.target.value)}
+                            placeholder={t("settings.mcpServerNamePlaceholder")}
+                            className="text-xs h-8"
+                          />
                         </div>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="text-xs h-7"
-                          onClick={() => setEditingServerId(null)}
-                        >
-                          {t("settings.mcpSaveChanges")}
-                        </Button>
+                        <div>
+                          <label className="text-xs font-medium block mb-1">
+                            {t("settings.mcpServerUrl")}
+                          </label>
+                          <Input
+                            value={editUrl}
+                            onChange={(e) => setEditUrl(e.target.value)}
+                            placeholder={t("settings.mcpServerUrlPlaceholder")}
+                            className="text-xs h-8"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs font-medium block mb-1">
+                            {t("settings.mcpServerDescription")}
+                          </label>
+                          <Input
+                            value={editDesc}
+                            onChange={(e) => setEditDesc(e.target.value)}
+                            placeholder={t("settings.mcpServerDescPlaceholder")}
+                            className="text-xs h-8"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs font-medium block mb-1">
+                            {t("settings.mcpHeaders")}
+                          </label>
+                          <textarea
+                            value={editHeaders}
+                            onChange={(e) => setEditHeaders(e.target.value)}
+                            placeholder={t("settings.mcpHeadersPlaceholder")}
+                            className="w-full min-h-[60px] rounded-md border border-input bg-background px-3 py-2 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-ring"
+                            spellCheck={false}
+                          />
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            className="text-xs h-7"
+                            onClick={handleSaveEdit}
+                            disabled={isSaving}
+                          >
+                            {isSaving ? "..." : t("settings.mcpSaveChanges")}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-xs h-7"
+                            onClick={() => setEditingDetailsId(null)}
+                          >
+                            {t("settings.mcpCancel")}
+                          </Button>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -887,33 +943,38 @@ export default function Settings() {
                         className="text-xs h-8 mt-1"
                       />
                     </div>
-
-                    {/* Agent assignment */}
                     <div>
-                      <label className="text-xs font-medium">
-                        {t("settings.mcpAssignAgents")}
-                      </label>
-                      <p className="text-xs text-muted-foreground mb-2">
-                        {t("settings.mcpAssignAgentsDesc")}
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {enabledAgents.map((agent) => (
-                          <button
-                            key={agent.id}
-                            type="button"
-                            onClick={() => toggleAgentForNewServer(agent.id)}
-                            className={cn(
-                              "text-xs px-2 py-1 rounded-md border transition-colors cursor-pointer",
-                              newServerAgentIds.includes(agent.id)
-                                ? "bg-primary text-primary-foreground border-primary"
-                                : "bg-background hover:bg-muted border-border"
-                            )}
-                          >
-                            {getAgentDisplayName(agent, t)}
-                          </button>
-                        ))}
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowAdvanced((v) => !v)}
+                        className="flex items-center gap-2 text-xs font-medium text-muted-foreground hover:text-foreground"
+                      >
+                        {showAdvanced ? (
+                          <ChevronDown className="h-4 w-4" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4" />
+                        )}
+                        {t("settings.mcpAdvanced")}
+                      </button>
+                      {showAdvanced && (
+                        <div className="mt-2">
+                          <label className="text-xs font-medium block mb-1">
+                            {t("settings.mcpHeaders")}
+                          </label>
+                          <textarea
+                            value={newServerHeaders}
+                            onChange={(e) => setNewServerHeaders(e.target.value)}
+                            placeholder={t("settings.mcpHeadersPlaceholder")}
+                            className="w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-ring"
+                            spellCheck={false}
+                          />
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {t("settings.mcpHeadersHint")}
+                          </p>
+                        </div>
+                      )}
                     </div>
+
                   </div>
 
                   {formError && (

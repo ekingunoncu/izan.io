@@ -21,7 +21,7 @@ function getCorsHeaders(origin?: string | null): Record<string, string> {
   const allowed = isOriginAllowed(origin)
   const base: Record<string, string> = {
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-SerpApi-Key',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-SerpApi-Key, X-MCP-Proxy-Target, MCP-Protocol-Version, Mcp-Session-Id',
   }
   if (allowed && origin) base['Access-Control-Allow-Origin'] = origin
   return base
@@ -65,6 +65,57 @@ const server = createServer(async (req, res) => {
   if (req.method === 'OPTIONS') {
     res.writeHead(204, cors)
     res.end()
+    return
+  }
+
+  // POST /api/proxy/mcp → proxy to external MCP (matches production Lambda)
+  if (req.method === 'POST' && req.url?.startsWith('/api/proxy/mcp')) {
+    const targetRaw = req.headers['x-mcp-proxy-target'] ?? req.headers['X-MCP-Proxy-Target']
+    if (!targetRaw || typeof targetRaw !== 'string') {
+      res.writeHead(400, { ...cors, 'Content-Type': 'application/json' })
+      res.end(JSON.stringify({ error: 'Missing or invalid X-MCP-Proxy-Target header' }))
+      return
+    }
+    let target: { url: string; headers?: Record<string, string> }
+    try {
+      const decoded = Buffer.from(targetRaw, 'base64').toString('utf-8')
+      target = JSON.parse(decoded)
+      if (!target?.url || typeof target.url !== 'string') throw new Error('Invalid target')
+    } catch {
+      res.writeHead(400, { ...cors, 'Content-Type': 'application/json' })
+      res.end(JSON.stringify({ error: 'Invalid X-MCP-Proxy-Target' }))
+      return
+    }
+    const chunks: Buffer[] = []
+    for await (const chunk of req) {
+      chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk)
+    }
+    const body = Buffer.concat(chunks).toString('utf-8')
+    const passHeaders: Record<string, string> = {
+      'Content-Type': 'application/json',
+      Accept: 'application/json, text/event-stream',
+      ...target.headers,
+    }
+    const forwardKeys = ['mcp-protocol-version', 'mcp-session-id', 'authorization']
+    for (const [k, v] of Object.entries(req.headers)) {
+      if (typeof v === 'string' && forwardKeys.includes(k.toLowerCase())) passHeaders[k] = v
+    }
+    try {
+      const upstream = await fetch(target.url, { method: 'POST', headers: passHeaders, body })
+      const resBody = await upstream.text()
+      const resHeaders: Record<string, string> = { ...cors }
+      const ct = upstream.headers.get('content-type')
+      if (ct) resHeaders['Content-Type'] = ct
+      const mcpSessionId = upstream.headers.get('mcp-session-id')
+      if (mcpSessionId) resHeaders['Mcp-Session-Id'] = mcpSessionId
+      res.writeHead(upstream.status, resHeaders)
+      res.end(resBody)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      console.error('[dev-server] Proxy error:', msg)
+      res.writeHead(502, { ...cors, 'Content-Type': 'application/json' })
+      res.end(JSON.stringify({ jsonrpc: '2.0', error: { code: -32603, message: `Proxy error: ${msg}` } }))
+    }
     return
   }
 

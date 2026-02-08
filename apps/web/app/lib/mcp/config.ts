@@ -11,7 +11,7 @@ import { IMPLICIT_AGENT_SERVERS } from '@izan/agents'
 import { getBuiltinMCPServerConfigs, type MCPServerConfig } from '@izan/mcp-client'
 
 /** Resolve MCP base URL (absolute, no trailing slash) - required for new URL() in MCP client */
-function getMcpBaseUrl(): string {
+export function getMcpBaseUrl(): string {
   const pathBase = '/api'
   // Dev: use same-origin so Vite proxy handles /api -> localhost:3100 (no CORS)
   if (import.meta.env?.DEV) {
@@ -55,4 +55,9 @@ export { IMPLICIT_AGENT_SERVERS }
 export function getImplicitServersForAgent(agentId: string): MCPServerConfig[] {
   const serverIds = IMPLICIT_AGENT_SERVERS[agentId] ?? []
   return DEFAULT_MCP_SERVERS.filter((s) => serverIds.includes(s.id))
+}
+
+/** Proxy MCP URL (fallback when direct fails / CORS) */
+export function getProxyMcpUrl(): string {
+  return getMcpBaseUrl() + '/proxy/mcp'
 }

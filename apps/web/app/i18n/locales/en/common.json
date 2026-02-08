@@ -53,8 +53,8 @@
     "mcpBuiltinDisable": "Disable",
     "mcpDisconnected": "Not connected",
     "mcpCustomTitle": "Custom MCP Servers",
-    "mcpCustomDesc": "Add your own MCP servers and assign them to any agent.",
-    "mcpCorsWarning": "Your MCP server must allow requests from izan.io (CORS). Add Access-Control-Allow-Origin: https://izan.io to your server's response headers, or the connection will fail.",
+    "mcpCustomDesc": "Add your own MCP servers. Assign them to agents from each agent's detail page.",
+    "mcpCorsWarning": "Connection fails? We'll auto-retry via proxy. Your keys stay in your browser.",
     "mcpAddServer": "Add MCP Server",
     "mcpServerName": "Server Name",
     "mcpServerNamePlaceholder": "e.g. Company MCP",
@@ -75,7 +75,12 @@
     "mcpDeleteConfirm": "Are you sure you want to delete this MCP server?",
     "mcpSaveChanges": "Save Changes",
     "mcpUrlRequired": "Server URL is required",
-    "mcpNameRequired": "Server name is required"
+    "mcpNameRequired": "Server name is required",
+    "mcpAdvanced": "Advanced (headers)",
+    "mcpHeaders": "Headers (JSON)",
+    "mcpHeadersPlaceholder": "{\"x-api-host\": \"...\", \"x-api-key\": \"...\"}",
+    "mcpHeadersHint": "Headers as JSON. API keys stay in your browser.",
+    "mcpHeadersInvalid": "Headers must be valid JSON object"
   },
   "home": {
     "heroBadge": "Open Source Agent Platform",
