@@ -12,7 +12,7 @@ export function MissingApiKeyBanner({ agent, className }: { agent: Agent | null;
   const navigate = useNavigate()
   const location = useLocation()
   const getExternalApiKey = useExternalApiKeysStore((s) => s.getExternalApiKey)
-  const { selectAgent, getAgentSlug } = useAgentStore()
+  const { selectAgent } = useAgentStore()
   const activateAgentMCPs = useMCPStore((s) => s.activateAgentMCPs)
   const openAgentEdit = useUIStore((s) => s.openAgentEdit)
 

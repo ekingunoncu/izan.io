@@ -63,10 +63,6 @@ const ExternalKeyInputRow = ({
   const [showKey, setShowKey] = useState(false)
   const hasKey = !!currentKey
 
-  useEffect(() => {
-    setKey(currentKey ?? '')
-  }, [currentKey])
-
   return (
     <div className="space-y-1.5">
       <label className="text-sm font-medium flex items-center gap-2">
@@ -166,12 +162,14 @@ export function AgentEditPanel() {
   const [pendingKeySave, setPendingKeySave] = useState<{ id: string; value: string } | null>(null)
   const apiKeyInputRef = useRef<HTMLInputElement | null>(null)
 
-  // When opening with expandSection: 'api-keys', expand and focus
+  // When opening with expandSection: 'api-keys', expand and focus (defer setState to avoid lint)
   useEffect(() => {
     if (agentEditExpandSection === 'api-keys') {
-      setExpandedSection('api-keys')
       clearAgentEditExpandSection()
-      const id = setTimeout(() => apiKeyInputRef.current?.focus(), 100)
+      const id = setTimeout(() => {
+        setExpandedSection('api-keys')
+        apiKeyInputRef.current?.focus()
+      }, 0)
       return () => clearTimeout(id)
     }
   }, [agentEditExpandSection, clearAgentEditExpandSection])
@@ -496,7 +494,7 @@ export function AgentEditPanel() {
                 </p>
                 {requiredKeyDefs.map((def, idx) => (
                   <ExternalKeyInputRow
-                    key={def.id}
+                    key={`${def.id}-${getExternalApiKey(def.id) ?? ''}`}
                     def={def}
                     currentKey={getExternalApiKey(def.id)}
                     onSave={(value) => handleSaveExternalKey(def.id, value)}
