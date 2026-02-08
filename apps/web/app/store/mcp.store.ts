@@ -401,7 +401,7 @@ export const useMCPStore = create<MCPState>((set, get) => ({
 
     if (registry && (updates.url !== undefined || updates.headers !== undefined)) {
       await registry.removeServer(serverId)
-      let state = await registry.addServer(buildUserMcpConfigDirect(updated))
+      const state = await registry.addServer(buildUserMcpConfigDirect(updated))
       if (state.status === 'error') {
         await registry.removeServer(serverId)
         await registry.addServer(buildUserMcpConfigProxy(updated))

@@ -45,10 +45,9 @@ import {
   CardTitle,
 } from "~/components/ui/card";
 import { useTheme, type Theme } from "~/lib/theme";
-import { useMCPStore, useModelStore, useAgentStore, useExternalApiKeysStore } from "~/store";
+import { useMCPStore, useModelStore, useExternalApiKeysStore } from "~/store";
 import { EXTERNAL_API_KEY_DEFINITIONS } from "~/lib/external-api-keys";
 import { DEFAULT_MCP_SERVERS } from "~/lib/mcp/config";
-import { getAgentDisplayName } from "~/lib/agent-display";
 import { cn } from "~/lib/utils";
 import { type SupportedLanguage, setStoredLanguagePreference } from "~/i18n";
 import { useProvidersWithModels } from "~/lib/use-providers-with-models";
@@ -254,7 +253,6 @@ export default function Settings() {
     disabledBuiltinMCPIds,
     setDisabledBuiltinMCPIds,
   } = useMCPStore();
-  const { agents } = useAgentStore();
   const {
     providerKeys,
     selectedProvider,
