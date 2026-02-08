@@ -6,7 +6,7 @@ import {
   type MCPToolInfo,
   type MCPToolCallResult,
 } from '@izan/mcp-client'
-import { DEFAULT_MCP_SERVERS, IMPLICIT_AGENT_SERVERS } from '~/lib/mcp/config'
+import { DEFAULT_MCP_SERVERS, IMPLICIT_AGENT_SERVERS, getProxyMcpUrl } from '~/lib/mcp/config'
 import { db, type UserMCPServer } from '~/lib/db'
 import type { Agent } from '~/lib/db/schema'
 import {
@@ -23,6 +23,34 @@ import {
 } from '~/lib/mcp/general-server'
 import { storageService } from '~/lib/services'
 import { useExternalApiKeysStore } from './external-api-keys.store'
+
+/** Direct config (try first) */
+function buildUserMcpConfigDirect(userServer: UserMCPServer): MCPServerConfig {
+  return {
+    id: userServer.id,
+    name: userServer.name,
+    description: userServer.description,
+    url: userServer.url,
+    category: 'custom',
+    source: 'user',
+    headers: userServer.headers,
+  }
+}
+
+/** Proxy config (fallback when direct fails / CORS) */
+function buildUserMcpConfigProxy(userServer: UserMCPServer): MCPServerConfig {
+  const targetPayload = { url: userServer.url, headers: userServer.headers ?? {} }
+  const targetB64 = btoa(unescape(encodeURIComponent(JSON.stringify(targetPayload))))
+  return {
+    id: userServer.id,
+    name: userServer.name,
+    description: userServer.description,
+    url: getProxyMcpUrl(),
+    category: 'custom',
+    source: 'user',
+    headers: { 'X-MCP-Proxy-Target': targetB64 },
+  }
+}
 
 interface MCPState {
   registry: MCPServerRegistry | null
@@ -246,16 +274,11 @@ export const useMCPStore = create<MCPState>((set, get) => ({
       // Check if it's a user server
       const userServer = userServers.find(us => us.id === sid)
       if (userServer) {
-        const config: MCPServerConfig = {
-          id: userServer.id,
-          name: userServer.name,
-          description: userServer.description,
-          url: userServer.url,
-          category: 'custom',
-          source: 'user',
-          headers: userServer.headers,
+        let state = await registry.addServer(buildUserMcpConfigDirect(userServer))
+        if (state.status === 'error') {
+          await registry.removeServer(sid)
+          state = await registry.addServer(buildUserMcpConfigProxy(userServer))
         }
-        await registry.addServer(config)
       }
     }
 
@@ -331,17 +354,12 @@ export const useMCPStore = create<MCPState>((set, get) => ({
     // Persist to IndexedDB
     await db.mcpServers.add(server)
 
-    // Connect via registry
-    const config: MCPServerConfig = {
-      id: server.id,
-      name: server.name,
-      description: server.description,
-      url: server.url,
-      category: 'custom',
-      source: 'user',
-      headers: server.headers,
+    // Connect via registry (try direct first, fallback to proxy on CORS)
+    let state = await registry.addServer(buildUserMcpConfigDirect(server))
+    if (state.status === 'error') {
+      await registry.removeServer(server.id)
+      state = await registry.addServer(buildUserMcpConfigProxy(server))
     }
-    await registry.addServer(config)
 
     set(s => ({
       ...s,
@@ -381,17 +399,13 @@ export const useMCPStore = create<MCPState>((set, get) => ({
 
     await db.mcpServers.put(updated)
 
-    if (registry && (updates.url || updates.headers)) {
-      const config: MCPServerConfig = {
-        id: updated.id,
-        name: updated.name,
-        description: updated.description,
-        url: updated.url,
-        category: 'custom',
-        source: 'user',
-        headers: updated.headers,
+    if (registry && (updates.url !== undefined || updates.headers !== undefined)) {
+      await registry.removeServer(serverId)
+      let state = await registry.addServer(buildUserMcpConfigDirect(updated))
+      if (state.status === 'error') {
+        await registry.removeServer(serverId)
+        await registry.addServer(buildUserMcpConfigProxy(updated))
       }
-      await registry.addServer(config)
     }
 
     set(s => ({

@@ -198,6 +198,35 @@ export class IzanStack extends cdk.Stack {
       })
     }
 
+    // POST /api/proxy/mcp → proxy to external MCP servers (target from X-MCP-Proxy-Target header)
+    const proxyMcpFn = new lambdaNode.NodejsFunction(this, 'ProxyMcpFn', {
+      functionName: 'izan-proxy-mcp',
+      entry: path.join(MONOREPO_ROOT, 'packages', 'proxy-mcp-server', 'src', 'index.ts'),
+      handler: 'handler',
+      runtime: lambda.Runtime.NODEJS_20_X,
+      architecture: lambda.Architecture.ARM_64,
+      timeout: cdk.Duration.seconds(30),
+      memorySize: 256,
+      bundling: {
+        minify: true,
+        sourceMap: false,
+        target: 'node20',
+        format: lambdaNode.OutputFormat.ESM,
+        mainFields: ['module', 'main'],
+        banner:
+          "import { createRequire } from 'module'; const require = createRequire(import.meta.url);",
+        externalModules: [],
+      },
+    })
+    httpApi.addRoutes({
+      path: '/api/proxy/mcp',
+      methods: [apigwv2.HttpMethod.POST, apigwv2.HttpMethod.OPTIONS],
+      integration: new apigwv2Integrations.HttpLambdaIntegration(
+        'ProxyMcpIntegration',
+        proxyMcpFn,
+      ),
+    })
+
     // GET /api/github-stars → proxy for GitHub API (avoids client rate limits)
     const githubStarsFn = new lambdaNode.NodejsFunction(this, 'GitHubStarsFn', {
       functionName: 'izan-github-stars',
@@ -236,6 +265,14 @@ export class IzanStack extends cdk.Stack {
     })
 
     const mcpBehaviors: Record<string, cloudfront.BehaviorOptions> = {}
+    mcpBehaviors['/api/proxy/mcp'] = {
+      origin: apiOrigin,
+      viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+      cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
+      allowedMethods: cloudfront.AllowedMethods.ALLOW_ALL,
+      originRequestPolicy:
+        cloudfront.OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER,
+    }
     for (const serverId of serverIds) {
       mcpBehaviors[`/api/${serverId}/mcp`] = {
         origin: apiOrigin,

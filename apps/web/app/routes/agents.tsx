@@ -141,11 +141,11 @@ export default function Agents() {
       <Card
         key={agent.id}
         className={cn(
-          "transition-all",
+          "transition-all flex flex-col h-full",
           agent.enabled ? "hover:shadow-lg cursor-pointer" : "opacity-60"
         )}
       >
-        <CardHeader className="p-4 sm:p-6">
+        <CardHeader className="p-4 sm:p-6 flex-1">
           <div className="flex items-start justify-between gap-2">
             <Icon className={cn("h-8 w-8 sm:h-10 sm:w-10 flex-shrink-0", colorClass)} />
             <div className="flex items-center gap-2">
