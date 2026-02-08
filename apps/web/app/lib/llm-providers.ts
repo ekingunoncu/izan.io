@@ -64,3 +64,17 @@ export function getChatUrl(provider: ProviderId, baseURL?: string): string {
   if (!config) return ''
   return config.baseURL + '/chat/completions'
 }
+
+/** OpenAI Responses API URL - for models that only support v1/responses (o1, o3, o4, gpt-5) */
+export function getResponsesUrl(provider: ProviderId, baseURL?: string): string {
+  if (provider !== 'openai') return ''
+  if (baseURL) return baseURL.replace(/\/$/, '') + '/responses'
+  return 'https://api.openai.com/v1/responses'
+}
+
+/** Models that require OpenAI Responses API (not chat/completions) */
+export function usesResponsesApi(provider: string, model: string): boolean {
+  if (provider !== 'openai') return false
+  const m = (model ?? '').toLowerCase()
+  return m.startsWith('o1') || m.startsWith('o3') || m.startsWith('o4') || m.startsWith('gpt-5')
+}

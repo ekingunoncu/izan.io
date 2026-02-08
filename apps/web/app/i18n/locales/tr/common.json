@@ -170,6 +170,7 @@
     "dismissBanner": "Kapat",
     "systemPrompt": "Sen yardımcı bir AI asistanısın. Türkçe yanıt ver. Kullanıcıya nazik ve bilgilendirici cevaplar ver.",
     "responseError": "[Hata: Yanıt oluşturulurken bir sorun oluştu]",
+    "apiError": "Hata: {{message}}",
     "maxStepsReached": "Maksimum adım sayısına ulaşıldı.",
     "modelResponding": "Model yanıt veriyor...",
     "toolRunning": "Tool çalıştırılıyor...",
