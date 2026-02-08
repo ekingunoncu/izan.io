@@ -113,6 +113,8 @@ export interface UserPreferences {
   favoriteAgentIds: string[]
   /** External API keys (e.g. serp_api) - user provides keys for MCP tools */
   externalApiKeys: Record<string, string>
+  /** Agent IDs whose chat banner the user has dismissed (don't show again). Record for O(1) lookup. */
+  dismissedChatBannerAgentIds: Record<string, boolean>
 }
 
 import { BUILTIN_AGENT_DEFINITIONS } from '@izan/agents'
@@ -136,9 +138,9 @@ export function slugify(name: string): string {
 
 export const DEFAULT_AGENTS: Agent[] = BUILTIN_AGENT_DEFINITIONS.map((def) => ({
   ...def,
-  temperature: def.temperature ?? 1,
+  temperature: def.temperature,
   maxTokens: def.maxTokens,
-  topP: def.topP ?? 1,
+  topP: def.topP,
   enabled: true,
   source: 'builtin' as const,
   customMCPIds: [],
@@ -161,4 +163,5 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   disabledBuiltinMCPIds: [],
   favoriteAgentIds: [],
   externalApiKeys: {},
+  dismissedChatBannerAgentIds: {},
 }

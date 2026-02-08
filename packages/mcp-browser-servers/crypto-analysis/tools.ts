@@ -13,7 +13,24 @@ import {
   getCoinMarketChart,
   getGlobalMarketData,
   getCoinCategories,
+  marketChartPricesToOHLC,
 } from './coingecko.js'
+
+/** Fetch OHLC for indicators; fallback to market_chart when OHLC returns too few candles (common for new/illiquid coins) */
+async function getOHLCForIndicators(
+  id: string,
+  options: { vs_currency?: string; days?: string },
+): Promise<{ candles: Awaited<ReturnType<typeof getCoinOHLC>>; source: 'ohlc' | 'market_chart' }> {
+  const candles = await getCoinOHLC(id, options)
+  if (candles.length >= 15) {
+    return { candles, source: 'ohlc' }
+  }
+  const chart = await getCoinMarketChart(id, options)
+  if (chart.prices && chart.prices.length >= 15) {
+    return { candles: marketChartPricesToOHLC(chart.prices), source: 'market_chart' }
+  }
+  return { candles, source: 'ohlc' }
+}
 import { calculateAllIndicators } from './indicators.js'
 import type { AnalysisReport, MomentumScore, TrustScore, SignalDirection } from './types.js'
 
@@ -25,7 +42,7 @@ function jsonResult(data: unknown): ToolResult {
 
 // ─── Tool Handlers ─────────────────────────────────────────────────────────────
 
-async function handleGetTrendingCoins(
+export async function handleGetTrendingCoins(
   _args: Record<string, unknown>,
 ): Promise<ToolResult> {
   const data = await getTrendingCoins()
@@ -40,7 +57,7 @@ async function handleGetTrendingCoins(
   return jsonResult({ trending_coins: coins, count: coins.length })
 }
 
-async function handleSearchCoins(args: Record<string, unknown>): Promise<ToolResult> {
+export async function handleSearchCoins(args: Record<string, unknown>): Promise<ToolResult> {
   const schema = z.object({
     query: z.string().describe('Search query (coin name or symbol)'),
   })
@@ -57,7 +74,7 @@ async function handleSearchCoins(args: Record<string, unknown>): Promise<ToolRes
   })
 }
 
-async function handleGetCoinMarkets(args: Record<string, unknown>): Promise<ToolResult> {
+export async function handleGetCoinMarkets(args: Record<string, unknown>): Promise<ToolResult> {
   const schema = z.object({
     ids: z
       .string()
@@ -106,7 +123,7 @@ async function handleGetCoinMarkets(args: Record<string, unknown>): Promise<Tool
   })
 }
 
-async function handleGetSimplePrice(args: Record<string, unknown>): Promise<ToolResult> {
+export async function handleGetSimplePrice(args: Record<string, unknown>): Promise<ToolResult> {
   const schema = z.object({
     ids: z.string().describe('Comma-separated coin IDs (e.g. "bitcoin,ethereum")'),
     vs_currencies: z.string().optional().default('usd').describe('Target currencies (default: usd)'),
@@ -119,7 +136,7 @@ async function handleGetSimplePrice(args: Record<string, unknown>): Promise<Tool
   return jsonResult(data)
 }
 
-async function handleGetCoinDetails(args: Record<string, unknown>): Promise<ToolResult> {
+export async function handleGetCoinDetails(args: Record<string, unknown>): Promise<ToolResult> {
   const schema = z.object({
     id: z.string().describe('Coin ID (e.g. "bitcoin", "ethereum")'),
   })
@@ -162,7 +179,7 @@ async function handleGetCoinDetails(args: Record<string, unknown>): Promise<Tool
   })
 }
 
-async function handleGetCoinOHLC(args: Record<string, unknown>): Promise<ToolResult> {
+export async function handleGetCoinOHLC(args: Record<string, unknown>): Promise<ToolResult> {
   const schema = z.object({
     id: z.string().describe('Coin ID (e.g. "bitcoin")'),
     days: z
@@ -190,7 +207,7 @@ async function handleGetCoinOHLC(args: Record<string, unknown>): Promise<ToolRes
   })
 }
 
-async function handleGetCoinMarketChart(args: Record<string, unknown>): Promise<ToolResult> {
+export async function handleGetCoinMarketChart(args: Record<string, unknown>): Promise<ToolResult> {
   const schema = z.object({
     id: z.string().describe('Coin ID (e.g. "bitcoin")'),
     days: z
@@ -223,7 +240,7 @@ async function handleGetCoinMarketChart(args: Record<string, unknown>): Promise<
   })
 }
 
-async function handleGetGlobalMarketData(
+export async function handleGetGlobalMarketData(
   _args: Record<string, unknown>,
 ): Promise<ToolResult> {
   const data = await getGlobalMarketData()
@@ -240,7 +257,7 @@ async function handleGetGlobalMarketData(
   })
 }
 
-async function handleGetCoinCategories(args: Record<string, unknown>): Promise<ToolResult> {
+export async function handleGetCoinCategories(args: Record<string, unknown>): Promise<ToolResult> {
   const schema = z.object({
     order: z
       .string()
@@ -264,7 +281,7 @@ async function handleGetCoinCategories(args: Record<string, unknown>): Promise<T
   })
 }
 
-async function handleCalculateTechnicalIndicators(
+export async function handleCalculateTechnicalIndicators(
   args: Record<string, unknown>,
 ): Promise<ToolResult> {
   const schema = z.object({
@@ -278,11 +295,11 @@ async function handleCalculateTechnicalIndicators(
   })
   const { id, days, vs_currency } = schema.parse(args)
 
-  const candles = await getCoinOHLC(id, { days, vs_currency })
+  const { candles, source } = await getOHLCForIndicators(id, { days, vs_currency })
 
   if (candles.length < 15) {
     return jsonResult({
-      error: `Not enough OHLC data for indicators (got ${candles.length} candles, need at least 15). Try a longer period.`,
+      error: `Not enough OHLC data for indicators (got ${candles.length} candles, need at least 15). This coin may be newly listed or illiquid. Try a longer period (e.g. 180 or 365 days) or a different coin.`,
     })
   }
 
@@ -292,6 +309,7 @@ async function handleCalculateTechnicalIndicators(
     coin_id: id,
     days,
     candle_count: candles.length,
+    data_source: source,
     indicators: {
       rsi: { latest: indicators.rsi.latest, signal: indicators.rsi.signal },
       macd: { latest: indicators.macd.latest, signal: indicators.macd.signal },
@@ -303,11 +321,13 @@ async function handleCalculateTechnicalIndicators(
         ema9: indicators.ema.ema9.latest,
         ema21: indicators.ema.ema21.latest,
         ema50: indicators.ema.ema50.latest,
+        signal: indicators.emaSignal,
       },
       sma: {
         sma20: indicators.sma.sma20.latest,
         sma50: indicators.sma.sma50.latest,
         sma200: indicators.sma.sma200.latest,
+        signal: indicators.smaSignal,
       },
       atr: { latest: indicators.atr.latest },
       stochastic: {
@@ -325,7 +345,7 @@ async function handleCalculateTechnicalIndicators(
   })
 }
 
-async function handleAnalyzeCoin(args: Record<string, unknown>): Promise<ToolResult> {
+export async function handleAnalyzeCoin(args: Record<string, unknown>): Promise<ToolResult> {
   const schema = z.object({
     id: z.string().describe('Coin ID (e.g. "bitcoin", "ethereum", "solana")'),
     vs_currency: z.string().optional().default('usd'),
@@ -334,9 +354,17 @@ async function handleAnalyzeCoin(args: Record<string, unknown>): Promise<ToolRes
 
   // Fetch data sequentially to respect rate limits
   const details = await getCoinDetails(id)
-  const ohlcCandles = await getCoinOHLC(id, { days: '30', vs_currency })
+  let ohlcCandles = await getCoinOHLC(id, { days: '30', vs_currency })
 
-  // Technical indicators
+  // Fallback: OHLC often empty for small/illiquid coins – try market_chart
+  if (ohlcCandles.length < 15) {
+    const chart = await getCoinMarketChart(id, { days: '30', vs_currency })
+    if (chart.prices && chart.prices.length >= 15) {
+      ohlcCandles = marketChartPricesToOHLC(chart.prices)
+    }
+  }
+
+  // Technical indicators (need at least 15 candles)
   let technicalIndicators: AnalysisReport['technicalIndicators'] | null = null
   if (ohlcCandles.length >= 15) {
     technicalIndicators = calculateAllIndicators(ohlcCandles)
@@ -410,6 +438,12 @@ async function handleAnalyzeCoin(args: Record<string, unknown>): Promise<ToolRes
       maxSupply: details.market_data?.max_supply ?? null,
     },
     technicalIndicators: technicalIndicators ?? ({} as AnalysisReport['technicalIndicators']),
+    ...(technicalIndicators
+      ? {}
+      : {
+          technicalIndicatorsNote:
+            'CoinGecko has no OHLC or market_chart data for this coin (common for very small/illiquid coins). Technical indicators could not be calculated.',
+        }),
     momentum,
     trust,
     overallSignal,

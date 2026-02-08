@@ -65,8 +65,8 @@ export function calculateRSI(close: number[], period = 14): RSIResult {
   const latest = values[values.length - 1] ?? 50
 
   let signal: SignalDirection = 'neutral'
-  if (latest >= 70) signal = 'bearish' // overbought
-  else if (latest <= 30) signal = 'bullish' // oversold
+  if (latest >= 65) signal = 'bearish' // overbought / approaching (TradingView-style)
+  else if (latest <= 35) signal = 'bullish' // oversold / approaching
 
   return { values, latest, signal }
 }
@@ -119,8 +119,10 @@ export function calculateBollingerBands(
   const currentPrice = close[close.length - 1]
 
   let signal: SignalDirection = 'neutral'
-  if (currentPrice <= latest.lower) signal = 'bullish' // price at lower band
-  else if (currentPrice >= latest.upper) signal = 'bearish' // price at upper band
+  if (currentPrice <= latest.lower) signal = 'bullish' // price at/below lower band
+  else if (currentPrice >= latest.upper) signal = 'bearish' // price at/above upper band
+  else if (latest.pb >= 0.8) signal = 'bearish' // upper zone (TradingView: resistance)
+  else if (latest.pb <= 0.2) signal = 'bullish' // lower zone (support)
 
   return { values, latest, signal }
 }
@@ -170,8 +172,8 @@ export function calculateStochastic(
   const latest = values[values.length - 1] ?? { k: 50, d: 50 }
 
   let signal: SignalDirection = 'neutral'
-  if (latest.k < 20 && latest.d < 20) signal = 'bullish' // oversold
-  else if (latest.k > 80 && latest.d > 80) signal = 'bearish' // overbought
+  if (latest.k < 25 && latest.d < 25) signal = 'bullish' // oversold (TradingView-style)
+  else if (latest.k > 75 && latest.d > 75) signal = 'bearish' // overbought
 
   return { values, latest, signal }
 }
@@ -233,26 +235,53 @@ export function calculateAllIndicators(candles: OHLCCandle[]): IndicatorResults 
   const stochastic = calculateStochastic(high, low, close)
   const adx = calculateADX(high, low, close)
 
-  // ─── Aggregate signal ────────────────────────────────────────────────
+  // ─── EMA / SMA trend signals (TradingView-style) ──────────────────────────────
+  const price = close[close.length - 1] ?? 0
+  const ema9 = ema.ema9.latest
+  const ema21 = ema.ema21.latest
+  const ema50 = ema.ema50.latest
+  const sma20 = sma.sma20.latest
+  const sma50 = sma.sma50.latest
+  const sma200 = sma.sma200.latest
+
+  const emaSignal: SignalDirection =
+    price > ema9 && ema9 > ema21 && ema21 > ema50
+      ? 'bullish'
+      : price < ema9 && ema9 < ema21 && ema21 < ema50
+        ? 'bearish'
+        : 'neutral'
+
+  const smaSignal: SignalDirection =
+    price > sma20 && price > sma50 && price > sma200
+      ? 'bullish'
+      : price < sma20 && price < sma50 && price < sma200
+        ? 'bearish'
+        : 'neutral'
+
+  // ─── Aggregate signal (7 indicators: RSI, MACD, BB, Stoch, ADX, EMA, SMA) ───
   const signals: SignalDirection[] = [
     rsi.signal,
     macd.signal,
     bollingerBands.signal,
     stochastic.signal,
     adx.signal,
+    emaSignal,
+    smaSignal,
   ]
 
   const bullishCount = signals.filter((s) => s === 'bullish').length
   const bearishCount = signals.filter((s) => s === 'bearish').length
 
   let overallSignal: SignalDirection = 'neutral'
-  if (bullishCount >= 3) overallSignal = 'bullish'
-  else if (bearishCount >= 3) overallSignal = 'bearish'
+  if (bullishCount >= 4) overallSignal = 'bullish'
+  else if (bearishCount >= 4) overallSignal = 'bearish'
+  else if (bearishCount >= 3 && bullishCount < 2) overallSignal = 'bearish'
+  else if (bullishCount >= 3 && bearishCount < 2) overallSignal = 'bullish'
 
   const signalSummary =
     `RSI(${rsi.signal}) MACD(${macd.signal}) BB(${bollingerBands.signal}) ` +
-    `Stoch(${stochastic.signal}) ADX(${adx.signal}) → ${overallSignal.toUpperCase()} ` +
-    `[${bullishCount} bullish, ${bearishCount} bearish, ${signals.length - bullishCount - bearishCount} neutral]`
+    `Stoch(${stochastic.signal}) ADX(${adx.signal}) EMA(${emaSignal}) SMA(${smaSignal}) → ${overallSignal.toUpperCase()} ` +
+    `[${bullishCount}B ${bearishCount}S ${signals.length - bullishCount - bearishCount}N]`
 
   return {
     rsi,
@@ -260,6 +289,8 @@ export function calculateAllIndicators(candles: OHLCCandle[]): IndicatorResults 
     bollingerBands,
     ema,
     sma,
+    emaSignal,
+    smaSignal,
     atr,
     stochastic,
     adx,

@@ -5,6 +5,7 @@ import { Button } from '~/components/ui/button'
 import { Textarea } from '~/components/ui/textarea'
 
 interface MessageInputProps {
+  initialPrompt?: string
   onSend: (message: string) => void
   onStop?: () => void
   disabled?: boolean
@@ -13,6 +14,7 @@ interface MessageInputProps {
 }
 
 export function MessageInput({
+  initialPrompt,
   onSend,
   onStop,
   disabled = false,
@@ -21,7 +23,7 @@ export function MessageInput({
 }: MessageInputProps) {
   const { t } = useTranslation('common')
   const placeholder = placeholderProp ?? t('chat.placeholder')
-  const [message, setMessage] = useState('')
+  const [message, setMessage] = useState(initialPrompt ?? '')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 

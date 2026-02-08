@@ -240,6 +240,8 @@ export interface IndicatorResults {
   bollingerBands: BollingerBandsResult
   ema: { ema9: MovingAverageResult; ema21: MovingAverageResult; ema50: MovingAverageResult }
   sma: { sma20: MovingAverageResult; sma50: MovingAverageResult; sma200: MovingAverageResult }
+  emaSignal: SignalDirection
+  smaSignal: SignalDirection
   atr: ATRResult
   stochastic: StochasticResult
   adx: ADXResult
@@ -285,6 +287,8 @@ export interface AnalysisReport {
     maxSupply: number | null
   }
   technicalIndicators: IndicatorResults
+  /** When CoinGecko has no OHLC/market_chart data for small/illiquid coins */
+  technicalIndicatorsNote?: string
   momentum: MomentumScore
   trust: TrustScore
   overallSignal: SignalDirection

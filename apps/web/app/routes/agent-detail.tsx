@@ -39,6 +39,7 @@ import {
   getAgentProTip,
   getAgentUsageExamples,
   getAgentSerpApiSection,
+  getAgentCoinGeckoApiSection,
 } from "~/lib/agent-display";
 import { MissingApiKeyBanner } from "~/components/agents/MissingApiKeyBanner";
 import { BUILTIN_AGENT_DEFINITIONS } from "@izan/agents";
@@ -111,6 +112,15 @@ export default function AgentDetail() {
     navigate(`/chat/${getAgentSlug(agent)}`);
   };
 
+  const handleTryPrompt = async (prompt: string) => {
+    if (!agent) return;
+    await selectAgent(agent.id);
+    await useMCPStore.getState().activateAgentMCPs(agent);
+    navigate(`/chat/${getAgentSlug(agent)}`, {
+      state: { initialPrompt: prompt },
+    });
+  };
+
   // Show loading only when we have no loaderData and store isn't ready (custom agent nav)
   if (!agent && !loaderAgent && !isInitialized) {
     return (
@@ -144,6 +154,7 @@ export default function AgentDetail() {
   const proTip = getAgentProTip(agent, t);
   const usageExamples = getAgentUsageExamples(agent, t);
   const serpApiSection = getAgentSerpApiSection(agent, t);
+  const coinGeckoApiSection = getAgentCoinGeckoApiSection(agent, t);
 
   const mcpIds = [...agent.implicitMCPIds, ...agent.customMCPIds];
   const mcpServers = mcpIds
@@ -316,7 +327,7 @@ export default function AgentDetail() {
                 {usageExamples.map((ex, i) => (
                   <button
                     key={`usage-${i}-${ex.slice(0, 20)}`}
-                    onClick={handleUseAgent}
+                    onClick={() => handleTryPrompt(ex)}
                     className="w-full text-left group flex items-center gap-3 rounded-xl border-2 bg-card/60 px-4 py-3 transition-all hover:border-primary/20 hover:bg-card hover:shadow-sm cursor-pointer"
                   >
                     <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
@@ -384,6 +395,46 @@ export default function AgentDetail() {
                       className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
                     >
                       {t("agents.builtin.web-search.serpApiViewPricing")}
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
+                  </div>
+                </CardContent>
+              </Card>
+            </section>
+          )}
+
+          {/* CoinGecko API (crypto-analyst only) */}
+          {coinGeckoApiSection && (
+            <section className="mb-8">
+              <Card className="border-2 border-primary/20">
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Key className="h-5 w-5 text-primary" />
+                    {coinGeckoApiSection.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-muted-foreground leading-relaxed whitespace-pre-line">
+                    {coinGeckoApiSection.description}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <a
+                      href="https://www.coingecko.com/en/developers/dashboard"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
+                    >
+                      {t("agents.builtin.crypto-analyst.coingeckoApiGetKey")}
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
+                    <span className="text-muted-foreground">·</span>
+                    <a
+                      href="https://www.coingecko.com/en/api/pricing"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
+                    >
+                      {t("agents.builtin.crypto-analyst.coingeckoApiViewPricing")}
                       <ExternalLink className="h-3.5 w-3.5" />
                     </a>
                   </div>

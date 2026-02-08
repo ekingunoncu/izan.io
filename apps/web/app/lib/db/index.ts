@@ -84,7 +84,7 @@ export async function initializeDatabase(): Promise<void> {
           await db.agents.update(agent.id, {
             basePrompt: a.systemPrompt,
             updatedAt: Date.now(),
-          } as Record<string, unknown>)
+          })
         }
       }
 
@@ -106,7 +106,7 @@ export async function initializeDatabase(): Promise<void> {
           await db.agents.update(agent.id, {
             slug,
             updatedAt: Date.now(),
-          } as Record<string, unknown>)
+          })
         }
       }
 
@@ -117,13 +117,19 @@ export async function initializeDatabase(): Promise<void> {
           const needsSync =
             existing.implicitMCPIds.length !== defaultAgent.implicitMCPIds.length ||
             existing.implicitMCPIds.some((id, i) => id !== defaultAgent.implicitMCPIds[i]) ||
-            existing.basePrompt !== defaultAgent.basePrompt
+            existing.basePrompt !== defaultAgent.basePrompt ||
+            existing.temperature !== defaultAgent.temperature ||
+            existing.maxTokens !== defaultAgent.maxTokens ||
+            existing.topP !== defaultAgent.topP
           if (needsSync) {
             await db.agents.update(defaultAgent.id, {
               implicitMCPIds: defaultAgent.implicitMCPIds,
               basePrompt: defaultAgent.basePrompt,
+              temperature: defaultAgent.temperature,
+              maxTokens: defaultAgent.maxTokens,
+              topP: defaultAgent.topP,
               updatedAt: Date.now(),
-            } as Record<string, unknown>)
+            })
           }
         }
       }

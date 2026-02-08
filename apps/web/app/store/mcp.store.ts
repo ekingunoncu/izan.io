@@ -201,7 +201,8 @@ export const useMCPStore = create<MCPState>((set, get) => ({
 
     // Handle crypto-analysis-client lifecycle (TabServerTransport)
     if (neededIds.has('crypto-analysis-client')) {
-      await ensureCryptoAnalysisServer()
+      const coingeckoKey = useExternalApiKeysStore.getState().getExternalApiKey('coingecko_api')
+      await ensureCryptoAnalysisServer(coingeckoKey)
     } else {
       await shutdownCryptoAnalysisServer()
     }

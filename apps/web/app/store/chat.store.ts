@@ -98,6 +98,9 @@ function getAgentGenerationOptions(agent: Agent | null): LLMGenerationOptions {
 /** Max depth for linked agent calls (A->B->C) */
 const MAX_AGENT_DEPTH = 3
 
+/** CoinGecko dashboard URL - shown when 429 rate limit hit */
+const COINGECKO_DASHBOARD_URL = 'https://www.coingecko.com/en/developers/dashboard'
+
 /** Module-level AbortController so stopGenerating can signal sendMessage */
 let currentAbortController: AbortController | null = null
 
@@ -127,6 +130,19 @@ async function executeToolCall(
         .map(c => c.text)
         .join('\n')
     : `Hata: ${toolResult.error ?? 'Bilinmeyen hata'}`
+
+  // CoinGecko 429: warn user and redirect to dashboard for API key
+  if (
+    !toolResult.success &&
+    toolInfo.serverId === 'crypto-analysis-client' &&
+    typeof toolResult.error === 'string' &&
+    (toolResult.error.includes('rate limit') || toolResult.error.includes('429'))
+  ) {
+    if (typeof window !== 'undefined') {
+      window.open(COINGECKO_DASHBOARD_URL, '_blank', 'noopener')
+    }
+  }
+
   if (import.meta.env?.DEV) {
     if (!toolResult.success) {
       console.error('[chat] MCP tool error:', toolInfo.serverId, fnName, toolResult.error)
@@ -316,6 +332,17 @@ async function executeLinkedAgentCall(
                 toolResult = r.success
                   ? r.content.filter((c): c is { type: 'text'; text: string } => c.type === 'text').map(c => c.text).join('\n')
                   : `Hata: ${r.error ?? 'Bilinmeyen hata'}`
+                // CoinGecko 429: redirect to dashboard
+                if (
+                  !r.success &&
+                  toolInfo.serverId === 'crypto-analysis-client' &&
+                  typeof r.error === 'string' &&
+                  (r.error.includes('rate limit') || r.error.includes('429'))
+                ) {
+                  if (typeof window !== 'undefined') {
+                    window.open(COINGECKO_DASHBOARD_URL, '_blank', 'noopener')
+                  }
+                }
               } else {
                 toolResult = `Hata: Tool bulunamadı: ${fnName}`
               }

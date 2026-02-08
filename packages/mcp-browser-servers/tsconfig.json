@@ -14,6 +14,6 @@
     "forceConsistentCasingInFileNames": true,
     "verbatimModuleSyntax": true
   },
-  "include": ["domain-check/**/*.ts", "crypto-analysis/**/*.ts", "index.ts"],
+  "include": ["domain-check/**/*.ts", "crypto-analysis/**/*.ts", "general/**/*.ts", "index.ts"],
   "exclude": ["node_modules", "dist"]
 }

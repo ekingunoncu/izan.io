@@ -9,6 +9,8 @@ export interface BuiltinAgentDefinition {
   implicitMCPIds: string[]
   /** External API key IDs this agent requires (e.g. serp_api). User provides keys in Settings. */
   requiredApiKeys?: string[]
+  /** External API key IDs this agent can use optionally (e.g. coingecko_api). Higher rate limits with key. */
+  optionalApiKeys?: string[]
   /** Default temperature 0–2. Lower = more deterministic. */
   temperature?: number
   /** Default max tokens for response. */
@@ -23,4 +25,9 @@ export interface BuiltinAgentDefinition {
   }
   /** Tailwind color classes for agent detail page (used when no homeShowcase) */
   color?: string
+  /** Optional banner shown in chat when user is talking to this agent. Use for info/warnings. */
+  chatBanner?: {
+    type: 'info' | 'warning'
+    messageKey: string
+  }
 }
