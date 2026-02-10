@@ -9,9 +9,9 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      // Proxy MCP API to local dev server (avoids CORS; run: npm run dev -w @izan/mcp-servers)
+      // Proxy /api to production (proxy-mcp, github-stars). Same-origin in prod.
       "/api": {
-        target: "http://localhost:3100",
+        target: "https://izan.io",
         changeOrigin: true,
       },
     },

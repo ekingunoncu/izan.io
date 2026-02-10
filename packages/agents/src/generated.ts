@@ -2,10 +2,8 @@
 
 import { definition as general } from '../general/definition.js'
 import { definition as crypto_analyst } from '../crypto-analyst/definition.js'
-import { definition as domain_expert } from '../domain-expert/definition.js'
-import { definition as web_search } from '../web-search/definition.js'
 
-export const BUILTIN_AGENT_DEFINITIONS = [general, crypto_analyst, domain_expert, web_search]
+export const BUILTIN_AGENT_DEFINITIONS = [general, crypto_analyst]
 
 export const IMPLICIT_AGENT_SERVERS: Record<string, string[]> = Object.fromEntries(
   BUILTIN_AGENT_DEFINITIONS.map((a) => [a.id, a.implicitMCPIds])

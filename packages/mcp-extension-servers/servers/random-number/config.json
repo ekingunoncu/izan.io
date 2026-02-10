@@ -1,0 +1,7 @@
+{
+  "id": "ext-random-number",
+  "name": "Random Number Generator",
+  "description": "Generates random numbers with configurable range and count.",
+  "category": "general",
+  "tools": ["generate_random_number"]
+}

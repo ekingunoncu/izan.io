@@ -38,7 +38,6 @@ import {
   getAgentHowToUse,
   getAgentProTip,
   getAgentUsageExamples,
-  getAgentSerpApiSection,
   getAgentCoinGeckoApiSection,
 } from "~/lib/agent-display";
 import { MissingApiKeyBanner } from "~/components/agents/MissingApiKeyBanner";
@@ -108,17 +107,19 @@ export default function AgentDetail() {
   const handleUseAgent = async () => {
     if (!agent) return;
     await selectAgent(agent.id);
-    await useMCPStore.getState().activateAgentMCPs(agent);
+    // Navigate immediately, activate MCPs in background
     navigate(`/chat/${getAgentSlug(agent)}`);
+    useMCPStore.getState().activateAgentMCPs(agent);
   };
 
   const handleTryPrompt = async (prompt: string) => {
     if (!agent) return;
     await selectAgent(agent.id);
-    await useMCPStore.getState().activateAgentMCPs(agent);
+    // Navigate immediately, activate MCPs in background
     navigate(`/chat/${getAgentSlug(agent)}`, {
       state: { initialPrompt: prompt },
     });
+    useMCPStore.getState().activateAgentMCPs(agent);
   };
 
   // Show loading only when we have no loaderData and store isn't ready (custom agent nav)
@@ -153,10 +154,9 @@ export default function AgentDetail() {
   const howToUse = getAgentHowToUse(agent, t);
   const proTip = getAgentProTip(agent, t);
   const usageExamples = getAgentUsageExamples(agent, t);
-  const serpApiSection = getAgentSerpApiSection(agent, t);
   const coinGeckoApiSection = getAgentCoinGeckoApiSection(agent, t);
 
-  const mcpIds = [...agent.implicitMCPIds, ...agent.customMCPIds];
+  const mcpIds = [...agent.implicitMCPIds, ...(agent.extensionMCPIds ?? []), ...agent.customMCPIds];
   const mcpServers = mcpIds
     .map((id) => DEFAULT_MCP_SERVERS.find((s) => s.id === id))
     .filter(Boolean);
@@ -360,46 +360,6 @@ export default function AgentDetail() {
                   </div>
                 </div>
               </div>
-            </section>
-          )}
-
-          {/* Serp API & Pricing (web-search only) */}
-          {serpApiSection && (
-            <section className="mb-8">
-              <Card className="border-2 border-primary/20">
-                <CardHeader className="pb-2">
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <Key className="h-5 w-5 text-primary" />
-                    {serpApiSection.title}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-muted-foreground leading-relaxed whitespace-pre-line">
-                    {serpApiSection.description}
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    <a
-                      href="https://serpapi.com/dashboard"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
-                    >
-                      {t("agents.builtin.web-search.serpApiGetKey")}
-                      <ExternalLink className="h-3.5 w-3.5" />
-                    </a>
-                    <span className="text-muted-foreground">·</span>
-                    <a
-                      href="https://serpapi.com/pricing"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
-                    >
-                      {t("agents.builtin.web-search.serpApiViewPricing")}
-                      <ExternalLink className="h-3.5 w-3.5" />
-                    </a>
-                  </div>
-                </CardContent>
-              </Card>
             </section>
           )}
 

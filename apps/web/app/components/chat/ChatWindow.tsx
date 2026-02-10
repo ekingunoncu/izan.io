@@ -6,6 +6,8 @@ import { MessageList } from './MessageList'
 import { MessageInput } from './MessageInput'
 import { MissingApiKeyBanner } from '~/components/agents/MissingApiKeyBanner'
 import { AgentChatBanner } from '~/components/agents/AgentChatBanner'
+import { ExtensionPrompt } from '~/components/ExtensionPrompt'
+import { RecordingControls } from '~/components/automation/RecordingControls'
 import { useChatStore, useModelStore, useAgentStore } from '~/store'
 import { useProvidersWithModels } from '~/lib/use-providers-with-models'
 import { getAgentDisplayName } from '~/lib/agent-display'
@@ -120,6 +122,7 @@ export function ChatWindow({ initialPrompt }: ChatWindowProps = {}) {
       <div className="h-full min-h-0 flex flex-col">
         <MissingApiKeyBanner agent={currentAgent} className="px-4 pt-2" />
         <AgentChatBanner agent={currentAgent} className="px-4 pt-2" />
+        <ExtensionPrompt className="mx-4 mt-2" />
         <EmptyState 
           onNewChat={handleNewChat} 
           agentName={getAgentDisplayName(currentAgent, t) || 'Agent'} 
@@ -132,7 +135,9 @@ export function ChatWindow({ initialPrompt }: ChatWindowProps = {}) {
     <div className="h-full min-h-0 flex flex-col">
       <MissingApiKeyBanner agent={currentAgent} className="px-4 pt-2" />
       <AgentChatBanner agent={currentAgent} className="px-4 pt-2" />
+      <ExtensionPrompt className="mx-4 mt-2" />
       <MessageList messages={chatMessages} isGenerating={isGenerating} />
+      <RecordingControls />
 
       <div className="border-t bg-background/80 backdrop-blur-sm p-4 sm:p-6 flex-shrink-0 pb-[env(safe-area-inset-bottom)]">
         <MessageInput

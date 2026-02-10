@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "izan.io MCP Extension",
+  "version": "0.1.0",
+  "description": "Extends izan.io with additional MCP tool servers running in the browser.",
+  "permissions": ["tabs", "scripting", "debugger", "sidePanel", "storage"],
+  "host_permissions": ["<all_urls>"],
+  "content_scripts": [
+    {
+      "matches": ["https://izan.io/*", "https://*.izan.io/*", "http://localhost:*/*", "http://127.0.0.1:*/*"],
+      "js": ["content.js"],
+      "world": "ISOLATED",
+      "run_at": "document_idle"
+    }
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "side_panel": {
+    "default_path": "sidepanel/index.html"
+  },
+  "action": {
+    "default_title": "Record MCP Tool"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

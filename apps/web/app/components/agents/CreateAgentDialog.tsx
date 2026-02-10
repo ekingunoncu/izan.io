@@ -61,9 +61,9 @@ export function CreateAgentDialog() {
         basePrompt: basePrompt.trim() || 'You are a helpful AI assistant.',
       })
       await selectAgent(agent.id)
-      await useMCPStore.getState().activateAgentMCPs(agent)
       navigate(`/chat/${getAgentSlug(agent)}`, { replace: true })
       closeCreateAgent()
+      useMCPStore.getState().activateAgentMCPs(agent)
     } catch (error) {
       console.error('Failed to create agent:', error)
     } finally {

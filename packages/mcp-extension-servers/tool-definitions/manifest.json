@@ -1,0 +1,12 @@
+{
+  "version": "1.0.0",
+  "servers": [
+    {
+      "id": "ext-example-scraper",
+      "name": "Example Scraper",
+      "description": "Example automation tools for web scraping",
+      "category": "scraping",
+      "tools": ["search_hacker_news"]
+    }
+  ]
+}

@@ -22,6 +22,10 @@ export interface Agent {
   implicitMCPIds: string[]
   /** Custom (user-added) MCP server IDs attached to this agent */
   customMCPIds: string[]
+  /** Extension MCP server IDs (Chrome extension; requires extension installed) */
+  extensionMCPIds: string[]
+  /** Pre-built automation (macro) server IDs from S3 manifest */
+  automationServerIds: string[]
   /** IDs of other agents this agent can communicate with */
   linkedAgentIds: string[]
   /** Whether the user has edited this agent's defaults */
@@ -117,6 +121,88 @@ export interface UserPreferences {
   dismissedChatBannerAgentIds: Record<string, boolean>
 }
 
+// ─── Automation Tool Types ────────────────────────────────────────────────────
+
+/** A single parameter for an automation tool */
+export interface AutomationToolParameter {
+  name: string
+  type: 'string' | 'number' | 'boolean'
+  description: string
+  required: boolean
+  enum?: string[]
+  default?: string | number | boolean
+  source?: 'urlParam' | 'input'
+  sourceKey?: string
+}
+
+/** An extraction field within an extract step */
+export interface AutomationExtractionField {
+  key: string
+  selector: string
+  type: 'text' | 'html' | 'attribute' | 'value'
+  attribute?: string
+}
+
+/** A single action step in an automation tool */
+export interface AutomationActionStep {
+  action: string
+  label?: string
+  continueOnError?: boolean
+  [key: string]: unknown
+}
+
+/**
+ * AutomationTool - a no-code MCP tool created via browser recording.
+ * Stored as a JSON action sequence executed by the dynamic MCP server.
+ */
+export interface AutomationTool {
+  /** Unique identifier (UUID) */
+  id: string
+  /** Tool function name (snake_case, used by LLM) */
+  name: string
+  /** Human-friendly display name */
+  displayName: string
+  /** Description of what the tool does */
+  description: string
+  /** Schema version */
+  version: string
+  /** Input parameters the LLM provides */
+  parameters: AutomationToolParameter[]
+  /** Ordered sequence of actions to execute */
+  steps: AutomationActionStep[]
+  /** Which automation server this tool belongs to */
+  serverId: string
+  /** Created timestamp */
+  createdAt: number
+  /** Updated timestamp */
+  updatedAt: number
+}
+
+/**
+ * AutomationServer - a user-created MCP server containing automation tools.
+ * Corresponds to a logical grouping in the dynamic MCP server.
+ */
+export interface AutomationServer {
+  /** Server identifier (e.g. ext-user-my-scraper) */
+  id: string
+  /** Human-readable name */
+  name: string
+  /** Description of the server */
+  description: string
+  /** Category for grouping */
+  category: string
+  /** Tool IDs belonging to this server */
+  toolIds: string[]
+  /** When true, server is hidden from MCP (enable/disable in Settings) */
+  disabled?: boolean
+  /** Created timestamp */
+  createdAt: number
+  /** Updated timestamp */
+  updatedAt: number
+}
+
+// ─── Agent Types ──────────────────────────────────────────────────────────────
+
 import { BUILTIN_AGENT_DEFINITIONS } from '@izan/agents'
 
 /**
@@ -144,6 +230,8 @@ export const DEFAULT_AGENTS: Agent[] = BUILTIN_AGENT_DEFINITIONS.map((def) => ({
   enabled: true,
   source: 'builtin' as const,
   customMCPIds: [],
+  extensionMCPIds: def.extensionMCPIds ?? [],
+  automationServerIds: def.automationServerIds ?? [],
   linkedAgentIds: [],
   isEdited: false,
   createdAt: now,

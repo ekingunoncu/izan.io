@@ -22,18 +22,19 @@ npm install
 npm run dev
 ```
 
-The web app runs at `http://localhost:5173`. MCP dev server runs at `http://localhost:3100`.
+The web app runs at `http://localhost:5173`.
 
 ### Project Structure
 
 ```
 izan.io/
-├── apps/web/           # React + Vite web app
+├── apps/web/              # React + Vite web app
 ├── packages/
-│   ├── agent-core/     # Agent routing, tool execution
-│   ├── mcp-client/     # MCP protocol client
-│   ├── mcp-servers/    # Built-in MCP servers (Bing, Google, Namecheap, etc.)
-│   └── infra/          # AWS CDK infrastructure
+│   ├── agent-core/        # Agent routing, tool execution
+│   ├── mcp-client/         # MCP protocol client
+│   ├── mcp-browser-servers/   # Browser MCP servers (client-side)
+│   ├── mcp-extension-servers/ # Chrome extension MCP servers
+│   └── infra/              # AWS CDK infrastructure
 ```
 
 ## How to Contribute
@@ -79,11 +80,8 @@ Prefix with: `feat`, `fix`, `docs`, `refactor`, `chore`, `test`, `style`, `perf`
 ## Running Tests
 
 ```bash
-# MCP server integration tests
-npm run test:mcp
-
-# With API keys loaded from .env
-npm run test:mcp:integration
+# Browser MCP server tests
+npm run test:crypto
 
 # Lint all packages
 npm run lint
@@ -91,11 +89,15 @@ npm run lint
 
 ## Adding a New MCP Server
 
-1. Create a new directory under `packages/mcp-servers/your-server/`
-2. Add `package.json`, `tsconfig.json`, and `src/index.ts`
-3. Define tools in `src/tools.ts` using the shared `ToolDef` type
-4. Export a handler via `createHandler()` from `@izan/mcp-servers-shared`
-5. The CDK stack auto-discovers servers - no infra changes needed
+**Browser servers** (`mcp-browser-servers/`):
+1. Create a new directory under `packages/mcp-browser-servers/your-server/`
+2. Add `config.json`, `index.ts`, and `tools.ts`
+3. Run `npm run discover:builtin -w @izan/mcp-client` to regenerate builtin servers
+
+**Extension servers** (`mcp-extension-servers/servers/`):
+1. Create a new directory under `packages/mcp-extension-servers/servers/your-server/`
+2. Add `config.json`, `index.ts`, and `tools.ts`
+3. Run `npm run discover:builtin -w @izan/mcp-client` to regenerate builtin servers
 
 ## Adding a New LLM Provider
 

@@ -7,34 +7,12 @@ export interface BuiltinServerMetadata {
   name: string
   description: string
   category: ServerCategory
-  urlType: 'backend' | 'client'
+  urlType: 'backend' | 'client' | 'extension'
   url?: string
 }
 
 /** Backend MCP servers (URL resolved at runtime from MCP base) */
-export const BUILTIN_BACKEND_SERVERS: BuiltinServerMetadata[] = [
-  {
-    "id": "namecheap",
-    "name": "Namecheap Domain",
-    "description": "Check domain availability and get suggestions",
-    "category": "custom",
-    "urlType": "backend"
-  },
-  {
-    "id": "serp-search",
-    "name": "Serp Search",
-    "description": "Search the web via SerpApi (Google, Bing, DuckDuckGo, Yahoo, etc.). Requires Serp API key.",
-    "category": "web_search",
-    "urlType": "backend"
-  },
-  {
-    "id": "web-fetch",
-    "name": "Web Fetch",
-    "description": "Fetch content from any public URL. For web research: retrieve pages, APIs, articles. GET or POST.",
-    "category": "web_search",
-    "urlType": "backend"
-  }
-]
+export const BUILTIN_BACKEND_SERVERS: BuiltinServerMetadata[] = []
 
 /** Client-side MCP servers (fixed URLs, TabServerTransport) */
 export const BUILTIN_CLIENT_SERVERS: BuiltinServerMetadata[] = [
@@ -64,6 +42,18 @@ export const BUILTIN_CLIENT_SERVERS: BuiltinServerMetadata[] = [
   }
 ]
 
+/** Extension MCP servers (Chrome extension, TabServerTransport when extension installed) */
+export const BUILTIN_EXTENSION_SERVERS: BuiltinServerMetadata[] = [
+  {
+    "id": "ext-random-number",
+    "name": "Random Number Generator",
+    "description": "Generates random numbers with configurable range and count.",
+    "category": "general",
+    "urlType": "extension",
+    "url": "tab://izan-ext-random-number"
+  }
+]
+
 /** @deprecated Use BUILTIN_CLIENT_SERVERS instead */
 export const BUILTIN_CLIENT_SERVER: BuiltinServerMetadata = BUILTIN_CLIENT_SERVERS[0]
 
@@ -71,4 +61,5 @@ export const BUILTIN_CLIENT_SERVER: BuiltinServerMetadata = BUILTIN_CLIENT_SERVE
 export const BUILTIN_MCP_SERVER_METADATA: BuiltinServerMetadata[] = [
   ...BUILTIN_BACKEND_SERVERS,
   ...BUILTIN_CLIENT_SERVERS,
+  ...BUILTIN_EXTENSION_SERVERS,
 ]

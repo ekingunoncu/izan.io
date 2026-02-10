@@ -93,15 +93,6 @@ export function getAgentUsageExamples(agent: Agent | null | undefined, t: TFunct
   return examples
 }
 
-export function getAgentSerpApiSection(agent: Agent | null | undefined, t: TFunction): { title: string; description: string } | null {
-  if (!agent || agent.source === 'user' || agent.id !== 'web-search') return null
-  const titleKey = `agents.builtin.web-search.serpApiSectionTitle`
-  const descKey = `agents.builtin.web-search.serpApiSectionDesc`
-  const title = t(titleKey)
-  const description = t(descKey)
-  return title !== titleKey && description !== descKey ? { title, description } : null
-}
-
 export function getAgentCoinGeckoApiSection(agent: Agent | null | undefined, t: TFunction): { title: string; description: string } | null {
   if (!agent || agent.source === 'user' || agent.id !== 'crypto-analyst') return null
   const titleKey = `agents.builtin.crypto-analyst.coingeckoApiSectionTitle`

@@ -40,8 +40,9 @@
 |--------|----------|
 | 🔐 **Gizlilik** | API anahtarları yalnızca tarayıcınızda. Sunucularımıza gönderilmez. |
 | 🧠 **Çoklu Sağlayıcı** | 17+ AI sağlayıcı desteklenir (aşağıda). |
-| 🤖 **Akıllı Ajanlar** | MCP ile bağlı ajanlar - web araması, kod, vb. |
+| 🤖 **Akıllı Ajanlar** | MCP ile bağlı ajanlar — web araması, kod, vb. |
 | 🌐 **MCP** | Hazır ve özel MCP sunucuları. |
+| 🎬 **Aksiyon kaydedici** | Extension yan panelinden aksiyon kaydederek MCP aracı olarak kaydedin; kod gerekmez ([docs/visual-mcp-tool-builder.md](docs/visual-mcp-tool-builder.md)). |
 
 ---
 
@@ -55,13 +56,19 @@
 
 ```
 izan.io/
-├── apps/web/           # React + Vite web uygulaması
+├── apps/web/                    # React + Vite web uygulaması
 ├── packages/
-│   ├── agent-core/     # Ajan yönlendirme, araç çalıştırma, LLM-bağımsız
-│   ├── mcp-client/     # MCP protokol istemcisi
-│   ├── mcp-servers/    # Google, Bing, Namecheap vb.
-│   └── infra/          # CDK altyapı
+│   ├── agent-core/             # Ajan yönlendirme, araç çalıştırma, LLM-bağımsız
+│   ├── mcp-client/              # MCP protokol istemcisi
+│   ├── mcp-browser-servers/     # Tarayıcı MCP sunucuları (TabServerTransport)
+│   │   ├── crypto-analysis/     # CoinGecko, teknik göstergeler
+│   │   ├── domain-check/       # RDAP + DoH domain uygunluğu
+│   │   └── general/            # get_time, random_number, uuid, calculate, generate_password
+│   ├── mcp-extension-servers/   # Chrome extension: yan panel kayıt, dinamik MCP, CDP otomasyon
+│   └── infra/                   # CDK altyapı (S3/CloudFront, /mcp-tools/ dahil)
 ```
+
+**Aksiyon kaydedici:** Extension (`mcp-extension-servers`) yan panelde tıklama, yazma, scroll kaydı; URL parametrelerini parametreleme; sayfadan veri çıkarma sunar. Kayıtlar MCP aracı tanımına dönüşür (JSON olarak IndexedDB veya S3’te). Bkz. [docs/visual-mcp-tool-builder.md](docs/visual-mcp-tool-builder.md).
 
 ---
 
@@ -79,6 +86,25 @@ npm run dev
 `http://localhost:5173` adresini açın. Ayarlardan sağlayıcı ve API anahtarı ekleyip sohbet etmeye başlayın.
 
 `apps/web/.env.example` dosyasına bakın. API anahtarları tarayıcıda saklanır.
+
+---
+
+## 📦 MCP Sunucuları
+
+| Tür | Paket | Açıklama |
+|-----|-------|----------|
+| **Tarayıcı** | `mcp-browser-servers/` | crypto-analysis, domain-check (RDAP/DoH), general. TabServerTransport, istemci tarafı. |
+| **Extension** | `mcp-extension-servers/` | Chrome extension: yan panel (React + shadcn), aksiyon kayıt, element seçici, dinamik MCP sunucusu. Hazır araçlar + kullanıcının kaydettiği araçlar (JSON olarak saklanır). |
+
+**MCP kaydı:** Extension'ı kurun, yan paneli açın, **Kaydet**'e tıklayın; aksiyon kaydedici tıklama, yazma, scroll ve URL parametrelerini yakalar. **Liste** / **Tekil** ile çıkarma alanı seçin. **Tamamla** akışı web uygulamasına gönderir; Ayarlar'dan MCP aracı olarak kaydedin.
+
+---
+
+## 🌐 Deploy
+
+`npm run deploy:infra` veya GitHub Actions (main'e push) ile deploy. Stack S3 + CloudFront kullanır.
+
+**Özel domain (izan.io, www.izan.io):** Bu domainler için **us-east-1**'de ACM sertifikası alıp `IZAN_DOMAIN_CERTIFICATE_ARN` ile verin. DNS (A/CNAME) elle yönetilir.
 
 ---
 

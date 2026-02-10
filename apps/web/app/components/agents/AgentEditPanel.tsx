@@ -27,6 +27,7 @@ import {
   Key,
   Eye,
   EyeOff,
+  Cog,
 } from 'lucide-react'
 import {
   AlertDialog,
@@ -41,7 +42,10 @@ import {
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
 import { useAgentStore, useUIStore, useMCPStore, useExternalApiKeysStore } from '~/store'
+import { useAutomationStore } from '~/store/automation.store'
 import { DEFAULT_MCP_SERVERS } from '~/lib/mcp/config'
+import { BUILTIN_EXTENSION_SERVERS } from '@izan/mcp-client'
+import { fetchExtensionServerRegistry, type ExtensionRegistryServer } from '~/lib/mcp/remote-tools'
 import { getAgentDisplayName, getAgentDisplayDescription, getAgentRequiredApiKeys, getAgentOptionalApiKeys } from '~/lib/agent-display'
 import { EXTERNAL_API_KEY_DEFINITIONS, type ExternalApiKeyDefinition } from '~/lib/external-api-keys'
 import { cn } from '~/lib/utils'
@@ -144,6 +148,8 @@ export function AgentEditPanel() {
   const { currentAgent, agents, updateAgent, resetAgent, deleteAgent } = useAgentStore()
   const { closeAgentEdit, agentEditExpandSection, clearAgentEditExpandSection } = useUIStore()
   const { userServers } = useMCPStore()
+  const isExtensionInstalled = useMCPStore((s) => s.isExtensionInstalled)
+  const automationServers = useAutomationStore(s => s.servers)
   const { getExternalApiKey, setExternalApiKey } = useExternalApiKeysStore()
 
   const [name, setName] = useState('')
@@ -152,6 +158,9 @@ export function AgentEditPanel() {
   const [basePrompt, setBasePrompt] = useState('')
   const [implicitMCPIds, setImplicitMCPIds] = useState<string[]>([])
   const [customMCPIds, setCustomMCPIds] = useState<string[]>([])
+  const [extensionMCPIds, setExtensionMCPIds] = useState<string[]>([])
+  const [automationServerIds, setAutomationServerIds] = useState<string[]>([])
+  const [prebuiltMacros, setPrebuiltMacros] = useState<ExtensionRegistryServer[]>([])
   const [linkedAgentIds, setLinkedAgentIds] = useState<string[]>([])
   const [temperature, setTemperature] = useState<number>(1)
   const [maxTokens, setMaxTokens] = useState<number>(4096)
@@ -183,9 +192,11 @@ export function AgentEditPanel() {
       setName(currentAgent.name);
       setDescription(currentAgent.description);
       setSelectedIcon(currentAgent.icon);
-      setBasePrompt((currentAgent as { basePrompt?: string; systemPrompt?: string }).basePrompt ?? (currentAgent as { systemPrompt?: string }).systemPrompt ?? "");
+      setBasePrompt(currentAgent.basePrompt);
       setImplicitMCPIds(currentAgent.implicitMCPIds);
       setCustomMCPIds(currentAgent.customMCPIds);
+      setExtensionMCPIds(currentAgent.extensionMCPIds);
+      setAutomationServerIds(currentAgent.automationServerIds ?? []);
       setLinkedAgentIds(currentAgent.linkedAgentIds);
       const hasCustomParams = currentAgent.temperature != null || currentAgent.maxTokens != null || currentAgent.topP != null;
       setUseDefaultParams(!hasCustomParams);
@@ -195,6 +206,13 @@ export function AgentEditPanel() {
     }, 0);
     return () => clearTimeout(t);
   }, [currentAgent]);
+
+  // Load pre-built macros from S3 registry
+  useEffect(() => {
+    fetchExtensionServerRegistry()
+      .then(manifest => setPrebuiltMacros(manifest.servers.filter(s => s.type === 'automation')))
+      .catch(() => {})
+  }, [])
 
   if (!currentAgent) return null
 
@@ -206,6 +224,8 @@ export function AgentEditPanel() {
       basePrompt: basePrompt.trim(),
       implicitMCPIds,
       customMCPIds,
+      extensionMCPIds,
+      automationServerIds,
       linkedAgentIds,
     }
     if (!useDefaultParams) {
@@ -269,11 +289,21 @@ export function AgentEditPanel() {
 
   // Available MCPs for adding (use local state)
   const availableImplicitMCPs = DEFAULT_MCP_SERVERS.filter(
-    s => !implicitMCPIds.includes(s.id)
+    s => !implicitMCPIds.includes(s.id) && !s.id.startsWith('ext-')
   )
   const availableCustomMCPs = userServers.filter(
     us => !customMCPIds.includes(us.id)
   )
+  const availableExtensionMCPs = BUILTIN_EXTENSION_SERVERS.filter(
+    s => !extensionMCPIds.includes(s.id)
+  )
+  // User-recorded macro servers from automation store
+  const userMacroServers = automationServers.filter(s => !s.disabled)
+  // All macros available for adding (not yet assigned)
+  const allAvailableMacros = [
+    ...prebuiltMacros.filter(m => !automationServerIds.includes(m.id)).map(m => ({ id: m.id, name: m.name, description: m.description })),
+    ...userMacroServers.filter(s => !automationServerIds.includes(s.id)).map(s => ({ id: s.id, name: s.name, description: s.description })),
+  ]
 
   // Agents available for linking (exclude self and already linked)
   const availableAgentsForLinking = agents.filter(
@@ -607,6 +637,59 @@ export function AgentEditPanel() {
             </div>
           </CollapsibleSection>
 
+          {/* Extension MCPs */}
+          <CollapsibleSection
+            title={t('agents.extensionMCPs')}
+            subtitle={t('agents.extensionMCPsDesc')}
+            isOpen={expandedSection === 'extension-mcps'}
+            onToggle={() => toggleSection('extension-mcps')}
+          >
+            <div className="space-y-2">
+              {extensionMCPIds.length > 0 && !isExtensionInstalled && (
+                <div className="flex items-center gap-2 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 px-3 py-2 text-sm text-amber-800 dark:text-amber-200">
+                  <Puzzle className="h-4 w-4 flex-shrink-0" />
+                  <span>{t('agents.extensionMCPsWarning')}</span>
+                </div>
+              )}
+              {extensionMCPIds.map(mcpId => {
+                const config = BUILTIN_EXTENSION_SERVERS.find(s => s.id === mcpId)
+                return (
+                  <div key={mcpId} className="flex items-center justify-between rounded-lg border p-2.5">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Puzzle className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      <span className="text-sm truncate">{config?.name || mcpId}</span>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-destructive"
+                      onClick={() => setExtensionMCPIds(prev => prev.filter(id => id !== mcpId))}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                )
+              })}
+              {availableExtensionMCPs.length > 0 && (
+                <div className="pt-1">
+                  {availableExtensionMCPs.map(config => (
+                    <button
+                      key={config.id}
+                      onClick={() => setExtensionMCPIds(prev => [...prev, config.id])}
+                      className="w-full flex items-center gap-2 rounded-lg border border-dashed p-2.5 text-sm text-muted-foreground hover:bg-muted transition-colors"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      <span>{config.name}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {extensionMCPIds.length === 0 && availableExtensionMCPs.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-3">{t('agents.noExtensionMCPs')}</p>
+              )}
+            </div>
+          </CollapsibleSection>
+
           {/* Custom MCPs */}
           <CollapsibleSection
             title={t('agents.customMCPs')}
@@ -666,6 +749,67 @@ export function AgentEditPanel() {
                     >
                       <Plus className="h-3.5 w-3.5" />
                       <span>{us.name}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </CollapsibleSection>
+
+          {/* Macros */}
+          <CollapsibleSection
+            title={t('agents.macros')}
+            subtitle={t('agents.macrosDesc')}
+            isOpen={expandedSection === 'macros'}
+            onToggle={() => toggleSection('macros')}
+          >
+            <div className="space-y-2">
+              {/* Active macros (already assigned to this agent) */}
+              {automationServerIds.map(sId => {
+                const prebuilt = prebuiltMacros.find(m => m.id === sId)
+                const userServer = userMacroServers.find(s => s.id === sId)
+                const name = prebuilt?.name || userServer?.name || sId
+                const desc = prebuilt?.description || userServer?.description
+                return (
+                  <div key={sId} className="flex items-center justify-between rounded-lg border p-2.5">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Cog className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      <div className="min-w-0">
+                        <span className="text-sm truncate block">{name}</span>
+                        {desc && <span className="text-xs text-muted-foreground truncate block">{desc}</span>}
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-destructive"
+                      onClick={() => setAutomationServerIds(prev => prev.filter(id => id !== sId))}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                )
+              })}
+
+              {automationServerIds.length === 0 && allAvailableMacros.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-3">{t('agents.noMacros')}</p>
+              )}
+
+              {automationServerIds.length === 0 && allAvailableMacros.length > 0 && (
+                <p className="text-sm text-muted-foreground text-center py-2">{t('agents.noMacrosAssigned')}</p>
+              )}
+
+              {/* Available macros to add */}
+              {allAvailableMacros.length > 0 && (
+                <div className="pt-1 space-y-1">
+                  {allAvailableMacros.map(macro => (
+                    <button
+                      key={macro.id}
+                      onClick={() => setAutomationServerIds(prev => [...prev, macro.id])}
+                      className="w-full flex items-center gap-2 rounded-lg border border-dashed p-2.5 text-sm text-muted-foreground hover:bg-muted transition-colors"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      <span>{macro.name}</span>
                     </button>
                   ))}
                 </div>

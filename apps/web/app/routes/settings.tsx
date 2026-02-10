@@ -22,6 +22,9 @@ import {
   Search,
   ChevronDown,
   ChevronRight,
+  Puzzle,
+  Cog,
+  FileJson,
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip";
@@ -46,11 +49,15 @@ import {
 } from "~/components/ui/card";
 import { useTheme, type Theme } from "~/lib/theme";
 import { useMCPStore, useModelStore, useExternalApiKeysStore } from "~/store";
+import { useAutomationStore } from "~/store/automation.store";
 import { EXTERNAL_API_KEY_DEFINITIONS } from "~/lib/external-api-keys";
 import { DEFAULT_MCP_SERVERS } from "~/lib/mcp/config";
+import { fetchExtensionServerRegistry, type ExtensionRegistryServer } from "~/lib/mcp/remote-tools";
+import { requestAutomationData } from "~/lib/mcp/extension-bridge";
 import { cn } from "~/lib/utils";
 import { type SupportedLanguage, setStoredLanguagePreference } from "~/i18n";
 import { useProvidersWithModels } from "~/lib/use-providers-with-models";
+// Additional icons are imported from lucide-react above
 
 const LANGUAGES: { code: SupportedLanguage; label: string }[] = [
   { code: "tr", label: "Türkçe" },
@@ -73,14 +80,14 @@ export function HydrateFallback() {
     <div className="flex items-center justify-center h-screen">
       <div className="text-center">
         <Bot className="h-12 w-12 mx-auto mb-4 text-primary animate-pulse" />
-        <p className="text-muted-foreground">Yükleniyor...</p>
+        <p className="text-muted-foreground">Loading...</p>
       </div>
     </div>
   );
 }
 
 export function meta() {
-  return [{ title: "Ayarlar - izan.io" }];
+  return [{ title: "Settings - izan.io" }];
 }
 
 function ProviderKeyRow({
@@ -233,6 +240,455 @@ function ProviderKeyRow({
   );
 }
 
+// ─── Extension Servers Section ──────────────────────────────────────────────
+
+function ExtensionServersSection({
+  isExtensionInstalled,
+  extensionServers,
+  servers,
+}: {
+  isExtensionInstalled: boolean;
+  extensionServers: { id: string; name: string; description: string; category: string; channelId: string }[];
+  servers: { config: { id: string }; status: string; tools: { name: string }[]; error?: string }[];
+}) {
+  const { t } = useTranslation("common");
+  const [registryServers, setRegistryServers] = useState<ExtensionRegistryServer[]>([]);
+  const [registryError, setRegistryError] = useState(false);
+  const [registryLoading, setRegistryLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      try {
+        const registry = await fetchExtensionServerRegistry();
+        if (!cancelled) {
+          setRegistryServers(registry.servers.filter((s) => s.type === "static"));
+          setRegistryError(false);
+        }
+      } catch {
+        if (!cancelled) {
+          setRegistryServers([]);
+          setRegistryError(true);
+        }
+      } finally {
+        if (!cancelled) setRegistryLoading(false);
+      }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, []);
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Puzzle className="h-5 w-5" />
+          {t("settings.extensionTitle")}
+        </CardTitle>
+        <CardDescription>
+          {t("settings.extensionDesc")}
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Extension install status */}
+        <div className="flex items-center gap-3">
+          {isExtensionInstalled ? (
+            <>
+              <CheckCircle className="h-5 w-5 text-green-500" />
+              <div>
+                <span className="text-sm font-medium text-green-700 dark:text-green-400">
+                  {t("settings.extensionInstalled")}
+                </span>
+                {extensionServers.length > 0 && (
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {t("settings.extensionServerCount", { count: extensionServers.length })}
+                  </p>
+                )}
+              </div>
+            </>
+          ) : (
+            <>
+              <XCircle className="h-5 w-5 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">
+                {t("settings.extensionNotInstalled")}
+              </span>
+            </>
+          )}
+        </div>
+
+        {/* Pre-built extension servers from S3 registry */}
+        {!registryLoading && registryServers.length > 0 && (
+          <div className="space-y-2">
+            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+              {t("settings.extensionPrebuiltServers")}
+            </h4>
+            {registryServers.map((regServer) => {
+              const liveServer = extensionServers.find((es) => es.id === regServer.id);
+              const serverState = servers.find((s) => s.config.id === regServer.id);
+              return (
+                <div
+                  key={regServer.id}
+                  className="flex items-center justify-between rounded-lg border p-3"
+                >
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium truncate">{regServer.name}</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300">
+                        {t("settings.extensionPrebuiltBadge")}
+                      </span>
+                    </div>
+                    <div className="text-xs text-muted-foreground truncate">{regServer.description}</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">
+                      {regServer.tools.length} {t("settings.macrosTools")}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0 ml-3">
+                    {!isExtensionInstalled ? (
+                      <span className="text-xs text-amber-600 dark:text-amber-400">
+                        {t("settings.extensionRequiresExt")}
+                      </span>
+                    ) : liveServer && serverState?.status === "connected" ? (
+                      <span className="flex items-center gap-1.5 text-xs text-green-600 dark:text-green-400">
+                        <CheckCircle className="h-3.5 w-3.5" />
+                        {t("settings.mcpConnected")}
+                      </span>
+                    ) : liveServer && serverState?.status === "error" ? (
+                      <span className="flex items-center gap-1.5 text-xs text-red-600 dark:text-red-400">
+                        <XCircle className="h-3.5 w-3.5" />
+                        {t("settings.mcpError")}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">
+                        {t("settings.mcpDisconnected")}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {registryError && (
+          <p className="text-xs text-red-500 text-center py-2">
+            {t("settings.extensionRegistryError")}
+          </p>
+        )}
+
+        {/* Live extension servers (runtime, not in registry) */}
+        {isExtensionInstalled && extensionServers.length > 0 && (
+          <div className="space-y-2">
+            {extensionServers
+              .filter((es) => !registryServers.some((rs) => rs.id === es.id) && es.id !== "ext-dynamic")
+              .map((extServer) => {
+                const serverState = servers.find((s) => s.config.id === extServer.id);
+                return (
+                  <div
+                    key={extServer.id}
+                    className="flex items-center justify-between rounded-lg border p-3"
+                  >
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium truncate">{extServer.name}</div>
+                      <div className="text-xs text-muted-foreground truncate">{extServer.description}</div>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0 ml-3">
+                      {serverState?.status === "connected" ? (
+                        <span className="flex items-center gap-1.5 text-xs text-green-600 dark:text-green-400">
+                          <CheckCircle className="h-3.5 w-3.5" />
+                          {t("settings.mcpConnected")}
+                        </span>
+                      ) : serverState?.status === "error" ? (
+                        <span className="flex items-center gap-1.5 text-xs text-red-600 dark:text-red-400">
+                          <XCircle className="h-3.5 w-3.5" />
+                          {t("settings.mcpError")}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">
+                          {t("settings.mcpDisconnected")}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─── Macros Section ─────────────────────────────────────────────────────────
+
+interface PrebuiltServer {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  tools: string[];
+}
+
+function MacroServerCard({
+  name,
+  description,
+  toolCount,
+  badge,
+  badgeColor,
+  isEnabled,
+  onToggle,
+  isExpanded,
+  onToggleExpand,
+  children,
+}: {
+  name: string;
+  description?: string;
+  toolCount: number;
+  badge: string;
+  badgeColor: string;
+  isEnabled: boolean;
+  onToggle?: () => void;
+  isExpanded: boolean;
+  onToggleExpand: () => void;
+  children?: React.ReactNode;
+}) {
+  const { t } = useTranslation("common");
+  return (
+    <div className="rounded-lg border">
+      <div
+        role="button"
+        tabIndex={0}
+        className="flex items-center gap-2 p-3 w-full text-left cursor-pointer hover:bg-muted/30 transition-colors"
+        onClick={onToggleExpand}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggleExpand(); } }}
+      >
+        {isExpanded ? (
+          <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+        ) : (
+          <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+        )}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <p className="text-sm font-medium truncate">{name}</p>
+            <span className={cn("text-[10px] px-1.5 py-0.5 rounded-full font-medium", badgeColor)}>
+              {badge}
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground">{toolCount} {t("settings.macrosTools", "macro(s)")}</p>
+        </div>
+        {onToggle && (
+          <label className="flex items-center gap-2 flex-shrink-0 cursor-pointer" onClick={(e) => e.stopPropagation()}>
+            <input
+              type="checkbox"
+              checked={isEnabled}
+              onChange={onToggle}
+              className="rounded border-input cursor-pointer"
+            />
+            <span className="text-xs text-muted-foreground whitespace-nowrap">
+              {isEnabled ? t("settings.macrosEnabled", "Enabled") : t("settings.macrosDisabled", "Disabled")}
+            </span>
+          </label>
+        )}
+      </div>
+
+      {isExpanded && (
+        <div className="border-t px-3 pb-3 space-y-2">
+          {description && (
+            <p className="text-xs text-muted-foreground pt-2">{description}</p>
+          )}
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AutomationToolsSection() {
+  const { t } = useTranslation("common");
+  const {
+    servers: autoServers,
+    initialized,
+    initialize,
+    updateServer,
+    getToolsByServer,
+  } = useAutomationStore();
+
+  const { isExtensionInstalled } = useMCPStore();
+
+  // ─── Local state ──────────────────────────────────────────────
+  const [expandedServer, setExpandedServer] = useState<string | null>(null);
+  const [prebuiltServers, setPrebuiltServers] = useState<PrebuiltServer[]>([]);
+  const [prebuiltError, setPrebuiltError] = useState(false);
+  const [prebuiltLoading, setPrebuiltLoading] = useState(true);
+
+  useEffect(() => {
+    if (!initialized) initialize();
+  }, [initialized, initialize]);
+
+  // Fetch pre-built macros from extension server registry (type === "automation")
+  useEffect(() => {
+    let cancelled = false;
+    async function loadRegistry() {
+      try {
+        const registry = await fetchExtensionServerRegistry();
+        if (!cancelled) {
+          setPrebuiltServers(
+            registry.servers
+              .filter((s) => s.type === "automation")
+              .map((s) => ({ id: s.id, name: s.name, description: s.description, category: s.category, tools: s.tools }))
+          );
+          setPrebuiltError(false);
+        }
+      } catch {
+        if (!cancelled) {
+          setPrebuiltServers([]);
+          setPrebuiltError(true);
+        }
+      } finally {
+        if (!cancelled) setPrebuiltLoading(false);
+      }
+    }
+    loadRegistry();
+    // Request fresh automation data from the extension
+    requestAutomationData();
+    return () => { cancelled = true; };
+  }, []);
+
+  const hasPrebuilt = prebuiltServers.length > 0;
+  const hasUserServers = autoServers.length > 0;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Cog className="h-5 w-5" />
+          {t("settings.macrosTitle", "Macros")}
+        </CardTitle>
+        <CardDescription>
+          {t("settings.macrosDesc", "Automate browser workflows with recorded macros. Pre-built macros are available out of the box, or record your own from the extension side panel.")}
+        </CardDescription>
+        <p className="text-xs text-muted-foreground mt-1">
+          {t("settings.macrosSidePanelHint", "To record new macros, open the extension side panel and click Record Macro.")}
+        </p>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Extension required warning */}
+        {!isExtensionInstalled && (
+          <div className="flex gap-3 rounded-lg border border-amber-500 dark:border-amber-700 bg-amber-300/90 dark:bg-amber-950/30 p-3">
+            <AlertTriangle className="h-5 w-5 text-amber-800 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-amber-950 dark:text-amber-200">
+              {t("settings.macrosExtRequired", "Browser extension is required for recording and running macros.")}
+            </p>
+          </div>
+        )}
+
+        {/* Pre-built Macros */}
+        {!prebuiltLoading && hasPrebuilt && (
+          <div className="space-y-2">
+            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+              {t("settings.macrosPrebuiltSection", "Pre-built Macros")}
+            </h4>
+            {prebuiltServers.map((server) => (
+              <MacroServerCard
+                key={server.id}
+                name={server.name}
+                description={server.description}
+                toolCount={server.tools.length}
+                badge={t("settings.macrosPrebuiltBadge", "Pre-built")}
+                badgeColor="bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300"
+                isEnabled={true}
+                isExpanded={expandedServer === server.id}
+                onToggleExpand={() => setExpandedServer(expandedServer === server.id ? null : server.id)}
+              >
+                {server.tools.length === 0 ? (
+                  <p className="text-xs text-muted-foreground py-3 text-center">
+                    {t("settings.macrosNoTools", "No macros in this server yet.")}
+                  </p>
+                ) : (
+                  <div className="space-y-1 pt-2">
+                    {server.tools.map((toolName) => (
+                      <div
+                        key={toolName}
+                        className="flex items-center gap-2 p-2 rounded-md hover:bg-muted/40 transition-colors"
+                      >
+                        <FileJson className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                        <p className="text-xs font-medium truncate">{toolName}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </MacroServerCard>
+            ))}
+          </div>
+        )}
+
+        {prebuiltError && (
+          <p className="text-xs text-red-500 text-center py-2">
+            {t("settings.macrosLoadError", "Failed to load pre-built macros.")}
+          </p>
+        )}
+
+        {/* User Macros */}
+        <div className="space-y-2">
+          {(hasPrebuilt || hasUserServers) && (
+            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+              {t("settings.macrosUserSection", "Your Macros")}
+            </h4>
+          )}
+
+          {!hasUserServers && (
+            <p className="text-sm text-muted-foreground text-center py-4">
+              {t("settings.macrosNoServers", "No macros yet. Record your first macro from the extension side panel.")}
+            </p>
+          )}
+
+          {autoServers.map((server) => {
+            const serverTools = getToolsByServer(server.id);
+            const isEnabled = !server.disabled;
+
+            return (
+              <MacroServerCard
+                key={server.id}
+                name={server.name}
+                description={server.description}
+                toolCount={serverTools.length}
+                badge={t("settings.macrosUserBadge", "User")}
+                badgeColor="bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
+                isEnabled={isEnabled}
+                onToggle={() => updateServer(server.id, { disabled: isEnabled })}
+                isExpanded={expandedServer === server.id}
+                onToggleExpand={() => setExpandedServer(expandedServer === server.id ? null : server.id)}
+              >
+                {serverTools.length === 0 ? (
+                  <p className="text-xs text-muted-foreground py-3 text-center">
+                    {t("settings.macrosNoTools", "No macros in this server yet.")}
+                  </p>
+                ) : (
+                  <div className="space-y-1 pt-2">
+                    {serverTools.map((tool) => (
+                      <div
+                        key={tool.id}
+                        className="flex items-center gap-2 p-2 rounded-md hover:bg-muted/40 transition-colors"
+                      >
+                        <FileJson className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium truncate">{tool.displayName}</p>
+                          <p className="text-[11px] text-muted-foreground truncate">
+                            {tool.steps.length} {t("settings.macrosSteps", "step(s)")} · {tool.parameters.length} {t("settings.macrosParams", "param(s)")}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </MacroServerCard>
+            );
+          })}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function Settings() {
   const { t } = useTranslation("common");
   const { lang } = useParams();
@@ -252,6 +708,8 @@ export default function Settings() {
     updateUserServer,
     disabledBuiltinMCPIds,
     setDisabledBuiltinMCPIds,
+    isExtensionInstalled,
+    extensionServers,
   } = useMCPStore();
   const {
     providerKeys,
@@ -322,6 +780,9 @@ export default function Settings() {
 
   // Built-in: show only name + description (no connection status, no API calls)
   const customServerStates = servers.filter((s) => s.config.source === "user");
+
+  // Filter built-in servers to in-browser only (exclude extension servers)
+  const inBrowserServers = DEFAULT_MCP_SERVERS.filter((s) => !s.id.startsWith("ext-"));
 
   const parseHeaders = (raw: string): Record<string, string> | null => {
     if (!raw.trim()) return {};
@@ -663,12 +1124,12 @@ export default function Settings() {
                   {builtinMcpExpanded
                     ? t("settings.mcpBuiltinCollapse")
                     : t("settings.mcpBuiltinExpand", {
-                        count: DEFAULT_MCP_SERVERS.length,
+                        count: inBrowserServers.length,
                       })}
                 </span>
               </button>
               {builtinMcpExpanded &&
-                DEFAULT_MCP_SERVERS.map((config) => {
+                inBrowserServers.map((config) => {
                   const isDisabled = disabledBuiltinMCPIds.includes(config.id);
                   return (
                     <div
@@ -710,6 +1171,16 @@ export default function Settings() {
                 })}
             </CardContent>
           </Card>
+
+          {/* Browser Extension */}
+          <ExtensionServersSection
+            isExtensionInstalled={isExtensionInstalled}
+            extensionServers={extensionServers}
+            servers={servers}
+          />
+
+          {/* Macros */}
+          <AutomationToolsSection />
 
           {/* Custom MCP Servers */}
           <Card>

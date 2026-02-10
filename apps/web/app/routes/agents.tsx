@@ -95,8 +95,9 @@ export default function Agents() {
     const agent = useAgentStore.getState().getAgentById(agentId);
     await selectAgent(agentId);
     if (agent) {
-      await useMCPStore.getState().activateAgentMCPs(agent);
+      // Navigate immediately, activate MCPs in background
       navigate(`/chat/${getAgentSlug(agent)}`);
+      useMCPStore.getState().activateAgentMCPs(agent);
     }
   };
 

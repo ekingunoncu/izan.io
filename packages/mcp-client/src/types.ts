@@ -17,7 +17,7 @@ export type ServerCategory =
   | 'custom'
 
 /** Where the MCP server config originates from */
-export type MCPServerSource = 'builtin' | 'user'
+export type MCPServerSource = 'builtin' | 'user' | 'extension'
 
 /** Configuration for registering an MCP server */
 export interface MCPServerConfig {

@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run build:*)",
+      "Bash(npm run lint:*)",
+      "Bash(npm run typecheck:*)",
+      "Bash(npm install:*)",
+      "Bash(npx tsc:*)",
+      "mcp__ide__getDiagnostics",
+      "Bash(npx vite build:*)",
+      "Bash(npm run build:extension:*)",
+      "Bash(find:*)",
+      "Bash(npx tsx:*)",
+      "Bash(npm run generate:registry:*)",
+      "Bash(git status:*)",
+      "Bash(git checkout:*)",
+      "Bash(git add:*)"
+    ]
+  }
+}
