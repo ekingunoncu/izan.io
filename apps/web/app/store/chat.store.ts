@@ -101,22 +101,6 @@ function getAgentGenerationOptions(agent: Agent | null | undefined): LLMGenerati
 /** Max depth for linked agent calls (A->B->C) */
 const MAX_AGENT_DEPTH = 3
 
-/** CoinGecko dashboard URL - shown when 429 rate limit hit */
-const COINGECKO_DASHBOARD_URL = 'https://www.coingecko.com/en/developers/dashboard'
-
-/** Open CoinGecko dashboard when a 429 rate-limit error is hit */
-function handleCoinGecko429(serverId: string, error: string | undefined) {
-  if (
-    serverId === 'crypto-analysis-client' &&
-    typeof error === 'string' &&
-    (error.includes('rate limit') || error.includes('429'))
-  ) {
-    if (typeof window !== 'undefined') {
-      window.open(COINGECKO_DASHBOARD_URL, '_blank', 'noopener')
-    }
-  }
-}
-
 /** Module-level AbortController so stopGenerating can signal sendMessage */
 let currentAbortController: AbortController | null = null
 
@@ -146,11 +130,6 @@ async function executeToolCall(
         .map(c => c.text)
         .join('\n')
     : i18n.t('chat.errorWithMessage', { message: toolResult.error ?? i18n.t('chat.unknownError') })
-
-  // CoinGecko 429: warn user and redirect to dashboard for API key
-  if (!toolResult.success) {
-    handleCoinGecko429(toolInfo.serverId, toolResult.error)
-  }
 
   if (import.meta.env?.DEV) {
     if (!toolResult.success) {

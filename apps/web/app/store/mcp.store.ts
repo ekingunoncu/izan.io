@@ -14,19 +14,15 @@ import {
   shutdownDomainCheckServer,
 } from '~/lib/mcp/domain-check-server'
 import {
-  ensureCryptoAnalysisServer,
-  shutdownCryptoAnalysisServer,
-} from '~/lib/mcp/crypto-analysis-server'
-import {
   ensureGeneralServer,
   shutdownGeneralServer,
 } from '~/lib/mcp/general-server'
 import { storageService } from '~/lib/services'
-import { useExternalApiKeysStore } from './external-api-keys.store'
 import {
   listenForExtension,
   pingExtension,
   extensionServerUrl,
+  requestAutomationData,
   type ExtensionServerMeta,
   type ExtensionReadyPayload,
 } from '~/lib/mcp/extension-bridge'
@@ -180,6 +176,8 @@ export const useMCPStore = create<MCPState>((set, get) => ({
         // Ensure automation store is initialized so it can receive "Tamamla" steps from side panel
         import('~/store/automation.store').then(({ useAutomationStore }) => {
           void useAutomationStore.getState().initialize()
+          // Request automation data from extension (covers IndexedDB cleared or bootstrap sync missed)
+          requestAutomationData()
         })
       },
       () => {
@@ -200,7 +198,6 @@ export const useMCPStore = create<MCPState>((set, get) => ({
     pingExtension()
 
     try {
-      await useExternalApiKeysStore.getState().initialize()
       const [userServers, prefs] = await Promise.all([
         db.mcpServers.toArray(),
         storageService.getPreferences(),
@@ -299,13 +296,6 @@ export const useMCPStore = create<MCPState>((set, get) => ({
     } else {
       browserServerOps.push(shutdownDomainCheckServer())
     }
-    if (neededIds.has('crypto-analysis-client')) {
-      const coingeckoKey = useExternalApiKeysStore.getState().getExternalApiKey('coingecko_api')
-      browserServerOps.push(ensureCryptoAnalysisServer(coingeckoKey))
-    } else {
-      browserServerOps.push(shutdownCryptoAnalysisServer())
-    }
-
     // Disconnect unneeded servers in parallel
     const removeOps = [...activeServerIds]
       .filter(sid => !neededIds.has(sid))

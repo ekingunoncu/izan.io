@@ -33,6 +33,7 @@ export interface AutomationTool {
   version: string
   parameters: AutomationToolParameter[]
   steps: AutomationActionStep[]
+  lanes?: AutomationActionStep[][]
   serverId: string
   createdAt: number
   updatedAt: number
@@ -124,6 +125,7 @@ export async function createTool(input: {
   description?: string
   parameters?: AutomationToolParameter[]
   steps?: AutomationActionStep[]
+  lanes?: AutomationActionStep[][]
   version?: string
 }): Promise<AutomationTool> {
   const data = await getData()
@@ -136,6 +138,7 @@ export async function createTool(input: {
     version: input.version || '1.0.0',
     parameters: input.parameters || [],
     steps: input.steps || [],
+    ...(input.lanes && input.lanes.length > 1 ? { lanes: input.lanes } : {}),
     serverId: input.serverId,
     createdAt: now,
     updatedAt: now,
@@ -176,6 +179,7 @@ export async function updateTool(
     displayName?: string
     description?: string
     steps?: AutomationActionStep[]
+    lanes?: AutomationActionStep[][]
     parameters?: AutomationToolParameter[]
   },
 ): Promise<AutomationTool | null> {
@@ -186,6 +190,10 @@ export async function updateTool(
   if (updates.displayName !== undefined) tool.displayName = updates.displayName
   if (updates.description !== undefined) tool.description = updates.description
   if (updates.steps !== undefined) tool.steps = updates.steps
+  if (updates.lanes !== undefined) {
+    if (updates.lanes.length > 1) tool.lanes = updates.lanes
+    else delete tool.lanes
+  }
   if (updates.parameters !== undefined) tool.parameters = updates.parameters
   tool.updatedAt = Date.now()
   data.version++
@@ -214,6 +222,104 @@ export async function deleteTool(toolId: string): Promise<void> {
 
   data.version++
   await setData(data)
+}
+
+// ─── Export / Import ──────────────────────────────────────────────────────────
+
+/**
+ * Get a server and all its tools for JSON export.
+ */
+export async function getServerExport(serverId: string): Promise<{
+  server: AutomationServer
+  tools: AutomationTool[]
+} | null> {
+  const data = await getData()
+  const server = data.servers.find((s) => s.id === serverId)
+  if (!server) return null
+  const tools = data.tools.filter((t) => t.serverId === serverId)
+  return { server, tools }
+}
+
+/**
+ * Import a server and its tools from an export JSON.
+ * Creates new IDs to avoid conflicts with existing data.
+ */
+export async function importServerData(input: {
+  server: { name: string; description: string; category?: string }
+  tools: Array<{
+    name: string
+    displayName?: string
+    description?: string
+    version?: string
+    parameters?: AutomationToolParameter[]
+    steps?: AutomationActionStep[]
+    lanes?: AutomationActionStep[][]
+  }>
+}): Promise<AutomationServer> {
+  const data = await getData()
+  const now = Date.now()
+
+  // Create server with new ID
+  const server: AutomationServer = {
+    id: `ext-user-${slugify(input.server.name)}-${generateId().slice(0, 8)}`,
+    name: input.server.name,
+    description: input.server.description || '',
+    category: input.server.category || 'custom',
+    toolIds: [],
+    createdAt: now,
+    updatedAt: now,
+  }
+
+  // Create tools with new IDs
+  for (const t of input.tools) {
+    const tool: AutomationTool = {
+      id: generateId(),
+      name: t.name,
+      displayName: t.displayName || t.name,
+      description: t.description || '',
+      version: t.version || '1.0.0',
+      parameters: t.parameters || [],
+      steps: t.steps || [],
+      ...(t.lanes && t.lanes.length > 1 ? { lanes: t.lanes } : {}),
+      serverId: server.id,
+      createdAt: now,
+      updatedAt: now,
+    }
+    data.tools.push(tool)
+    server.toolIds.push(tool.id)
+  }
+
+  data.servers.push(server)
+  data.version++
+  await setData(data)
+  return server
+}
+
+/**
+ * Import a single tool from an export JSON into an existing server.
+ */
+export async function importToolData(
+  serverId: string,
+  input: {
+    name: string
+    displayName?: string
+    description?: string
+    version?: string
+    parameters?: AutomationToolParameter[]
+    steps?: AutomationActionStep[]
+    lanes?: AutomationActionStep[][]
+  },
+): Promise<AutomationTool> {
+  return createTool({
+    serverId,
+    name: input.name,
+    displayName: input.displayName,
+    description: input.description,
+    parameters: input.parameters,
+    steps: input.steps,
+    lanes: input.lanes,
+    version: input.version,
+  })
 }
 
 /**

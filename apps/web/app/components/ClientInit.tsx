@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useMCPStore, useModelStore, useUIStore, useAutomationStore } from "~/store";
+import { requestAutomationData } from "~/lib/mcp/extension-bridge";
 
 /**
  * Initializes stores on app load (client-side only).
@@ -56,6 +57,8 @@ export function ClientInit() {
     };
     window.addEventListener("message", handler);
     console.log("[izan-page] postMessage listener registered for page requests");
+    // Request automation data from extension in case bootstrap sync was missed (race condition)
+    requestAutomationData();
     return () => window.removeEventListener("message", handler);
   }, []);
 

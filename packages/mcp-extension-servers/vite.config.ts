@@ -66,9 +66,4 @@ export default defineConfig({
     sourcemap: process.env.BUILD_DEV ? true : (process.env.NODE_ENV === 'production' ? false : 'inline'),
     chunkSizeWarningLimit: 600,
   },
-  resolve: {
-    alias: {
-      '~servers': resolve(__dirname, 'servers'),
-    },
-  },
 })

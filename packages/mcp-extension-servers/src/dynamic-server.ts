@@ -2,8 +2,7 @@
  * Dynamic MCP Server
  *
  * A single MCP server instance that registers tools at runtime
- * from JSON tool definitions. Unlike the static servers in servers/,
- * this server doesn't bundle any tool logic — it loads ToolDefinition
+ * from JSON tool definitions. This server doesn't bundle any tool logic — it loads ToolDefinition
  * JSON objects and executes them via AutomationRunner.
  *
  * Tool definitions can come from:

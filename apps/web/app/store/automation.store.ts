@@ -55,7 +55,7 @@ interface AutomationActions {
 
   // ─── Tool CRUD ────────────────────────────────────────────────
   createTool: (tool: Omit<AutomationTool, 'id' | 'createdAt' | 'updatedAt'>) => Promise<AutomationTool>
-  updateTool: (id: string, updates: Partial<Pick<AutomationTool, 'name' | 'displayName' | 'description' | 'parameters' | 'steps'>>) => Promise<void>
+  updateTool: (id: string, updates: Partial<Pick<AutomationTool, 'name' | 'displayName' | 'description' | 'parameters' | 'steps' | 'lanes'>>) => Promise<void>
   deleteTool: (id: string) => Promise<void>
 
   // ─── Recording ────────────────────────────────────────────────
@@ -115,6 +115,7 @@ function toToolDefinition(tool: AutomationTool): unknown {
     version: tool.version,
     parameters: tool.parameters,
     steps: tool.steps,
+    ...(tool.lanes && tool.lanes.length > 1 ? { lanes: tool.lanes } : {}),
   }
 }
 

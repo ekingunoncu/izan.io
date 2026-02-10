@@ -180,6 +180,10 @@ export const toolDefinitionSchema = z.object({
   parameters: z.array(toolParameterSchema).default([]),
   /** Ordered sequence of actions to execute */
   steps: z.array(actionStepSchema).min(1),
+  /** Parallel lanes — each lane is an independent step sequence executed concurrently.
+   *  When present with length > 1, all lanes run in parallel (each in its own browser window).
+   *  When absent or length <= 1, falls back to `steps` for backward compatibility. */
+  lanes: z.array(z.array(actionStepSchema)).optional(),
 })
 
 export type ToolDefinition = z.infer<typeof toolDefinitionSchema>

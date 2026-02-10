@@ -170,6 +170,9 @@ export interface AutomationTool {
   parameters: AutomationToolParameter[]
   /** Ordered sequence of actions to execute */
   steps: AutomationActionStep[]
+  /** Parallel lanes — each lane is an independent step sequence executed concurrently.
+   *  When present with length > 1, all lanes run in parallel in separate browser windows. */
+  lanes?: AutomationActionStep[][]
   /** Which automation server this tool belongs to */
   serverId: string
   /** Created timestamp */

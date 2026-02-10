@@ -26,7 +26,6 @@
     "deploy": "turbo deploy",
     "deploy:infra": "npm run build && dotenv -e .env -- npm run deploy --workspace=@izan/infra",
     "clean": "turbo clean",
-    "test:crypto": "npm run test -w @izan/mcp-browser-servers",
     "build:extension": "npm run build -w @izan/mcp-extension-servers"
   },
   "devDependencies": {

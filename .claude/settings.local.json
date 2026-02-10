@@ -14,7 +14,9 @@
       "Bash(npm run generate:registry:*)",
       "Bash(git status:*)",
       "Bash(git checkout:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(npm run generate:mcp-registry:*)",
+      "Bash(node -e:*)"
     ]
   }
 }

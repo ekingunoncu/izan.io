@@ -23,7 +23,4 @@ export default defineConfig({
     minify: process.env.BUILD_DEV ? false : 'esbuild',
     sourcemap: false,
   },
-  resolve: {
-    alias: { '~servers': resolve(__dirname, 'servers') },
-  },
 })

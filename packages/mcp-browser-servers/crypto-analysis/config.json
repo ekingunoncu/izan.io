@@ -1,6 +1,0 @@
-{
-  "id": "crypto-analysis-client",
-  "name": "Crypto Analysis (Client)",
-  "description": "Cryptocurrency market data, technical indicators (RSI/MACD/BB/EMA/SMA/ATR/Stochastic/ADX), fundamental scores, and full coin analysis via CoinGecko v3. No API key.",
-  "category": "custom"
-}

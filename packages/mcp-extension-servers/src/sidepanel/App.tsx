@@ -4,7 +4,8 @@ import {
   List, FileText, Check, Globe, MousePointerClick,
   Keyboard, ArrowDownUp, ListFilter, Timer, Hourglass,
   Link, Database, Save, Wrench, Loader2, AlertTriangle, RefreshCw,
-  GripVertical, ChevronUp, ChevronDown, Pencil,
+  GripVertical, ChevronUp, ChevronDown, Pencil, Columns,
+  Download, Upload,
 } from 'lucide-react'
 import { Button } from '~ui/button'
 import { cn } from '~lib/utils'
@@ -40,6 +41,7 @@ interface AutomationTool { id: string; name: string; displayName?: string; descr
 
 interface AutomationToolFull extends AutomationTool {
   steps: Step[]
+  lanes?: Step[][]
   parameters: Array<{ name: string; type: string; description: string; required: boolean; source?: string; sourceKey?: string }>
 }
 
@@ -80,6 +82,11 @@ export function App() {
   const [recordError, setRecordError] = useState<string | null>(null)
   const [paramMap, setParamMap] = useState<Map<number, Map<string, ParamMeta>>>(new Map())
 
+  // Parallel lanes (record/edit)
+  const [lanes, setLanes] = useState<Step[][]>([[]])
+  const [activeLane, setActiveLane] = useState(0)
+  const [editLanes, setEditLanes] = useState<Step[][]>([[]])
+
   // Connection
   const [connectionError, setConnectionError] = useState<string | null>(null)
 
@@ -102,10 +109,20 @@ export function App() {
   const [editSaving, setEditSaving] = useState(false)
   const [editError, setEditError] = useState<string | null>(null)
   const editDragIdxRef = useRef<number | null>(null)
+  const [isEditRecording, setIsEditRecording] = useState(false)
+
+  // Import/Export
+  const importFileRef = useRef<HTMLInputElement>(null)
+  const [importTarget, setImportTarget] = useState<{ type: 'server' } | { type: 'tool'; serverId: string } | null>(null)
+  const [importError, setImportError] = useState<string | null>(null)
+  const [exportingToolId, setExportingToolId] = useState<string | null>(null)
+  const exportingToolIdRef = useRef<string | null>(null)
 
   // Auto-scroll & drag state
   const stepsEndRef = useRef<HTMLDivElement>(null)
   const dragIdxRef = useRef<number | null>(null)
+  const activeLaneRef = useRef(0)
+  const viewRef = useRef<View>('list')
 
   const portRef = useRef<chrome.runtime.Port | null>(null)
 
@@ -139,6 +156,7 @@ export function App() {
       } else if (type === 'updateAutomationToolDone') {
         setEditSaving(false)
         if (!msg.error) {
+          if (viewRef.current === 'edit') setIsEditRecording(false)
           refreshServers(port)
           setView('list')
         } else {
@@ -147,10 +165,33 @@ export function App() {
       } else if (type === 'getAutomationToolDone') {
         if (msg.error) {
           setEditError(msg.error as string)
+          setExportingToolId(null)
         } else {
           const tool = msg.data as AutomationToolFull
+
+          // Check if this was an export request
+          if (exportingToolIdRef.current === tool.id) {
+            exportingToolIdRef.current = null
+            setExportingToolId(null)
+            const exportData = {
+              name: tool.name,
+              displayName: tool.displayName,
+              description: tool.description,
+              version: '1.0.0',
+              parameters: tool.parameters ?? [],
+              steps: tool.steps ?? [],
+              ...(tool.lanes && tool.lanes.length > 1 ? { lanes: tool.lanes } : {}),
+            }
+            downloadJson(exportData, `${slugify(tool.name)}-tool.json`)
+            return
+          }
+
           setEditTool(tool)
           setEditSteps(tool.steps ?? [])
+          // Load lanes from tool or wrap steps as single lane
+          const loadedLanes = (tool.lanes && tool.lanes.length > 1) ? tool.lanes : [tool.steps ?? []]
+          setEditLanes(loadedLanes)
+          setActiveLane(0)
           setEditName(tool.displayName || tool.name)
           setEditDesc(tool.description ?? '')
           setEditError(null)
@@ -173,15 +214,44 @@ export function App() {
           refreshServers(port)
         }
       } else if (type === 'recording-step' && msg.step != null) {
-        setSteps(prev => [...prev, msg.step as Step])
+        const newStep = msg.step as Step
+        if (viewRef.current === 'edit') {
+          setEditSteps(prev => [...prev, newStep])
+          setEditLanes(prev => prev.map((l, i) => i === activeLaneRef.current ? [...l, newStep] : l))
+        } else {
+          setSteps(prev => [...prev, newStep])
+          setLanes(prev => prev.map((l, i) => i === activeLaneRef.current ? [...l, newStep] : l))
+        }
       } else if (type === 'recording-complete') {
-        // Don't replace steps — the side panel already has the full list
-        // from incremental recording-step + extract-result messages.
-        // Replacing would discard extract steps (which aren't in the recorder).
-        setIsRecording(false)
+        if (viewRef.current === 'edit') {
+          setIsEditRecording(false)
+        } else {
+          setIsRecording(false)
+        }
         if (msg.error) setRecordError(msg.error as string)
       } else if (type === 'extract-result' && msg.step != null && (msg.step as Step).action === 'extract') {
-        setSteps(prev => [...prev, msg.step as Step])
+        const newStep = msg.step as Step
+        if (viewRef.current === 'edit') {
+          setEditSteps(prev => [...prev, newStep])
+          setEditLanes(prev => prev.map((l, i) => i === activeLaneRef.current ? [...l, newStep] : l))
+        } else {
+          setSteps(prev => [...prev, newStep])
+          setLanes(prev => prev.map((l, i) => i === activeLaneRef.current ? [...l, newStep] : l))
+        }
+      } else if (type === 'exportAutomationServerDone') {
+        if (msg.error) {
+          setImportError(msg.error as string)
+        } else if (msg.data) {
+          const data = msg.data as { server: { name: string }; tools: unknown[] }
+          downloadJson(data, `${slugify(data.server.name)}-server.json`)
+        }
+      } else if (type === 'importAutomationServerDone' || type === 'importAutomationToolDone') {
+        if (msg.error) {
+          setImportError(msg.error as string)
+        } else {
+          setImportError(null)
+          refreshServers(port)
+        }
       }
     })
 
@@ -202,10 +272,15 @@ export function App() {
     }
   }, [view])
 
+  // Keep refs in sync with state for use in callbacks
+  useEffect(() => { activeLaneRef.current = activeLane }, [activeLane])
+  useEffect(() => { exportingToolIdRef.current = exportingToolId }, [exportingToolId])
+  useEffect(() => { viewRef.current = view }, [view])
+
   // Auto-scroll to bottom when new steps are added
   useEffect(() => {
     stepsEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [steps.length])
+  }, [steps.length, editSteps.length])
 
   // ─── Handlers ───────────────────────────────────────────────────
 
@@ -214,6 +289,8 @@ export function App() {
     setParamMap(new Map())
     setRecordError(null)
     setIsRecording(true)
+    // Reset only the active lane's steps (keep other lanes intact)
+    setLanes(prev => prev.map((l, i) => i === activeLane ? [] : l))
     portRef.current?.postMessage({ type: 'startRecording' })
   }
 
@@ -223,6 +300,22 @@ export function App() {
   }
 
   const handleExtract = (mode: 'list' | 'single') => {
+    portRef.current?.postMessage({ type: 'extract', mode })
+  }
+
+  // Edit-mode recording: append new steps to existing macro
+  const handleEditRecord = () => {
+    setRecordError(null)
+    setIsEditRecording(true)
+    portRef.current?.postMessage({ type: 'startRecording' })
+  }
+
+  const handleEditStop = () => {
+    portRef.current?.postMessage({ type: 'stopRecording' })
+    setIsEditRecording(false)
+  }
+
+  const handleEditExtract = (mode: 'list' | 'single') => {
     portRef.current?.postMessage({ type: 'extract', mode })
   }
 
@@ -246,10 +339,16 @@ export function App() {
       }
     }
 
-    return { steps: finalSteps, parameters }
+    // Include lanes when there are multiple parallel lanes
+    const hasMultipleLanes = lanes.length > 1
+    const finalLanes = hasMultipleLanes ? lanes : undefined
+
+    return { steps: finalSteps, parameters, lanes: finalLanes }
   }
 
   const handleDone = () => {
+    // Save current steps into active lane before transitioning to save
+    setLanes(prev => prev.map((l, i) => i === activeLane ? steps : l))
     setToolName('')
     setToolDesc('')
     setSaveError(null)
@@ -266,7 +365,7 @@ export function App() {
       return
     }
 
-    const { steps: finalSteps, parameters } = buildFinalData()
+    const { steps: finalSteps, parameters, lanes: finalLanes } = buildFinalData()
     setIsSaving(true)
     setSaveError(null)
 
@@ -278,6 +377,7 @@ export function App() {
       description: toolDesc.trim(),
       parameters,
       steps: finalSteps,
+      ...(finalLanes ? { lanes: finalLanes } : {}),
       version: '1.0.0',
     })
   }
@@ -287,6 +387,8 @@ export function App() {
     setSteps([])
     setParamMap(new Map())
     setRecordError(null)
+    setLanes([[]])
+    setActiveLane(0)
     setView('record')
   }
 
@@ -313,8 +415,69 @@ export function App() {
     portRef.current?.postMessage({ type: 'deleteAutomationTool', toolId })
   }
 
+  // ─── Export / Import ───────────────────────────────────────────
+
+  const handleExportServer = (serverId: string) => {
+    portRef.current?.postMessage({ type: 'exportAutomationServer', serverId })
+  }
+
+  const handleExportTool = (toolId: string) => {
+    // Request full tool data, then download
+    portRef.current?.postMessage({ type: 'getAutomationTool', toolId })
+    // We intercept the response in getAutomationToolDone — but that opens edit view.
+    // Instead, use a separate flag to trigger download instead of edit view.
+    setExportingToolId(toolId)
+  }
+
+  const handleImportServer = () => {
+    setImportTarget({ type: 'server' })
+    setImportError(null)
+    importFileRef.current?.click()
+  }
+
+  const handleImportTool = (serverId: string) => {
+    setImportTarget({ type: 'tool', serverId })
+    setImportError(null)
+    importFileRef.current?.click()
+  }
+
+  const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !importTarget) return
+
+    const reader = new FileReader()
+    reader.onload = () => {
+      try {
+        const json = JSON.parse(reader.result as string)
+
+        if (importTarget.type === 'server') {
+          // Expect { server: {...}, tools: [...] }
+          if (!json.server || !json.tools) {
+            setImportError('Invalid server JSON: expected { server, tools }')
+            return
+          }
+          portRef.current?.postMessage({ type: 'importAutomationServer', data: json })
+        } else {
+          // Expect a single tool object: { name, steps, ... }
+          if (!json.name || !json.steps) {
+            setImportError('Invalid tool JSON: expected { name, steps, ... }')
+            return
+          }
+          portRef.current?.postMessage({ type: 'importAutomationTool', serverId: importTarget.serverId, data: json })
+        }
+      } catch {
+        setImportError('Failed to parse JSON file')
+      }
+    }
+    reader.readAsText(file)
+
+    // Reset file input so re-selecting the same file works
+    e.target.value = ''
+  }
+
   const handleDeleteStep = (idx: number) => {
     setSteps(prev => prev.filter((_, i) => i !== idx))
+    setLanes(prev => prev.map((l, i) => i === activeLane ? l.filter((_, j) => j !== idx) : l))
     setParamMap(prev => {
       const next = new Map<number, Map<string, ParamMeta>>()
       for (const [k, v] of prev) {
@@ -327,12 +490,14 @@ export function App() {
 
   const moveStep = (from: number, to: number) => {
     if (to < 0 || to >= steps.length) return
-    setSteps(prev => {
-      const next = [...prev]
+    const reorder = (arr: Step[]) => {
+      const next = [...arr]
       const [item] = next.splice(from, 1)
       next.splice(to, 0, item)
       return next
-    })
+    }
+    setSteps(reorder)
+    setLanes(prev => prev.map((l, i) => i === activeLane ? reorder(l) : l))
     // Remap paramMap indices
     setParamMap(prev => {
       const next = new Map<number, Map<string, ParamMeta>>()
@@ -385,6 +550,7 @@ export function App() {
     if (!editTool || !editName.trim()) return
     setEditSaving(true)
     setEditError(null)
+    const hasMultipleLanes = editLanes.length > 1
     portRef.current?.postMessage({
       type: 'updateAutomationTool',
       toolId: editTool.id,
@@ -392,26 +558,84 @@ export function App() {
       displayName: editName.trim(),
       description: editDesc.trim(),
       steps: editSteps,
+      ...(hasMultipleLanes ? { lanes: editLanes } : { lanes: [] }),
     })
   }
 
   const editMoveStep = (from: number, to: number) => {
     if (to < 0 || to >= editSteps.length) return
-    setEditSteps(prev => {
-      const next = [...prev]
+    const reorder = (arr: Step[]) => {
+      const next = [...arr]
       const [item] = next.splice(from, 1)
       next.splice(to, 0, item)
       return next
-    })
+    }
+    setEditSteps(reorder)
+    setEditLanes(prev => prev.map((l, i) => i === activeLane ? reorder(l) : l))
   }
 
   const editDeleteStep = (idx: number) => {
     setEditSteps(prev => prev.filter((_, i) => i !== idx))
+    setEditLanes(prev => prev.map((l, i) => i === activeLane ? l.filter((_, j) => j !== idx) : l))
   }
 
   const editDropStep = (dragFrom: number, dropTo: number) => {
     if (dragFrom === dropTo) return
     editMoveStep(dragFrom, dropTo)
+  }
+
+  // ─── Lane management ────────────────────────────────────────────
+
+  const switchLane = (index: number, isEditMode: boolean) => {
+    if (isEditMode) {
+      // Save current editSteps into current lane before switching
+      setEditLanes(prev => prev.map((l, i) => i === activeLane ? editSteps : l))
+      setEditSteps(editLanes[index] ?? [])
+    } else {
+      // Save current steps into current lane before switching
+      setLanes(prev => prev.map((l, i) => i === activeLane ? steps : l))
+      setSteps(lanes[index] ?? [])
+      setParamMap(new Map()) // paramMap is per-lane, reset on switch
+    }
+    setActiveLane(index)
+  }
+
+  const addLane = (isEditMode: boolean) => {
+    if (isEditMode) {
+      setEditLanes(prev => [...prev, []])
+      const newIdx = editLanes.length
+      setActiveLane(newIdx)
+      setEditSteps([])
+    } else {
+      // Save current steps into current lane before adding new one
+      setLanes(prev => {
+        const updated = prev.map((l, i) => i === activeLane ? steps : l)
+        return [...updated, []]
+      })
+      const newIdx = lanes.length
+      setActiveLane(newIdx)
+      setSteps([])
+      setParamMap(new Map())
+    }
+  }
+
+  const removeLane = (index: number, isEditMode: boolean) => {
+    if (isEditMode) {
+      if (editLanes.length <= 1) return
+      const next = editLanes.filter((_, i) => i !== index)
+      setEditLanes(next)
+      const newActive = index >= next.length ? next.length - 1 : index
+      setActiveLane(newActive)
+      setEditSteps(next[newActive] ?? [])
+    } else {
+      if (lanes.length <= 1) return
+      const next = lanes.filter((_, i) => i !== index)
+      setLanes(next)
+      const newActive = index >= next.length ? next.length - 1 : index
+      setActiveLane(newActive)
+      setSteps(next[newActive] ?? [])
+      setParamMap(new Map())
+    }
   }
 
   const toggleParam = (stepIdx: number, key: string, originalValue: string) => {
@@ -454,8 +678,8 @@ export function App() {
       <div className="flex flex-col h-screen">
         <Header
           title="Edit Macro"
-          icon={<Pencil className="h-4 w-4 text-primary" />}
-          onBack={backToList}
+          icon={isEditRecording ? <Circle className="h-4 w-4 text-destructive fill-destructive animate-pulse-dot" /> : <Pencil className="h-4 w-4 text-primary" />}
+          onBack={() => { if (isEditRecording) handleEditStop(); backToList() }}
         />
         <div className="flex-1 overflow-y-auto px-3 py-3 space-y-3">
           <div className="rounded-lg border bg-card p-3 space-y-3">
@@ -472,20 +696,69 @@ export function App() {
             </div>
             {editError && <p className="text-xs text-destructive">{editError}</p>}
             <div className="flex gap-2 pt-1">
-              <Button variant="outline" size="sm" className="flex-1" onClick={backToList} disabled={editSaving}>Cancel</Button>
-              <Button variant="default" size="sm" className="flex-1" onClick={handleSaveEdit} disabled={editSaving}>
+              <Button variant="outline" size="sm" className="flex-1" onClick={() => { if (isEditRecording) handleEditStop(); backToList() }} disabled={editSaving}>Cancel</Button>
+              <Button variant="default" size="sm" className="flex-1" onClick={handleSaveEdit} disabled={editSaving || isEditRecording}>
                 {editSaving ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Saving…</> : 'Save Changes'}
               </Button>
             </div>
+            <div className="flex gap-1.5">
+              <Button variant="outline" size="xs" className="flex-1" onClick={() => addLane(true)} disabled={isEditRecording}>
+                <Columns className="h-3 w-3" /> Add Lane
+              </Button>
+              {editTool && (
+                <Button variant="outline" size="xs" className="flex-1" onClick={() => handleExportTool(editTool.id)} disabled={isEditRecording}>
+                  <Download className="h-3 w-3" /> Export JSON
+                </Button>
+              )}
+            </div>
           </div>
+
+          {/* Recording toolbar */}
+          <div className="flex flex-wrap gap-1.5 px-1">
+            {isEditRecording ? (
+              <Button variant="destructive" size="xs" onClick={handleEditStop}>
+                <Square className="h-3 w-3" /> Stop
+              </Button>
+            ) : (
+              <Button variant="default" size="xs" onClick={handleEditRecord}>
+                <Circle className="h-3 w-3" /> Record
+              </Button>
+            )}
+            <Button variant="outline" size="xs" disabled={!isEditRecording} onClick={() => handleEditExtract('list')}>
+              <List className="h-3 w-3" /> List
+            </Button>
+            <Button variant="outline" size="xs" disabled={!isEditRecording} onClick={() => handleEditExtract('single')}>
+              <FileText className="h-3 w-3" /> Single
+            </Button>
+          </div>
+
+          {recordError && (
+            <div className="px-1">
+              <div className="px-3 py-2 rounded-lg bg-destructive/10 text-destructive text-xs flex items-center gap-2">
+                <X className="h-3.5 w-3.5 shrink-0" />
+                {recordError}
+              </div>
+            </div>
+          )}
+
+          {/* Lane tabs */}
+          <LaneTabBar
+            lanes={editLanes}
+            activeLane={activeLane}
+            onSwitch={(i) => switchLane(i, true)}
+            onAdd={() => addLane(true)}
+            onRemove={(i) => removeLane(i, true)}
+          />
 
           {/* Steps */}
           <div className="space-y-1">
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium px-1">
-              Steps ({editSteps.length})
+              Steps ({editSteps.length}){editLanes.length > 1 && ` · Lane ${activeLane + 1}`}
             </p>
             {editSteps.length === 0 ? (
-              <p className="text-xs text-muted-foreground text-center py-4">No steps</p>
+              <p className="text-xs text-muted-foreground text-center py-4">
+                {isEditRecording ? 'Recording — interact with the page…' : 'No steps — press Record to add actions'}
+              </p>
             ) : editSteps.map((step, i) => (
               <StepCard
                 key={i}
@@ -503,7 +776,19 @@ export function App() {
                 onDescriptionChange={() => {}}
               />
             ))}
+            <div ref={stepsEndRef} />
           </div>
+        </div>
+
+        {/* Status bar */}
+        <div className="flex items-center gap-2 px-3 py-2 border-t text-[11px] text-muted-foreground">
+          {isEditRecording && <span className="w-1.5 h-1.5 rounded-full bg-destructive animate-pulse-dot" />}
+          <span>
+            {editSteps.length} step{editSteps.length !== 1 ? 's' : ''}
+            {editLanes.length > 1 && ` · Lane ${activeLane + 1}/${editLanes.length}`}
+            {editLanes.length > 1 && ` (${editLanes.reduce((s, l) => s + l.length, 0)} total)`}
+            {isEditRecording && ' · Recording…'}
+          </span>
         </div>
       </div>
     )
@@ -524,7 +809,10 @@ export function App() {
           <div className="rounded-lg border bg-card p-3 space-y-3">
             <p className="text-xs text-muted-foreground">
               Server: <span className="font-medium text-foreground">{serverName}</span>
-              {' · '}{steps.length} steps{paramCount > 0 && ` · ${paramCount} params`}
+              {lanes.length > 1
+                ? ` · ${lanes.length} lanes · ${lanes.reduce((s, l) => s + l.length, 0)} total steps`
+                : ` · ${steps.length} steps`}
+              {paramCount > 0 && ` · ${paramCount} params`}
             </p>
 
             <div className="space-y-1.5">
@@ -590,7 +878,26 @@ export function App() {
           title="Macros"
           icon={<Server className="h-4 w-4 text-primary" />}
         />
+        {/* Hidden file input for JSON import */}
+        <input
+          ref={importFileRef}
+          type="file"
+          accept=".json"
+          className="hidden"
+          onChange={handleImportFile}
+        />
         <div className="flex-1 overflow-y-auto px-3 py-2 space-y-2">
+          {/* Import error banner */}
+          {importError && (
+            <div className="flex items-start gap-2 rounded-lg border border-destructive/50 bg-destructive/10 p-2.5 text-xs text-destructive">
+              <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0"><p>{importError}</p></div>
+              <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => setImportError(null)}>
+                <X className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          )}
+
           {/* Connection error banner */}
           {connectionError && (
             <div className="flex items-start gap-2 rounded-lg border border-amber-500/50 bg-amber-500/10 p-2.5 text-xs text-amber-700 dark:text-amber-300">
@@ -672,6 +979,14 @@ export function App() {
                           </div>
                           <div className="flex items-center gap-0.5 shrink-0">
                             <Button variant="ghost" size="xs" className="h-7 w-7 p-0"
+                              onClick={() => handleExportServer(s.id)} title="Export server (JSON)">
+                              <Download className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button variant="ghost" size="xs" className="h-7 w-7 p-0"
+                              onClick={() => handleImportTool(s.id)} title="Import tool (JSON)">
+                              <Upload className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button variant="ghost" size="xs" className="h-7 w-7 p-0"
                               onClick={() => startEditServer(s)} title="Edit server">
                               <Pencil className="h-3.5 w-3.5" />
                             </Button>
@@ -701,6 +1016,11 @@ export function App() {
                               <span className="text-xs text-foreground truncate block">{t.displayName || t.name}</span>
                               {t.description && <span className="text-[10px] text-muted-foreground truncate block">{t.description}</span>}
                             </div>
+                            <button type="button"
+                              className="opacity-0 group-hover:opacity-100 rounded p-0.5 text-muted-foreground hover:text-foreground hover:bg-secondary transition-all cursor-pointer"
+                              onClick={(e) => { e.stopPropagation(); handleExportTool(t.id) }} title="Export tool (JSON)">
+                              <Download className="h-3 w-3" />
+                            </button>
                             <Pencil className="h-3 w-3 opacity-0 group-hover:opacity-100 text-muted-foreground shrink-0" />
                             <button type="button"
                               className="opacity-0 group-hover:opacity-100 rounded p-0.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all cursor-pointer"
@@ -715,9 +1035,14 @@ export function App() {
                 )
               })}
               {!showNewServerForm && (
-                <Button variant="outline" size="sm" className="w-full" onClick={() => setShowNewServerForm(true)}>
-                  <Plus className="h-3.5 w-3.5" /> New Macro Server
-                </Button>
+                <div className="flex gap-1.5">
+                  <Button variant="outline" size="sm" className="flex-1" onClick={() => setShowNewServerForm(true)}>
+                    <Plus className="h-3.5 w-3.5" /> New Server
+                  </Button>
+                  <Button variant="outline" size="sm" className="flex-1" onClick={handleImportServer}>
+                    <Upload className="h-3.5 w-3.5" /> Import JSON
+                  </Button>
+                </div>
               )}
             </>
           )}
@@ -760,10 +1085,22 @@ export function App() {
         <Button variant="outline" size="xs" disabled={!isRecording} onClick={() => handleExtract('single')}>
           <FileText className="h-3 w-3" /> Single
         </Button>
-        <Button variant="secondary" size="xs" disabled={steps.length === 0} onClick={handleDone}>
+        <Button variant="outline" size="xs" disabled={isRecording} onClick={() => addLane(false)}>
+          <Columns className="h-3 w-3" /> Lane
+        </Button>
+        <Button variant="secondary" size="xs" disabled={steps.length === 0 && lanes.every(l => l.length === 0)} onClick={handleDone}>
           <Check className="h-3 w-3" /> Done
         </Button>
       </div>
+
+      {/* Lane tabs (only shown when >1 lane) */}
+      <LaneTabBar
+        lanes={lanes}
+        activeLane={activeLane}
+        onSwitch={(i) => switchLane(i, false)}
+        onAdd={() => addLane(false)}
+        onRemove={(i) => removeLane(i, false)}
+      />
 
       {/* Help text */}
       <p className="text-[11px] text-muted-foreground px-3 py-2 leading-relaxed">
@@ -808,10 +1145,73 @@ export function App() {
         {isRecording && <span className="w-1.5 h-1.5 rounded-full bg-destructive animate-pulse-dot" />}
         <span>
           {steps.length} step{steps.length !== 1 ? 's' : ''}
+          {lanes.length > 1 && ` · Lane ${activeLane + 1}/${lanes.length}`}
+          {lanes.length > 1 && ` (${lanes.reduce((s, l) => s + l.length, 0)} total)`}
           {extractCount > 0 && ` · ${extractCount} extract${extractCount !== 1 ? 's' : ''}`}
           {paramCount > 0 && ` · ${paramCount} param${paramCount !== 1 ? 's' : ''}`}
         </span>
       </div>
+    </div>
+  )
+}
+
+// ─── LaneTabBar ──────────────────────────────────────────────────────────────
+
+function LaneTabBar({
+  lanes,
+  activeLane,
+  onSwitch,
+  onAdd,
+  onRemove,
+}: {
+  lanes: Step[][]
+  activeLane: number
+  onSwitch: (idx: number) => void
+  onAdd: () => void
+  onRemove: (idx: number) => void
+}) {
+  if (lanes.length <= 1) return null
+  return (
+    <div className="flex items-center gap-0.5 px-3 py-1.5 border-b bg-muted/30 overflow-x-auto">
+      {lanes.map((lane, i) => (
+        <button
+          key={i}
+          type="button"
+          onClick={() => onSwitch(i)}
+          className={cn(
+            'relative flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-colors shrink-0 cursor-pointer',
+            i === activeLane
+              ? 'bg-primary text-primary-foreground'
+              : 'text-muted-foreground hover:bg-secondary hover:text-foreground',
+          )}
+        >
+          Lane {i + 1}
+          <span className="text-[10px] opacity-70">({lane.length})</span>
+          {lanes.length > 1 && (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onRemove(i) }}
+              className={cn(
+                'ml-0.5 rounded p-0.5 transition-colors cursor-pointer',
+                i === activeLane
+                  ? 'hover:bg-primary-foreground/20'
+                  : 'hover:bg-destructive/10 hover:text-destructive',
+              )}
+              title={`Remove Lane ${i + 1}`}
+            >
+              <X className="h-2.5 w-2.5" />
+            </button>
+          )}
+        </button>
+      ))}
+      <button
+        type="button"
+        onClick={onAdd}
+        className="flex items-center gap-0.5 px-2 py-1 rounded-md text-xs text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors shrink-0 cursor-pointer"
+        title="Add parallel lane"
+      >
+        <Plus className="h-3 w-3" />
+      </button>
     </div>
   )
 }
@@ -965,4 +1365,16 @@ function getNavParams(step: Step): [string, string][] {
     try { return Array.from(new URL(step.url, 'https://placeholder.com').searchParams.entries()) } catch { /* */ }
   }
   return []
+}
+
+function downloadJson(data: unknown, filename: string) {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
 }

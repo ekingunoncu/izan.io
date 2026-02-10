@@ -105,7 +105,9 @@ export default function Agents() {
   const favoriteAgents = filteredAgents
     .filter((a) => favoriteAgentIds.includes(a.id))
     .sort((a, b) => favoriteAgentIds.indexOf(a.id) - favoriteAgentIds.indexOf(b.id));
-  const builtinAgents = filteredAgents.filter((a) => a.source === "builtin" && !favoriteAgentIds.includes(a.id));
+  const builtinAgents = filteredAgents
+    .filter((a) => a.source === "builtin" && !favoriteAgentIds.includes(a.id))
+    .sort((a, b) => (a.id === "general" ? -1 : b.id === "general" ? 1 : 0));
   const userAgents = filteredAgents.filter((a) => a.source === "user" && !favoriteAgentIds.includes(a.id));
 
   if (!isInitialized) {

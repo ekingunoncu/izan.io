@@ -8,7 +8,7 @@
     "prebuild": "tsx scripts/generate-registry.ts",
     "build": "vite build && vite build --config vite.recorder-inject.config.ts && vite build --config vite.sidepanel.config.ts",
     "build:dev": "BUILD_DEV=1 vite build && vite build --config vite.recorder-inject.config.ts && vite build --config vite.sidepanel.config.ts",
-    "clean": "rm -rf dist icons built-in-registry",
+    "clean": "rm -rf dist icons",
     "dev": "npm run build:dev && concurrently \"node scripts/reload-server.mjs\" \"NODE_ENV=development BUILD_DEV=1 WATCH=1 vite build --watch\" \"BUILD_DEV=1 WATCH=1 vite build --config vite.recorder-inject.config.ts --watch\" \"BUILD_DEV=1 WATCH=1 vite build --config vite.sidepanel.config.ts --watch\""
   },
   "dependencies": {

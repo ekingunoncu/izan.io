@@ -145,6 +145,7 @@ chrome.runtime.onConnect.addListener((port) => {
         description: m.description as string,
         parameters: m.parameters as [],
         steps: m.steps as [],
+        lanes: m.lanes as [] | undefined,
         version: m.version as string,
       })
         .then((tool) => {
@@ -172,6 +173,7 @@ chrome.runtime.onConnect.addListener((port) => {
         displayName: m.displayName as string | undefined,
         description: m.description as string | undefined,
         steps: m.steps as [] | undefined,
+        lanes: m.lanes as [] | undefined,
         parameters: m.parameters as [] | undefined,
       })
         .then((tool) => {
@@ -195,6 +197,27 @@ chrome.runtime.onConnect.addListener((port) => {
           bestEffortSyncToTab()
         })
         .catch((err) => sidePanelPort?.postMessage({ type: 'deleteAutomationToolDone', error: String(err) }))
+    } else if (msg.type === 'exportAutomationServer') {
+      const m = msg as Record<string, unknown>
+      automationStorage.getServerExport(m.serverId as string)
+        .then((data) => sidePanelPort?.postMessage({ type: 'exportAutomationServerDone', data }))
+        .catch((err) => sidePanelPort?.postMessage({ type: 'exportAutomationServerDone', error: String(err) }))
+    } else if (msg.type === 'importAutomationServer') {
+      const m = msg as Record<string, unknown>
+      automationStorage.importServerData(m.data as { server: { name: string; description: string; category?: string }; tools: [] })
+        .then((server) => {
+          sidePanelPort?.postMessage({ type: 'importAutomationServerDone', data: server })
+          bestEffortSyncToTab()
+        })
+        .catch((err) => sidePanelPort?.postMessage({ type: 'importAutomationServerDone', error: String(err) }))
+    } else if (msg.type === 'importAutomationTool') {
+      const m = msg as Record<string, unknown>
+      automationStorage.importToolData(m.serverId as string, m.data as { name: string; steps: [] })
+        .then((tool) => {
+          sidePanelPort?.postMessage({ type: 'importAutomationToolDone', data: tool })
+          bestEffortSyncToTab()
+        })
+        .catch((err) => sidePanelPort?.postMessage({ type: 'importAutomationToolDone', error: String(err) }))
     }
   })
 })
@@ -226,13 +249,43 @@ chrome.runtime.onMessage.addListener(
   },
 )
 
-// ─── Managed Popup State ─────────────────────────────────────────────────────
+// ─── Shared Automation Window ────────────────────────────────────────────────
 
-let windowId: number | null = null
-let tabId: number | null = null
+/** Single automation window shared across all lanes and runs */
+let automationWindowId: number | null = null
 
+/** Map of laneId → tabId within the shared automation window */
+const laneTabs = new Map<string, number>()
+
+/** Reverse lookup: tabId → laneId */
+function laneIdForTab(tid: number): string | undefined {
+  for (const [lid, tabId] of laneTabs) { if (tabId === tid) return lid }
+  return undefined
+}
+
+function getLaneId(p: P): string {
+  return (p.laneId as string) || 'main'
+}
+
+/** Clean up when the automation window is closed by the user */
 chrome.windows.onRemoved.addListener((id) => {
-  if (id === windowId) { windowId = null; tabId = null }
+  if (id === automationWindowId) {
+    // User closed the window — clean up all lane state
+    for (const [lid, tid] of laneTabs) {
+      cdpDetach(tid).catch(() => {})
+    }
+    laneTabs.clear()
+    automationWindowId = null
+  }
+})
+
+/** Clean up when individual tabs are closed */
+chrome.tabs.onRemoved.addListener((tabId) => {
+  const lid = laneIdForTab(tabId)
+  if (lid) {
+    cdpDetach(tabId).catch(() => {})
+    laneTabs.delete(lid)
+  }
 })
 
 // ─── CDP Helpers ──────────────────────────────────────────────────────────────
@@ -240,12 +293,10 @@ chrome.windows.onRemoved.addListener((id) => {
 async function cdpAttach(tid: number): Promise<void> {
   await chrome.debugger.attach({ tabId: tid }, '1.3')
   await chrome.debugger.sendCommand({ tabId: tid }, 'Runtime.enable')
-  tabId = tid
 }
 
 async function cdpDetach(tid: number): Promise<void> {
   try { await chrome.debugger.detach({ tabId: tid }) } catch { /* already detached */ }
-  if (tabId === tid) tabId = null
 }
 
 async function cdpEval<T = unknown>(tid: number, expression: string): Promise<T> {
@@ -262,7 +313,11 @@ async function cdpEval<T = unknown>(tid: number, expression: string): Promise<T>
   return res.result?.value as T
 }
 
-chrome.debugger.onDetach.addListener(() => { tabId = null })
+chrome.debugger.onDetach.addListener((_source, _reason) => {
+  // When a debugger is forcibly detached, clean up the lane's tabId tracking.
+  // We can't easily determine which tab was detached without extra bookkeeping,
+  // so this is a best-effort cleanup handled per-lane via cdpDetach calls.
+})
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -291,49 +346,101 @@ type R = { success: true; data?: unknown } | { success: false; error: string }
 type P = Record<string, unknown>
 
 async function handleOpen(p: P): Promise<R> {
-  const background = p.background !== false
   const url = p.url as string
   const opts = { width: (p.width as number) || 800, height: (p.height as number) || 600 }
+  const laneId = getLaneId(p)
 
-  let tid: number
+  // Check if the automation window still exists
+  if (automationWindowId != null) {
+    try {
+      await chrome.windows.get(automationWindowId)
+    } catch {
+      // Window was closed — reset state
+      automationWindowId = null
+      laneTabs.clear()
+    }
+  }
 
-  if (windowId != null) {
-    // Window already exists — open new tab in it
-    if (tabId) await cdpDetach(tabId)
-    const tab = await chrome.tabs.create({ windowId, url, active: !background })
+  let tid: number | null
+
+  // If this lane already has a tab, detach CDP and navigate it
+  const existingTab = laneTabs.get(laneId)
+  if (existingTab != null) {
+    try {
+      await cdpDetach(existingTab)
+      await chrome.tabs.update(existingTab, { url })
+      await waitForTab(existingTab, 15_000)
+      await cdpAttach(existingTab)
+      return { success: true, data: { tabId: existingTab } }
+    } catch {
+      // Tab was closed — fall through to create a new one
+      laneTabs.delete(laneId)
+    }
+  }
+
+  if (automationWindowId != null) {
+    // Automation window exists — open a new tab in it
+    const tab = await chrome.tabs.create({ windowId: automationWindowId, url, active: true })
     tid = tab.id!
   } else {
-    // No window — create a real browser window
+    // No automation window — create one
     const win = await chrome.windows.create({
       url,
       type: 'normal',
       width: opts.width,
       height: opts.height,
-      focused: !background,
+      focused: true,
     })
     if (!win) return { success: false, error: 'Failed to create window' }
-    windowId = win.id ?? null
     tid = win.tabs?.[0]?.id ?? null
-    if (!tid) return { success: false, error: 'Failed to get tab' }
+    if (!tid || !win.id) return { success: false, error: 'Failed to get tab' }
+    automationWindowId = win.id
   }
 
   await waitForTab(tid, 15_000)
   await cdpAttach(tid)
-  tabId = tid
+  laneTabs.set(laneId, tid)
+
   return { success: true, data: { tabId: tid } }
 }
 
-async function handleClose(): Promise<R> {
-  if (tabId) await cdpDetach(tabId)
-  if (windowId) { try { await chrome.windows.remove(windowId) } catch { /* ok */ } }
-  windowId = null
-  tabId = null
+async function handleClose(p: P): Promise<R> {
+  const laneId = getLaneId(p)
+  const tid = laneTabs.get(laneId)
+  if (tid != null) {
+    await cdpDetach(tid)
+    try { await chrome.tabs.remove(tid) } catch { /* tab already closed */ }
+    laneTabs.delete(laneId)
+  }
+  return { success: true }
+}
+
+async function handleCloseAll(_p: P): Promise<R> {
+  for (const [, tid] of laneTabs) {
+    await cdpDetach(tid)
+    try { await chrome.tabs.remove(tid) } catch { /* tab already closed */ }
+  }
+  laneTabs.clear()
   return { success: true }
 }
 
 async function handleNavigate(p: P): Promise<R> {
-  await chrome.tabs.update(p.tabId as number, { url: p.url as string })
-  await waitForTab(p.tabId as number, 15_000)
+  const tid = p.tabId as number
+  const url = p.url as string
+  // Remember which window had focus so we can restore it if Chrome brings our window to front
+  const prevFocused = await new Promise<number | undefined>((resolve) => {
+    chrome.windows.getLastFocused((w) => resolve(w?.id))
+  })
+  await chrome.tabs.update(tid, { url, active: false })
+  await waitForTab(tid, 15_000)
+  const tab = await chrome.tabs.get(tid)
+  const ourWindowId = tab.windowId
+  const nowFocused = await new Promise<number | undefined>((resolve) => {
+    chrome.windows.getLastFocused((w) => resolve(w?.id))
+  })
+  if (nowFocused === ourWindowId && prevFocused != null && prevFocused !== ourWindowId) {
+    await chrome.windows.update(prevFocused, { focused: true })
+  }
   return { success: true }
 }
 
@@ -344,7 +451,9 @@ async function handleGetUrl(p: P): Promise<R> {
 
 async function handleEvaluate(p: P): Promise<R> {
   const tid = p.tabId as number
-  if (tabId !== tid) return { success: false, error: 'CDP not attached' }
+  // Verify this tab belongs to a known lane
+  const knownLane = laneIdForTab(tid)
+  if (!knownLane) return { success: false, error: 'CDP not attached' }
   try {
     const data = await cdpEval(tid, p.expression as string)
     return { success: true, data }
@@ -501,6 +610,7 @@ async function handleWaitForLoad(p: P): Promise<R> {
 const HANDLERS: Record<string, (p: P) => Promise<R>> = {
   open: handleOpen,
   close: handleClose,
+  closeAll: handleCloseAll,
   navigate: handleNavigate,
   getUrl: handleGetUrl,
   evaluate: handleEvaluate,

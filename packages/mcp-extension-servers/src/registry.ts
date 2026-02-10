@@ -4,22 +4,9 @@
  * Manages the lifecycle of all MCP servers within the extension.
  * Provides a single entry point to start/stop all servers and
  * collect their metadata for announcement to the web app.
- *
- * To add a new server:
- *   1. Create a directory under `servers/` with config.json, index.ts, tools.ts
- *   2. Import and register it in the `SERVER_ENTRIES` array below
  */
 
 import type { ExtensionServerMeta } from './protocol.js'
-
-// ─── Server Imports ───────────────────────────────────────────────────────────
-
-import randomNumberConfig from '../servers/random-number/config.json'
-import {
-  startRandomNumberServer,
-  stopRandomNumberServer,
-  isRandomNumberServerRunning,
-} from '../servers/random-number/index.js'
 
 // Dynamic server (JSON-based automation tools)
 import {
@@ -46,19 +33,8 @@ interface ServerEntry {
 
 /**
  * All registered extension MCP servers.
- *
- * To add a new server, append a new entry here after importing its
- * start/stop/isRunning functions and config.json.
  */
 const SERVER_ENTRIES: ServerEntry[] = [
-  {
-    config: randomNumberConfig,
-    start: startRandomNumberServer,
-    stop: stopRandomNumberServer,
-    isRunning: isRandomNumberServerRunning,
-  },
-  // Football-betting and other browser-automation tools are now JSON-defined
-  // and loaded dynamically via the dynamic server below.
   {
     config: getDynamicServerMeta(),
     start: startDynamicServer,
@@ -69,11 +45,9 @@ const SERVER_ENTRIES: ServerEntry[] = [
 
 /**
  * Derive the TabServerTransport channel ID from a server ID.
- * e.g. "ext-random-number" → "izan-ext-random-number"
+ * e.g. "ext-dynamic" → "izan-ext-dynamic"
  */
 function channelIdFromServerId(serverId: string): string {
-  // Server IDs already start with "ext-", channel prefix is "izan-ext-"
-  // so "ext-random-number" → "izan-ext-random-number"
   return `izan-${serverId}`
 }
 

@@ -1,6 +1,7 @@
 /**
- * BrowserWindow — Singleton for controlling a browser window.
+ * BrowserWindow — Controls a browser window for automation.
  *
+ * Supports multiple instances via `laneId` for parallel lane execution.
  * First open() creates a real browser window (not popup). Subsequent open() calls
  * add new tabs to that window. Window supports normal browsing (new tabs, etc).
  * Runs in the ISOLATED world content script.
@@ -8,15 +9,38 @@
  * All DOM interactions go through CDP (Runtime.evaluate) for CSP bypass.
  */
 
+/** Cache of BrowserWindow instances by laneId */
+const instanceCache = new Map<string, BrowserWindow>()
+
 export class BrowserWindow {
-  private static instance: BrowserWindow | null = null
   private tabId: number | null = null
+  readonly laneId: string
 
-  private constructor() {}
+  constructor(laneId = 'main') {
+    this.laneId = laneId
+  }
 
+  /**
+   * Get or create a BrowserWindow for a specific lane.
+   * The default lane is 'main' (backward compatible with old singleton usage).
+   */
+  static forLane(laneId = 'main'): BrowserWindow {
+    let instance = instanceCache.get(laneId)
+    if (!instance) {
+      instance = new BrowserWindow(laneId)
+      instanceCache.set(laneId, instance)
+    }
+    return instance
+  }
+
+  /** Backward-compatible singleton accessor (uses 'main' lane). */
   static getInstance(): BrowserWindow {
-    BrowserWindow.instance ??= new BrowserWindow()
-    return BrowserWindow.instance
+    return BrowserWindow.forLane('main')
+  }
+
+  /** Remove a lane from the cache (call after closing). */
+  static removeLane(laneId: string): void {
+    instanceCache.delete(laneId)
   }
 
   // ─── Transport ──────────────────────────────────────────────────
@@ -26,7 +50,7 @@ export class BrowserWindow {
       let settled = false
       const done = (fn: () => void) => { if (!settled) { settled = true; fn() } }
       chrome.runtime.sendMessage(
-        { type: 'bw-command', action, payload: { ...payload, tabId: this.tabId } },
+        { type: 'bw-command', action, payload: { ...payload, tabId: this.tabId, laneId: this.laneId } },
         (res: { success?: boolean; data?: unknown; error?: string }) => {
           done(() => {
             if (chrome.runtime.lastError) return reject(new Error(chrome.runtime.lastError.message))

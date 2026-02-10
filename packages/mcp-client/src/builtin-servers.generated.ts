@@ -17,14 +17,6 @@ export const BUILTIN_BACKEND_SERVERS: BuiltinServerMetadata[] = []
 /** Client-side MCP servers (fixed URLs, TabServerTransport) */
 export const BUILTIN_CLIENT_SERVERS: BuiltinServerMetadata[] = [
   {
-    "id": "crypto-analysis-client",
-    "name": "Crypto Analysis (Client)",
-    "description": "Cryptocurrency market data, technical indicators (RSI/MACD/BB/EMA/SMA/ATR/Stochastic/ADX), fundamental scores, and full coin analysis via CoinGecko v3. No API key.",
-    "category": "custom",
-    "urlType": "client",
-    "url": "tab://izan-crypto-analysis"
-  },
-  {
     "id": "domain-check-client",
     "name": "Domain Check (Client)",
     "description": "Fast RDAP bulk availability check. No API key. 1–15 domains.",
@@ -43,16 +35,7 @@ export const BUILTIN_CLIENT_SERVERS: BuiltinServerMetadata[] = [
 ]
 
 /** Extension MCP servers (Chrome extension, TabServerTransport when extension installed) */
-export const BUILTIN_EXTENSION_SERVERS: BuiltinServerMetadata[] = [
-  {
-    "id": "ext-random-number",
-    "name": "Random Number Generator",
-    "description": "Generates random numbers with configurable range and count.",
-    "category": "general",
-    "urlType": "extension",
-    "url": "tab://izan-ext-random-number"
-  }
-]
+export const BUILTIN_EXTENSION_SERVERS: BuiltinServerMetadata[] = []
 
 /** @deprecated Use BUILTIN_CLIENT_SERVERS instead */
 export const BUILTIN_CLIENT_SERVER: BuiltinServerMetadata = BUILTIN_CLIENT_SERVERS[0]
