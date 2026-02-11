@@ -2,7 +2,8 @@
   "nav": {
     "agents": "Agentlar",
     "startChat": "Sohbete Başla",
-    "settings": "Ayarlar"
+    "settings": "Ayarlar",
+    "docs": "Dokümantasyon"
   },
   "github": {
     "feedbackAria": "Hata bildir veya özellik iste",
@@ -96,7 +97,7 @@
     "heroBadge": "Açık Kaynak Agent Platformu",
     "heroTitle": "Akıllı AI Agentlar",
     "heroSubtitle": "Gerçekten İş Yapar",
-    "heroDescription": "İş yapan agentları hemen kullanın. Domain arama, borsa analizi, haber özetleri ve daha fazlası. Herhangi bir AI modelini güvenle kullanın-aracı yok, ücret yok, veriniz bizde tutulmuyor. Gerçek dünya araçlarıyla MCP üzerinden güçlenir.",
+    "heroDescription": "İş yapan agentları hemen kullanın. Tarayıcı otomasyonu, domain arama ve daha fazlası. Herhangi bir AI modelini güvenle kullanın-aracı yok, ücret yok, veriniz bizde tutulmuyor. Gerçek dünya araçları ve makrolarla MCP üzerinden güçlenir.",
     "startChat": "Sohbete Başla",
     "discoverAgents": "Agentları Keşfet",
 
@@ -104,6 +105,8 @@
     "featureAgentsDesc": "Agentlarımız özel MCP sunucuları ile desteklenir. Sadece konuşmaz - domain arar, pazar analizi yapar, fiyat kontrol eder, aksiyon alır.",
     "featurePrivacyTitle": "Anahtarınız, Gizliliğiniz",
     "featurePrivacyDesc": "Hesap gerekmez. API anahtarlarınız tarayıcınızda kalır. Verinizi görmeyiz. Güven için tamamen açık kaynak.",
+    "featureMacrosTitle": "Tarayıcı Otomasyonu",
+    "featureMacrosDesc": "Tarayıcı iş akışlarını makro olarak kaydedin ve agentların bunları çalıştırmasına izin verin. Gezinme, tıklama, yazma, veri çıkarma - hepsi paralel şerit desteğiyle otomatikleştirilmiş.",
     "featureForEveryoneTitle": "Herkes İçin",
     "featureForEveryoneDesc": "Diğer MCP client'lar kod editörlerinde yaşıyor. izan.io bir web uygulaması - hızlı yüklenir, kolay kullanılır, herkes erişebilir.",
 
@@ -113,14 +116,8 @@
     "agentComingSoon": "Yakında",
     "agentDomainTitle": "Domain Uzmanı",
     "agentDomainDesc": "Yaratıcı domain önerileri ve anlık uygunluk kontrolü. API anahtarı gerektirmez.",
-    "agentTradingTitle": "Borsa Asistanı",
-    "agentTradingDesc": "TradingView entegrasyonu ile teknik analiz. Grafik desenleri, göstergeler ve piyasa içgörüleri.",
-    "agentFootballTitle": "Futbol Uzmanı",
-    "agentFootballDesc": "Maç analizi, takım istatistikleri ve futbol API'leri ile desteklenen bahis içgörüleri.",
-    "agentNewsTitle": "Haber Ajansı",
-    "agentNewsDesc": "Günlük haber özetleri, trend analizi ve kişiselleştirilmiş bültenler.",
     "agentMoreTitle": "Ve Daha Fazlası Yolda...",
-    "agentMoreDesc": "Lego bulucu, seyahat planlayıcı, tarif yardımcısı - yeni agentlar sürekli geliştiriliyor.",
+    "agentMoreDesc": "Borsa, spor, haber, alışveriş - yeni agentlar bizim ve topluluk tarafından sürekli geliştiriliyor.",
 
     "howItWorks": "Nasıl Çalışır?",
     "step1Title": "AI Modelini Seç",
@@ -138,21 +135,21 @@
     "flexCreateDesc": "Özel prompt'lar ve araç yapılandırmalarıyla kullanım senaryonuza özel agentlar oluşturun.",
     "flexChainTitle": "Agentları Birbirine Bağlayın",
     "flexChainDesc": "Karmaşık görevlerde agentları birlikte çalıştırın - bir agentın çıktısı diğerinin girdisi olur.",
+    "flexMacrosTitle": "Tarayıcı Makroları Kaydedin",
+    "flexMacrosDesc": "Chrome eklentisini kullanarak tarayıcı iş akışlarını kaydedin. Agentlar bunları herhangi bir web sitesini otomatikleştirmek için araç olarak çalıştırabilir.",
     "flexTestTitle": "MCP Geliştiricileri İçin Harika",
     "flexTestDesc": "MCP sunucularınızı gerçek bir web ortamında test edin. Model bağımsız, hızlı ve tarafsız - kod editörü gerekmez.",
 
     "roadmapTitle": "Sırada Ne Var?",
     "roadmapDesc": "Erişilebilir AI agentların geleceğini inşa ediyoruz. İşte yol haritamız.",
-    "roadmapItem1Title": "Daha Fazla Uzman Agent",
-    "roadmapItem1Desc": "Borsa, spor, haber, alışveriş - her alan için agentlar.",
-    "roadmapItem2Title": "Göreve Özel AI Modelleri",
-    "roadmapItem2Desc": "Belirli görevler için özel yapılmış modeller, agentlara doğrudan entegre.",
-    "roadmapItem3Title": "Tarayıcıda Çalışan LLM'ler",
-    "roadmapItem3Desc": "AI modellerini doğrudan tarayıcınızda çalıştırın - API key gerekmez.",
-    "roadmapItem4Title": "Görsel Üretim",
-    "roadmapItem4Desc": "Görsel ve tasarım üretim modelleri platforma ekleniyor.",
-    "roadmapItem5Title": "Agent Marketplace",
-    "roadmapItem5Desc": "Topluluk tarafından oluşturulan agentları paylaşın ve keşfedin.",
+    "roadmapItem1Title": "Makro ve Agent Marketplace",
+    "roadmapItem1Desc": "Topluluk tarafından oluşturulan makroları ve agent yapılandırmalarını tek tıkla paylaşın, keşfedin ve kurun.",
+    "roadmapItem2Title": "Tarayıcıda Çalışan LLM'ler",
+    "roadmapItem2Desc": "AI modellerini doğrudan tarayıcınızda çalıştırın - API key gerekmez.",
+    "roadmapItem3Title": "Görsel Üretim",
+    "roadmapItem3Desc": "Görsel ve tasarım üretim modelleri platforma ekleniyor.",
+    "roadmapItem4Title": "İstemci Tarafı AI Modelleri",
+    "roadmapItem4Desc": "Belirli görevler için yerel olarak çalışan özel modeller, agentlara doğrudan entegre.",
 
     "providersTitle": "İstediğiniz AI Modelini Kullanın",
     "providersDesc": "17+ AI sağlayıcı, tek platform. Kendi API key'inizi getirin - platform bağımlılığı yok, aracı ücreti yok. Key'leriniz tarayıcınızdan asla çıkmaz.",
@@ -346,6 +343,20 @@
   "modelSelector": {
     "selectModelTitle": "Provider ve Model Seçin",
     "close": "Kapat"
+  },
+  "docs": {
+    "title": "Dokümantasyon",
+    "description": "izan.io'yu nasıl kullanacağınızı öğrenin - agentlar, MCP sunucuları, makrolar ve daha fazlası.",
+    "catGettingStarted": "Başlarken",
+    "catFeatures": "Özellikler",
+    "catConfiguration": "Yapılandırma",
+    "titleGettingStarted": "Başlarken",
+    "titleAgents": "Agentlar",
+    "titleMcpServers": "MCP Sunucuları",
+    "titleMacros": "Makrolar",
+    "titleChromeExtension": "Chrome Eklentisi",
+    "titleApiKeysPrivacy": "API Anahtarları ve Gizlilik",
+    "titleProviders": "Sağlayıcılar"
   },
   "errors": {
     "notConfigured": "LLM yapılandırılmadı. Ayarlardan bir provider ve model seçin.",

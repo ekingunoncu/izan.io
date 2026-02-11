@@ -2,7 +2,8 @@
   "nav": {
     "agents": "Agents",
     "startChat": "Start Chat",
-    "settings": "Settings"
+    "settings": "Settings",
+    "docs": "Docs"
   },
   "github": {
     "feedbackAria": "Report bug or request feature",
@@ -96,7 +97,7 @@
     "heroBadge": "Open Source Agent Platform",
     "heroTitle": "Smart AI Agents",
     "heroSubtitle": "That Actually Get Things Done",
-    "heroDescription": "Deploy agents that deliver. Domain search, trading analysis, news summaries and more. Use any AI model securely-no middleman, no fees, no data stored. Powered by real-world tools via MCP.",
+    "heroDescription": "Deploy agents that deliver. Browser automation, domain search, and more. Use any AI model securely-no middleman, no fees, no data stored. Powered by real-world tools and macros via MCP.",
     "startChat": "Start Chat",
     "discoverAgents": "Discover Agents",
 
@@ -104,6 +105,8 @@
     "featureAgentsDesc": "Our agents are powered by specialized MCP servers. They don't just talk - they search domains, analyze markets, check prices, and take action.",
     "featurePrivacyTitle": "Your Keys, Your Privacy",
     "featurePrivacyDesc": "No account needed. Your API keys stay in your browser. We never see your data. Fully open source for complete transparency.",
+    "featureMacrosTitle": "Browser Automation",
+    "featureMacrosDesc": "Record browser workflows as macros and let agents execute them. Navigate, click, type, extract data - all automated with parallel lane support.",
     "featureForEveryoneTitle": "Built for Everyone",
     "featureForEveryoneDesc": "Other MCP clients live inside code editors. izan.io is a web app - fast to load, easy to use, accessible to everyone.",
 
@@ -113,14 +116,8 @@
     "agentComingSoon": "Coming Soon",
     "agentDomainTitle": "Domain Expert",
     "agentDomainDesc": "Creative domain name suggestions with instant availability checking. No API key required.",
-    "agentTradingTitle": "Trading Assistant",
-    "agentTradingDesc": "Technical analysis with TradingView integration. Chart patterns, indicators, and market insights.",
-    "agentFootballTitle": "Football Expert",
-    "agentFootballDesc": "Match analysis, team stats, and betting insights powered by football APIs.",
-    "agentNewsTitle": "News Agent",
-    "agentNewsDesc": "Daily news summaries, trend analysis, and personalized briefings.",
     "agentMoreTitle": "And More on the Way...",
-    "agentMoreDesc": "Lego finder, travel planner, recipe helper - new agents are always being built.",
+    "agentMoreDesc": "Trading, sports, news, shopping - new agents are always being built by us and the community.",
 
     "howItWorks": "How It Works",
     "step1Title": "Choose Your AI Model",
@@ -138,21 +135,21 @@
     "flexCreateDesc": "Build agents tailored to your specific use case with custom prompts and tool configurations.",
     "flexChainTitle": "Chain Agents Together",
     "flexChainDesc": "Link agents to collaborate on complex tasks - one agent's output becomes another's input.",
+    "flexMacrosTitle": "Record Browser Macros",
+    "flexMacrosDesc": "Use the Chrome extension to record browser workflows. Agents can then execute them as tools to automate any website.",
     "flexTestTitle": "Great for MCP Developers",
     "flexTestDesc": "Test your MCP servers in a real web environment. Model-agnostic, fast to load, and unbiased - no code editor required.",
 
     "roadmapTitle": "What's Coming Next",
     "roadmapDesc": "We're building the future of accessible AI agents. Here's what's on our roadmap.",
-    "roadmapItem1Title": "More Specialized Agents",
-    "roadmapItem1Desc": "Trading, sports, news, shopping - agents for every domain.",
-    "roadmapItem2Title": "Narrow AI Models",
-    "roadmapItem2Desc": "Purpose-built models for specific tasks, integrated directly into agents.",
-    "roadmapItem3Title": "Browser-Side LLMs",
-    "roadmapItem3Desc": "Run AI models directly in your browser - no API key needed.",
-    "roadmapItem4Title": "Visual Generation",
-    "roadmapItem4Desc": "Image and design generation models coming to the platform.",
-    "roadmapItem5Title": "Agent Marketplace",
-    "roadmapItem5Desc": "Share and discover community-built agents and configurations.",
+    "roadmapItem1Title": "Macro & Agent Marketplace",
+    "roadmapItem1Desc": "Share, discover, and install community-built macros and agent configurations with one click.",
+    "roadmapItem2Title": "Browser-Side LLMs",
+    "roadmapItem2Desc": "Run AI models directly in your browser - no API key needed.",
+    "roadmapItem3Title": "Visual Generation",
+    "roadmapItem3Desc": "Image and design generation models coming to the platform.",
+    "roadmapItem4Title": "Client-Side AI Models",
+    "roadmapItem4Desc": "Specialized models running locally for specific tasks, integrated directly into agents.",
 
     "providersTitle": "Use Any AI Model You Want",
     "providersDesc": "17+ AI providers, one platform. Bring your own API key - no vendor lock-in, no middleman fees. Your keys never leave your browser.",
@@ -346,6 +343,20 @@
   "modelSelector": {
     "selectModelTitle": "Select Provider & Model",
     "close": "Close"
+  },
+  "docs": {
+    "title": "Documentation",
+    "description": "Learn how to use izan.io - agents, MCP servers, macros, and more.",
+    "catGettingStarted": "Getting Started",
+    "catFeatures": "Features",
+    "catConfiguration": "Configuration",
+    "titleGettingStarted": "Getting Started",
+    "titleAgents": "Agents",
+    "titleMcpServers": "MCP Servers",
+    "titleMacros": "Macros",
+    "titleChromeExtension": "Chrome Extension",
+    "titleApiKeysPrivacy": "API Keys & Privacy",
+    "titleProviders": "Providers"
   },
   "errors": {
     "notConfigured": "LLM not configured. Select a provider and model from settings.",

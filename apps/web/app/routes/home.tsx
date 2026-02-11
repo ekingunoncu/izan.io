@@ -4,18 +4,14 @@ import {
   MessageSquare,
   Bot,
   Shield,
-  Zap,
   Settings,
   Sparkles,
   ChevronRight,
   Code2,
-  TrendingUp,
-  Newspaper,
   Users,
   Link2,
   Puzzle,
   Eye,
-  Rocket,
   Brain,
   Monitor,
   Image,
@@ -23,6 +19,8 @@ import {
   ArrowRight,
   Star,
   Check,
+  MousePointerClick,
+  BookOpen,
 } from "lucide-react";
 import { BUILTIN_AGENT_DEFINITIONS } from "@izan/agents";
 import { getAgentIcon } from "~/components/agents/AgentSelector";
@@ -42,9 +40,9 @@ export function meta({ params }: Route.MetaArgs) {
   };
 
   const descriptions: Record<string, string> = {
-    tr: "İşini bilen akıllı AI agentlar. Domain arama, borsa analizi, haber özeti ve daha fazlası. Açık kaynak, gizlilik öncelikli.",
-    en: "Smart AI agents that actually get things done. Domain search, trading analysis, news summaries and more. Open source, privacy first.",
-    de: "Intelligente KI-Agenten, die wirklich Ergebnisse liefern. Domain-Suche, Trading-Analyse, Nachrichten und mehr. Open Source, Datenschutz zuerst.",
+    tr: "İşini bilen akıllı AI agentlar. Tarayıcı otomasyonu, domain arama ve daha fazlası. Açık kaynak, gizlilik öncelikli.",
+    en: "Smart AI agents that actually get things done. Browser automation, domain search, and more. Open source, privacy first.",
+    de: "Intelligente KI-Agenten, die wirklich Ergebnisse liefern. Browser-Automatisierung, Domain-Suche und mehr. Open Source, Datenschutz zuerst.",
   };
 
   const jsonLd = {
@@ -93,33 +91,6 @@ const HOME_SHOWCASE_AGENTS = BUILTIN_AGENT_DEFINITIONS.filter(
 const AGENTS = [
   ...HOME_SHOWCASE_AGENTS,
   {
-    titleKey: "home.agentTradingTitle",
-    descKey: "home.agentTradingDesc",
-    icon: TrendingUp,
-    active: false,
-    agentId: null,
-    color:
-      "bg-emerald-400/80 text-emerald-900 dark:bg-emerald-500/10 dark:text-emerald-400",
-  },
-  {
-    titleKey: "home.agentFootballTitle",
-    descKey: "home.agentFootballDesc",
-    icon: Zap,
-    active: false,
-    agentId: null,
-    color:
-      "bg-orange-400/80 text-orange-900 dark:bg-orange-500/10 dark:text-orange-400",
-  },
-  {
-    titleKey: "home.agentNewsTitle",
-    descKey: "home.agentNewsDesc",
-    icon: Newspaper,
-    active: false,
-    agentId: null,
-    color:
-      "bg-rose-400/80 text-rose-900 dark:bg-rose-500/10 dark:text-rose-400",
-  },
-  {
     titleKey: "home.agentMoreTitle",
     descKey: "home.agentMoreDesc",
     icon: Sparkles,
@@ -147,6 +118,11 @@ const FLEX_ITEMS = [
     icon: Link2,
   },
   {
+    titleKey: "home.flexMacrosTitle",
+    descKey: "home.flexMacrosDesc",
+    icon: MousePointerClick,
+  },
+  {
     titleKey: "home.flexTestTitle",
     descKey: "home.flexTestDesc",
     icon: Eye,
@@ -157,27 +133,22 @@ const ROADMAP_ITEMS = [
   {
     titleKey: "home.roadmapItem1Title",
     descKey: "home.roadmapItem1Desc",
-    icon: Rocket,
+    icon: Store,
   },
   {
     titleKey: "home.roadmapItem2Title",
     descKey: "home.roadmapItem2Desc",
-    icon: Brain,
+    icon: Monitor,
   },
   {
     titleKey: "home.roadmapItem3Title",
     descKey: "home.roadmapItem3Desc",
-    icon: Monitor,
+    icon: Image,
   },
   {
     titleKey: "home.roadmapItem4Title",
     descKey: "home.roadmapItem4Desc",
-    icon: Image,
-  },
-  {
-    titleKey: "home.roadmapItem5Title",
-    descKey: "home.roadmapItem5Desc",
-    icon: Store,
+    icon: Brain,
   },
 ];
 
@@ -206,6 +177,16 @@ export default function Home() {
             <div className="hidden sm:block">
               <GitHubStarButton />
             </div>
+            <Link to={`/${lang}/docs`}>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-11 min-h-[44px] text-sm sm:text-base sm:h-9 sm:min-h-0 px-3 sm:px-4 rounded-lg gap-1.5"
+              >
+                <BookOpen className="h-4 w-4" />
+                <span className="hidden sm:inline">{t("nav.docs")}</span>
+              </Button>
+            </Link>
             <Link to={`/${lang}/settings`} state={{ from: location.pathname }}>
               <Button
                 variant="ghost"
@@ -343,8 +324,23 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Feature 3 - Full width */}
-              <div className="md:col-span-3 group relative rounded-2xl border border-amber-200/40 dark:border-amber-500/15 bg-amber-50/30 dark:bg-amber-950/25 p-8 sm:p-10 transition-all duration-300 hover:shadow-md hover:shadow-amber-500/5 hover:border-amber-200/60 dark:hover:border-amber-500/25 overflow-hidden">
+              {/* Feature 3 - Macros */}
+              <div className="group relative rounded-2xl border border-violet-200/40 dark:border-violet-500/15 bg-violet-50/30 dark:bg-violet-950/25 p-8 sm:p-10 transition-all duration-300 hover:shadow-md hover:shadow-violet-500/5 hover:border-violet-200/60 dark:hover:border-violet-500/25 overflow-hidden">
+                <div className="relative">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-violet-500 text-white shadow-md shadow-violet-500/15 mb-6">
+                    <MousePointerClick className="h-7 w-7" />
+                  </div>
+                  <h3 className="text-xl font-bold mb-3">
+                    {t("home.featureMacrosTitle")}
+                  </h3>
+                  <p className="text-base text-muted-foreground leading-relaxed">
+                    {t("home.featureMacrosDesc")}
+                  </p>
+                </div>
+              </div>
+
+              {/* Feature 4 - For Everyone */}
+              <div className="md:col-span-2 group relative rounded-2xl border border-amber-200/40 dark:border-amber-500/15 bg-amber-50/30 dark:bg-amber-950/25 p-8 sm:p-10 transition-all duration-300 hover:shadow-md hover:shadow-amber-500/5 hover:border-amber-200/60 dark:hover:border-amber-500/25 overflow-hidden">
                 <div className="relative flex flex-col md:flex-row md:items-center gap-6">
                   <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-amber-500 text-white shadow-md shadow-amber-500/15">
                     <Users className="h-7 w-7" />
@@ -505,12 +501,14 @@ export default function Home() {
                   "from-blue-500/20 via-transparent to-emerald-500/20 hover:from-blue-500/30 hover:to-emerald-500/30",
                   "from-emerald-500/20 via-transparent to-amber-500/20 hover:from-emerald-500/30 hover:to-amber-500/30",
                   "from-amber-500/20 via-transparent to-rose-500/20 hover:from-amber-500/30 hover:to-rose-500/30",
+                  "from-rose-500/20 via-transparent to-violet-500/20 hover:from-rose-500/30 hover:to-violet-500/30",
                 ];
                 const iconColors = [
                   "text-violet-600 dark:text-violet-400 bg-violet-100 dark:bg-violet-500/15",
                   "text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-500/15",
                   "text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-500/15",
                   "text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-500/15",
+                  "text-rose-600 dark:text-rose-400 bg-rose-100 dark:bg-rose-500/15",
                 ];
                 return (
                   <div
@@ -716,6 +714,9 @@ export default function Home() {
               <div className="flex flex-col gap-2.5">
                 <Link to={`/${lang}/agents`} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                   {t("nav.agents")}
+                </Link>
+                <Link to={`/${lang}/docs`} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  {t("nav.docs")}
                 </Link>
                 <Link to="/chat" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                   {t("nav.startChat")}

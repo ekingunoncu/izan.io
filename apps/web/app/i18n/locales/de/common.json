@@ -2,7 +2,8 @@
   "nav": {
     "agents": "Agenten",
     "startChat": "Chat starten",
-    "settings": "Einstellungen"
+    "settings": "Einstellungen",
+    "docs": "Dokumentation"
   },
   "github": {
     "feedbackAria": "Bug melden oder Feature anfragen",
@@ -96,7 +97,7 @@
     "heroBadge": "Open-Source-Agent-Plattform",
     "heroTitle": "Intelligente KI-Agenten",
     "heroSubtitle": "Die wirklich Ergebnisse liefern",
-    "heroDescription": "Setzen Sie Agenten ein, die Ergebnisse liefern. Domain-Suche, Trading-Analyse, Nachrichten und mehr. Jedes KI-Modell sicher nutzen-kein Mittelsmann, keine Gebühren, keine Datenspeicherung. Mit echten Tools über MCP.",
+    "heroDescription": "Setzen Sie Agenten ein, die Ergebnisse liefern. Browser-Automatisierung, Domain-Suche und mehr. Jedes KI-Modell sicher nutzen-kein Mittelsmann, keine Gebühren, keine Datenspeicherung. Mit echten Tools und Makros über MCP.",
     "startChat": "Chat starten",
     "discoverAgents": "Agenten entdecken",
 
@@ -104,6 +105,8 @@
     "featureAgentsDesc": "Unsere Agenten werden von spezialisierten MCP-Servern unterstützt. Sie reden nicht nur - sie suchen Domains, analysieren Märkte, prüfen Preise und handeln.",
     "featurePrivacyTitle": "Ihre Schlüssel, Ihre Privatsphäre",
     "featurePrivacyDesc": "Kein Konto nötig. Ihre API-Schlüssel bleiben in Ihrem Browser. Wir sehen Ihre Daten nie. Vollständig Open Source für Transparenz.",
+    "featureMacrosTitle": "Browser-Automatisierung",
+    "featureMacrosDesc": "Zeichnen Sie Browser-Workflows als Makros auf und lassen Sie Agenten diese ausführen. Navigieren, klicken, tippen, Daten extrahieren - alles automatisiert mit parallelen Lanes.",
     "featureForEveryoneTitle": "Für alle gebaut",
     "featureForEveryoneDesc": "Andere MCP-Clients leben in Code-Editoren. izan.io ist eine Web-App - schnell geladen, einfach zu bedienen, für jeden zugänglich.",
 
@@ -113,14 +116,8 @@
     "agentComingSoon": "Demnächst",
     "agentDomainTitle": "Domain-Experte",
     "agentDomainDesc": "Kreative Domain-Vorschläge mit sofortiger Verfügbarkeitsprüfung. Kein API-Schlüssel erforderlich.",
-    "agentTradingTitle": "Trading-Assistent",
-    "agentTradingDesc": "Technische Analyse mit TradingView-Integration. Chartmuster, Indikatoren und Markteinblicke.",
-    "agentFootballTitle": "Fußball-Experte",
-    "agentFootballDesc": "Spielanalyse, Teamstatistiken und Wetteinblicke mit Fußball-APIs.",
-    "agentNewsTitle": "Nachrichten-Agent",
-    "agentNewsDesc": "Tägliche Nachrichtenzusammenfassungen, Trendanalysen und personalisierte Briefings.",
     "agentMoreTitle": "Und mehr unterwegs...",
-    "agentMoreDesc": "Lego-Finder, Reiseplaner, Rezepthelfer - neue Agenten werden ständig entwickelt.",
+    "agentMoreDesc": "Trading, Sport, Nachrichten, Shopping - neue Agenten werden von uns und der Community ständig entwickelt.",
 
     "howItWorks": "So funktioniert es",
     "step1Title": "KI-Modell wählen",
@@ -138,21 +135,21 @@
     "flexCreateDesc": "Erstellen Sie Agenten für Ihren Anwendungsfall mit benutzerdefinierten Prompts und Tool-Konfigurationen.",
     "flexChainTitle": "Agenten verketten",
     "flexChainDesc": "Verknüpfen Sie Agenten für komplexe Aufgaben - die Ausgabe eines Agenten wird zur Eingabe des nächsten.",
+    "flexMacrosTitle": "Browser-Makros aufzeichnen",
+    "flexMacrosDesc": "Verwenden Sie die Chrome-Erweiterung, um Browser-Workflows aufzuzeichnen. Agenten können diese dann als Tools ausführen, um jede Website zu automatisieren.",
     "flexTestTitle": "Ideal für MCP-Entwickler",
     "flexTestDesc": "Testen Sie Ihre MCP-Server in einer echten Web-Umgebung. Modellunabhängig, schnell und unvoreingenommen - kein Code-Editor nötig.",
 
     "roadmapTitle": "Was kommt als Nächstes",
     "roadmapDesc": "Wir bauen die Zukunft zugänglicher KI-Agenten. Hier ist unsere Roadmap.",
-    "roadmapItem1Title": "Mehr spezialisierte Agenten",
-    "roadmapItem1Desc": "Trading, Sport, Nachrichten, Shopping - Agenten für jeden Bereich.",
-    "roadmapItem2Title": "Spezialisierte KI-Modelle",
-    "roadmapItem2Desc": "Zweckgebundene Modelle für bestimmte Aufgaben, direkt in Agenten integriert.",
-    "roadmapItem3Title": "Browser-LLMs",
-    "roadmapItem3Desc": "KI-Modelle direkt im Browser ausführen - kein API-Schlüssel nötig.",
-    "roadmapItem4Title": "Visuelle Generierung",
-    "roadmapItem4Desc": "Bild- und Design-Generierungsmodelle kommen auf die Plattform.",
-    "roadmapItem5Title": "Agent-Marktplatz",
-    "roadmapItem5Desc": "Von der Community erstellte Agenten teilen und entdecken.",
+    "roadmapItem1Title": "Makro- & Agent-Marktplatz",
+    "roadmapItem1Desc": "Von der Community erstellte Makros und Agent-Konfigurationen mit einem Klick teilen, entdecken und installieren.",
+    "roadmapItem2Title": "Browser-LLMs",
+    "roadmapItem2Desc": "KI-Modelle direkt im Browser ausführen - kein API-Schlüssel nötig.",
+    "roadmapItem3Title": "Visuelle Generierung",
+    "roadmapItem3Desc": "Bild- und Design-Generierungsmodelle kommen auf die Plattform.",
+    "roadmapItem4Title": "Client-seitige KI-Modelle",
+    "roadmapItem4Desc": "Spezialisierte Modelle, die lokal für bestimmte Aufgaben laufen, direkt in Agenten integriert.",
 
     "providersTitle": "Nutzen Sie jedes KI-Modell",
     "providersDesc": "17+ KI-Provider, eine Plattform. Bringen Sie Ihren eigenen API-Schlüssel mit - kein Vendor Lock-in, keine Mittelsmann-Gebühren. Ihre Schlüssel verlassen nie Ihren Browser.",
@@ -346,6 +343,20 @@
   "modelSelector": {
     "selectModelTitle": "Provider & Modell auswählen",
     "close": "Schließen"
+  },
+  "docs": {
+    "title": "Dokumentation",
+    "description": "Erfahren Sie, wie Sie izan.io nutzen - Agenten, MCP-Server, Makros und mehr.",
+    "catGettingStarted": "Erste Schritte",
+    "catFeatures": "Funktionen",
+    "catConfiguration": "Konfiguration",
+    "titleGettingStarted": "Erste Schritte",
+    "titleAgents": "Agenten",
+    "titleMcpServers": "MCP-Server",
+    "titleMacros": "Makros",
+    "titleChromeExtension": "Chrome-Erweiterung",
+    "titleApiKeysPrivacy": "API-Schlüssel & Datenschutz",
+    "titleProviders": "Anbieter"
   },
   "errors": {
     "notConfigured": "LLM nicht konfiguriert. Wählen Sie einen Provider und ein Modell in den Einstellungen.",
