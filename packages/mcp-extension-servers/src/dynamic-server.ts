@@ -126,28 +126,39 @@ function registerTool(server: McpServer, tool: ToolDefinition): void {
 
 /**
  * Load tool definitions into the dynamic server.
- * Stores all definitions in `loadedTools`. If the server is already
- * connected and new (not previously known) tools are added, returns `true`
+ * Replaces the full set of loaded tools. If the server is already
+ * connected and the tool set changed (added or removed), returns `true`
  * so the caller can restart the server + re-announce.
  *
- * MCP SDK doesn't allow registerTool() after transport connection,
- * so callers must stop → start the server when this returns `true`.
+ * MCP SDK doesn't allow registerTool()/unregisterTool() after transport
+ * connection, so callers must stop → start the server when this returns `true`.
  */
 export function loadToolDefinitions(tools: ToolDefinition[]): boolean {
-  let hasNewTools = false
+  let changed = false
+
+  const incomingNames = new Set<string>()
 
   for (const raw of tools) {
     const tool = toolDefinitionSchema.parse(raw)
+    incomingNames.add(tool.name)
 
     const isNew = !loadedTools.has(tool.name)
     loadedTools.set(tool.name, tool)
 
     if (isNew && serverInstance) {
-      hasNewTools = true
+      changed = true
     }
   }
 
-  return hasNewTools
+  // Remove tools that are no longer in the incoming set
+  for (const name of loadedTools.keys()) {
+    if (!incomingNames.has(name)) {
+      loadedTools.delete(name)
+      changed = true
+    }
+  }
+
+  return changed
 }
 
 /**

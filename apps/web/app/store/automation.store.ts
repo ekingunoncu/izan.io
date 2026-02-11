@@ -353,10 +353,9 @@ export const useAutomationStore = create<AutomationStore>((set, get) => ({
     const { tools, servers } = get()
     const disabledIds = new Set(servers.filter((s) => s.disabled).map((s) => s.id))
     const enabledTools = tools.filter((t) => !disabledIds.has(t.serverId))
-    if (enabledTools.length > 0) {
-      const definitions = enabledTools.map(toToolDefinition)
-      syncToolDefinitions(definitions)
-    }
+    // Always sync tool definitions (even empty list) so extension removes deleted tools
+    const definitions = enabledTools.map(toToolDefinition)
+    syncToolDefinitions(definitions)
     // Also push full server+tool data so extension can persist in chrome.storage
     syncAutomationToExtension(servers, tools)
   },
@@ -364,11 +363,14 @@ export const useAutomationStore = create<AutomationStore>((set, get) => ({
   mergeFromExtension: async (incomingServers, incomingTools) => {
     const rawServers = incomingServers as AutomationServer[]
     const rawTools = incomingTools as AutomationTool[]
-    if (!rawServers.length && !rawTools.length) return
 
     let changed = false
 
-    // Merge servers
+    // Build incoming ID sets for deletion detection
+    const incomingServerIds = new Set(rawServers.map((s) => s.id))
+    const incomingToolIds = new Set(rawTools.map((t) => t.id))
+
+    // Merge servers: add/update incoming
     for (const incoming of rawServers) {
       const existing = await db.automationServers.get(incoming.id)
       if (!existing) {
@@ -380,7 +382,16 @@ export const useAutomationStore = create<AutomationStore>((set, get) => ({
       }
     }
 
-    // Merge tools
+    // Delete servers that exist locally but NOT in incoming data
+    const localServers = await db.automationServers.toArray()
+    for (const local of localServers) {
+      if (!incomingServerIds.has(local.id)) {
+        await db.automationServers.delete(local.id)
+        changed = true
+      }
+    }
+
+    // Merge tools: add/update incoming
     for (const incoming of rawTools) {
       const existing = await db.automationTools.get(incoming.id)
       if (!existing) {
@@ -388,6 +399,15 @@ export const useAutomationStore = create<AutomationStore>((set, get) => ({
         changed = true
       } else if (incoming.updatedAt > existing.updatedAt) {
         await db.automationTools.put(incoming)
+        changed = true
+      }
+    }
+
+    // Delete tools that exist locally but NOT in incoming data
+    const localTools = await db.automationTools.toArray()
+    for (const local of localTools) {
+      if (!incomingToolIds.has(local.id)) {
+        await db.automationTools.delete(local.id)
         changed = true
       }
     }
