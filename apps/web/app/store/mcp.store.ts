@@ -185,7 +185,9 @@ export const useMCPStore = create<MCPState>((set, get) => ({
         const { registry, extensionServers } = get()
         if (registry) {
           for (const extServer of extensionServers) {
-            void registry.removeServer(extServer.id)
+            registry.removeServer(extServer.id).catch(() => {
+              // Ignore — transport may not have been ready yet
+            })
           }
         }
         set({

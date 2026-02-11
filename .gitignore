@@ -41,5 +41,8 @@ cdk.context.json
 *.log
 npm-debug.log*
 
+# Downloads (binary assets built by CI/CD)
+*.zip
+
 # Testing
 coverage/

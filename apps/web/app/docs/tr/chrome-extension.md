@@ -6,10 +6,23 @@ izan.io Chrome eklentisi, **makro kaydetme ve yurutme** islevselligini saglar. E
 
 ## Kurulum
 
-Eklentiyi iki yontemle kurabilirsiniz:
+### Indir ve Kur (Onerilen)
 
-- **Chrome Web Store**: Magazadan dogrudan yukleyerek en kolay sekilde kurulum yapabilirsiniz
-- **Kaynaktan derleme**: Projeyi klonlayin, `npm run build:extension` komutunu calistirin ve olusturulan dosyalari Chrome'a "Paketlenmemis uzanti yukle" secenegiyle ekleyin
+1. [**Eklenti ZIP dosyasini indirin**](/downloads/izan-macros.zip)
+2. Indirilen dosyayi cikartin (unzip)
+3. Chrome'da `chrome://extensions` adresini acin
+4. Sag ustteki **Gelistirici modu** anahtarini aktif edin
+5. **Paketlenmemis oge yukle** butonuna tiklayin
+6. Cikardiginiz klasoru secin
+7. Eklenti simgesi arac cubugunda gorunur -- kurulum tamamlandi!
+
+### Chrome Web Store
+
+Eklenti yakin zamanda Chrome Web Store'da yayinlanacaktir. O zamana kadar yukaridaki indirme yontemini kullanabilirsiniz.
+
+### Kaynaktan Derleme
+
+Projeyi klonlayin, `npm run build:extension` komutunu calistirin ve olusturulan dosyalari Chrome'a `chrome://extensions` uzerinden "Paketlenmemis uzanti yukle" secenegiyle ekleyin.
 
 ## Yan Panel
 

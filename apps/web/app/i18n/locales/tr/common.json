@@ -86,7 +86,8 @@
     "macrosParams": "parametre"
   },
   "extension": {
-    "requiredBanner": "Bu agent makro kullanıyor. Kullanmak için tarayıcı eklentisini yükleyin."
+    "requiredBanner": "Bu agent tarayıcı otomasyon araçları kullanıyor. Kullanmak için Chrome eklentisini yükleyin.",
+    "installLink": "Eklentiyi yükle"
   },
   "automation": {
     "recording": "Kaydediliyor",
@@ -107,6 +108,7 @@
     "featurePrivacyDesc": "Hesap gerekmez. API anahtarlarınız tarayıcınızda kalır. Verinizi görmeyiz. Güven için tamamen açık kaynak.",
     "featureMacrosTitle": "Tarayıcı Otomasyonu",
     "featureMacrosDesc": "Tarayıcı iş akışlarını makro olarak kaydedin ve agentların bunları çalıştırmasına izin verin. Gezinme, tıklama, yazma, veri çıkarma - hepsi paralel şerit desteğiyle otomatikleştirilmiş.",
+    "featureMacrosExtLink": "Chrome eklentisi gerektirir",
     "featureForEveryoneTitle": "Herkes İçin",
     "featureForEveryoneDesc": "Diğer MCP client'lar kod editörlerinde yaşıyor. izan.io bir web uygulaması - hızlı yüklenir, kolay kullanılır, herkes erişebilir.",
 
@@ -179,6 +181,10 @@
     "systemPrompt": "Sen yardımcı bir AI asistanısın. Türkçe yanıt ver. Kullanıcıya nazik ve bilgilendirici cevaplar ver.",
     "responseError": "[Hata: Yanıt oluşturulurken bir sorun oluştu]",
     "apiError": "Hata: {{message}}",
+    "authError": "API anahtarınız geçersiz veya süresi dolmuş. Lütfen Ayarlar'dan anahtarınızı kontrol edin.",
+    "networkError": "API sağlayıcısına bağlanılamadı. İnternet bağlantınızı kontrol edip tekrar deneyin.",
+    "rateLimitError": "İstek limiti aşıldı. Lütfen bir süre bekleyip tekrar deneyin veya plan limitinizi kontrol edin.",
+    "serverError": "API sağlayıcısında sorun yaşanıyor. Lütfen daha sonra tekrar deneyin.",
     "maxStepsReached": "Maksimum adım sayısına ulaşıldı.",
     "modelResponding": "Model yanıt veriyor...",
     "toolRunning": "Tool çalıştırılıyor...",
@@ -288,6 +294,7 @@
         "usageExample5": "47,50 TL'lik hesabın %18 bahşişi ne kadar?"
       }
     },
+    "enabled": "Aktif",
     "implicitMCPs": "Yerleşik MCP'ler",
     "implicitMCPsDesc": "Bu agentın kullanabileceği yerleşik MCP sunucuları",
     "extensionMCPs": "Makrolar",

@@ -4,10 +4,23 @@ Die izan.io Chrome-Erweiterung ermoeglicht die **Aufzeichnung und Ausfuehrung vo
 
 ## Installation
 
-Es gibt zwei Wege, die Erweiterung zu installieren:
+### Herunterladen & Installieren (Empfohlen)
 
-- **Chrome Web Store** -- suchen Sie nach "izan.io" und installieren Sie die Erweiterung direkt.
-- **Aus Quellcode bauen** -- klonen Sie das Repository und fuehren Sie `npm run build:extension` aus. Laden Sie den Build-Ordner anschliessend unter `chrome://extensions` als entpackte Erweiterung.
+1. [**Erweiterungs-ZIP herunterladen**](/downloads/izan-macros.zip)
+2. Entpacken Sie die heruntergeladene Datei
+3. Oeffnen Sie `chrome://extensions` in Chrome
+4. Aktivieren Sie den **Entwicklermodus** (Schalter oben rechts)
+5. Klicken Sie auf **Entpackte Erweiterung laden**
+6. Waehlen Sie den entpackten Ordner aus
+7. Das Erweiterungssymbol erscheint in der Symbolleiste -- fertig!
+
+### Chrome Web Store
+
+Die Erweiterung wird in Kuerze im Chrome Web Store verfuegbar sein. Verwenden Sie bis dahin die obige Download-Methode.
+
+### Aus Quellcode bauen
+
+Klonen Sie das Repository und fuehren Sie `npm run build:extension` aus. Laden Sie den Build-Ordner anschliessend unter `chrome://extensions` als entpackte Erweiterung.
 
 ## Seitenpanel
 

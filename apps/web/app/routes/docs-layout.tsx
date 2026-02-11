@@ -57,7 +57,7 @@ export default function DocsLayout() {
 
       <div className="flex">
         {/* Desktop sidebar */}
-        <aside className="hidden lg:block w-64 shrink-0 border-r bg-muted/30 dark:bg-muted/10 sticky top-[57px] h-[calc(100vh-57px)] overflow-y-auto">
+        <aside className="hidden lg:block w-64 min-w-64 shrink-0 border-r bg-muted/30 dark:bg-muted/10 sticky top-[57px] h-[calc(100vh-57px)] overflow-y-auto">
           <div className="p-4">
             <DocsSidebar />
           </div>
@@ -79,7 +79,7 @@ export default function DocsLayout() {
         )}
 
         {/* Content */}
-        <main className="flex-1 min-w-0">
+        <main className="flex-1 min-w-0 overflow-x-hidden">
           <Outlet />
         </main>
       </div>

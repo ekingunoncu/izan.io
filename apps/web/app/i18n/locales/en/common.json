@@ -86,7 +86,8 @@
     "macrosParams": "param(s)"
   },
   "extension": {
-    "requiredBanner": "This agent uses macros. Install the browser extension to use them."
+    "requiredBanner": "This agent uses browser automation tools. Install the Chrome extension to use them.",
+    "installLink": "Install extension"
   },
   "automation": {
     "recording": "Recording",
@@ -107,6 +108,7 @@
     "featurePrivacyDesc": "No account needed. Your API keys stay in your browser. We never see your data. Fully open source for complete transparency.",
     "featureMacrosTitle": "Browser Automation",
     "featureMacrosDesc": "Record browser workflows as macros and let agents execute them. Navigate, click, type, extract data - all automated with parallel lane support.",
+    "featureMacrosExtLink": "Requires Chrome extension",
     "featureForEveryoneTitle": "Built for Everyone",
     "featureForEveryoneDesc": "Other MCP clients live inside code editors. izan.io is a web app - fast to load, easy to use, accessible to everyone.",
 
@@ -179,6 +181,10 @@
     "systemPrompt": "You are a helpful AI assistant. Respond in English. Be kind and informative to the user.",
     "responseError": "[Error: Something went wrong while generating the response]",
     "apiError": "Error: {{message}}",
+    "authError": "Your API key is invalid or expired. Please check your key in Settings.",
+    "networkError": "Could not connect to the API provider. Check your internet connection and try again.",
+    "rateLimitError": "Rate limit exceeded. Please wait a moment and try again, or check your plan limits.",
+    "serverError": "The API provider is experiencing issues. Please try again later.",
     "maxStepsReached": "Maximum number of steps reached.",
     "modelResponding": "Model is responding...",
     "toolRunning": "Running tool...",
@@ -288,6 +294,7 @@
         "usageExample5": "What's 18% tip on a $47.50 bill?"
       }
     },
+    "enabled": "Enabled",
     "implicitMCPs": "Built-in MCPs",
     "implicitMCPsDesc": "Built-in MCP servers this agent can use",
     "customMCPs": "Custom MCPs",

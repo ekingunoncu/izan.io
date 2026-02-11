@@ -336,6 +336,13 @@ export default function Home() {
                   <p className="text-base text-muted-foreground leading-relaxed">
                     {t("home.featureMacrosDesc")}
                   </p>
+                  <Link
+                    to={`/${lang}/docs/chrome-extension`}
+                    className="inline-flex items-center gap-1.5 text-sm font-medium text-violet-600 dark:text-violet-400 hover:underline mt-3"
+                  >
+                    {t("home.featureMacrosExtLink")}
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </Link>
                 </div>
               </div>
 

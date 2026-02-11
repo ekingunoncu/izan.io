@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:developer.chrome.com)",
+      "WebFetch(domain:chrome-stats.com)",
+      "mcp__ide__getDiagnostics",
+      "Bash(npm run prepare:extension-download:*)",
+      "Bash(unzip:*)",
+      "Bash(npm run zip:*)"
+    ]
+  }
+}

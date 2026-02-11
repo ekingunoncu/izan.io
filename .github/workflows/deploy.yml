@@ -24,6 +24,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Build extension & create download ZIP
+        run: npm run prepare:extension-download
+
       - name: Build web app
         env:
           # Web build (Vite) - set via GitHub Secrets or leave empty

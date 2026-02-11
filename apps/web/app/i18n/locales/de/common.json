@@ -86,7 +86,8 @@
     "macrosParams": "Parameter"
   },
   "extension": {
-    "requiredBanner": "Dieser Agent verwendet Makros. Installieren Sie die Browser-Erweiterung, um sie zu nutzen."
+    "requiredBanner": "Dieser Agent verwendet Browser-Automatisierungstools. Installieren Sie die Chrome-Erweiterung, um sie zu nutzen.",
+    "installLink": "Erweiterung installieren"
   },
   "automation": {
     "recording": "Aufzeichnung",
@@ -107,6 +108,7 @@
     "featurePrivacyDesc": "Kein Konto nötig. Ihre API-Schlüssel bleiben in Ihrem Browser. Wir sehen Ihre Daten nie. Vollständig Open Source für Transparenz.",
     "featureMacrosTitle": "Browser-Automatisierung",
     "featureMacrosDesc": "Zeichnen Sie Browser-Workflows als Makros auf und lassen Sie Agenten diese ausführen. Navigieren, klicken, tippen, Daten extrahieren - alles automatisiert mit parallelen Lanes.",
+    "featureMacrosExtLink": "Chrome-Erweiterung erforderlich",
     "featureForEveryoneTitle": "Für alle gebaut",
     "featureForEveryoneDesc": "Andere MCP-Clients leben in Code-Editoren. izan.io ist eine Web-App - schnell geladen, einfach zu bedienen, für jeden zugänglich.",
 
@@ -179,6 +181,10 @@
     "systemPrompt": "Du bist ein hilfreicher KI-Assistent. Antworte auf Deutsch. Sei freundlich und informativ gegenüber dem Benutzer.",
     "responseError": "[Fehler: Beim Generieren der Antwort ist etwas schiefgelaufen]",
     "apiError": "Fehler: {{message}}",
+    "authError": "Ihr API-Schlüssel ist ungültig oder abgelaufen. Bitte überprüfen Sie Ihren Schlüssel in den Einstellungen.",
+    "networkError": "Verbindung zum API-Anbieter konnte nicht hergestellt werden. Überprüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.",
+    "rateLimitError": "Anfragelimit überschritten. Bitte warten Sie einen Moment und versuchen Sie es erneut, oder prüfen Sie Ihre Plan-Limits.",
+    "serverError": "Beim API-Anbieter treten derzeit Probleme auf. Bitte versuchen Sie es später erneut.",
     "maxStepsReached": "Maximale Anzahl von Schritten erreicht.",
     "modelResponding": "Modell antwortet...",
     "toolRunning": "Tool wird ausgeführt...",
@@ -288,6 +294,7 @@
         "usageExample5": "Wie viel sind 18% Trinkgeld auf 47,50 €?"
       }
     },
+    "enabled": "Aktiviert",
     "implicitMCPs": "Integrierte MCPs",
     "implicitMCPsDesc": "Integrierte MCP-Server, die dieser Agent verwenden kann",
     "extensionMCPs": "Makros",

@@ -1,13 +1,13 @@
 {
   "manifest_version": 3,
-  "name": "izan.io MCP Extension",
+  "name": "izan.io Macros - Browser Automation for AI",
   "version": "0.1.0",
-  "description": "Extends izan.io with additional MCP tool servers running in the browser.",
+  "description": "Record browser actions as reusable macros. AI agents run your automations via MCP. No code needed.",
   "permissions": ["tabs", "scripting", "debugger", "sidePanel", "storage"],
   "host_permissions": ["<all_urls>"],
   "content_scripts": [
     {
-      "matches": ["https://izan.io/*", "https://*.izan.io/*", "http://localhost:*/*", "http://127.0.0.1:*/*"],
+      "matches": ["https://izan.io/*", "https://*.izan.io/*", "http://localhost/*", "http://127.0.0.1/*"],
       "js": ["content.js"],
       "world": "ISOLATED",
       "run_at": "document_idle"
@@ -21,11 +21,14 @@
     "default_path": "sidepanel/index.html"
   },
   "action": {
-    "default_title": "Record MCP Tool"
+    "default_title": "izan.io Macros",
+    "default_popup": ""
   },
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
-  }
+  },
+  "homepage_url": "https://izan.io",
+  "minimum_chrome_version": "116"
 }

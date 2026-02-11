@@ -8,6 +8,8 @@ import {
   Scale,
   UserX,
   FileEdit,
+  Puzzle,
+  ShieldCheck,
 } from "lucide-react";
 import {
   Card,
@@ -20,7 +22,7 @@ import { LegalPageLayout } from "~/components/LegalPageLayout";
 import type { Route } from "./+types/privacy";
 import { SUPPORTED_LANGUAGES } from "~/i18n";
 
-const LEGAL_LAST_UPDATED = "2026-02-07";
+const LEGAL_LAST_UPDATED = "2026-02-11";
 const SITE_URL = "https://izan.io";
 
 export function meta({ params }: Route.MetaArgs) {
@@ -72,6 +74,8 @@ export function meta({ params }: Route.MetaArgs) {
 
 const SECTION_ICONS = {
   dataWeStore: Database,
+  browserExtension: Puzzle,
+  limitedUse: ShieldCheck,
   thirdPartyServices: Globe,
   cookies: Cookie,
   gdpr: Scale,
@@ -85,6 +89,8 @@ export default function Privacy() {
 
   const sections = [
     { key: "dataWeStore", title: t("privacy.sections.dataWeStore") },
+    { key: "browserExtension", title: t("privacy.sections.browserExtension") },
+    { key: "limitedUse", title: t("privacy.sections.limitedUse") },
     { key: "thirdPartyServices", title: t("privacy.sections.thirdPartyServices") },
     { key: "cookies", title: t("privacy.sections.cookies") },
     { key: "gdpr", title: t("privacy.sections.gdpr") },

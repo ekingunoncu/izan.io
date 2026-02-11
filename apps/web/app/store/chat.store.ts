@@ -7,6 +7,7 @@ import type {
   LLMGenerationOptions,
 } from '~/lib/services/interfaces'
 import { storageService, llmService } from '~/lib/services'
+import { LLMApiError, LLMNetworkError } from '~/lib/services/llm.service'
 import type { Chat, Message, Agent } from '~/lib/db'
 import { useMCPStore } from './mcp.store'
 import { useAgentStore } from './agent.store'
@@ -563,8 +564,24 @@ export const useChatStore = create<ChatState>((set, get) => ({
         }
         return
       }
-      const apiMessage = error instanceof Error ? error.message : String(error)
-      const errorContent = '\n\n[' + i18n.t('chat.apiError', { message: apiMessage }) + ']'
+      let errorContent: string
+      if (error instanceof LLMNetworkError) {
+        errorContent = '\n\n[' + i18n.t('chat.networkError') + ']'
+      } else if (error instanceof LLMApiError) {
+        if (error.status === 401 || error.status === 403) {
+          errorContent = '\n\n[' + i18n.t('chat.authError') + ']'
+        } else if (error.status === 429) {
+          errorContent = '\n\n[' + i18n.t('chat.rateLimitError') + ']'
+        } else if (error.status >= 500) {
+          errorContent = '\n\n[' + i18n.t('chat.serverError') + ']'
+        } else {
+          const apiMessage = error.message
+          errorContent = '\n\n[' + i18n.t('chat.apiError', { message: apiMessage }) + ']'
+        }
+      } else {
+        const apiMessage = error instanceof Error ? error.message : String(error)
+        errorContent = '\n\n[' + i18n.t('chat.apiError', { message: apiMessage }) + ']'
+      }
       await storageService.updateMessage(assistantMessage.id, errorContent)
       set(state => ({
         messages: state.messages.map(m =>

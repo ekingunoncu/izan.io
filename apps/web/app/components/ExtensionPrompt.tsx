@@ -8,12 +8,14 @@
 
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Link, useParams } from 'react-router'
 import { Puzzle, X } from 'lucide-react'
 import { Button } from '~/components/ui/button'
 import { useMCPStore } from '~/store'
 
 export function ExtensionPrompt({ className }: Readonly<{ className?: string }>) {
   const { t } = useTranslation('common')
+  const { lang } = useParams()
   const extensionRequired = useMCPStore((s) => s.extensionRequired)
   const isExtensionInstalled = useMCPStore((s) => s.isExtensionInstalled)
   const [dismissed, setDismissed] = useState(false)
@@ -33,6 +35,12 @@ export function ExtensionPrompt({ className }: Readonly<{ className?: string }>)
           {t('extension.requiredBanner')}
         </p>
       </div>
+      <Link
+        to={`/${lang || 'en'}/docs/chrome-extension`}
+        className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline whitespace-nowrap"
+      >
+        {t('extension.installLink')}
+      </Link>
       <Button
         variant="ghost"
         size="icon"

@@ -76,11 +76,14 @@ export function AgentEditPanel() {
   const { closeAgentEdit } = useUIStore()
   const { userServers } = useMCPStore()
   const automationServers = useAutomationStore(s => s.servers)
+  const extensionServers = useMCPStore(s => s.extensionServers)
+  const [enabled, setEnabled] = useState(true)
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [selectedIcon, setSelectedIcon] = useState('bot')
   const [basePrompt, setBasePrompt] = useState('')
   const [implicitMCPIds, setImplicitMCPIds] = useState<string[]>([])
+  const [extensionMCPIds, setExtensionMCPIds] = useState<string[]>([])
   const [customMCPIds, setCustomMCPIds] = useState<string[]>([])
   const [automationServerIds, setAutomationServerIds] = useState<string[]>([])
   const [linkedAgentIds, setLinkedAgentIds] = useState<string[]>([])
@@ -95,11 +98,13 @@ export function AgentEditPanel() {
   useEffect(() => {
     if (!currentAgent) return;
     const t = setTimeout(() => {
+      setEnabled(currentAgent.enabled);
       setName(currentAgent.name);
       setDescription(currentAgent.description);
       setSelectedIcon(currentAgent.icon);
       setBasePrompt(currentAgent.basePrompt);
       setImplicitMCPIds(currentAgent.implicitMCPIds);
+      setExtensionMCPIds(currentAgent.extensionMCPIds ?? []);
       setCustomMCPIds(currentAgent.customMCPIds);
       setAutomationServerIds(currentAgent.automationServerIds ?? []);
       setLinkedAgentIds(currentAgent.linkedAgentIds);
@@ -117,11 +122,13 @@ export function AgentEditPanel() {
 
   const handleSave = async () => {
     const updates: Parameters<typeof updateAgent>[1] = {
+      enabled,
       name: name.trim() || currentAgent.name,
       description: description.trim(),
       icon: selectedIcon,
       basePrompt: basePrompt.trim(),
       implicitMCPIds,
+      extensionMCPIds,
       customMCPIds,
       automationServerIds,
       linkedAgentIds,
@@ -165,6 +172,10 @@ export function AgentEditPanel() {
   // Available MCPs for adding (use local state)
   const availableImplicitMCPs = DEFAULT_MCP_SERVERS.filter(
     s => !implicitMCPIds.includes(s.id) && !s.id.startsWith('ext-')
+  )
+  // Extension MCP servers available for adding (exclude ext-dynamic which is auto-managed)
+  const availableExtensionMCPs = extensionServers.filter(
+    es => es.id !== 'ext-dynamic' && !extensionMCPIds.includes(es.id)
   )
   const availableCustomMCPs = userServers.filter(
     us => !customMCPIds.includes(us.id)
@@ -255,6 +266,15 @@ export function AgentEditPanel() {
             onToggle={() => toggleSection('info')}
           >
             <div className="space-y-4">
+              <label className="flex items-center justify-between cursor-pointer">
+                <span className="text-sm font-medium">{t('agents.enabled')}</span>
+                <input
+                  type="checkbox"
+                  checked={enabled}
+                  onChange={(e) => setEnabled(e.target.checked)}
+                  className="rounded border-input accent-primary h-4 w-4"
+                />
+              </label>
               <div className="space-y-1.5">
                 <label className="text-sm font-medium">{t('agents.name')}</label>
                 <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={t('agents.namePlaceholder')} />
@@ -415,6 +435,58 @@ export function AgentEditPanel() {
 
               {implicitMCPIds.length === 0 && availableImplicitMCPs.length === 0 && (
                 <p className="text-sm text-muted-foreground text-center py-3">{t('agents.noAvailableMCPs')}</p>
+              )}
+            </div>
+          </CollapsibleSection>
+
+          {/* Extension MCPs */}
+          <CollapsibleSection
+            title={t('agents.extensionMCPs')}
+            subtitle={t('agents.extensionMCPsDesc')}
+            isOpen={expandedSection === 'extension-mcps'}
+            onToggle={() => toggleSection('extension-mcps')}
+          >
+            <div className="space-y-2">
+              {extensionMCPIds.map(mcpId => {
+                const extServer = extensionServers.find(s => s.id === mcpId)
+                return (
+                  <div key={mcpId} className="flex items-center justify-between rounded-lg border p-2.5">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Puzzle className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      <div className="min-w-0">
+                        <span className="text-sm truncate block">{extServer?.name || mcpId}</span>
+                        {extServer?.description && <span className="text-xs text-muted-foreground truncate block">{extServer.description}</span>}
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-destructive"
+                      onClick={() => setExtensionMCPIds(prev => prev.filter(id => id !== mcpId))}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                )
+              })}
+
+              {extensionMCPIds.length === 0 && availableExtensionMCPs.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-3">{t('agents.noExtensionMCPs')}</p>
+              )}
+
+              {availableExtensionMCPs.length > 0 && (
+                <div className="pt-1 space-y-1">
+                  {availableExtensionMCPs.map(es => (
+                    <button
+                      key={es.id}
+                      onClick={() => setExtensionMCPIds(prev => [...prev, es.id])}
+                      className="w-full flex items-center gap-2 rounded-lg border border-dashed p-2.5 text-sm text-muted-foreground hover:bg-muted transition-colors"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      <span>{es.name}</span>
+                    </button>
+                  ))}
+                </div>
               )}
             </div>
           </CollapsibleSection>

@@ -27,6 +27,7 @@
     "deploy:infra": "npm run build && dotenv -e .env -- npm run deploy --workspace=@izan/infra",
     "clean": "turbo clean",
     "build:extension": "npm run build -w @izan/mcp-extension-servers",
+    "prepare:extension-download": "npm run build -w @izan/mcp-extension-servers && npm run zip -w @izan/mcp-extension-servers",
     "test:mcp": "npm run test -w @izan/mcp-browser-servers"
   },
   "devDependencies": {

@@ -6,8 +6,23 @@ The izan.io Chrome extension enables **macro recording and execution** directly 
 
 ## Installation
 
-- **Chrome Web Store** -- install the extension from the store listing (recommended)
-- **Build from source** -- clone the repository, run `npm run build:extension`, and load the `dist` folder as an unpacked extension in `chrome://extensions`
+### Download & Install (Recommended)
+
+1. [**Download the extension ZIP**](/downloads/izan-macros.zip)
+2. Unzip the downloaded file
+3. Open `chrome://extensions` in Chrome
+4. Enable **Developer mode** (top-right toggle)
+5. Click **Load unpacked**
+6. Select the unzipped folder
+7. The extension icon appears in the toolbar -- done!
+
+### Chrome Web Store
+
+The extension will be available on the Chrome Web Store soon. In the meantime, use the download method above.
+
+### Build from Source
+
+Clone the repository, run `npm run build:extension`, and load the `dist` folder as an unpacked extension in `chrome://extensions`.
 
 ## Side Panel
 

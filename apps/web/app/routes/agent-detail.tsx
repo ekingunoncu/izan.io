@@ -16,6 +16,7 @@ import {
   BookOpen,
   Sparkles,
   TrendingUp,
+  Puzzle,
 } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import {
@@ -151,6 +152,9 @@ export default function AgentDetail() {
   const proTip = getAgentProTip(agent, t);
   const usageExamples = getAgentUsageExamples(agent, t);
 
+  const needsExtension = (agent.extensionMCPIds ?? []).length > 0 || (agent.automationServerIds ?? []).length > 0;
+  const isExtensionInstalled = useMCPStore((s) => s.isExtensionInstalled);
+
   const mcpIds = [...agent.implicitMCPIds, ...(agent.extensionMCPIds ?? []), ...agent.customMCPIds];
   const mcpServers = mcpIds
     .map((id) => DEFAULT_MCP_SERVERS.find((s) => s.id === id))
@@ -226,6 +230,24 @@ export default function AgentDetail() {
               </Button>
             )}
           </div>
+
+          {/* Extension Required */}
+          {needsExtension && !isExtensionInstalled && (
+            <section className="mb-8">
+              <div className="flex items-center gap-3 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/40 px-4 py-3">
+                <Puzzle className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                <p className="flex-1 text-sm text-blue-800 dark:text-blue-200">
+                  {t('extension.requiredBanner')}
+                </p>
+                <Link
+                  to={`/${lang}/docs/chrome-extension`}
+                  className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline whitespace-nowrap"
+                >
+                  {t('extension.installLink')}
+                </Link>
+              </div>
+            </section>
+          )}
 
           {/* About This Agent */}
           {detailedDescription && (

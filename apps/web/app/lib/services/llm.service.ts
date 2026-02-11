@@ -15,6 +15,26 @@ interface StreamToolCallAccum {
 }
 import { getChatUrl, getResponsesUrl, usesResponsesApi, type ProviderId } from '../llm-providers'
 
+// ─── Custom Error Types ──────────────────────────────────────────────────────
+
+/** API error with HTTP status code for better error classification */
+export class LLMApiError extends Error {
+  status: number
+  constructor(message: string, status: number) {
+    super(message)
+    this.name = 'LLMApiError'
+    this.status = status
+  }
+}
+
+/** Network-level error (fetch itself failed — no HTTP response) */
+export class LLMNetworkError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'LLMNetworkError'
+  }
+}
+
 /**
  * Normalize messages for APIs that only accept [user, assistant] roles.
  * Merges system message content into the first user message.
@@ -205,16 +225,22 @@ export class LLMService implements ILLMService {
     }
     if (options?.top_p != null) body.top_p = options.top_p
 
-    const response = await fetch(requestUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${this.apiKey}`,
-      },
-      signal: this.abortController!.signal,
-      cache: 'no-store',
-      body: JSON.stringify(body),
-    })
+    let response: Response
+    try {
+      response = await fetch(requestUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${this.apiKey}`,
+        },
+        signal: this.abortController!.signal,
+        cache: 'no-store',
+        body: JSON.stringify(body),
+      })
+    } catch (err) {
+      if (this.abortController?.signal.aborted) throw err
+      throw new LLMNetworkError(err instanceof Error ? err.message : String(err))
+    }
 
     if (!response.ok) {
       const err = await response.json().catch(() => ({ error: response.statusText }))
@@ -222,7 +248,7 @@ export class LLMService implements ILLMService {
         typeof err.error === 'string'
           ? err.error
           : err.error?.message || err.message || JSON.stringify(err.error) || `API error: ${response.status}`
-      throw new Error(errorMessage)
+      throw new LLMApiError(errorMessage, response.status)
     }
 
     const reader = response.body?.getReader()
@@ -277,16 +303,22 @@ export class LLMService implements ILLMService {
     }
     if (options?.top_p != null) body.top_p = options.top_p
 
-    const response = await fetch(this.url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${this.apiKey}`,
-      },
-      signal: this.abortController!.signal,
-      cache: 'no-store',
-      body: JSON.stringify(body),
-    })
+    let response: Response
+    try {
+      response = await fetch(this.url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${this.apiKey}`,
+        },
+        signal: this.abortController!.signal,
+        cache: 'no-store',
+        body: JSON.stringify(body),
+      })
+    } catch (err) {
+      if (this.abortController?.signal.aborted) throw err
+      throw new LLMNetworkError(err instanceof Error ? err.message : String(err))
+    }
 
     if (!response.ok) {
       const err = await response.json().catch(() => ({ error: response.statusText }))
@@ -294,7 +326,7 @@ export class LLMService implements ILLMService {
         typeof err.error === 'string'
           ? err.error
           : err.error?.message || err.message || JSON.stringify(err.error) || `API error: ${response.status}`
-      throw new Error(errorMessage)
+      throw new LLMApiError(errorMessage, response.status)
     }
 
     const reader = response.body?.getReader()
@@ -420,15 +452,21 @@ export class LLMService implements ILLMService {
     }
     if (options?.top_p != null) body.top_p = options.top_p
 
-    const response = await fetch(this.url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${this.apiKey}`,
-      },
-      signal: this.abortController!.signal,
-      body: JSON.stringify(body),
-    })
+    let response: Response
+    try {
+      response = await fetch(this.url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${this.apiKey}`,
+        },
+        signal: this.abortController!.signal,
+        body: JSON.stringify(body),
+      })
+    } catch (err) {
+      if (this.abortController?.signal.aborted) throw err
+      throw new LLMNetworkError(err instanceof Error ? err.message : String(err))
+    }
 
     if (!response.ok) {
       const err = await response.json().catch(() => ({ error: response.statusText }))
@@ -436,7 +474,7 @@ export class LLMService implements ILLMService {
         typeof err.error === 'string'
           ? err.error
           : err.error?.message || err.message || JSON.stringify(err.error) || `API error: ${response.status}`
-      throw new Error(errorMessage)
+      throw new LLMApiError(errorMessage, response.status)
     }
 
     const data = (await response.json()) as {
