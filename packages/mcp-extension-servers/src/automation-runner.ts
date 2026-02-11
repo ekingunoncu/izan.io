@@ -7,7 +7,7 @@
  * and collects extraction results into a merged output.
  *
  * Supports parallel lanes: when a tool has multiple lanes,
- * each lane runs concurrently in its own BrowserWindow (separate browser window).
+ * each lane runs concurrently in its own BrowserWindow (separate tab in a shared window).
  */
 
 import { BrowserWindow } from './browser-window.js'
@@ -15,6 +15,16 @@ import type { ActionStep, ToolDefinition, ExtractionField } from './tool-schema.
 import { resolveTemplate } from './tool-schema.js'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
+
+export interface LaneSummary {
+  name: string
+  success: boolean
+  data: Record<string, unknown>
+  stepCount: number
+  error?: string
+  /** URL of the page at the time of last extraction */
+  sourceUrl?: string
+}
 
 export interface RunnerResult {
   /** Whether the entire execution succeeded */
@@ -25,6 +35,10 @@ export interface RunnerResult {
   log: StepLog[]
   /** Top-level error message, if any */
   error?: string
+  /** Per-lane summaries (only present for multi-lane execution) */
+  laneSummaries?: LaneSummary[]
+  /** URL of the page at the time of last extraction (single-lane only) */
+  sourceUrl?: string
 }
 
 export interface StepLog {
@@ -36,21 +50,44 @@ export interface StepLog {
   error?: string
 }
 
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+/**
+ * Normalize lanes from a ToolDefinition, handling both new named format
+ * and legacy unnamed format (ActionStep[][]) for backward compatibility.
+ */
+function normalizeLanes(tool: ToolDefinition): Array<{ name: string; steps: ActionStep[] }> | null {
+  if (!tool.lanes || tool.lanes.length <= 1) return null
+
+  // Check if lanes are in new named format (objects with .name and .steps)
+  const first = tool.lanes[0]
+  if (first && typeof first === 'object' && 'name' in first && 'steps' in first) {
+    // New format: Array<{ name, steps }>
+    return tool.lanes as Array<{ name: string; steps: ActionStep[] }>
+  }
+
+  // Legacy format: ActionStep[][] - auto-wrap with default names
+  return (tool.lanes as unknown as ActionStep[][]).map((steps, i) => ({
+    name: `Lane ${i + 1}`,
+    steps,
+  }))
+}
+
 // ─── Runner ──────────────────────────────────────────────────────────────────
 
 export class AutomationRunner {
   /**
    * Execute a full tool definition with the given arguments.
    * If the tool has multiple lanes, each lane runs in parallel in a separate
-   * BrowserWindow. Otherwise, runs the steps sequentially in a single window.
+   * tab (within a shared window). Otherwise, runs the steps sequentially in a single tab.
    */
   async execute(
     tool: ToolDefinition,
     args: Record<string, unknown>,
   ): Promise<RunnerResult> {
-    const hasParallelLanes = tool.lanes && tool.lanes.length > 1
+    const namedLanes = normalizeLanes(tool)
 
-    if (!hasParallelLanes) {
+    if (!namedLanes) {
       // Single-lane execution
       const bw = BrowserWindow.forLane('main')
       try {
@@ -63,11 +100,10 @@ export class AutomationRunner {
     }
 
     // ─── Parallel lane execution ─────────────────────────────────
-    const laneSteps = tool.lanes!
     const laneWindows: BrowserWindow[] = []
 
     // Create a BrowserWindow per lane (each gets its own tab in the shared window)
-    for (let i = 0; i < laneSteps.length; i++) {
+    for (let i = 0; i < namedLanes.length; i++) {
       const laneId = `lane_${i}`
       laneWindows.push(BrowserWindow.forLane(laneId))
     }
@@ -75,11 +111,11 @@ export class AutomationRunner {
     try {
       // Run all lanes concurrently (each in its own tab)
       const results = await Promise.allSettled(
-        laneSteps.map((steps, i) => this.executeLane(laneWindows[i], steps, args)),
+        namedLanes.map((lane, i) => this.executeLane(laneWindows[i], lane.steps, args)),
       )
 
-      // Merge results from all lanes
-      return this.mergeLaneResults(results)
+      const laneNames = namedLanes.map(l => l.name)
+      return this.mergeLaneResults(results, laneNames)
     } finally {
       // Close all lane tabs (window stays open for reuse)
       for (const bw of laneWindows) {
@@ -100,6 +136,7 @@ export class AutomationRunner {
     const data: Record<string, unknown> = {}
     const log: StepLog[] = []
     let hasError = false
+    let sourceUrl: string | undefined
 
     for (let i = 0; i < steps.length; i++) {
       const step = steps[i]
@@ -115,8 +152,9 @@ export class AutomationRunner {
       try {
         const result = await this.executeStep(bw, step, args)
         if (result !== undefined && step.action === 'extract') {
-          const extractStep = step as { name: string }
-          data[extractStep.name] = result
+          data[step.name] = result
+          // Capture source URL at extraction time
+          try { sourceUrl = await bw.getUrl() } catch { /* tab may have closed */ }
         }
       } catch (err) {
         entry.status = 'error'
@@ -141,50 +179,72 @@ export class AutomationRunner {
       data,
       log,
       error: hasError ? log.find((l) => l.status === 'error')?.error : undefined,
+      sourceUrl,
     }
   }
 
   /**
    * Merge RunnerResult from all parallel lanes.
-   * - data: merge all extraction results; prefix with lane_N_ on key conflicts
-   * - log: concatenate with lane index prefix in labels
+   * - data: merge all extraction results; prefix with lane name on key conflicts
+   * - log: concatenate with lane name prefix in labels
    * - success: true only if ALL lanes succeed
+   * - laneSummaries: per-lane summary for structured LLM responses
    */
   private mergeLaneResults(
     results: PromiseSettledResult<RunnerResult>[],
+    laneNames: string[],
   ): RunnerResult {
     const mergedData: Record<string, unknown> = {}
     const mergedLog: StepLog[] = []
     let allSuccess = true
     const errors: string[] = []
+    const laneSummaries: LaneSummary[] = []
 
     for (let i = 0; i < results.length; i++) {
       const result = results[i]
-      const lanePrefix = `lane_${i + 1}`
+      const laneName = laneNames[i] ?? `Lane ${i + 1}`
 
       if (result.status === 'rejected') {
         allSuccess = false
-        errors.push(`${lanePrefix}: ${result.reason instanceof Error ? result.reason.message : String(result.reason)}`)
+        const errorMsg = result.reason instanceof Error ? result.reason.message : String(result.reason)
+        errors.push(`${laneName}: ${errorMsg}`)
+        laneSummaries.push({
+          name: laneName,
+          success: false,
+          data: {},
+          stepCount: 0,
+          error: errorMsg,
+        })
         continue
       }
 
       const laneResult = result.value
       if (!laneResult.success) {
         allSuccess = false
-        if (laneResult.error) errors.push(`${lanePrefix}: ${laneResult.error}`)
+        if (laneResult.error) errors.push(`${laneName}: ${laneResult.error}`)
       }
+
+      laneSummaries.push({
+        name: laneName,
+        success: laneResult.success,
+        data: laneResult.data,
+        stepCount: laneResult.log.length,
+        error: laneResult.error,
+        sourceUrl: laneResult.sourceUrl,
+      })
 
       // Merge extraction data
       for (const [key, value] of Object.entries(laneResult.data)) {
-        const finalKey = key in mergedData ? `${lanePrefix}_${key}` : key
+        const slugName = laneName.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '')
+        const finalKey = key in mergedData ? `${slugName}_${key}` : key
         mergedData[finalKey] = value
       }
 
-      // Merge logs with lane prefix
+      // Merge logs with lane name prefix
       for (const entry of laneResult.log) {
         mergedLog.push({
           ...entry,
-          label: `[${lanePrefix}] ${entry.label ?? entry.action}`,
+          label: `[${laneName}] ${entry.label ?? entry.action}`,
         })
       }
     }
@@ -194,6 +254,7 @@ export class AutomationRunner {
       data: mergedData,
       log: mergedLog,
       error: errors.length > 0 ? errors.join('; ') : undefined,
+      laneSummaries,
     }
   }
 
@@ -250,13 +311,27 @@ export class AutomationRunner {
       if (qs) url += (url.includes('?') ? '&' : '?') + qs
     }
 
-    // Open window if not already open (foreground so user sees it), then never force focus on navigate
+    // Open tab if not already open (foreground so user sees it), then navigate
     if (!bw.isOpen()) {
       await bw.open(url, { background: false })
     } else {
       await bw.navigate(url)
     }
-    await bw.waitForLoad()
+
+    // Wait according to configured strategy (default: 'load' - safest)
+    const waitUntil = step.waitUntil ?? 'load'
+    switch (waitUntil) {
+      case 'domcontentloaded':
+        await bw.waitForDOMContentLoaded()
+        break
+      case 'networkidle':
+        await bw.waitForNetworkIdle()
+        break
+      case 'load':
+      default:
+        await bw.waitForLoad()
+        break
+    }
   }
 
   private async stepClick(

@@ -27,7 +27,7 @@ export class LLMApiError extends Error {
   }
 }
 
-/** Network-level error (fetch itself failed — no HTTP response) */
+/** Network-level error (fetch itself failed - no HTTP response) */
 export class LLMNetworkError extends Error {
   constructor(message: string) {
     super(message)
@@ -173,7 +173,7 @@ export class LLMService implements ILLMService {
     options?: LLMGenerationOptions,
   ): Promise<void> {
     if (!this.isConfigured()) {
-      throw new Error('LLM yapılandırılmadı. Ayarlardan bir provider ve model seçin.')
+      throw new Error('LLM not configured. Select a provider and model in settings.')
     }
 
     this.abortController?.abort()
@@ -181,7 +181,7 @@ export class LLMService implements ILLMService {
 
     const url = this.url
     if (!url) {
-      throw new Error('Geçersiz provider yapılandırması')
+      throw new Error('Invalid provider configuration')
     }
 
     await this.streamDirect(messages, onChunk, options)
@@ -193,29 +193,11 @@ export class LLMService implements ILLMService {
     return m.startsWith('o1') || m.startsWith('o3') || m.startsWith('o4')
   }
 
-  private async streamDirect(
-    messages: ChatCompletionMessageParam[],
-    onChunk: (chunk: string) => void,
-    options?: LLMGenerationOptions,
-  ): Promise<void> {
-    const normalizedMessages = normalizeMessagesForStrictRoles(messages)
-    const isResponsesApi = this.useResponsesApi && this.responsesUrl
-    const requestUrl = isResponsesApi ? this.responsesUrl : this.url
-
-    const body: Record<string, unknown> = isResponsesApi
-      ? {
-          model: this.model,
-          input: normalizedMessages,
-          stream: true,
-        }
-      : {
-          model: this.model,
-          messages: normalizedMessages,
-          stream: true,
-        }
+  /** Apply generation options (temperature, max_tokens, top_p) to a request body */
+  private applyOptions(body: Record<string, unknown>, options?: LLMGenerationOptions, responsesApi = false): void {
     if (options?.temperature != null) body.temperature = options.temperature
     if (options?.max_tokens != null) {
-      if (isResponsesApi) {
+      if (responsesApi) {
         body.max_output_tokens = options.max_tokens
       } else if (this.usesMaxCompletionTokens()) {
         body.max_completion_tokens = options.max_tokens
@@ -224,10 +206,13 @@ export class LLMService implements ILLMService {
       }
     }
     if (options?.top_p != null) body.top_p = options.top_p
+  }
 
+  /** Fetch with abort and network error handling */
+  private async fetchApi(url: string, body: Record<string, unknown>, extraInit?: RequestInit): Promise<Response> {
     let response: Response
     try {
-      response = await fetch(requestUrl, {
+      response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -235,6 +220,7 @@ export class LLMService implements ILLMService {
         },
         signal: this.abortController!.signal,
         cache: 'no-store',
+        ...extraInit,
         body: JSON.stringify(body),
       })
     } catch (err) {
@@ -250,6 +236,25 @@ export class LLMService implements ILLMService {
           : err.error?.message || err.message || JSON.stringify(err.error) || `API error: ${response.status}`
       throw new LLMApiError(errorMessage, response.status)
     }
+
+    return response
+  }
+
+  private async streamDirect(
+    messages: ChatCompletionMessageParam[],
+    onChunk: (chunk: string) => void,
+    options?: LLMGenerationOptions,
+  ): Promise<void> {
+    const normalizedMessages = normalizeMessagesForStrictRoles(messages)
+    const isResponsesApi = this.useResponsesApi && this.responsesUrl
+    const requestUrl = isResponsesApi ? this.responsesUrl : this.url
+
+    const body: Record<string, unknown> = isResponsesApi
+      ? { model: this.model, input: normalizedMessages, stream: true }
+      : { model: this.model, messages: normalizedMessages, stream: true }
+    this.applyOptions(body, options, !!isResponsesApi)
+
+    const response = await this.fetchApi(requestUrl, body)
 
     const reader = response.body?.getReader()
     if (!reader) throw new Error('Response body is not readable')
@@ -287,48 +292,11 @@ export class LLMService implements ILLMService {
     options?: LLMGenerationOptions,
   ): Promise<ChatCompletionResult> {
     const body: Record<string, unknown> = {
-      model: this.model,
-      messages,
-      tools,
-      tool_choice: 'auto',
-      stream: true,
+      model: this.model, messages, tools, tool_choice: 'auto', stream: true,
     }
-    if (options?.temperature != null) body.temperature = options.temperature
-    if (options?.max_tokens != null) {
-      if (this.usesMaxCompletionTokens()) {
-        body.max_completion_tokens = options.max_tokens
-      } else {
-        body.max_tokens = options.max_tokens
-      }
-    }
-    if (options?.top_p != null) body.top_p = options.top_p
+    this.applyOptions(body, options)
 
-    let response: Response
-    try {
-      response = await fetch(this.url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${this.apiKey}`,
-        },
-        signal: this.abortController!.signal,
-        cache: 'no-store',
-        body: JSON.stringify(body),
-      })
-    } catch (err) {
-      if (this.abortController?.signal.aborted) throw err
-      throw new LLMNetworkError(err instanceof Error ? err.message : String(err))
-    }
-
-    if (!response.ok) {
-      const err = await response.json().catch(() => ({ error: response.statusText }))
-      const errorMessage =
-        typeof err.error === 'string'
-          ? err.error
-          : err.error?.message || err.message || JSON.stringify(err.error) || `API error: ${response.status}`
-      throw new LLMApiError(errorMessage, response.status)
-    }
-
+    const response = await this.fetchApi(this.url, body)
     const reader = response.body?.getReader()
     if (!reader) throw new Error('Response body is not readable')
 
@@ -406,7 +374,7 @@ export class LLMService implements ILLMService {
     options?: LLMGenerationOptions,
   ): Promise<ChatCompletionResult> {
     if (!this.isConfigured()) {
-      throw new Error('LLM yapılandırılmadı. Ayarlardan bir provider ve model seçin.')
+      throw new Error('LLM not configured. Select a provider and model in settings.')
     }
 
     this.abortController?.abort()
@@ -422,7 +390,7 @@ export class LLMService implements ILLMService {
     options?: LLMGenerationOptions,
   ): Promise<ChatCompletionResult> {
     if (!this.isConfigured()) {
-      throw new Error('LLM yapılandırılmadı. Ayarlardan bir provider ve model seçin.')
+      throw new Error('LLM not configured. Select a provider and model in settings.')
     }
 
     this.abortController?.abort()
@@ -437,45 +405,11 @@ export class LLMService implements ILLMService {
     options?: LLMGenerationOptions,
   ): Promise<ChatCompletionResult> {
     const body: Record<string, unknown> = {
-      model: this.model,
-      messages,
-      tools,
-      tool_choice: 'auto',
+      model: this.model, messages, tools, tool_choice: 'auto',
     }
-    if (options?.temperature != null) body.temperature = options.temperature
-    if (options?.max_tokens != null) {
-      if (this.usesMaxCompletionTokens()) {
-        body.max_completion_tokens = options.max_tokens
-      } else {
-        body.max_tokens = options.max_tokens
-      }
-    }
-    if (options?.top_p != null) body.top_p = options.top_p
+    this.applyOptions(body, options)
 
-    let response: Response
-    try {
-      response = await fetch(this.url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${this.apiKey}`,
-        },
-        signal: this.abortController!.signal,
-        body: JSON.stringify(body),
-      })
-    } catch (err) {
-      if (this.abortController?.signal.aborted) throw err
-      throw new LLMNetworkError(err instanceof Error ? err.message : String(err))
-    }
-
-    if (!response.ok) {
-      const err = await response.json().catch(() => ({ error: response.statusText }))
-      const errorMessage =
-        typeof err.error === 'string'
-          ? err.error
-          : err.error?.message || err.message || JSON.stringify(err.error) || `API error: ${response.status}`
-      throw new LLMApiError(errorMessage, response.status)
-    }
+    const response = await this.fetchApi(this.url, body)
 
     const data = (await response.json()) as {
       choices?: Array<{

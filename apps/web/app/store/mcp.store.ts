@@ -119,6 +119,20 @@ interface MCPState {
   ) => Promise<MCPToolCallResult>
 }
 
+/** Resolve effective implicit MCP IDs for an agent, filtering out globally disabled ones */
+function resolveImplicitMCPIds(agent: Agent, disabledBuiltinMCPIds: string[]): string[] {
+  let implicitIds: string[]
+  if (agent.source === 'builtin' && agent.isEdited) {
+    implicitIds = agent.implicitMCPIds
+  } else if (agent.source === 'builtin') {
+    implicitIds = IMPLICIT_AGENT_SERVERS[agent.id] ?? []
+  } else {
+    implicitIds = agent.implicitMCPIds
+  }
+  const disabledSet = new Set(disabledBuiltinMCPIds)
+  return implicitIds.filter(id => !disabledSet.has(id))
+}
+
 function syncServersFromRegistry(
   registry: MCPServerRegistry,
   set: (fn: (s: MCPState) => Partial<MCPState>) => void,
@@ -181,12 +195,12 @@ export const useMCPStore = create<MCPState>((set, get) => ({
         })
       },
       () => {
-        // Extension disconnected — clean up extension servers from registry
+        // Extension disconnected - clean up extension servers from registry
         const { registry, extensionServers } = get()
         if (registry) {
           for (const extServer of extensionServers) {
             registry.removeServer(extServer.id).catch(() => {
-              // Ignore — transport may not have been ready yet
+              // Ignore - transport may not have been ready yet
             })
           }
         }
@@ -239,18 +253,7 @@ export const useMCPStore = create<MCPState>((set, get) => ({
 
     set({ lastActivatedAgent: agent })
 
-    // For builtin agents: use IMPLICIT_AGENT_SERVERS unless user has edited (isEdited) → then respect agent.implicitMCPIds
-    let implicitIds: string[]
-    if (agent.source === 'builtin' && agent.isEdited) {
-      implicitIds = agent.implicitMCPIds
-    } else if (agent.source === 'builtin') {
-      implicitIds = IMPLICIT_AGENT_SERVERS[agent.id] ?? []
-    } else {
-      implicitIds = agent.implicitMCPIds
-    }
-    // Filter out globally disabled built-in MCPs
-    const disabledSet = new Set(disabledBuiltinMCPIds)
-    const effectiveImplicitIds = implicitIds.filter(id => !disabledSet.has(id))
+    const effectiveImplicitIds = resolveImplicitMCPIds(agent, disabledBuiltinMCPIds)
 
     // Determine which servers this agent needs
     const neededIds = new Set<string>()
@@ -306,7 +309,7 @@ export const useMCPStore = create<MCPState>((set, get) => ({
     // Wait for browser servers and removals together
     await Promise.all([...browserServerOps, ...removeOps])
 
-    // Connect servers that are needed but not yet connected — in parallel
+    // Connect servers that are needed but not yet connected - in parallel
     if (typeof window !== 'undefined' && import.meta.env?.DEV) {
       console.log('[mcp] activateAgentMCPs:', agent.id, 'neededIds:', [...neededIds])
     }
@@ -585,17 +588,7 @@ export const useMCPStore = create<MCPState>((set, get) => ({
       return []
     }
 
-    let implicitIds: string[]
-    if (agent.source === 'builtin' && agent.isEdited) {
-      implicitIds = agent.implicitMCPIds
-    } else if (agent.source === 'builtin') {
-      implicitIds = IMPLICIT_AGENT_SERVERS[agent.id] ?? []
-    } else {
-      implicitIds = agent.implicitMCPIds
-    }
-
-    const disabledSet = new Set(disabledBuiltinMCPIds)
-    const effectiveImplicitIds = implicitIds.filter(id => !disabledSet.has(id))
+    const effectiveImplicitIds = resolveImplicitMCPIds(agent, disabledBuiltinMCPIds)
     const extensionIds = agent.extensionMCPIds ?? []
 
     const tools: MCPToolInfo[] = []

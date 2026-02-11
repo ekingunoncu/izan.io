@@ -40,7 +40,7 @@
 |---------|-------------|
 | 🔐 **Privacy** | API keys stored only in your browser. Never sent to our servers. |
 | 🧠 **Multi-Provider** | 17+ AI providers supported (see below). |
-| 🤖 **Smart Agents** | MCP-connected agents — web search, code, and more. |
+| 🤖 **Smart Agents** | MCP-connected agents - web search, code, and more. |
 | 🌐 **MCP** | Built-in and custom MCP servers. |
 | 🎬 **Action recorder** | Record browser actions in the extension side panel and save as MCP tools; no coding required (see [docs/visual-mcp-tool-builder.md](docs/visual-mcp-tool-builder.md)). |
 

@@ -25,6 +25,11 @@ export interface AutomationActionStep {
   [key: string]: unknown
 }
 
+export interface AutomationLane {
+  name: string
+  steps: AutomationActionStep[]
+}
+
 export interface AutomationTool {
   id: string
   name: string
@@ -33,7 +38,7 @@ export interface AutomationTool {
   version: string
   parameters: AutomationToolParameter[]
   steps: AutomationActionStep[]
-  lanes?: AutomationActionStep[][]
+  lanes?: AutomationLane[]
   serverId: string
   createdAt: number
   updatedAt: number
@@ -125,7 +130,7 @@ export async function createTool(input: {
   description?: string
   parameters?: AutomationToolParameter[]
   steps?: AutomationActionStep[]
-  lanes?: AutomationActionStep[][]
+  lanes?: AutomationLane[]
   version?: string
 }): Promise<AutomationTool> {
   const data = await getData()
@@ -179,7 +184,7 @@ export async function updateTool(
     displayName?: string
     description?: string
     steps?: AutomationActionStep[]
-    lanes?: AutomationActionStep[][]
+    lanes?: AutomationLane[]
     parameters?: AutomationToolParameter[]
   },
 ): Promise<AutomationTool | null> {
@@ -253,7 +258,7 @@ export async function importServerData(input: {
     version?: string
     parameters?: AutomationToolParameter[]
     steps?: AutomationActionStep[]
-    lanes?: AutomationActionStep[][]
+    lanes?: AutomationLane[]
   }>
 }): Promise<AutomationServer> {
   const data = await getData()
@@ -307,7 +312,7 @@ export async function importToolData(
     version?: string
     parameters?: AutomationToolParameter[]
     steps?: AutomationActionStep[]
-    lanes?: AutomationActionStep[][]
+    lanes?: AutomationLane[]
   },
 ): Promise<AutomationTool> {
   return createTool({

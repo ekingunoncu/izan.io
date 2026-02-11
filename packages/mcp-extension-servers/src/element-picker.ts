@@ -5,7 +5,7 @@
  *
  * **List mode** (automatic):
  *   1. Scans for repeating groups (≥ 3 siblings with same tag + shared class).
- *   2. Injects CSS outline + a "Seç · 1/24" badge INTO each item.
+ *   2. Injects CSS outline + a "Select · 1/24" badge INTO each item.
  *   3. User clicks a badge → auto-detects ALL extractable fields from the
  *      first item → immediately finalizes the extract step. No manual field
  *      picking required.
@@ -147,7 +147,7 @@ export class ElementPicker {
   isActive(): boolean { return this.active }
 
   // ══════════════════════════════════════════════════════════════════
-  // List candidate detection — injects CSS outlines + badges into DOM
+  // List candidate detection - injects CSS outlines + badges into DOM
   // ══════════════════════════════════════════════════════════════════
 
   private detectListCandidates(): void {
@@ -196,7 +196,7 @@ export class ElementPicker {
           const badge = document.createElement('div')
           badge.className = CLS_BADGE
           badge.setAttribute('data-izan-recorder', 'true')
-          badge.textContent = `Seç · ${idx + 1}/${items.length}`
+          badge.textContent = `Select · ${idx + 1}/${items.length}`
           badge.addEventListener('click', (e) => {
             e.preventDefault()
             e.stopPropagation()
@@ -379,14 +379,14 @@ export class ElementPicker {
     if (this.mode === 'container') {
       const n = this.listCandidates.length
       const msg = this.extractionMode === 'list'
-        ? n > 0 ? `${n} liste algılandı — öğelerdeki "Seç" butonuna tıklayın` : `Tekrarlayan bir öğeye tıklayın`
-        : `Veri çıkarmak istediğiniz öğeye tıklayın`
-      this.infoPanel.innerHTML = `<span>${msg}</span><span style="opacity:0.4;font-size:11px">ESC iptal</span>`
+        ? n > 0 ? `${n} list(s) detected - click "Select" on an item` : `Click on a repeating element`
+        : `Click on the element you want to extract data from`
+      this.infoPanel.innerHTML = `<span>${msg}</span><span style="opacity:0.4;font-size:11px">ESC to cancel</span>`
     } else {
       this.infoPanel.innerHTML = `
-        <span>Çıkarmak istediğiniz alanlara tıklayın (${this.fields.length} seçili)</span>
-        <button data-izan-recorder="true" style="background:hsl(220 90% 56%);color:#fff;border:none;padding:5px 10px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:500">Tamamla</button>
-        <span style="opacity:0.4;font-size:11px">ESC iptal</span>`
+        <span>Click fields to extract (${this.fields.length} selected)</span>
+        <button data-izan-recorder="true" style="background:hsl(220 90% 56%);color:#fff;border:none;padding:5px 10px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:500">Done</button>
+        <span style="opacity:0.4;font-size:11px">ESC to cancel</span>`
       this.infoPanel.querySelector('button')?.addEventListener('click', () => this.finalize())
     }
   }
@@ -563,12 +563,12 @@ export class ElementPicker {
       fields: this.fields,
       itemCount,
       label: this.extractionMode === 'list'
-        ? `${itemCount ?? '?'} öğe · ${this.fields.length} özellik (liste)`
-        : `${this.fields.length} özellik (tekil)`,
+        ? `${itemCount ?? '?'} items · ${this.fields.length} fields (list)`
+        : `${this.fields.length} fields (single)`,
     }
     const preview = this.generatePreview()
     const cb = this.onComplete
-    // Clear onCancelCb before cancel() so it doesn't fire — this is a successful completion
+    // Clear onCancelCb before cancel() so it doesn't fire - this is a successful completion
     this.onCancelCb = null
     this.cancel()
     cb?.({ step, preview })

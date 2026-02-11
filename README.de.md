@@ -40,7 +40,7 @@
 |---------|--------------|
 | 🔐 **Privatsphäre** | API-Keys nur im Browser. Nie an unsere Server gesendet. |
 | 🧠 **Multi-Provider** | 17+ KI-Provider unterstützt (siehe unten). |
-| 🤖 **Smarte Agents** | MCP-vernetzte Agents — Websuche, Code, und mehr. |
+| 🤖 **Smarte Agents** | MCP-vernetzte Agents - Websuche, Code, und mehr. |
 | 🌐 **MCP** | Integrierte und eigene MCP-Server. |
 | 🎬 **Aktions-Recorder** | Browser-Aktionen im Extension-Seitenpanel aufzeichnen und als MCP-Tools speichern; kein Code nötig ([docs/visual-mcp-tool-builder.md](docs/visual-mcp-tool-builder.md)). |
 

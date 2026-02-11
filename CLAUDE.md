@@ -37,7 +37,7 @@ npm run build:extension # Build extension MCP servers
 
 **Monorepo**: npm workspaces + Turborepo. All packages under `packages/`, web app under `apps/web/`.
 
-### apps/web/ — React Router v7 + Vite + Tailwind CSS 4
+### apps/web/ - React Router v7 + Vite + Tailwind CSS 4
 
 - **Routing** (`app/routes.ts`): Language-prefixed routes (`/:lang/agents`, `/:lang/settings`, `/:lang/docs`) are prerendered. `/chat` routes are client-only with no language prefix. Agent-specific chat via `/chat/:agentSlug`.
 - **State** (Zustand, `app/store/`): Key stores are `chat.store` (conversations, message history, tool-calling loop), `agent.store` (agent CRUD, MCP assignments), `mcp.store` (MCP registry, lazy server activation/deactivation per agent), `model.store` (provider/model/API key selection).
@@ -48,31 +48,31 @@ npm run build:extension # Build extension MCP servers
 - **Documentation** (`app/docs/`): GitBook-style docs system. `manifest.ts` defines slugs/categories, `loader.ts` has static `?raw` Vite imports for 21 markdown files (7 docs × 3 locales). Routes: `docs-layout.tsx` (sidebar), `docs-index.tsx` (landing), `docs-page.tsx` (renders markdown via `react-markdown` + `remark-gfm`). Prose styling via `.docs-content` class in `index.css`.
 - **Dev proxy** (`vite.config.ts`): Local MCP proxy middleware intercepts `/api/proxy/mcp` in dev mode, bypassing CORS. Production uses the Lambda proxy.
 
-### packages/agent-core/ — LLM-agnostic agent types + tool executor
+### packages/agent-core/ - LLM-agnostic agent types + tool executor
 
 - `AgentDefinition`, `ToolCall`, `ToolResult`, `ChatMessage` types
 - `ToolExecutor`: Executes MCP tools via registry with retry + exponential backoff
 
-### packages/agents/ — Built-in agent definitions
+### packages/agents/ - Built-in agent definitions
 
 - Each agent is a directory with `definition.ts` exporting `AgentDefinition` + optional `implicitMCPIds`
 - Auto-discovery script generates `src/generated.ts` with `BUILTIN_AGENT_DEFINITIONS` and `IMPLICIT_AGENT_SERVERS` maps
 - Current agents: `general` (general MCP), `domain-expert` (domain-check MCP)
 
-### packages/mcp-client/ — MCP protocol client + server registry
+### packages/mcp-client/ - MCP protocol client + server registry
 
 - `MCPServerRegistry`: Manages connections to multiple MCP servers, tool discovery, tool execution
 - `IzanMCPClient`: Single server connection via JSON-RPC
 - Server sources: `builtin` (browser), `user` (custom URLs), `extension` (Chrome extension)
 - `builtin-servers.generated.ts`: Auto-generated from `discover-builtin-servers.ts` script
 
-### packages/mcp-browser-servers/ — In-browser MCP servers
+### packages/mcp-browser-servers/ - In-browser MCP servers
 
 - Run entirely client-side using `@mcp-b/transports` TabServerTransport (postMessage-based)
 - Servers: `general` (time, uuid, calc, password), `domain-check` (RDAP/DoH)
 - Tests use vitest
 
-### packages/mcp-extension-servers/ — Chrome extension MCP servers
+### packages/mcp-extension-servers/ - Chrome extension MCP servers
 
 - Background service worker (`background.ts`), content scripts (`content.ts`), side panel UI
 - **Macros / Browser Automation**: Records browser interactions (clicks, typing, scrolls, navigation) → generates MCP tool definitions as JSON. Supports parallel lanes (tabbed execution), parameterized URLs, element picking for data extraction. Recordings stored in IndexedDB (`automationTools`, `automationServers` tables).
@@ -82,13 +82,13 @@ npm run build:extension # Build extension MCP servers
 - Communication: Extension ↔ web app via `window.postMessage` with `izan:*` protocol events
 - Separate Vite configs for background, recorder inject, and side panel builds
 
-### packages/proxy-mcp-server/ — AWS Lambda MCP proxy
+### packages/proxy-mcp-server/ - AWS Lambda MCP proxy
 
 - CORS bypass for user-added custom MCP servers
 - Browser → CloudFront → Lambda → external MCP server
 - Target URL passed via `X-MCP-Proxy-Target` header (base64 JSON)
 
-### packages/infra/ — AWS CDK stack
+### packages/infra/ - AWS CDK stack
 
 - S3 + CloudFront for static hosting, API Gateway + Lambda for `/api/proxy/mcp` and `/api/github-stars`
 - Custom domain via `IZAN_DOMAIN_CERTIFICATE_ARN` env var

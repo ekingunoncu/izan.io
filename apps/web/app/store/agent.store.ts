@@ -52,6 +52,30 @@ interface AgentState {
   toggleFavoriteAgent: (agentId: string) => Promise<void>
 }
 
+/** Persist an agent update to IndexedDB and sync Zustand state */
+async function persistAgentUpdate(
+  get: () => AgentState,
+  set: (fn: (s: AgentState) => Partial<AgentState>) => void,
+  agentId: string,
+  updater: (agent: Agent) => Partial<Agent>,
+): Promise<void> {
+  const { agents } = get()
+  const agent = agents.find(a => a.id === agentId)
+  if (!agent) return
+
+  const updated: Agent = {
+    ...agent,
+    ...updater(agent),
+    isEdited: true,
+    updatedAt: Date.now(),
+  }
+  await db.agents.put(updated)
+  set(s => ({
+    agents: s.agents.map(a => a.id === agentId ? updated : a),
+    currentAgent: s.currentAgentId === agentId ? updated : s.currentAgent,
+  }))
+}
+
 export const useAgentStore = create<AgentState>((set, get) => ({
   agents: [],
   currentAgentId: null,
@@ -242,74 +266,30 @@ export const useAgentStore = create<AgentState>((set, get) => ({
   // ─── MCP Management ────────────────────────────────────────────
 
   addImplicitMCP: async (agentId, mcpId) => {
-    const { agents } = get()
-    const agent = agents.find(a => a.id === agentId)
+    const agent = get().agents.find(a => a.id === agentId)
     if (!agent || agent.implicitMCPIds.includes(mcpId)) return
-
-    const updated: Agent = {
-      ...agent,
-      implicitMCPIds: [...agent.implicitMCPIds, mcpId],
-      isEdited: true,
-      updatedAt: Date.now(),
-    }
-    await db.agents.put(updated)
-    set(s => ({
-      agents: s.agents.map(a => a.id === agentId ? updated : a),
-      currentAgent: s.currentAgentId === agentId ? updated : s.currentAgent,
+    await persistAgentUpdate(get, set, agentId, (a) => ({
+      implicitMCPIds: [...a.implicitMCPIds, mcpId],
     }))
   },
 
   removeImplicitMCP: async (agentId, mcpId) => {
-    const { agents } = get()
-    const agent = agents.find(a => a.id === agentId)
-    if (!agent) return
-
-    const updated: Agent = {
-      ...agent,
-      implicitMCPIds: agent.implicitMCPIds.filter(id => id !== mcpId),
-      isEdited: true,
-      updatedAt: Date.now(),
-    }
-    await db.agents.put(updated)
-    set(s => ({
-      agents: s.agents.map(a => a.id === agentId ? updated : a),
-      currentAgent: s.currentAgentId === agentId ? updated : s.currentAgent,
+    await persistAgentUpdate(get, set, agentId, (a) => ({
+      implicitMCPIds: a.implicitMCPIds.filter(id => id !== mcpId),
     }))
   },
 
   addCustomMCP: async (agentId, mcpId) => {
-    const { agents } = get()
-    const agent = agents.find(a => a.id === agentId)
+    const agent = get().agents.find(a => a.id === agentId)
     if (!agent || agent.customMCPIds.includes(mcpId)) return
-
-    const updated: Agent = {
-      ...agent,
-      customMCPIds: [...agent.customMCPIds, mcpId],
-      isEdited: true,
-      updatedAt: Date.now(),
-    }
-    await db.agents.put(updated)
-    set(s => ({
-      agents: s.agents.map(a => a.id === agentId ? updated : a),
-      currentAgent: s.currentAgentId === agentId ? updated : s.currentAgent,
+    await persistAgentUpdate(get, set, agentId, (a) => ({
+      customMCPIds: [...a.customMCPIds, mcpId],
     }))
   },
 
   removeCustomMCP: async (agentId, mcpId) => {
-    const { agents } = get()
-    const agent = agents.find(a => a.id === agentId)
-    if (!agent) return
-
-    const updated: Agent = {
-      ...agent,
-      customMCPIds: agent.customMCPIds.filter(id => id !== mcpId),
-      isEdited: true,
-      updatedAt: Date.now(),
-    }
-    await db.agents.put(updated)
-    set(s => ({
-      agents: s.agents.map(a => a.id === agentId ? updated : a),
-      currentAgent: s.currentAgentId === agentId ? updated : s.currentAgent,
+    await persistAgentUpdate(get, set, agentId, (a) => ({
+      customMCPIds: a.customMCPIds.filter(id => id !== mcpId),
     }))
   },
 
@@ -317,38 +297,16 @@ export const useAgentStore = create<AgentState>((set, get) => ({
 
   linkAgent: async (agentId, targetAgentId) => {
     if (agentId === targetAgentId) return
-    const { agents } = get()
-    const agent = agents.find(a => a.id === agentId)
+    const agent = get().agents.find(a => a.id === agentId)
     if (!agent || agent.linkedAgentIds.includes(targetAgentId)) return
-
-    const updated: Agent = {
-      ...agent,
-      linkedAgentIds: [...agent.linkedAgentIds, targetAgentId],
-      isEdited: true,
-      updatedAt: Date.now(),
-    }
-    await db.agents.put(updated)
-    set(s => ({
-      agents: s.agents.map(a => a.id === agentId ? updated : a),
-      currentAgent: s.currentAgentId === agentId ? updated : s.currentAgent,
+    await persistAgentUpdate(get, set, agentId, (a) => ({
+      linkedAgentIds: [...a.linkedAgentIds, targetAgentId],
     }))
   },
 
   unlinkAgent: async (agentId, targetAgentId) => {
-    const { agents } = get()
-    const agent = agents.find(a => a.id === agentId)
-    if (!agent) return
-
-    const updated: Agent = {
-      ...agent,
-      linkedAgentIds: agent.linkedAgentIds.filter(id => id !== targetAgentId),
-      isEdited: true,
-      updatedAt: Date.now(),
-    }
-    await db.agents.put(updated)
-    set(s => ({
-      agents: s.agents.map(a => a.id === agentId ? updated : a),
-      currentAgent: s.currentAgentId === agentId ? updated : s.currentAgent,
+    await persistAgentUpdate(get, set, agentId, (a) => ({
+      linkedAgentIds: a.linkedAgentIds.filter(id => id !== targetAgentId),
     }))
   },
 

@@ -147,7 +147,7 @@ export default defineConfig({
         });
       },
     },
-    // Local MCP proxy — must run before the /api proxy catches it
+    // Local MCP proxy - must run before the /api proxy catches it
     {
       name: "dev-mcp-proxy",
       configureServer(server) {

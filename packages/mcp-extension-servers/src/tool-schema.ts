@@ -65,12 +65,19 @@ const baseStepSchema = z.object({
   continueOnError: z.boolean().optional(),
 })
 
+/** Wait strategy after navigation */
+export const waitUntilSchema = z.enum(['load', 'domcontentloaded', 'networkidle'])
+
+export type WaitUntil = z.infer<typeof waitUntilSchema>
+
 export const navigateStepSchema = baseStepSchema.extend({
   action: z.literal('navigate'),
   /** Base URL to navigate to */
   url: z.string(),
   /** Query parameters (values may contain {{param}} placeholders) */
   urlParams: z.record(z.string()).optional(),
+  /** When to consider navigation complete (default: 'load' - safest) */
+  waitUntil: waitUntilSchema.default('load').optional(),
 })
 
 export const clickStepSchema = baseStepSchema.extend({
@@ -165,6 +172,17 @@ export const actionStepSchema = z.discriminatedUnion('action', [
 
 export type ActionStep = z.infer<typeof actionStepSchema>
 
+// ─── Lane Schema ─────────────────────────────────────────────────────────────
+
+export const laneSchema = z.object({
+  /** Human-readable lane name */
+  name: z.string().min(1),
+  /** Ordered sequence of actions for this lane */
+  steps: z.array(actionStepSchema).min(1),
+})
+
+export type Lane = z.infer<typeof laneSchema>
+
 // ─── Tool Definition Schema ──────────────────────────────────────────────────
 
 export const toolDefinitionSchema = z.object({
@@ -180,10 +198,20 @@ export const toolDefinitionSchema = z.object({
   parameters: z.array(toolParameterSchema).default([]),
   /** Ordered sequence of actions to execute */
   steps: z.array(actionStepSchema).min(1),
-  /** Parallel lanes — each lane is an independent step sequence executed concurrently.
-   *  When present with length > 1, all lanes run in parallel (each in its own browser window).
-   *  When absent or length <= 1, falls back to `steps` for backward compatibility. */
-  lanes: z.array(z.array(actionStepSchema)).optional(),
+  /** Named parallel lanes - each lane has a name and independent step sequence executed concurrently.
+   *  When present with length > 1, all lanes run in parallel (each in its own tab within a shared window).
+   *  When absent or length <= 1, falls back to `steps` for backward compatibility.
+   *  Legacy format (ActionStep[][]) is auto-wrapped on load. */
+  lanes: z.preprocess(
+    (val) => {
+      if (!Array.isArray(val)) return val
+      // Auto-wrap legacy ActionStep[][] into named lane format
+      return val.map((item, i) =>
+        Array.isArray(item) ? { name: `Lane ${i + 1}`, steps: item } : item,
+      )
+    },
+    z.array(laneSchema).optional(),
+  ),
 })
 
 export type ToolDefinition = z.infer<typeof toolDefinitionSchema>

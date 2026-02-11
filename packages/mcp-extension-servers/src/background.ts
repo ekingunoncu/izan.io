@@ -53,7 +53,7 @@ function bestEffortSyncToTab(): void {
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
   if (tabId !== recordingTabId || changeInfo.status !== 'complete') return
-  // The recording tab finished loading — re-inject the recorder script
+  // The recording tab finished loading - re-inject the recorder script
   chrome.scripting
     .executeScript({ target: { tabId }, files: ['recorder-inject.js'], world: 'ISOLATED' })
     .then(() => new Promise<void>((r) => setTimeout(r, 150)))
@@ -257,6 +257,13 @@ let automationWindowId: number | null = null
 /** Map of laneId → tabId within the shared automation window */
 const laneTabs = new Map<string, number>()
 
+/**
+ * Promise-based mutex for window creation.
+ * When the first lane starts creating a window, concurrent lanes
+ * await this promise instead of creating a second window.
+ */
+let windowCreationLock: Promise<void> | null = null
+
 /** Reverse lookup: tabId → laneId */
 function laneIdForTab(tid: number): string | undefined {
   for (const [lid, tabId] of laneTabs) { if (tabId === tid) return lid }
@@ -270,12 +277,13 @@ function getLaneId(p: P): string {
 /** Clean up when the automation window is closed by the user */
 chrome.windows.onRemoved.addListener((id) => {
   if (id === automationWindowId) {
-    // User closed the window — clean up all lane state
-    for (const [lid, tid] of laneTabs) {
+    // User closed the window - clean up all lane state
+    for (const [, tid] of laneTabs) {
       cdpDetach(tid).catch(() => {})
     }
     laneTabs.clear()
     automationWindowId = null
+    windowCreationLock = null
   }
 })
 
@@ -340,6 +348,14 @@ function resolveEl(sel: string): string {
     `:document.querySelector(s)})(${JSON.stringify(sel)})`
 }
 
+/** Like resolveEl but throws a properly-escaped Error if the element is not found */
+function resolveElOrThrow(sel: string): string {
+  const j = JSON.stringify(sel)
+  return `(function(s){var el=(s.startsWith('/')||s.startsWith('(')||s.includes('//'))` +
+    `?document.evaluate(s,document,null,XPathResult.FIRST_ORDERED_NODE_TYPE,null).singleNodeValue` +
+    `:document.querySelector(s);if(!el)throw new Error('Not found: '+s);return el})(${j})`
+}
+
 // ─── Command Handlers ─────────────────────────────────────────────────────────
 
 type R = { success: true; data?: unknown } | { success: false; error: string }
@@ -355,7 +371,6 @@ async function handleOpen(p: P): Promise<R> {
     try {
       await chrome.windows.get(automationWindowId)
     } catch {
-      // Window was closed — reset state
       automationWindowId = null
       laneTabs.clear()
     }
@@ -373,28 +388,51 @@ async function handleOpen(p: P): Promise<R> {
       await cdpAttach(existingTab)
       return { success: true, data: { tabId: existingTab } }
     } catch {
-      // Tab was closed — fall through to create a new one
       laneTabs.delete(laneId)
     }
   }
 
+  // ── Serialized window creation ──
+  // If another lane is currently creating the window, wait for it
+  if (windowCreationLock) {
+    await windowCreationLock
+  }
+
+  // Re-check after awaiting lock (window may now exist)
   if (automationWindowId != null) {
-    // Automation window exists — open a new tab in it
+    try {
+      await chrome.windows.get(automationWindowId)
+    } catch {
+      automationWindowId = null
+      laneTabs.clear()
+    }
+  }
+
+  if (automationWindowId != null) {
+    // Window exists (possibly created by another lane) - add a tab
     const tab = await chrome.tabs.create({ windowId: automationWindowId, url, active: true })
     tid = tab.id!
   } else {
-    // No automation window — create one
-    const win = await chrome.windows.create({
-      url,
-      type: 'normal',
-      width: opts.width,
-      height: opts.height,
-      focused: true,
-    })
-    if (!win) return { success: false, error: 'Failed to create window' }
-    tid = win.tabs?.[0]?.id ?? null
-    if (!tid || !win.id) return { success: false, error: 'Failed to get tab' }
-    automationWindowId = win.id
+    // First lane - create the window under a lock
+    let resolveCreation!: () => void
+    windowCreationLock = new Promise<void>((r) => { resolveCreation = r })
+
+    try {
+      const win = await chrome.windows.create({
+        url,
+        type: 'normal',
+        width: opts.width,
+        height: opts.height,
+        focused: true,
+      })
+      if (!win) return { success: false, error: 'Failed to create window' }
+      tid = win.tabs?.[0]?.id ?? null
+      if (!tid || !win.id) return { success: false, error: 'Failed to get tab' }
+      automationWindowId = win.id
+    } finally {
+      windowCreationLock = null
+      resolveCreation()
+    }
   }
 
   await waitForTab(tid, 15_000)
@@ -463,7 +501,7 @@ async function handleEvaluate(p: P): Promise<R> {
 }
 
 async function handleClick(p: P): Promise<R> {
-  return handleEvaluate({ tabId: p.tabId, expression: `(function(){var el=${resolveEl(p.selector as string)};if(!el)throw new Error('Not found: ${p.selector}');el.click();return null})()` })
+  return handleEvaluate({ tabId: p.tabId, expression: `(function(){${resolveElOrThrow(p.selector as string)}.click();return null})()` })
 }
 
 async function handleType(p: P): Promise<R> {
@@ -493,15 +531,15 @@ async function handleType(p: P): Promise<R> {
 }
 
 async function handleGetText(p: P): Promise<R> {
-  return handleEvaluate({ tabId: p.tabId, expression: `(function(){var el=${resolveEl(p.selector as string)};if(!el)throw new Error('Not found: ${p.selector}');return el.textContent||''})()` })
+  return handleEvaluate({ tabId: p.tabId, expression: `(function(){return ${resolveElOrThrow(p.selector as string)}.textContent||''})()` })
 }
 
 async function handleGetAttribute(p: P): Promise<R> {
-  return handleEvaluate({ tabId: p.tabId, expression: `(function(){var el=${resolveEl(p.selector as string)};if(!el)throw new Error('Not found: ${p.selector}');return el.getAttribute(${JSON.stringify(p.attribute as string)})})()` })
+  return handleEvaluate({ tabId: p.tabId, expression: `(function(){return ${resolveElOrThrow(p.selector as string)}.getAttribute(${JSON.stringify(p.attribute as string)})})()` })
 }
 
 async function handleGetValue(p: P): Promise<R> {
-  return handleEvaluate({ tabId: p.tabId, expression: `(function(){var el=${resolveEl(p.selector as string)};if(!el)throw new Error('Not found: ${p.selector}');return el.value||''})()` })
+  return handleEvaluate({ tabId: p.tabId, expression: `(function(){return ${resolveElOrThrow(p.selector as string)}.value||''})()` })
 }
 
 async function handleExists(p: P): Promise<R> {
@@ -509,11 +547,11 @@ async function handleExists(p: P): Promise<R> {
 }
 
 async function handleGetHtml(p: P): Promise<R> {
-  return handleEvaluate({ tabId: p.tabId, expression: `(function(){var el=${resolveEl(p.selector as string)};if(!el)throw new Error('Not found: ${p.selector}');return el.innerHTML})()` })
+  return handleEvaluate({ tabId: p.tabId, expression: `(function(){return ${resolveElOrThrow(p.selector as string)}.innerHTML})()` })
 }
 
 async function handleSelect(p: P): Promise<R> {
-  return handleEvaluate({ tabId: p.tabId, expression: `(function(){var el=${resolveEl(p.selector as string)};if(!el)throw new Error('Not found: ${p.selector}');el.value=${JSON.stringify(p.value as string)};el.dispatchEvent(new Event('change',{bubbles:true}));return null})()` })
+  return handleEvaluate({ tabId: p.tabId, expression: `(function(){var el=${resolveElOrThrow(p.selector as string)};el.value=${JSON.stringify(p.value as string)};el.dispatchEvent(new Event('change',{bubbles:true}));return null})()` })
 }
 
 async function handleScroll(p: P): Promise<R> {
@@ -523,7 +561,7 @@ async function handleScroll(p: P): Promise<R> {
   const dx = dir === 'left' ? -amount : dir === 'right' ? amount : 0
   const dy = dir === 'up' ? -amount : dir === 'down' ? amount : 0
   const expr = sel
-    ? `(function(){var el=${resolveEl(sel)};if(!el)throw new Error('Not found: ${sel}');el.scrollBy(${dx},${dy});return null})()`
+    ? `(function(){${resolveElOrThrow(sel)}.scrollBy(${dx},${dy});return null})()`
     : `(function(){window.scrollBy(${dx},${dy});return null})()`
   return handleEvaluate({ tabId: p.tabId, expression: expr })
 }
@@ -559,9 +597,10 @@ async function handleExtractSingle(p: P): Promise<R> {
   const container = p.containerSelector as string
   const fields = p.fields as Array<{ key: string; selector: string; type?: string; attribute?: string }>
   const fieldStr = JSON.stringify(fields)
+  const containerStr = JSON.stringify(container)
   const expr = `(function(){
-    var container=document.querySelector(${JSON.stringify(container)});
-    if(!container)throw new Error('Not found: ${container}');
+    var container=document.querySelector(${containerStr});
+    if(!container)throw new Error('Not found: '+${containerStr});
     var fields=${fieldStr};
     var result={};
     fields.forEach(function(f){
@@ -582,9 +621,10 @@ async function handleExtractSingle(p: P): Promise<R> {
 async function handleWaitForSelector(p: P): Promise<R> {
   const sel = p.selector as string
   const ms = (p.timeout as number) || 10_000
+  const errMsg = JSON.stringify(`waitForSelector timed out after ${ms}ms: ${sel}`)
   return handleEvaluate({
     tabId: p.tabId,
-    expression: `new Promise(function(ok,fail){var r=function(){return ${resolveEl(sel)}};if(r()){ok(null);return}var o=new MutationObserver(function(){if(r()){o.disconnect();ok(null)}});o.observe(document.documentElement,{childList:true,subtree:true});setTimeout(function(){o.disconnect();fail(new Error('waitForSelector("${sel}") timed out after ${ms}ms'))},${ms})})`,
+    expression: `new Promise(function(ok,fail){var r=function(){return ${resolveEl(sel)}};if(r()){ok(null);return}var o=new MutationObserver(function(){if(r()){o.disconnect();ok(null)}});o.observe(document.documentElement,{childList:true,subtree:true});setTimeout(function(){o.disconnect();fail(new Error(${errMsg}))},${ms})})`,
   })
 }
 
@@ -602,6 +642,95 @@ async function handleWaitForUrl(p: P): Promise<R> {
 
 async function handleWaitForLoad(p: P): Promise<R> {
   await waitForTab(p.tabId as number, (p.timeout as number) || 15_000)
+  return { success: true }
+}
+
+async function handleWaitForDOMContentLoaded(p: P): Promise<R> {
+  const tid = p.tabId as number
+  const timeout = (p.timeout as number) || 15_000
+
+  // Check if already past DOMContentLoaded
+  try {
+    const state = await cdpEval<string>(tid, 'document.readyState')
+    if (state === 'interactive' || state === 'complete') return { success: true }
+  } catch { /* page may be navigating, fall through to listener */ }
+
+  await chrome.debugger.sendCommand({ tabId: tid }, 'Page.enable')
+
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const timer = setTimeout(() => {
+        chrome.debugger.onEvent.removeListener(listener)
+        reject(new Error(`DOMContentLoaded timed out after ${timeout}ms`))
+      }, timeout)
+
+      const listener = (source: chrome.debugger.Debuggee, method: string) => {
+        if (source.tabId === tid && method === 'Page.domContentEventFired') {
+          clearTimeout(timer)
+          chrome.debugger.onEvent.removeListener(listener)
+          resolve()
+        }
+      }
+      chrome.debugger.onEvent.addListener(listener)
+    })
+  } finally {
+    await chrome.debugger.sendCommand({ tabId: tid }, 'Page.disable').catch(() => {})
+  }
+
+  return { success: true }
+}
+
+async function handleWaitForNetworkIdle(p: P): Promise<R> {
+  const tid = p.tabId as number
+  const timeout = (p.timeout as number) || 30_000
+  const idleTime = (p.idleTime as number) || 500
+
+  await chrome.debugger.sendCommand({ tabId: tid }, 'Network.enable')
+
+  try {
+    await new Promise<void>((resolve) => {
+      let inflight = 0
+      let idleTimer: ReturnType<typeof setTimeout> | null = null
+
+      const globalTimer = setTimeout(() => {
+        cleanup()
+        resolve() // Gracefully resolve on timeout - not an error
+      }, timeout)
+
+      function checkIdle() {
+        if (inflight <= 0) {
+          if (idleTimer) clearTimeout(idleTimer)
+          idleTimer = setTimeout(() => { cleanup(); resolve() }, idleTime)
+        } else if (idleTimer) {
+          clearTimeout(idleTimer)
+          idleTimer = null
+        }
+      }
+
+      function cleanup() {
+        clearTimeout(globalTimer)
+        if (idleTimer) clearTimeout(idleTimer)
+        chrome.debugger.onEvent.removeListener(listener)
+      }
+
+      const listener = (source: chrome.debugger.Debuggee, method: string) => {
+        if (source.tabId !== tid) return
+        if (method === 'Network.requestWillBeSent') {
+          inflight++
+          checkIdle()
+        } else if (method === 'Network.loadingFinished' || method === 'Network.loadingFailed') {
+          inflight = Math.max(0, inflight - 1)
+          checkIdle()
+        }
+      }
+
+      chrome.debugger.onEvent.addListener(listener)
+      checkIdle() // Start idle check immediately
+    })
+  } finally {
+    await chrome.debugger.sendCommand({ tabId: tid }, 'Network.disable').catch(() => {})
+  }
+
   return { success: true }
 }
 
@@ -628,6 +757,8 @@ const HANDLERS: Record<string, (p: P) => Promise<R>> = {
   waitForSelector: handleWaitForSelector,
   waitForUrl: handleWaitForUrl,
   waitForLoad: handleWaitForLoad,
+  waitForDOMContentLoaded: handleWaitForDOMContentLoaded,
+  waitForNetworkIdle: handleWaitForNetworkIdle,
 }
 
 chrome.runtime.onMessage.addListener(

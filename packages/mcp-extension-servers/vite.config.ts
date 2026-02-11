@@ -53,10 +53,10 @@ export default defineConfig({
       },
       output: {
         entryFileNames: '[name].js',
-        // Use ES format — Chrome MV3 background is already "type": "module"
+        // Use ES format - Chrome MV3 background is already "type": "module"
         // and content scripts in MAIN world can run as plain ES modules
         format: 'es',
-        // Prevent code splitting — each entry must be a standalone file
+        // Prevent code splitting - each entry must be a standalone file
         manualChunks: undefined,
       },
     },

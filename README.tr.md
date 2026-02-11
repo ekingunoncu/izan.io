@@ -40,7 +40,7 @@
 |--------|----------|
 | 🔐 **Gizlilik** | API anahtarları yalnızca tarayıcınızda. Sunucularımıza gönderilmez. |
 | 🧠 **Çoklu Sağlayıcı** | 17+ AI sağlayıcı desteklenir (aşağıda). |
-| 🤖 **Akıllı Ajanlar** | MCP ile bağlı ajanlar — web araması, kod, vb. |
+| 🤖 **Akıllı Ajanlar** | MCP ile bağlı ajanlar - web araması, kod, vb. |
 | 🌐 **MCP** | Hazır ve özel MCP sunucuları. |
 | 🎬 **Aksiyon kaydedici** | Extension yan panelinden aksiyon kaydederek MCP aracı olarak kaydedin; kod gerekmez ([docs/visual-mcp-tool-builder.md](docs/visual-mcp-tool-builder.md)). |
 

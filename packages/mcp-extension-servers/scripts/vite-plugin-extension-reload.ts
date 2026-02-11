@@ -16,7 +16,7 @@ export function extensionReloadTrigger(): Plugin {
           await fetch(`${RELOAD_SERVER_URL}/trigger`, { method: 'POST' })
           console.log('[extension-reload] Triggered reload')
         } catch {
-          // Reload server not running (e.g. standalone build) — ignore
+          // Reload server not running (e.g. standalone build) - ignore
         }
       },
     },

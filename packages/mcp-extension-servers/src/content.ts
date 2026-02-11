@@ -23,7 +23,7 @@ import {
   type ToolRemovedPayload,
 } from './protocol.js'
 import { startAllServers, stopAllServers, getAllServerMeta } from './registry.js'
-import { loadToolDefinitions, removeToolDefinition, stopDynamicServer, startDynamicServer } from './dynamic-server.js'
+import { loadToolDefinitions, addToolDefinition, removeToolDefinition, stopDynamicServer, startDynamicServer } from './dynamic-server.js'
 import { type ToolDefinition, toolDefinitionSchema } from './tool-schema.js'
 import { initRecorderUI } from './recorder-ui.js'
 
@@ -100,8 +100,8 @@ async function bootstrap(): Promise<void> {
       if (!payload?.tool) return
       try {
         const tool = toolDefinitionSchema.parse(payload.tool)
-        const needsRestart = loadToolDefinitions([tool as ToolDefinition])
-        console.log(`[izan-ext] Added tool: ${tool.name}`)
+        const needsRestart = addToolDefinition(tool as ToolDefinition)
+        console.log(`[izan-ext] Added tool: ${tool.name}, needsRestart=${needsRestart}`)
         if (needsRestart) {
           void (async () => {
             await stopDynamicServer()
@@ -117,8 +117,15 @@ async function bootstrap(): Promise<void> {
     globalThis.addEventListener(EXTENSION_EVENT_TOOL_REMOVED, (event) => {
       const payload = (event as CustomEvent<ToolRemovedPayload>).detail
       if (!payload?.toolName) return
-      removeToolDefinition(payload.toolName)
-      console.log(`[izan-ext] Removed tool: ${payload.toolName}`)
+      const wasRemoved = removeToolDefinition(payload.toolName)
+      console.log(`[izan-ext] Removed tool: ${payload.toolName}, wasRemoved=${wasRemoved}`)
+      if (wasRemoved) {
+        void (async () => {
+          await stopDynamicServer()
+          await startDynamicServer()
+          announceServers()
+        })()
+      }
     })
 
     // Initialize the recorder UI system (listens for start/stop events)
@@ -135,7 +142,7 @@ async function bootstrap(): Promise<void> {
           requestId: crypto.randomUUID(),
           servers: data.servers ?? [],
           tools: data.tools ?? [],
-        }, '*')
+        }, location.origin)
         console.log('[izan-ext][content] Bootstrap sync: pushed automation data to page')
       }
     }).catch(() => {})
@@ -162,7 +169,7 @@ async function bootstrap(): Promise<void> {
           requestId: crypto.randomUUID(),
           servers: msg.servers ?? [],
           tools: msg.tools ?? [],
-        }, '*')
+        }, location.origin)
         sendResponse({ ok: true })
         return false
       }
@@ -197,7 +204,7 @@ async function bootstrap(): Promise<void> {
               requestId: crypto.randomUUID(),
               servers: stored.servers ?? [],
               tools: stored.tools ?? [],
-            }, '*')
+            }, location.origin)
             console.log('[izan-ext][content] Responded to request-automation-data')
           }
         }).catch(() => {})

@@ -1,4 +1,4 @@
-// Static ?raw imports — Vite bundles markdown at build time
+// Static ?raw imports - Vite bundles markdown at build time
 import enGettingStarted from './en/getting-started.md?raw'
 import enAgents from './en/agents.md?raw'
 import enMcpServers from './en/mcp-servers.md?raw'

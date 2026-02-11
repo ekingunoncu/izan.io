@@ -18,7 +18,10 @@
       "Bash(npm run generate:mcp-registry:*)",
       "Bash(node -e:*)",
       "Bash(brew list:*)",
-      "Bash(npm run test:mcp:*)"
+      "Bash(npm run test:mcp:*)",
+      "WebSearch",
+      "WebFetch(domain:ui.shadcn.com)",
+      "WebFetch(domain:raw.githubusercontent.com)"
     ]
   }
 }

@@ -2,7 +2,7 @@
  * Dynamic MCP Server
  *
  * A single MCP server instance that registers tools at runtime
- * from JSON tool definitions. This server doesn't bundle any tool logic — it loads ToolDefinition
+ * from JSON tool definitions. This server doesn't bundle any tool logic - it loads ToolDefinition
  * JSON objects and executes them via AutomationRunner.
  *
  * Tool definitions can come from:
@@ -19,7 +19,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { TabServerTransport } from '@mcp-b/transports'
 import { z } from 'zod'
 import { EXTENSION_CHANNEL_PREFIX } from './protocol.js'
-import { AutomationRunner } from './automation-runner.js'
+import { AutomationRunner, type RunnerResult } from './automation-runner.js'
 import {
   type ToolDefinition,
   type ToolParameter,
@@ -107,19 +107,70 @@ function registerTool(server: McpServer, tool: ToolDefinition): void {
         }
       }
 
-      // Merge all extraction data into a single response
-      const hasData = Object.keys(result.data).length > 0
-      const text = hasData
-        ? JSON.stringify(result.data, null, 2)
-        : 'Action completed successfully (no data extracted).'
-
       return {
-        content: [{ type: 'text' as const, text }],
+        content: [{ type: 'text' as const, text: formatResultForLLM(result) }],
       }
     },
   )
 
   loadedTools.set(tool.name, tool)
+}
+
+// ─── Response Formatting ─────────────────────────────────────────────────────
+
+/** Extract hostname from a URL string, returning undefined on failure */
+function tryHostname(url?: string): string | undefined {
+  if (!url) return undefined
+  try { return new URL(url).hostname } catch { return undefined }
+}
+
+/**
+ * Format a RunnerResult into a structured text response for the LLM.
+ * Produces human-readable output with per-lane summaries when applicable.
+ * Includes source hostname when extraction data is present.
+ */
+function formatResultForLLM(result: RunnerResult): string {
+  const hasData = Object.keys(result.data).length > 0
+
+  // Single-lane execution (no laneSummaries)
+  if (!result.laneSummaries) {
+    if (!hasData) return 'Action completed successfully.'
+    const hostname = tryHostname(result.sourceUrl)
+    const json = JSON.stringify(result.data, null, 2)
+    return hostname ? `Data extracted from ${hostname}:\n${json}` : json
+  }
+
+  // Multi-lane execution
+  const lanes = result.laneSummaries
+  const anyData = lanes.some(l => Object.keys(l.data).length > 0)
+
+  // All lanes completed, none have extraction data
+  if (!anyData) {
+    const lines = [`All lanes completed successfully.`]
+    for (const lane of lanes) {
+      const status = lane.success ? 'completed' : `failed: ${lane.error}`
+      lines.push(`- "${lane.name}": ${status} (${lane.stepCount} steps)`)
+    }
+    return lines.join('\n')
+  }
+
+  // Multi-lane with extraction data (possibly mixed)
+  const lines = [`Results from ${lanes.length} parallel lanes:`]
+  for (const lane of lanes) {
+    lines.push('')
+    const hostname = tryHostname(lane.sourceUrl)
+    const header = hostname ? `## ${lane.name} (${hostname})` : `## ${lane.name}`
+    lines.push(header)
+    const laneHasData = Object.keys(lane.data).length > 0
+    if (!lane.success) {
+      lines.push(`Error: ${lane.error}`)
+    } else if (laneHasData) {
+      lines.push(JSON.stringify(lane.data, null, 2))
+    } else {
+      lines.push(`Action completed (${lane.stepCount} steps).`)
+    }
+  }
+  return lines.join('\n')
 }
 
 // ─── Public API ──────────────────────────────────────────────────────────────
@@ -142,11 +193,16 @@ export function loadToolDefinitions(tools: ToolDefinition[]): boolean {
     const tool = toolDefinitionSchema.parse(raw)
     incomingNames.add(tool.name)
 
-    const isNew = !loadedTools.has(tool.name)
-    loadedTools.set(tool.name, tool)
+    const existing = loadedTools.get(tool.name)
 
-    if (isNew && serverInstance) {
-      changed = true
+    if (!existing) {
+      // Brand new tool
+      loadedTools.set(tool.name, tool)
+      if (serverInstance) changed = true
+    } else if (JSON.stringify(existing) !== JSON.stringify(tool)) {
+      // Existing tool with changed content - handler closure has stale ref, need restart
+      loadedTools.set(tool.name, tool)
+      if (serverInstance) changed = true
     }
   }
 
@@ -162,12 +218,34 @@ export function loadToolDefinitions(tools: ToolDefinition[]): boolean {
 }
 
 /**
- * Remove a tool definition by name.
- * Note: McpServer SDK doesn't support unregisterTool at runtime,
- * so the tool handler will return an error if called after removal.
+ * Add or update a single tool definition without affecting other loaded tools.
+ * Returns `true` if the server needs to be restarted (new tool or content changed).
  */
-export function removeToolDefinition(toolName: string): void {
-  loadedTools.delete(toolName)
+export function addToolDefinition(tool: ToolDefinition): boolean {
+  const parsed = toolDefinitionSchema.parse(tool)
+  const existing = loadedTools.get(parsed.name)
+
+  if (!existing) {
+    loadedTools.set(parsed.name, parsed)
+    return serverInstance !== null
+  }
+
+  if (JSON.stringify(existing) !== JSON.stringify(parsed)) {
+    loadedTools.set(parsed.name, parsed)
+    return serverInstance !== null
+  }
+
+  return false
+}
+
+/**
+ * Remove a tool definition by name.
+ * Returns true if the tool existed and was removed.
+ * Note: McpServer SDK doesn't support unregisterTool at runtime,
+ * so callers should restart the server after removal.
+ */
+export function removeToolDefinition(toolName: string): boolean {
+  return loadedTools.delete(toolName)
 }
 
 /**

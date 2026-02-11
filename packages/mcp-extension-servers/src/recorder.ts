@@ -49,14 +49,14 @@ export function generateSelector(el: Element): string {
   // 3. aria-label
   const ariaLabel = el.getAttribute('aria-label')
   if (ariaLabel) {
-    const sel = `${el.tagName.toLowerCase()}[aria-label="${ariaLabel}"]`
+    const sel = `${el.tagName.toLowerCase()}[aria-label="${CSS.escape(ariaLabel)}"]`
     if (document.querySelectorAll(sel).length === 1) return sel
   }
 
   // 4. name attribute (for form elements)
   const name = el.getAttribute('name')
   if (name) {
-    const sel = `${el.tagName.toLowerCase()}[name="${name}"]`
+    const sel = `${el.tagName.toLowerCase()}[name="${CSS.escape(name)}"]`
     if (document.querySelectorAll(sel).length === 1) return sel
   }
 
@@ -65,7 +65,7 @@ export function generateSelector(el: Element): string {
     const type = el.getAttribute('type') || 'text'
     const placeholder = el.getAttribute('placeholder')
     if (placeholder) {
-      const sel = `${el.tagName.toLowerCase()}[type="${type}"][placeholder="${placeholder}"]`
+      const sel = `${el.tagName.toLowerCase()}[type="${CSS.escape(type)}"][placeholder="${CSS.escape(placeholder)}"]`
       if (document.querySelectorAll(sel).length === 1) return sel
     }
   }
@@ -339,7 +339,7 @@ export class ActionRecorder {
   }
 
   private handleBeforeUnload(): void {
-    // Navigation is happening — the new page will need a new recorder start
+    // Navigation is happening - the new page will need a new recorder start
     // We don't record this as a step since the new URL will be captured on start
   }
 

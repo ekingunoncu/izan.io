@@ -108,6 +108,15 @@ function slugify(str: string): string {
  * Convert an AutomationTool to the ToolDefinition format expected by the extension.
  */
 function toToolDefinition(tool: AutomationTool): unknown {
+  // Normalize lanes: handle legacy ActionStep[][] format (array of arrays)
+  let lanes: Array<{ name: string; steps: AutomationActionStep[] }> | undefined
+  if (tool.lanes && tool.lanes.length > 1) {
+    lanes = (tool.lanes as unknown[]).map((lane, i) =>
+      Array.isArray(lane)
+        ? { name: `Lane ${i + 1}`, steps: lane as AutomationActionStep[] }
+        : lane as { name: string; steps: AutomationActionStep[] },
+    )
+  }
   return {
     id: tool.id,
     name: tool.name,
@@ -115,7 +124,7 @@ function toToolDefinition(tool: AutomationTool): unknown {
     version: tool.version,
     parameters: tool.parameters,
     steps: tool.steps,
-    ...(tool.lanes && tool.lanes.length > 1 ? { lanes: tool.lanes } : {}),
+    ...(lanes ? { lanes } : {}),
   }
 }
 
@@ -374,7 +383,7 @@ export const useAutomationStore = create<AutomationStore>((set, get) => ({
     for (const incoming of rawServers) {
       const existing = await db.automationServers.get(incoming.id)
       if (!existing) {
-        await db.automationServers.add(incoming)
+        await db.automationServers.put(incoming)
         changed = true
       } else if (incoming.updatedAt > existing.updatedAt) {
         await db.automationServers.put(incoming)
@@ -395,7 +404,7 @@ export const useAutomationStore = create<AutomationStore>((set, get) => ({
     for (const incoming of rawTools) {
       const existing = await db.automationTools.get(incoming.id)
       if (!existing) {
-        await db.automationTools.add(incoming)
+        await db.automationTools.put(incoming)
         changed = true
       } else if (incoming.updatedAt > existing.updatedAt) {
         await db.automationTools.put(incoming)

@@ -8,7 +8,14 @@ import {
   Download, Upload,
 } from 'lucide-react'
 import { Button } from '~ui/button'
+import { Input } from '~ui/input'
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '~ui/select'
 import { cn } from '~lib/utils'
+import {
+  addStepToLane, deleteStepAt, moveStepAt,
+  toggleParamAt, updateParamDescAt, updateStepWaitUntilAt,
+  applyParamMap,
+} from './step-utils'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -16,6 +23,7 @@ interface Step {
   action: string
   url?: string
   urlParams?: Record<string, string>
+  waitUntil?: 'load' | 'domcontentloaded' | 'networkidle'
   selector?: string
   text?: string
   direction?: string
@@ -39,9 +47,14 @@ interface ParamMeta {
 interface AutomationServer { id: string; name: string; description?: string; toolIds?: string[] }
 interface AutomationTool { id: string; name: string; displayName?: string; description?: string; serverId: string }
 
+interface Lane {
+  name: string
+  steps: Step[]
+}
+
 interface AutomationToolFull extends AutomationTool {
   steps: Step[]
-  lanes?: Step[][]
+  lanes?: Lane[]
   parameters: Array<{ name: string; type: string; description: string; required: boolean; source?: string; sourceKey?: string }>
 }
 
@@ -83,9 +96,13 @@ export function App() {
   const [paramMap, setParamMap] = useState<Map<number, Map<string, ParamMeta>>>(new Map())
 
   // Parallel lanes (record/edit)
-  const [lanes, setLanes] = useState<Step[][]>([[]])
+  const [lanes, setLanes] = useState<Lane[]>([{ name: 'Lane 1', steps: [] }])
   const [activeLane, setActiveLane] = useState(0)
-  const [editLanes, setEditLanes] = useState<Step[][]>([[]])
+  const [editLanes, setEditLanes] = useState<Lane[]>([{ name: 'Lane 1', steps: [] }])
+
+  // Manual wait step insertion
+  const [showWaitInput, setShowWaitInput] = useState(false)
+  const [waitSeconds, setWaitSeconds] = useState('1')
 
   // Connection
   const [connectionError, setConnectionError] = useState<string | null>(null)
@@ -181,7 +198,7 @@ export function App() {
               version: '1.0.0',
               parameters: tool.parameters ?? [],
               steps: tool.steps ?? [],
-              ...(tool.lanes && tool.lanes.length > 1 ? { lanes: tool.lanes } : {}),
+              ...(tool.lanes && tool.lanes.length > 1 ? { lanes: tool.lanes.map(l => ({ name: l.name, steps: l.steps })) } : {}),
             }
             downloadJson(exportData, `${slugify(tool.name)}-tool.json`)
             return
@@ -190,7 +207,23 @@ export function App() {
           setEditTool(tool)
           setEditSteps(tool.steps ?? [])
           // Load lanes from tool or wrap steps as single lane
-          const loadedLanes = (tool.lanes && tool.lanes.length > 1) ? tool.lanes : [tool.steps ?? []]
+          // Handle both new named format and legacy Step[][] format
+          let loadedLanes: Lane[]
+          if (tool.lanes && tool.lanes.length > 1) {
+            const first = tool.lanes[0]
+            if (first && typeof first === 'object' && 'name' in first && 'steps' in first) {
+              // New named format
+              loadedLanes = tool.lanes as Lane[]
+            } else {
+              // Legacy Step[][] format - auto-wrap with default names
+              loadedLanes = (tool.lanes as unknown as Step[][]).map((steps, i) => ({
+                name: `Lane ${i + 1}`,
+                steps,
+              }))
+            }
+          } else {
+            loadedLanes = [{ name: 'Lane 1', steps: tool.steps ?? [] }]
+          }
           setEditLanes(loadedLanes)
           setActiveLane(0)
           setEditName(tool.displayName || tool.name)
@@ -230,7 +263,7 @@ export function App() {
         if (msg.error) {
           setSaveError(msg.error as string)
         } else {
-          // Tool created — go back to list
+          // Tool created - go back to list
           setSteps([])
           setParamMap(new Map())
           setToolName('')
@@ -242,11 +275,9 @@ export function App() {
       } else if (type === 'recording-step' && msg.step != null) {
         const newStep = msg.step as Step
         if (viewRef.current === 'edit') {
-          setEditSteps(prev => [...prev, newStep])
-          setEditLanes(prev => prev.map((l, i) => i === activeLaneRef.current ? [...l, newStep] : l))
+          addStepToLane(setEditSteps, setEditLanes, activeLaneRef.current, newStep)
         } else {
-          setSteps(prev => [...prev, newStep])
-          setLanes(prev => prev.map((l, i) => i === activeLaneRef.current ? [...l, newStep] : l))
+          addStepToLane(setSteps, setLanes, activeLaneRef.current, newStep)
         }
       } else if (type === 'recording-complete') {
         if (viewRef.current === 'edit') {
@@ -258,11 +289,9 @@ export function App() {
       } else if (type === 'extract-result' && msg.step != null && (msg.step as Step).action === 'extract') {
         const newStep = msg.step as Step
         if (viewRef.current === 'edit') {
-          setEditSteps(prev => [...prev, newStep])
-          setEditLanes(prev => prev.map((l, i) => i === activeLaneRef.current ? [...l, newStep] : l))
+          addStepToLane(setEditSteps, setEditLanes, activeLaneRef.current, newStep)
         } else {
-          setSteps(prev => [...prev, newStep])
-          setLanes(prev => prev.map((l, i) => i === activeLaneRef.current ? [...l, newStep] : l))
+          addStepToLane(setSteps, setLanes, activeLaneRef.current, newStep)
         }
       } else if (type === 'exportAutomationServerDone') {
         if (msg.error) {
@@ -316,7 +345,7 @@ export function App() {
     setRecordError(null)
     setIsRecording(true)
     // Reset only the active lane's steps (keep other lanes intact)
-    setLanes(prev => prev.map((l, i) => i === activeLane ? [] : l))
+    setLanes(prev => prev.map((l, i) => i === activeLane ? { ...l, steps: [] } : l))
     portRef.current?.postMessage({ type: 'startRecording' })
   }
 
@@ -346,38 +375,20 @@ export function App() {
   }
 
   const buildFinalData = () => {
-    const finalSteps = steps.map((s, i) => {
-      const meta = paramMap.get(i)
-      if (!meta || s.action !== 'navigate') return s
-      const newParams: Record<string, string> = { ...(s.urlParams ?? {}) }
-      for (const [k, m] of meta) {
-        newParams[k] = m.enabled ? `{{${k}}}` : m.originalValue
-      }
-      return { ...s, urlParams: newParams }
-    })
-
-    const parameters: Array<{ name: string; type: string; description: string; required: boolean; source: string; sourceKey: string }> = []
-    for (const [, meta] of paramMap) {
-      for (const [k, m] of meta) {
-        if (m.enabled) {
-          parameters.push({ name: k, type: 'string', description: m.description || k, required: true, source: 'urlParam', sourceKey: k })
-        }
-      }
-    }
-
-    // Include lanes when there are multiple parallel lanes
+    const { finalSteps, parameters } = applyParamMap(steps, paramMap)
     const hasMultipleLanes = lanes.length > 1
-    const finalLanes = hasMultipleLanes ? lanes : undefined
-
+    const finalLanes = hasMultipleLanes ? lanes.map(l => ({ name: l.name, steps: l.steps })) : undefined
     return { steps: finalSteps, parameters, lanes: finalLanes }
   }
 
   const handleDone = () => {
     // Save current steps into active lane before transitioning to save
-    setLanes(prev => prev.map((l, i) => i === activeLane ? steps : l))
+    setLanes(prev => prev.map((l, i) => i === activeLane ? { ...l, steps } : l))
     setToolName('')
     setToolDesc('')
     setSaveError(null)
+    setShowWaitInput(false)
+    setWaitSeconds('1')
     setView('save')
   }
 
@@ -413,13 +424,15 @@ export function App() {
     setSteps([])
     setParamMap(new Map())
     setRecordError(null)
-    setLanes([[]])
+    setLanes([{ name: 'Lane 1', steps: [] }])
     setActiveLane(0)
     setView('record')
   }
 
   const backToList = () => {
     setSelectedServerId(null)
+    setShowWaitInput(false)
+    setWaitSeconds('1')
     setView('list')
   }
 
@@ -450,7 +463,7 @@ export function App() {
   const handleExportTool = (toolId: string) => {
     // Request full tool data, then download
     portRef.current?.postMessage({ type: 'getAutomationTool', toolId })
-    // We intercept the response in getAutomationToolDone — but that opens edit view.
+    // We intercept the response in getAutomationToolDone - but that opens edit view.
     // Instead, use a separate flag to trigger download instead of edit view.
     setExportingToolId(toolId)
   }
@@ -501,46 +514,32 @@ export function App() {
     e.target.value = ''
   }
 
-  const handleDeleteStep = (idx: number) => {
-    setSteps(prev => prev.filter((_, i) => i !== idx))
-    setLanes(prev => prev.map((l, i) => i === activeLane ? l.filter((_, j) => j !== idx) : l))
-    setParamMap(prev => {
-      const next = new Map<number, Map<string, ParamMeta>>()
-      for (const [k, v] of prev) {
-        if (k < idx) next.set(k, v)
-        else if (k > idx) next.set(k - 1, v)
-      }
-      return next
-    })
+  const handleAddWaitStep = (isEditMode: boolean) => {
+    const seconds = parseFloat(waitSeconds)
+    if (isNaN(seconds) || seconds <= 0 || seconds > 30) return
+    const waitStep: Step = { action: 'wait', ms: Math.round(seconds * 1000) }
+
+    if (isEditMode) {
+      addStepToLane(setEditSteps, setEditLanes, activeLane, waitStep)
+    } else {
+      addStepToLane(setSteps, setLanes, activeLane, waitStep)
+    }
+
+    setShowWaitInput(false)
+    setWaitSeconds('1')
   }
 
-  const moveStep = (from: number, to: number) => {
-    if (to < 0 || to >= steps.length) return
-    const reorder = (arr: Step[]) => {
-      const next = [...arr]
-      const [item] = next.splice(from, 1)
-      next.splice(to, 0, item)
-      return next
-    }
-    setSteps(reorder)
-    setLanes(prev => prev.map((l, i) => i === activeLane ? reorder(l) : l))
-    // Remap paramMap indices
-    setParamMap(prev => {
-      const next = new Map<number, Map<string, ParamMeta>>()
-      for (const [k, v] of prev) {
-        let newK = k
-        if (k === from) newK = to
-        else if (from < to && k > from && k <= to) newK = k - 1
-        else if (from > to && k >= to && k < from) newK = k + 1
-        next.set(newK, v)
-      }
-      return next
-    })
+  const handleDeleteStep = (idx: number) => {
+    deleteStepAt(setSteps, setLanes, setParamMap, activeLane, idx)
+  }
+
+  const handleMoveStep = (from: number, to: number) => {
+    moveStepAt(setSteps, setLanes, setParamMap, activeLane, from, to, steps.length)
   }
 
   const handleDropStep = (dragFrom: number, dropTo: number) => {
     if (dragFrom === dropTo) return
-    moveStep(dragFrom, dropTo)
+    handleMoveStep(dragFrom, dropTo)
   }
 
   // ─── Edit handlers ──────────────────────────────────────────────
@@ -578,25 +577,7 @@ export function App() {
     setEditError(null)
     const hasMultipleLanes = editLanes.length > 1
 
-    // Apply paramMap to steps and build parameters array
-    const finalSteps = editSteps.map((s, i) => {
-      const meta = editParamMap.get(i)
-      if (!meta || s.action !== 'navigate') return s
-      const newParams: Record<string, string> = { ...(s.urlParams ?? {}) }
-      for (const [k, m] of meta) {
-        newParams[k] = m.enabled ? `{{${k}}}` : m.originalValue
-      }
-      return { ...s, urlParams: newParams }
-    })
-
-    const parameters: Array<{ name: string; type: string; description: string; required: boolean; source: string; sourceKey: string }> = []
-    for (const [, meta] of editParamMap) {
-      for (const [k, m] of meta) {
-        if (m.enabled) {
-          parameters.push({ name: k, type: 'string', description: m.description || k, required: true, source: 'urlParam', sourceKey: k })
-        }
-      }
-    }
+    const { finalSteps, parameters } = applyParamMap(editSteps, editParamMap)
 
     portRef.current?.postMessage({
       type: 'updateAutomationTool',
@@ -606,44 +587,16 @@ export function App() {
       description: editDesc.trim(),
       steps: finalSteps,
       parameters,
-      ...(hasMultipleLanes ? { lanes: editLanes } : { lanes: [] }),
+      ...(hasMultipleLanes ? { lanes: editLanes.map(l => ({ name: l.name, steps: l.steps })) } : {}),
     })
   }
 
   const editMoveStep = (from: number, to: number) => {
-    if (to < 0 || to >= editSteps.length) return
-    const reorder = (arr: Step[]) => {
-      const next = [...arr]
-      const [item] = next.splice(from, 1)
-      next.splice(to, 0, item)
-      return next
-    }
-    setEditSteps(reorder)
-    setEditLanes(prev => prev.map((l, i) => i === activeLane ? reorder(l) : l))
-    setEditParamMap(prev => {
-      const next = new Map<number, Map<string, ParamMeta>>()
-      for (const [k, v] of prev) {
-        let newK = k
-        if (k === from) newK = to
-        else if (from < to && k > from && k <= to) newK = k - 1
-        else if (from > to && k >= to && k < from) newK = k + 1
-        next.set(newK, v)
-      }
-      return next
-    })
+    moveStepAt(setEditSteps, setEditLanes, setEditParamMap, activeLane, from, to, editSteps.length)
   }
 
   const editDeleteStep = (idx: number) => {
-    setEditSteps(prev => prev.filter((_, i) => i !== idx))
-    setEditLanes(prev => prev.map((l, i) => i === activeLane ? l.filter((_, j) => j !== idx) : l))
-    setEditParamMap(prev => {
-      const next = new Map<number, Map<string, ParamMeta>>()
-      for (const [k, v] of prev) {
-        if (k < idx) next.set(k, v)
-        else if (k > idx) next.set(k - 1, v)
-      }
-      return next
-    })
+    deleteStepAt(setEditSteps, setEditLanes, setEditParamMap, activeLane, idx)
   }
 
   const editDropStep = (dragFrom: number, dropTo: number) => {
@@ -652,29 +605,11 @@ export function App() {
   }
 
   const editToggleParam = (stepIdx: number, key: string, originalValue: string) => {
-    setEditParamMap(prev => {
-      const next = new Map(prev)
-      const stepMeta = new Map(next.get(stepIdx) ?? [])
-      const existing = stepMeta.get(key)
-      if (existing?.enabled) {
-        stepMeta.set(key, { ...existing, enabled: false })
-      } else {
-        stepMeta.set(key, { enabled: true, description: existing?.description ?? '', originalValue })
-      }
-      next.set(stepIdx, stepMeta)
-      return next
-    })
+    toggleParamAt(setEditParamMap, stepIdx, key, originalValue)
   }
 
   const editUpdateParamDescription = (stepIdx: number, key: string, description: string) => {
-    setEditParamMap(prev => {
-      const next = new Map(prev)
-      const stepMeta = new Map(next.get(stepIdx) ?? [])
-      const existing = stepMeta.get(key)
-      if (existing) stepMeta.set(key, { ...existing, description })
-      next.set(stepIdx, stepMeta)
-      return next
-    })
+    updateParamDescAt(setEditParamMap, stepIdx, key, description)
   }
 
   // ─── Lane management ────────────────────────────────────────────
@@ -682,12 +617,12 @@ export function App() {
   const switchLane = (index: number, isEditMode: boolean) => {
     if (isEditMode) {
       // Save current editSteps into current lane before switching
-      setEditLanes(prev => prev.map((l, i) => i === activeLane ? editSteps : l))
-      setEditSteps(editLanes[index] ?? [])
+      setEditLanes(prev => prev.map((l, i) => i === activeLane ? { ...l, steps: editSteps } : l))
+      setEditSteps(editLanes[index]?.steps ?? [])
     } else {
       // Save current steps into current lane before switching
-      setLanes(prev => prev.map((l, i) => i === activeLane ? steps : l))
-      setSteps(lanes[index] ?? [])
+      setLanes(prev => prev.map((l, i) => i === activeLane ? { ...l, steps } : l))
+      setSteps(lanes[index]?.steps ?? [])
       setParamMap(new Map()) // paramMap is per-lane, reset on switch
     }
     setActiveLane(index)
@@ -695,15 +630,17 @@ export function App() {
 
   const addLane = (isEditMode: boolean) => {
     if (isEditMode) {
-      setEditLanes(prev => [...prev, []])
+      const newName = `Lane ${editLanes.length + 1}`
+      setEditLanes(prev => [...prev, { name: newName, steps: [] }])
       const newIdx = editLanes.length
       setActiveLane(newIdx)
       setEditSteps([])
     } else {
+      const newName = `Lane ${lanes.length + 1}`
       // Save current steps into current lane before adding new one
       setLanes(prev => {
-        const updated = prev.map((l, i) => i === activeLane ? steps : l)
-        return [...updated, []]
+        const updated = prev.map((l, i) => i === activeLane ? { ...l, steps } : l)
+        return [...updated, { name: newName, steps: [] }]
       })
       const newIdx = lanes.length
       setActiveLane(newIdx)
@@ -719,45 +656,43 @@ export function App() {
       setEditLanes(next)
       const newActive = index >= next.length ? next.length - 1 : index
       setActiveLane(newActive)
-      setEditSteps(next[newActive] ?? [])
+      setEditSteps(next[newActive]?.steps ?? [])
     } else {
       if (lanes.length <= 1) return
       const next = lanes.filter((_, i) => i !== index)
       setLanes(next)
       const newActive = index >= next.length ? next.length - 1 : index
       setActiveLane(newActive)
-      setSteps(next[newActive] ?? [])
+      setSteps(next[newActive]?.steps ?? [])
       setParamMap(new Map())
     }
   }
 
+  const renameLane = (index: number, newName: string, isEditMode: boolean) => {
+    if (isEditMode) {
+      setEditLanes(prev => prev.map((l, i) => i === index ? { ...l, name: newName } : l))
+    } else {
+      setLanes(prev => prev.map((l, i) => i === index ? { ...l, name: newName } : l))
+    }
+  }
+
   const toggleParam = (stepIdx: number, key: string, originalValue: string) => {
-    setParamMap(prev => {
-      const next = new Map(prev)
-      const stepMeta = new Map(next.get(stepIdx) ?? [])
-      const existing = stepMeta.get(key)
-      if (existing?.enabled) {
-        stepMeta.set(key, { ...existing, enabled: false })
-      } else {
-        stepMeta.set(key, { enabled: true, description: existing?.description ?? '', originalValue })
-      }
-      next.set(stepIdx, stepMeta)
-      return next
-    })
+    toggleParamAt(setParamMap, stepIdx, key, originalValue)
   }
 
   const updateParamDescription = (stepIdx: number, key: string, description: string) => {
-    setParamMap(prev => {
-      const next = new Map(prev)
-      const stepMeta = new Map(next.get(stepIdx) ?? [])
-      const existing = stepMeta.get(key)
-      if (existing) stepMeta.set(key, { ...existing, description })
-      next.set(stepIdx, stepMeta)
-      return next
-    })
+    updateParamDescAt(setParamMap, stepIdx, key, description)
   }
 
   // ─── Counts ────────────────────────────────────────────────────
+
+  const updateStepWaitUntil = (idx: number, value: Step['waitUntil'], isEditMode: boolean) => {
+    if (isEditMode) {
+      updateStepWaitUntilAt(setEditSteps, setEditLanes, activeLane, idx, value)
+    } else {
+      updateStepWaitUntilAt(setSteps, setLanes, activeLane, idx, value)
+    }
+  }
 
   const extractCount = steps.filter(s => s.action === 'extract').length
   const paramCount = Array.from(paramMap.values()).reduce(
@@ -778,14 +713,11 @@ export function App() {
           <div className="rounded-lg border bg-card p-4 space-y-3">
             <div className="space-y-1.5">
               <label className="text-sm font-medium">Macro Name</label>
-              <input type="text" value={editName} onChange={(e) => setEditName(e.target.value)}
-                className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-ring" autoFocus />
+              <Input value={editName} onChange={(e) => setEditName(e.target.value)} autoFocus />
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-medium">Description</label>
-              <input type="text" value={editDesc} onChange={(e) => setEditDesc(e.target.value)}
-                placeholder="What does this macro do?"
-                className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-ring" />
+              <Input value={editDesc} onChange={(e) => setEditDesc(e.target.value)} placeholder="What does this macro do?" />
             </div>
             {editError && <p className="text-sm text-destructive">{editError}</p>}
             <div className="flex gap-2 pt-1">
@@ -823,7 +755,33 @@ export function App() {
             <Button variant="outline" size="sm" disabled={!isEditRecording} onClick={() => handleEditExtract('single')}>
               <FileText className="h-3.5 w-3.5" /> Single
             </Button>
+            <Button variant="outline" size="sm" onClick={() => setShowWaitInput(!showWaitInput)}>
+              <Timer className="h-3.5 w-3.5" /> Wait
+            </Button>
           </div>
+
+          {/* Manual wait input (edit mode) */}
+          {showWaitInput && (
+            <div className="flex items-center gap-2 px-1">
+              <Input
+                type="number"
+                min="0.1"
+                max="30"
+                step="0.1"
+                value={waitSeconds}
+                onChange={(e) => setWaitSeconds(e.target.value)}
+                className="w-20"
+                placeholder="1"
+                autoFocus
+                onKeyDown={(e) => { if (e.key === 'Enter') handleAddWaitStep(true) }}
+              />
+              <span className="text-sm text-muted-foreground">sec</span>
+              <Button variant="default" size="sm" onClick={() => handleAddWaitStep(true)}>Add</Button>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setShowWaitInput(false); setWaitSeconds('1') }}>
+                <X className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          )}
 
           {recordError && (
             <div className="px-1">
@@ -841,16 +799,17 @@ export function App() {
             onSwitch={(i) => switchLane(i, true)}
             onAdd={() => addLane(true)}
             onRemove={(i) => removeLane(i, true)}
+            onRename={(i, name) => renameLane(i, name, true)}
           />
 
           {/* Steps */}
           <div className="space-y-1.5">
             <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium px-1">
-              Steps ({editSteps.length}){editLanes.length > 1 && ` · Lane ${activeLane + 1}`}
+              Steps ({editSteps.length}){editLanes.length > 1 && ` · ${editLanes[activeLane]?.name ?? `Lane ${activeLane + 1}`}`}
             </p>
             {editSteps.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-6">
-                {isEditRecording ? 'Recording — interact with the page…' : 'No steps — press Record to add actions'}
+                {isEditRecording ? 'Recording - interact with the page…' : 'No steps - press Record to add actions'}
               </p>
             ) : editSteps.map((step, i) => (
               <StepCard
@@ -867,6 +826,7 @@ export function App() {
                 onDrop={() => { if (editDragIdxRef.current !== null) { editDropStep(editDragIdxRef.current, i); editDragIdxRef.current = null } }}
                 onToggleParam={(key, orig) => editToggleParam(i, key, orig)}
                 onDescriptionChange={(key, desc) => editUpdateParamDescription(i, key, desc)}
+                onWaitUntilChange={(val) => updateStepWaitUntil(i, val, true)}
               />
             ))}
             <div ref={stepsEndRef} />
@@ -878,8 +838,8 @@ export function App() {
           {isEditRecording && <span className="w-2 h-2 rounded-full bg-destructive animate-pulse-dot" />}
           <span>
             {editSteps.length} step{editSteps.length !== 1 ? 's' : ''}
-            {editLanes.length > 1 && ` · Lane ${activeLane + 1}/${editLanes.length}`}
-            {editLanes.length > 1 && ` (${editLanes.reduce((s, l) => s + l.length, 0)} total)`}
+            {editLanes.length > 1 && ` · ${editLanes[activeLane]?.name ?? `Lane ${activeLane + 1}`}/${editLanes.length}`}
+            {editLanes.length > 1 && ` (${editLanes.reduce((s, l) => s + l.steps.length, 0)} total)`}
             {isEditRecording && ' · Recording…'}
           </span>
         </div>
@@ -903,32 +863,21 @@ export function App() {
             <p className="text-sm text-muted-foreground">
               Server: <span className="font-medium text-foreground">{serverName}</span>
               {lanes.length > 1
-                ? ` · ${lanes.length} lanes · ${lanes.reduce((s, l) => s + l.length, 0)} total steps`
+                ? ` · ${lanes.length} lanes · ${lanes.reduce((s, l) => s + l.steps.length, 0)} total steps`
                 : ` · ${steps.length} steps`}
               {paramCount > 0 && ` · ${paramCount} params`}
             </p>
 
             <div className="space-y-1.5">
               <label className="text-sm font-medium">Macro Name</label>
-              <input
-                type="text"
-                value={toolName}
-                onChange={(e) => setToolName(e.target.value)}
-                placeholder="e.g. search_hacker_news"
-                className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-ring"
-                autoFocus
-              />
+              <Input value={toolName} onChange={(e) => setToolName(e.target.value)}
+                placeholder="e.g. search_hacker_news" autoFocus />
             </div>
 
             <div className="space-y-1.5">
               <label className="text-sm font-medium">Description</label>
-              <input
-                type="text"
-                value={toolDesc}
-                onChange={(e) => setToolDesc(e.target.value)}
-                placeholder="What does this tool do?"
-                className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-ring"
-              />
+              <Input value={toolDesc} onChange={(e) => setToolDesc(e.target.value)}
+                placeholder="What does this tool do?" />
             </div>
 
             {saveError && <p className="text-sm text-destructive">{saveError}</p>}
@@ -1013,10 +962,10 @@ export function App() {
                   <X className="h-4 w-4" />
                 </Button>
               </div>
-              <input type="text" value={newServerName} onChange={(e) => setNewServerName(e.target.value)}
-                placeholder="Server name" className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-ring" autoFocus />
-              <input type="text" value={newServerDesc} onChange={(e) => setNewServerDesc(e.target.value)}
-                placeholder="Description (optional)" className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-ring" />
+              <Input value={newServerName} onChange={(e) => setNewServerName(e.target.value)}
+                placeholder="Server name" autoFocus />
+              <Input value={newServerDesc} onChange={(e) => setNewServerDesc(e.target.value)}
+                placeholder="Description (optional)" />
               {createError && <p className="text-sm text-destructive">{createError}</p>}
               <div className="flex gap-2 justify-end">
                 <Button variant="outline" size="sm" onClick={() => { setShowNewServerForm(false); setCreateError(null) }}>Cancel</Button>
@@ -1050,10 +999,10 @@ export function App() {
                   <div key={s.id} className="rounded-lg border bg-card overflow-hidden">
                     {isEditingServer ? (
                       <div className="px-4 py-3 space-y-2.5">
-                        <input type="text" value={editServerName} onChange={(e) => setEditServerName(e.target.value)}
-                          className="w-full rounded-md border bg-background px-3 py-2 text-sm font-medium outline-none focus:ring-1 focus:ring-ring" autoFocus />
-                        <input type="text" value={editServerDesc} onChange={(e) => setEditServerDesc(e.target.value)}
-                          placeholder="Description" className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-ring" />
+                        <Input value={editServerName} onChange={(e) => setEditServerName(e.target.value)}
+                          className="font-medium" autoFocus />
+                        <Input value={editServerDesc} onChange={(e) => setEditServerDesc(e.target.value)}
+                          placeholder="Description" />
                         <div className="flex gap-2 justify-end">
                           <Button variant="outline" size="sm" onClick={cancelEditServer}>Cancel</Button>
                           <Button variant="default" size="sm" onClick={saveEditServer}>Save</Button>
@@ -1181,10 +1130,36 @@ export function App() {
         <Button variant="outline" size="sm" disabled={isRecording} onClick={() => addLane(false)}>
           <Columns className="h-3.5 w-3.5" /> Lane
         </Button>
-        <Button variant="secondary" size="sm" disabled={steps.length === 0 && lanes.every(l => l.length === 0)} onClick={handleDone}>
+        <Button variant="outline" size="sm" onClick={() => setShowWaitInput(!showWaitInput)}>
+          <Timer className="h-3.5 w-3.5" /> Wait
+        </Button>
+        <Button variant="secondary" size="sm" disabled={steps.length === 0 && lanes.every(l => l.steps.length === 0)} onClick={handleDone}>
           <Check className="h-3.5 w-3.5" /> Done
         </Button>
       </div>
+
+      {/* Manual wait input */}
+      {showWaitInput && (
+        <div className="flex items-center gap-2 px-4 py-2 border-b">
+          <Input
+            type="number"
+            min="0.1"
+            max="30"
+            step="0.1"
+            value={waitSeconds}
+            onChange={(e) => setWaitSeconds(e.target.value)}
+            className="w-20"
+            placeholder="1"
+            autoFocus
+            onKeyDown={(e) => { if (e.key === 'Enter') handleAddWaitStep(false) }}
+          />
+          <span className="text-sm text-muted-foreground">sec</span>
+          <Button variant="default" size="sm" onClick={() => handleAddWaitStep(false)}>Add</Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setShowWaitInput(false); setWaitSeconds('1') }}>
+            <X className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      )}
 
       {/* Lane tabs (only shown when >1 lane) */}
       <LaneTabBar
@@ -1193,6 +1168,7 @@ export function App() {
         onSwitch={(i) => switchLane(i, false)}
         onAdd={() => addLane(false)}
         onRemove={(i) => removeLane(i, false)}
+        onRename={(i, name) => renameLane(i, name, false)}
       />
 
       {/* Help text */}
@@ -1206,7 +1182,7 @@ export function App() {
           <div className="text-center py-12 space-y-2">
             <MousePointerClick className="h-8 w-8 mx-auto text-muted-foreground/40" />
             <p className="text-base text-muted-foreground">
-              {isRecording ? 'Recording — interact with the page…' : 'No steps yet'}
+              {isRecording ? 'Recording - interact with the page…' : 'No steps yet'}
             </p>
           </div>
         ) : (
@@ -1219,13 +1195,14 @@ export function App() {
                 step={step}
                 paramMeta={paramMap.get(i) ?? new Map()}
                 onDelete={() => handleDeleteStep(i)}
-                onMoveUp={() => moveStep(i, i - 1)}
-                onMoveDown={() => moveStep(i, i + 1)}
+                onMoveUp={() => handleMoveStep(i, i - 1)}
+                onMoveDown={() => handleMoveStep(i, i + 1)}
                 onDragStart={() => { dragIdxRef.current = i }}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={() => { if (dragIdxRef.current !== null) { handleDropStep(dragIdxRef.current, i); dragIdxRef.current = null } }}
                 onToggleParam={(key, orig) => toggleParam(i, key, orig)}
                 onDescriptionChange={(key, desc) => updateParamDescription(i, key, desc)}
+                onWaitUntilChange={(val) => updateStepWaitUntil(i, val, false)}
               />
             ))}
             <div ref={stepsEndRef} />
@@ -1238,8 +1215,8 @@ export function App() {
         {isRecording && <span className="w-2 h-2 rounded-full bg-destructive animate-pulse-dot" />}
         <span>
           {steps.length} step{steps.length !== 1 ? 's' : ''}
-          {lanes.length > 1 && ` · Lane ${activeLane + 1}/${lanes.length}`}
-          {lanes.length > 1 && ` (${lanes.reduce((s, l) => s + l.length, 0)} total)`}
+          {lanes.length > 1 && ` · ${lanes[activeLane]?.name ?? `Lane ${activeLane + 1}`}/${lanes.length}`}
+          {lanes.length > 1 && ` (${lanes.reduce((s, l) => s + l.steps.length, 0)} total)`}
           {extractCount > 0 && ` · ${extractCount} extract${extractCount !== 1 ? 's' : ''}`}
           {paramCount > 0 && ` · ${paramCount} param${paramCount !== 1 ? 's' : ''}`}
         </span>
@@ -1256,13 +1233,36 @@ function LaneTabBar({
   onSwitch,
   onAdd,
   onRemove,
+  onRename,
 }: {
-  lanes: Step[][]
+  lanes: Lane[]
   activeLane: number
   onSwitch: (idx: number) => void
   onAdd: () => void
   onRemove: (idx: number) => void
+  onRename: (idx: number, name: string) => void
 }) {
+  const [editingIdx, setEditingIdx] = useState<number | null>(null)
+  const [editValue, setEditValue] = useState('')
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  const startRename = (idx: number) => {
+    setEditingIdx(idx)
+    setEditValue(lanes[idx]?.name ?? '')
+    setTimeout(() => inputRef.current?.select(), 0)
+  }
+
+  const commitRename = () => {
+    if (editingIdx !== null && editValue.trim()) {
+      onRename(editingIdx, editValue.trim())
+    }
+    setEditingIdx(null)
+  }
+
+  const cancelRename = () => {
+    setEditingIdx(null)
+  }
+
   if (lanes.length <= 1) return null
   return (
     <div className="flex items-center gap-1 px-4 py-2 border-b bg-muted/30 overflow-x-auto">
@@ -1271,6 +1271,7 @@ function LaneTabBar({
           key={i}
           type="button"
           onClick={() => onSwitch(i)}
+          onDoubleClick={() => startRename(i)}
           className={cn(
             'relative flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors shrink-0 cursor-pointer',
             i === activeLane
@@ -1278,9 +1279,29 @@ function LaneTabBar({
               : 'text-muted-foreground hover:bg-secondary hover:text-foreground',
           )}
         >
-          Lane {i + 1}
-          <span className="text-xs opacity-70">({lane.length})</span>
-          {lanes.length > 1 && (
+          {editingIdx === i ? (
+            <input
+              ref={inputRef}
+              type="text"
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+              onBlur={commitRename}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') commitRename()
+                if (e.key === 'Escape') cancelRename()
+                e.stopPropagation()
+              }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-transparent border-none outline-none text-sm font-medium w-20 p-0"
+              autoFocus
+            />
+          ) : (
+            <>
+              {lane.name}
+              <span className="text-xs opacity-70">({lane.steps.length})</span>
+            </>
+          )}
+          {lanes.length > 1 && editingIdx !== i && (
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); onRemove(i) }}
@@ -1290,7 +1311,7 @@ function LaneTabBar({
                   ? 'hover:bg-primary-foreground/20'
                   : 'hover:bg-destructive/10 hover:text-destructive',
               )}
-              title={`Remove Lane ${i + 1}`}
+              title={`Remove ${lane.name}`}
             >
               <X className="h-3 w-3" />
             </button>
@@ -1330,6 +1351,7 @@ function Header({ title, icon, onBack }: { title: string; icon: ReactNode; onBac
 function StepCard({
   step, index, total, paramMeta, onDelete, onMoveUp, onMoveDown,
   onDragStart, onDragOver, onDrop, onToggleParam, onDescriptionChange,
+  onWaitUntilChange,
 }: {
   step: Step
   index: number
@@ -1343,6 +1365,7 @@ function StepCard({
   onDrop: () => void
   onToggleParam: (key: string, originalValue: string) => void
   onDescriptionChange: (key: string, desc: string) => void
+  onWaitUntilChange?: (value: Step['waitUntil']) => void
 }) {
   const Icon = STEP_ICONS[step.action] ?? Wrench
   const detail = stepDetail(step)
@@ -1373,6 +1396,22 @@ function StepCard({
         <span className="font-medium text-foreground">{step.action}</span>
         {detail && <p className="text-muted-foreground truncate mt-0.5">{detail}</p>}
 
+        {step.action === 'navigate' && onWaitUntilChange && (
+          <div className="flex items-center gap-2 mt-2">
+            <span className="text-sm text-muted-foreground shrink-0">Wait until</span>
+            <Select value={step.waitUntil ?? 'load'} onValueChange={(v) => onWaitUntilChange(v as Step['waitUntil'])}>
+              <SelectTrigger className="w-auto h-8">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="load">Page Load</SelectItem>
+                <SelectItem value="domcontentloaded">DOM Ready</SelectItem>
+                <SelectItem value="networkidle">Network Idle</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
         {params.length > 0 && (
           <div className="mt-2.5 space-y-1.5">
             <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">URL Parameters</p>
@@ -1395,7 +1434,7 @@ function StepCard({
                       )}
                       role="switch"
                       aria-checked={isP}
-                      title={isP ? 'Revert to static value' : 'Make dynamic — LLM will provide this value'}
+                      title={isP ? 'Revert to static value' : 'Make dynamic - LLM will provide this value'}
                     >
                       <span className={cn(
                         'inline-block h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-transform',
@@ -1405,11 +1444,9 @@ function StepCard({
                   </div>
                   {isP && (
                     <div className="px-2.5 pb-2">
-                      <input type="text" value={meta?.description ?? ''}
+                      <Input value={meta?.description ?? ''}
                         onChange={(e) => onDescriptionChange(k, e.target.value)}
-                        placeholder="Describe this parameter (e.g. Search query)"
-                        className="w-full rounded-md border bg-background/80 px-2.5 py-1.5 text-sm text-foreground placeholder:text-muted-foreground/60 outline-none focus:ring-1 focus:ring-ring"
-                      />
+                        placeholder="Describe this parameter (e.g. Search query)" />
                     </div>
                   )}
                 </div>
@@ -1437,7 +1474,7 @@ function stepDetail(step: Step): string {
     case 'type': return `"${step.text?.slice(0, 25)}" → ${step.selector?.slice(0, 20)}`
     case 'scroll': return `${step.direction ?? 'down'} ${step.amount ?? 0}px`
     case 'select': return `${step.value} → ${step.selector?.slice(0, 20)}`
-    case 'wait': return `${step.ms ?? 0}ms`
+    case 'wait': { const ms = step.ms ?? 0; return ms >= 1000 ? `${ms / 1000}s` : `${ms}ms` }
     case 'waitForSelector': return step.selector?.slice(0, 50) ?? ''
     case 'waitForUrl': return step.pattern?.slice(0, 50) ?? ''
     case 'waitForLoad': return `${step.timeout ?? 0}ms`

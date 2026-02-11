@@ -1,5 +1,5 @@
 /**
- * BrowserWindow — Controls a browser window for automation.
+ * BrowserWindow - Controls a browser window for automation.
  *
  * Supports multiple instances via `laneId` for parallel lane execution.
  * First open() creates a real browser window (not popup). Subsequent open() calls
@@ -113,6 +113,8 @@ export class BrowserWindow {
   async waitForSelector(sel: string, timeout = 10_000): Promise<void> { await this.send('waitForSelector', { selector: sel, timeout }) }
   async waitForUrl(pattern: string, timeout = 10_000): Promise<void> { await this.send('waitForUrl', { pattern, timeout }) }
   async waitForLoad(timeout = 15_000): Promise<void> { await this.send('waitForLoad', { timeout }) }
+  async waitForDOMContentLoaded(timeout = 15_000): Promise<void> { await this.send('waitForDOMContentLoaded', { timeout }) }
+  async waitForNetworkIdle(timeout = 30_000, idleTime = 500): Promise<void> { await this.send('waitForNetworkIdle', { timeout, idleTime }) }
 
   // ─── Evaluate ───────────────────────────────────────────────────
 
