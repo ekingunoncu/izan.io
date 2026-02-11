@@ -266,7 +266,14 @@ export class ElementPicker {
 
     // Collect all leaf-ish elements with content
     const candidates: { el: Element; depth: number }[] = []
+    const seen = new Set<Element>()
+    const MAX_DEPTH = 12
+    const MAX_CANDIDATES = 15
+
     const walk = (el: Element, depth: number) => {
+      if (depth > MAX_DEPTH || candidates.length >= MAX_CANDIDATES || seen.has(el)) return
+      seen.add(el)
+
       // Skip hidden elements
       const rect = el.getBoundingClientRect()
       if (rect.width === 0 && rect.height === 0) return
@@ -285,19 +292,26 @@ export class ElementPicker {
         candidates.push({ el, depth })
         return
       }
-      // Leaf text nodes: elements that have text but no block-level children
-      const hasBlockChild = Array.from(el.children).some(c =>
-        ['DIV', 'P', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'UL', 'OL', 'TABLE', 'SECTION', 'ARTICLE'].includes(c.tagName),
-      )
-      if (!hasBlockChild && (el.textContent || '').trim().length > 0 && el.children.length <= 3) {
-        // This is a leaf-ish text element
-        if (tag !== 'A') { // A tags already captured above
-          candidates.push({ el, depth })
-        }
+
+      // Leaf check: element has meaningful text and no child elements with their own text
+      const hasChildren = el.children.length > 0
+      const text = (el.textContent || '').trim()
+      if (!hasChildren && text.length > 0) {
+        if (tag !== 'A') candidates.push({ el, depth })
+        return
       }
-      // Recurse into block children
-      if (hasBlockChild) {
-        Array.from(el.children).forEach(c => walk(c, depth + 1))
+
+      // Check if children collectively have text — if so, recurse
+      if (hasChildren) {
+        // If this is a small leaf-ish node with little nesting, capture it directly
+        const childEls = Array.from(el.children)
+        const hasDeepChildren = childEls.some(c => c.children.length > 0)
+        if (!hasDeepChildren && text.length > 0 && text.length < 200 && childEls.length <= 3) {
+          if (tag !== 'A') candidates.push({ el, depth })
+          return
+        }
+        // Recurse into all children
+        childEls.forEach(c => walk(c, depth + 1))
       }
     }
 
@@ -309,7 +323,8 @@ export class ElementPicker {
     }
 
     for (const { el } of candidates) {
-      const selector = this.generateRelativeSelector(el, item)
+      // Use structural-only selectors so they work across sibling items
+      const selector = this.generateRelativeSelector(el, item, true)
       const type = this.inferExtractionType(el)
       const baseKey = this.generateFieldKey(el, fields.length)
       const key = uniqueKey(baseKey)
@@ -498,13 +513,21 @@ export class ElementPicker {
     this.flashElement(el)
   }
 
-  private generateRelativeSelector(el: Element, container: Element): string {
+  /**
+   * Build a CSS selector for `el` relative to `container`.
+   * When `structuralOnly` is true (used for list extraction), avoids
+   * class-based shortcuts so the selector works across sibling items
+   * that share DOM structure but have different dynamic class names.
+   */
+  private generateRelativeSelector(el: Element, container: Element, structuralOnly = false): string {
     const parts: string[] = []; let cur: Element | null = el
     while (cur && cur !== container) {
       const p = cur.parentElement; if (!p) break
       const tag = cur.tagName.toLowerCase()
-      const cls = this.getUniqueClassName(cur, p)
-      if (cls) { parts.unshift(`.${CSS.escape(cls)}`); break }
+      if (!structuralOnly) {
+        const cls = this.getUniqueClassName(cur, p)
+        if (cls) { parts.unshift(`.${CSS.escape(cls)}`); break }
+      }
       const sibs = Array.from(p.children).filter(c => c.tagName === cur!.tagName)
       parts.unshift(sibs.length === 1 ? tag : `${tag}:nth-of-type(${sibs.indexOf(cur) + 1})`)
       cur = p
