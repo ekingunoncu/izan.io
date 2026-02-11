@@ -16,8 +16,9 @@ import { z } from 'zod'
 
 /** Where the parameter value is injected during execution */
 export const parameterSourceSchema = z.enum([
-  'urlParam',   // Injected into a URL query parameter
-  'input',      // Used as a {{placeholder}} in step fields
+  'urlParam',      // Injected into a URL query parameter
+  'input',         // Used as a {{placeholder}} in step fields
+  'pathSegment',   // Injected into a URL path segment
 ])
 
 export const toolParameterSchema = z.object({

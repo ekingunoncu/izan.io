@@ -21,6 +21,8 @@ interface ParamMeta {
   enabled: boolean
   description: string
   originalValue: string
+  /** Custom parameter name (used for path segments and type inputs) */
+  paramName?: string
 }
 
 interface Lane {
@@ -131,6 +133,22 @@ export function updateParamDescAt(
   })
 }
 
+export function updateParamNameAt(
+  setParamMap: SetState<ParamMap>,
+  stepIdx: number,
+  key: string,
+  paramName: string,
+): void {
+  setParamMap(prev => {
+    const next = new Map(prev)
+    const stepMeta = new Map(next.get(stepIdx) ?? [])
+    const existing = stepMeta.get(key)
+    if (existing) stepMeta.set(key, { ...existing, paramName })
+    next.set(stepIdx, stepMeta)
+    return next
+  })
+}
+
 // ─── WaitUntil ──────────────────────────────────────────────────────────────
 
 export function updateStepWaitUntilAt(
@@ -162,18 +180,84 @@ export function applyParamMap(
 ): { finalSteps: Step[]; parameters: ToolParameter[] } {
   const finalSteps = steps.map((s, i) => {
     const meta = paramMap.get(i)
-    if (!meta || s.action !== 'navigate') return s
-    const newParams: Record<string, string> = { ...(s.urlParams ?? {}) }
-    for (const [k, m] of meta) {
-      newParams[k] = m.enabled ? `{{${k}}}` : m.originalValue
+    if (!meta) return s
+
+    // --- Query params (navigate steps) ---
+    if (s.action === 'navigate') {
+      const newParams: Record<string, string> = { ...(s.urlParams ?? {}) }
+      let newUrl = s.url ?? ''
+
+      for (const [k, m] of meta) {
+        if (!m.enabled) continue
+
+        if (k === '__input') continue // shouldn't happen on navigate, but guard
+
+        if (k.startsWith('__path:')) {
+          // Path segment parameterization
+          const segIdx = parseInt(k.slice(7), 10)
+          const name = m.paramName || `path_${segIdx}`
+          try {
+            const parsed = new URL(newUrl, 'https://x')
+            const segments = parsed.pathname.split('/')
+            // segments[0] is '' (before leading /), real segments start at 1
+            const realIdx = segIdx + 1
+            if (realIdx < segments.length) {
+              segments[realIdx] = `{{${name}}}`
+              parsed.pathname = segments.join('/')
+              newUrl = parsed.toString().replace('https://x', '') // preserve relative if was relative
+              // If original url was absolute, use parsed.toString()
+              if (s.url && /^https?:\/\//.test(s.url)) {
+                newUrl = parsed.toString()
+              }
+            }
+          } catch { /* invalid URL, skip */ }
+        } else {
+          // Query param
+          newParams[k] = `{{${k}}}`
+        }
+      }
+
+      // Revert disabled query params to original values
+      for (const [k, m] of meta) {
+        if (!m.enabled && !k.startsWith('__path:') && k !== '__input') {
+          newParams[k] = m.originalValue
+        }
+      }
+
+      return { ...s, url: newUrl, urlParams: newParams }
     }
-    return { ...s, urlParams: newParams }
+
+    // --- Type input parameterization ---
+    if (s.action === 'type') {
+      const inputMeta = meta.get('__input')
+      if (inputMeta?.enabled) {
+        const name = inputMeta.paramName || 'input_text'
+        return { ...s, text: `{{${name}}}` }
+      }
+    }
+
+    return s
   })
 
   const parameters: ToolParameter[] = []
+  const seen = new Set<string>()
   for (const [, meta] of paramMap) {
     for (const [k, m] of meta) {
-      if (m.enabled) {
+      if (!m.enabled) continue
+
+      if (k.startsWith('__path:')) {
+        const name = m.paramName || `path_${k.slice(7)}`
+        if (seen.has(name)) continue
+        seen.add(name)
+        parameters.push({ name, type: 'string', description: m.description || name, required: true, source: 'pathSegment', sourceKey: k })
+      } else if (k === '__input') {
+        const name = m.paramName || 'input_text'
+        if (seen.has(name)) continue
+        seen.add(name)
+        parameters.push({ name, type: 'string', description: m.description || name, required: true, source: 'input', sourceKey: k })
+      } else {
+        if (seen.has(k)) continue
+        seen.add(k)
         parameters.push({ name: k, type: 'string', description: m.description || k, required: true, source: 'urlParam', sourceKey: k })
       }
     }

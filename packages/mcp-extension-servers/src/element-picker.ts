@@ -504,7 +504,7 @@ export class ElementPicker {
       const p = cur.parentElement; if (!p) break
       const tag = cur.tagName.toLowerCase()
       const cls = this.getUniqueClassName(cur, p)
-      if (cls) { parts.unshift(`.${cls}`); break }
+      if (cls) { parts.unshift(`.${CSS.escape(cls)}`); break }
       const sibs = Array.from(p.children).filter(c => c.tagName === cur!.tagName)
       parts.unshift(sibs.length === 1 ? tag : `${tag}:nth-of-type(${sibs.indexOf(cur) + 1})`)
       cur = p
@@ -579,14 +579,13 @@ export class ElementPicker {
     if (this.extractionMode === 'list') {
       return this.getSiblings(this.containerElement).slice(0, 3).map(item => {
         const row: Record<string, unknown> = {}
-        for (const f of this.fields) { const el = item.querySelector(f.selector); row[f.key] = el ? this.extractValue(el, f) : null }
+        for (const f of this.fields) { try { const el = item.querySelector(f.selector); row[f.key] = el ? this.extractValue(el, f) : null } catch { row[f.key] = null } }
         return row
       })
     }
     const row: Record<string, unknown> = {}
     for (const f of this.fields) {
-      const el = this.containerElement.querySelector(f.selector) || (f.selector === '*' ? this.containerElement : null)
-      row[f.key] = el ? this.extractValue(el, f) : null
+      try { const el = this.containerElement.querySelector(f.selector) || (f.selector === '*' ? this.containerElement : null); row[f.key] = el ? this.extractValue(el, f) : null } catch { row[f.key] = null }
     }
     return row
   }

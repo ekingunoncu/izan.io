@@ -47,7 +47,9 @@ chrome.runtime.onMessage.addListener(
       recorder.pause()
       picker.start(
         (result: PickerResult) => {
-          recorder.resume()
+          // Defer resume so the current click event fully propagates before
+          // the recorder re-attaches its listeners (avoids spurious click step).
+          setTimeout(() => recorder.resume(), 0)
           chrome.runtime.sendMessage({
             type: 'extract-result',
             step: result.step,
@@ -55,7 +57,7 @@ chrome.runtime.onMessage.addListener(
           }).catch(() => {})
         },
         mode,
-        () => { recorder.resume() }, // onCancel (ESC key)
+        () => { setTimeout(() => recorder.resume(), 0) }, // onCancel (ESC key)
       )
       sendResponse({ ok: true })
       return true

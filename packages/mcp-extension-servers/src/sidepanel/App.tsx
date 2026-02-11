@@ -13,7 +13,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '~
 import { cn } from '~lib/utils'
 import {
   addStepToLane, deleteStepAt, moveStepAt,
-  toggleParamAt, updateParamDescAt, updateStepWaitUntilAt,
+  toggleParamAt, updateParamDescAt, updateParamNameAt, updateStepWaitUntilAt,
   applyParamMap,
 } from './step-utils'
 
@@ -42,6 +42,7 @@ interface ParamMeta {
   enabled: boolean
   description: string
   originalValue: string
+  paramName?: string
 }
 
 interface AutomationServer { id: string; name: string; description?: string; toolIds?: string[] }
@@ -236,21 +237,63 @@ export function App() {
           const toolParams = tool.parameters ?? []
           for (let si = 0; si < toolSteps.length; si++) {
             const s = toolSteps[si]
-            if (s.action !== 'navigate') continue
-            const navParams = s.urlParams ? Object.entries(s.urlParams) : (() => {
-              try { return Array.from(new URL(s.url ?? '', 'https://x').searchParams.entries()) } catch { return [] }
-            })()
-            if (navParams.length === 0) continue
             const stepMeta = new Map<string, ParamMeta>()
-            for (const [k, v] of navParams) {
-              const isParameterized = typeof v === 'string' && /^\{\{.+\}\}$/.test(v)
-              const matchingParam = toolParams.find(p => p.sourceKey === k || p.name === k)
-              stepMeta.set(k, {
-                enabled: isParameterized,
-                description: matchingParam?.description ?? '',
-                originalValue: isParameterized ? (matchingParam?.name ?? k) : v,
-              })
+
+            if (s.action === 'navigate') {
+              // Query params
+              const navParams = s.urlParams ? Object.entries(s.urlParams) : (() => {
+                try { return Array.from(new URL(s.url ?? '', 'https://x').searchParams.entries()) } catch { return [] }
+              })()
+              for (const [k, v] of navParams) {
+                const isParameterized = typeof v === 'string' && /^\{\{.+\}\}$/.test(v)
+                const matchingParam = toolParams.find(p => p.sourceKey === k || p.name === k)
+                stepMeta.set(k, {
+                  enabled: isParameterized,
+                  description: matchingParam?.description ?? '',
+                  originalValue: isParameterized ? (matchingParam?.name ?? k) : v,
+                })
+              }
+
+              // Path segments — detect {{...}} placeholders in the URL path
+              if (s.url) {
+                try {
+                  const parsed = new URL(s.url, 'https://x')
+                  const segments = parsed.pathname.split('/').slice(1)
+                  for (let idx = 0; idx < segments.length; idx++) {
+                    const seg = segments[idx]
+                    const match = /^\{\{(.+)\}\}$/.exec(seg)
+                    if (match) {
+                      const paramName = match[1]
+                      const key = `__path:${idx}`
+                      const matchingParam = toolParams.find(p => p.sourceKey === key || p.name === paramName)
+                      stepMeta.set(key, {
+                        enabled: true,
+                        description: matchingParam?.description ?? '',
+                        originalValue: paramName,
+                        paramName,
+                      })
+                    }
+                  }
+                } catch { /* invalid URL */ }
+              }
             }
+
+            // Type inputs — detect {{...}} placeholder in step.text
+            if (s.action === 'type' && s.text) {
+              const match = /^\{\{(.+)\}\}$/.exec(s.text)
+              if (match) {
+                const paramName = match[1]
+                const key = '__input'
+                const matchingParam = toolParams.find(p => p.sourceKey === key || p.name === paramName)
+                stepMeta.set(key, {
+                  enabled: true,
+                  description: matchingParam?.description ?? '',
+                  originalValue: paramName,
+                  paramName,
+                })
+              }
+            }
+
             if (stepMeta.size > 0) pMap.set(si, stepMeta)
           }
           setEditParamMap(pMap)
@@ -612,6 +655,10 @@ export function App() {
     updateParamDescAt(setEditParamMap, stepIdx, key, description)
   }
 
+  const editUpdateParamName = (stepIdx: number, key: string, paramName: string) => {
+    updateParamNameAt(setEditParamMap, stepIdx, key, paramName)
+  }
+
   // ─── Lane management ────────────────────────────────────────────
 
   const switchLane = (index: number, isEditMode: boolean) => {
@@ -682,6 +729,10 @@ export function App() {
 
   const updateParamDescription = (stepIdx: number, key: string, description: string) => {
     updateParamDescAt(setParamMap, stepIdx, key, description)
+  }
+
+  const updateParamName = (stepIdx: number, key: string, paramName: string) => {
+    updateParamNameAt(setParamMap, stepIdx, key, paramName)
   }
 
   // ─── Counts ────────────────────────────────────────────────────
@@ -826,6 +877,7 @@ export function App() {
                 onDrop={() => { if (editDragIdxRef.current !== null) { editDropStep(editDragIdxRef.current, i); editDragIdxRef.current = null } }}
                 onToggleParam={(key, orig) => editToggleParam(i, key, orig)}
                 onDescriptionChange={(key, desc) => editUpdateParamDescription(i, key, desc)}
+                onParamNameChange={(key, name) => editUpdateParamName(i, key, name)}
                 onWaitUntilChange={(val) => updateStepWaitUntil(i, val, true)}
               />
             ))}
@@ -1202,6 +1254,7 @@ export function App() {
                 onDrop={() => { if (dragIdxRef.current !== null) { handleDropStep(dragIdxRef.current, i); dragIdxRef.current = null } }}
                 onToggleParam={(key, orig) => toggleParam(i, key, orig)}
                 onDescriptionChange={(key, desc) => updateParamDescription(i, key, desc)}
+                onParamNameChange={(key, name) => updateParamName(i, key, name)}
                 onWaitUntilChange={(val) => updateStepWaitUntil(i, val, false)}
               />
             ))}
@@ -1351,7 +1404,7 @@ function Header({ title, icon, onBack }: { title: string; icon: ReactNode; onBac
 function StepCard({
   step, index, total, paramMeta, onDelete, onMoveUp, onMoveDown,
   onDragStart, onDragOver, onDrop, onToggleParam, onDescriptionChange,
-  onWaitUntilChange,
+  onParamNameChange, onWaitUntilChange,
 }: {
   step: Step
   index: number
@@ -1365,11 +1418,14 @@ function StepCard({
   onDrop: () => void
   onToggleParam: (key: string, originalValue: string) => void
   onDescriptionChange: (key: string, desc: string) => void
+  onParamNameChange?: (key: string, name: string) => void
   onWaitUntilChange?: (value: Step['waitUntil']) => void
 }) {
   const Icon = STEP_ICONS[step.action] ?? Wrench
   const detail = stepDetail(step)
   const params = getNavParams(step)
+  const pathSegments = getPathSegments(step)
+  const typeText = step.action === 'type' ? (step.text ?? '') : ''
 
   return (
     <div
@@ -1412,6 +1468,52 @@ function StepCard({
           </div>
         )}
 
+        {/* Path Segments (navigate steps) */}
+        {pathSegments.length > 0 && (
+          <div className="mt-2.5 space-y-1.5">
+            <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Path Segments</p>
+            {pathSegments.map(([segIdx, segment]) => {
+              const key = `__path:${segIdx}`
+              const meta = paramMeta.get(key)
+              const isP = meta?.enabled ?? false
+              return (
+                <div key={key} className={cn('rounded-md border transition-colors', isP ? 'border-primary/30 bg-primary/5' : 'bg-background/50')}>
+                  <div className="flex items-center gap-2 px-2.5 py-2">
+                    <span className="font-mono text-sm text-muted-foreground shrink-0">/{segment}</span>
+                    <span className="flex-1" />
+                    <button type="button"
+                      onClick={(e) => { e.stopPropagation(); onToggleParam(key, segment) }}
+                      className={cn(
+                        'shrink-0 relative inline-flex h-5 w-9 items-center rounded-full transition-colors cursor-pointer',
+                        isP ? 'bg-primary' : 'bg-muted-foreground/25 hover:bg-muted-foreground/35'
+                      )}
+                      role="switch"
+                      aria-checked={isP}
+                      title={isP ? 'Revert to static value' : 'Make dynamic - LLM will provide this value'}
+                    >
+                      <span className={cn(
+                        'inline-block h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-transform',
+                        isP ? 'translate-x-[18px]' : 'translate-x-0.5'
+                      )} />
+                    </button>
+                  </div>
+                  {isP && (
+                    <div className="px-2.5 pb-2 space-y-1.5">
+                      <Input value={meta?.paramName ?? ''}
+                        onChange={(e) => onParamNameChange?.(key, e.target.value)}
+                        placeholder="Parameter name (e.g. user_id)" />
+                      <Input value={meta?.description ?? ''}
+                        onChange={(e) => onDescriptionChange(key, e.target.value)}
+                        placeholder="Description (e.g. The user's ID)" />
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )}
+
+        {/* URL Parameters (navigate steps) */}
         {params.length > 0 && (
           <div className="mt-2.5 space-y-1.5">
             <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">URL Parameters</p>
@@ -1452,6 +1554,50 @@ function StepCard({
                 </div>
               )
             })}
+          </div>
+        )}
+
+        {/* Input Value (type steps) */}
+        {step.action === 'type' && typeText && (
+          <div className="mt-2.5 space-y-1.5">
+            <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Input Value</p>
+            {(() => {
+              const key = '__input'
+              const meta = paramMeta.get(key)
+              const isP = meta?.enabled ?? false
+              return (
+                <div className={cn('rounded-md border transition-colors', isP ? 'border-primary/30 bg-primary/5' : 'bg-background/50')}>
+                  <div className="flex items-center gap-2 px-2.5 py-2">
+                    <span className="font-mono text-sm text-muted-foreground truncate flex-1">"{typeText}"</span>
+                    <button type="button"
+                      onClick={(e) => { e.stopPropagation(); onToggleParam(key, typeText) }}
+                      className={cn(
+                        'shrink-0 relative inline-flex h-5 w-9 items-center rounded-full transition-colors cursor-pointer',
+                        isP ? 'bg-primary' : 'bg-muted-foreground/25 hover:bg-muted-foreground/35'
+                      )}
+                      role="switch"
+                      aria-checked={isP}
+                      title={isP ? 'Revert to static value' : 'Make dynamic - LLM will provide this value'}
+                    >
+                      <span className={cn(
+                        'inline-block h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-transform',
+                        isP ? 'translate-x-[18px]' : 'translate-x-0.5'
+                      )} />
+                    </button>
+                  </div>
+                  {isP && (
+                    <div className="px-2.5 pb-2 space-y-1.5">
+                      <Input value={meta?.paramName ?? ''}
+                        onChange={(e) => onParamNameChange?.(key, e.target.value)}
+                        placeholder="Parameter name (e.g. search_query)" />
+                      <Input value={meta?.description ?? ''}
+                        onChange={(e) => onDescriptionChange(key, e.target.value)}
+                        placeholder="Description (e.g. Text to search for)" />
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
           </div>
         )}
       </div>
@@ -1495,6 +1641,19 @@ function getNavParams(step: Step): [string, string][] {
     try { return Array.from(new URL(step.url, 'https://placeholder.com').searchParams.entries()) } catch { /* */ }
   }
   return []
+}
+
+/** Returns [segmentIndex, segmentValue][] for non-empty path segments */
+function getPathSegments(step: Step): [number, string][] {
+  if (step.action !== 'navigate' || !step.url) return []
+  try {
+    const parsed = new URL(step.url, 'https://placeholder.com')
+    return parsed.pathname
+      .split('/')
+      .slice(1) // remove leading empty string from /
+      .map((seg, i) => [i, seg] as [number, string])
+      .filter(([, seg]) => seg.length > 0)
+  } catch { return [] }
 }
 
 function downloadJson(data: unknown, filename: string) {
