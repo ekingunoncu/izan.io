@@ -22,8 +22,10 @@ import {
   Search,
   ChevronDown,
   ChevronRight,
+  Cog,
+  FileJson,
 } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip";
 import {
   AlertDialog,
@@ -45,12 +47,14 @@ import {
   CardTitle,
 } from "~/components/ui/card";
 import { useTheme, type Theme } from "~/lib/theme";
-import { useMCPStore, useModelStore, useExternalApiKeysStore } from "~/store";
-import { EXTERNAL_API_KEY_DEFINITIONS } from "~/lib/external-api-keys";
+import { useMCPStore, useModelStore } from "~/store";
+import { useAutomationStore } from "~/store/automation.store";
 import { DEFAULT_MCP_SERVERS } from "~/lib/mcp/config";
+import { requestAutomationData } from "~/lib/mcp/extension-bridge";
 import { cn } from "~/lib/utils";
 import { type SupportedLanguage, setStoredLanguagePreference } from "~/i18n";
 import { useProvidersWithModels } from "~/lib/use-providers-with-models";
+// Additional icons are imported from lucide-react above
 
 const LANGUAGES: { code: SupportedLanguage; label: string }[] = [
   { code: "tr", label: "Türkçe" },
@@ -73,14 +77,14 @@ export function HydrateFallback() {
     <div className="flex items-center justify-center h-screen">
       <div className="text-center">
         <Bot className="h-12 w-12 mx-auto mb-4 text-primary animate-pulse" />
-        <p className="text-muted-foreground">Yükleniyor...</p>
+        <p className="text-muted-foreground">Loading...</p>
       </div>
     </div>
   );
 }
 
 export function meta() {
-  return [{ title: "Ayarlar - izan.io" }];
+  return [{ title: "Settings - izan.io" }];
 }
 
 function ProviderKeyRow({
@@ -233,6 +237,110 @@ function ProviderKeyRow({
   );
 }
 
+// ─── Macros Section ─────────────────────────────────────────────────────────
+
+function AutomationToolsSection() {
+  const { t } = useTranslation("common");
+  const {
+    servers: autoServers,
+    initialized,
+    initialize,
+    getToolsByServer,
+  } = useAutomationStore();
+
+  const [expandedServer, setExpandedServer] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!initialized) initialize();
+  }, [initialized, initialize]);
+
+  useEffect(() => {
+    requestAutomationData();
+  }, []);
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Cog className="h-5 w-5" />
+          {t("settings.macrosTitle")}
+        </CardTitle>
+        <CardDescription>
+          {t("settings.macrosDesc")}
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {autoServers.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-4">
+            {t("settings.macrosNoServers")}
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {autoServers.map((server) => {
+              const serverTools = getToolsByServer(server.id);
+              const isExpanded = expandedServer === server.id;
+
+              return (
+                <div key={server.id} className="rounded-lg border">
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    className="flex items-center gap-2 p-3 w-full text-left cursor-pointer hover:bg-muted/30 transition-colors"
+                    onClick={() => setExpandedServer(isExpanded ? null : server.id)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpandedServer(isExpanded ? null : server.id); } }}
+                  >
+                    {isExpanded ? (
+                      <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{server.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {serverTools.length} {t("settings.macrosTools")}
+                      </p>
+                    </div>
+                  </div>
+
+                  {isExpanded && (
+                    <div className="border-t px-3 pb-3 space-y-2">
+                      {server.description && (
+                        <p className="text-xs text-muted-foreground pt-2">{server.description}</p>
+                      )}
+                      {serverTools.length === 0 ? (
+                        <p className="text-xs text-muted-foreground py-3 text-center">
+                          {t("settings.macrosNoTools")}
+                        </p>
+                      ) : (
+                        <div className="space-y-1 pt-2">
+                          {serverTools.map((tool) => (
+                            <div
+                              key={tool.id}
+                              className="flex items-center gap-2 p-2 rounded-md hover:bg-muted/40 transition-colors"
+                            >
+                              <FileJson className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-medium truncate">{tool.displayName}</p>
+                                <p className="text-[11px] text-muted-foreground truncate">
+                                  {tool.steps.length} {t("settings.macrosSteps")} · {tool.parameters.length} {t("settings.macrosParams")}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function Settings() {
   const { t } = useTranslation("common");
   const { lang } = useParams();
@@ -240,8 +348,6 @@ export default function Settings() {
   const location = useLocation();
   const from = (location.state as { from?: string })?.from;
   const backTo = from ?? `/${lang}`;
-  const addApiKeyInputRef = useRef<HTMLInputElement | null>(null);
-  const addApiKeyFromHash = location.hash?.slice(1) || null; // e.g. #serp_api or #coingecko_api
   const [theme, setTheme] = useTheme();
   const {
     servers,
@@ -261,18 +367,11 @@ export default function Settings() {
     removeApiKey,
     initialize: initModel,
   } = useModelStore();
-  const {
-    getExternalApiKey,
-    setExternalApiKey,
-    removeExternalApiKey,
-    initialize: initExternalKeys,
-  } = useExternalApiKeysStore();
 
-  // Ensure model store and external API keys are initialized when Settings mounts
+  // Ensure model store is initialized when Settings mounts
   useEffect(() => {
     void initModel();
-    void initExternalKeys();
-  }, [initModel, initExternalKeys]);
+  }, [initModel]);
 
   // Add MCP server form state
   const [showAddForm, setShowAddForm] = useState(false);
@@ -297,31 +396,15 @@ export default function Settings() {
   const [providerSearch, setProviderSearch] = useState("");
   // Expanded provider for API key (accordion)
   const [expandedProviderId, setExpandedProviderId] = useState<string | null>(null);
-  const [expandedExternalKeyId, setExpandedExternalKeyId] = useState<string | null>(() => {
-    const hash = location.hash?.slice(1);
-    if (hash && EXTERNAL_API_KEY_DEFINITIONS.some((d) => d.id === hash)) return hash;
-    return null;
-  });
   // Built-in MCP section: expanded by default so users can disable servers
   const [builtinMcpExpanded, setBuiltinMcpExpanded] = useState(true);
   const [deleteServerId, setDeleteServerId] = useState<string | null>(null);
 
-  // When opened via #serp_api (Add API Key): focus the input once, then clear hash
-  const hasFocusedForAddApiKey = useRef(false);
-  useEffect(() => {
-    if (!addApiKeyFromHash || hasFocusedForAddApiKey.current) return;
-    const id = setTimeout(() => {
-      if (addApiKeyInputRef.current) {
-        addApiKeyInputRef.current.focus();
-        hasFocusedForAddApiKey.current = true;
-        window.history.replaceState(null, '', location.pathname + location.search);
-      }
-    }, 150);
-    return () => clearTimeout(id);
-  }, [addApiKeyFromHash, expandedExternalKeyId, location.pathname, location.search]);
-
   // Built-in: show only name + description (no connection status, no API calls)
   const customServerStates = servers.filter((s) => s.config.source === "user");
+
+  // Filter built-in servers to in-browser only (exclude extension servers)
+  const inBrowserServers = DEFAULT_MCP_SERVERS.filter((s) => !s.id.startsWith("ext-"));
 
   const parseHeaders = (raw: string): Record<string, string> | null => {
     if (!raw.trim()) return {};
@@ -538,99 +621,6 @@ export default function Settings() {
             </CardContent>
           </Card>
 
-          {/* External API Keys */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Key className="h-5 w-5" />
-                {t("settings.externalApiKeysTitle")}
-              </CardTitle>
-              <CardDescription>
-                {t("settings.externalApiKeysDesc")}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {EXTERNAL_API_KEY_DEFINITIONS.map((def) => {
-                const currentKey = getExternalApiKey(def.id);
-                return (
-                  <ProviderKeyRow
-                    key={def.id}
-                    providerId={def.id}
-                    providerName={def.name}
-                    apiKeyUrl={def.url}
-                    envHint={def.placeholder}
-                    descriptionKey={def.descriptionKey}
-                    pricingUrl={def.pricingUrl}
-                    currentKey={currentKey}
-                    onSave={(key) => setExternalApiKey(def.id, key)}
-                    onRemove={() => removeExternalApiKey(def.id)}
-                    isExpanded={expandedExternalKeyId === def.id}
-                    onToggle={() =>
-                      setExpandedExternalKeyId((prev) =>
-                        prev === def.id ? null : def.id
-                      )
-                    }
-                    inputRef={def.id === addApiKeyFromHash ? addApiKeyInputRef : undefined}
-                  />
-                );
-              })}
-            </CardContent>
-          </Card>
-
-          {/* Language */}
-          <Card>
-            <CardHeader>
-              <CardTitle>{t("settings.language")}</CardTitle>
-              <CardDescription>
-                {LANGUAGES.find((l) => l.code === lang)?.label || lang}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-wrap gap-2">
-              {LANGUAGES.map((l) => (
-                <Button
-                  key={l.code}
-                  variant="outline"
-                  size="sm"
-                  className={cn(
-                    lang === l.code ? "bg-muted font-medium" : ""
-                  )}
-                  onClick={() => handleLanguageChange(l.code)}
-                >
-                  {l.label}
-                </Button>
-              ))}
-            </CardContent>
-          </Card>
-
-          {/* Theme */}
-          <Card>
-            <CardHeader>
-              <CardTitle>{t("settings.theme")}</CardTitle>
-              <CardDescription>
-                {t(
-                  theme === "dark" ? "settings.themeDark" : "settings.themeLight"
-                )}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-wrap gap-2">
-              {THEMES.map(({ value, icon: Icon, labelKey }) => (
-                <Button
-                  key={value}
-                  variant="outline"
-                  size="sm"
-                  className={cn(
-                    "gap-2",
-                    theme === value ? "bg-muted font-medium" : ""
-                  )}
-                  onClick={() => setTheme(value)}
-                >
-                  <Icon className="h-4 w-4" />
-                  {t(labelKey)}
-                </Button>
-              ))}
-            </CardContent>
-          </Card>
-
           {/* Built-in MCP Servers - expandable, collapsed by default */}
           <Card>
             <CardHeader>
@@ -663,12 +653,12 @@ export default function Settings() {
                   {builtinMcpExpanded
                     ? t("settings.mcpBuiltinCollapse")
                     : t("settings.mcpBuiltinExpand", {
-                        count: DEFAULT_MCP_SERVERS.length,
+                        count: inBrowserServers.length,
                       })}
                 </span>
               </button>
               {builtinMcpExpanded &&
-                DEFAULT_MCP_SERVERS.map((config) => {
+                inBrowserServers.map((config) => {
                   const isDisabled = disabledBuiltinMCPIds.includes(config.id);
                   return (
                     <div
@@ -710,6 +700,9 @@ export default function Settings() {
                 })}
             </CardContent>
           </Card>
+
+          {/* Macros */}
+          <AutomationToolsSection />
 
           {/* Custom MCP Servers */}
           <Card>
@@ -1017,6 +1010,60 @@ export default function Settings() {
                   {t("settings.mcpAddServer")}
                 </Button>
               )}
+            </CardContent>
+          </Card>
+
+          {/* Language */}
+          <Card>
+            <CardHeader>
+              <CardTitle>{t("settings.language")}</CardTitle>
+              <CardDescription>
+                {LANGUAGES.find((l) => l.code === lang)?.label || lang}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-wrap gap-2">
+              {LANGUAGES.map((l) => (
+                <Button
+                  key={l.code}
+                  variant="outline"
+                  size="sm"
+                  className={cn(
+                    lang === l.code ? "bg-muted font-medium" : ""
+                  )}
+                  onClick={() => handleLanguageChange(l.code)}
+                >
+                  {l.label}
+                </Button>
+              ))}
+            </CardContent>
+          </Card>
+
+          {/* Theme */}
+          <Card>
+            <CardHeader>
+              <CardTitle>{t("settings.theme")}</CardTitle>
+              <CardDescription>
+                {t(
+                  theme === "dark" ? "settings.themeDark" : "settings.themeLight"
+                )}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-wrap gap-2">
+              {THEMES.map(({ value, icon: Icon, labelKey }) => (
+                <Button
+                  key={value}
+                  variant="outline"
+                  size="sm"
+                  className={cn(
+                    "gap-2",
+                    theme === value ? "bg-muted font-medium" : ""
+                  )}
+                  onClick={() => setTheme(value)}
+                >
+                  <Icon className="h-4 w-4" />
+                  {t(labelKey)}
+                </Button>
+              ))}
             </CardContent>
           </Card>
         </div>

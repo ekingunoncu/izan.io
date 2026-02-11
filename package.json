@@ -16,19 +16,17 @@
   "license": "AGPL-3.0",
   "workspaces": [
     "apps/*",
-    "packages/*","packages/agents","packages/mcp-servers","packages/mcp-servers/*"
+    "packages/*",
+    "packages/agents"
   ],
   "scripts": {
     "dev": "turbo dev",
-    "dev:mcp": "npm run build -w @izan/mcp-servers-shared -w @izan/mcp-servers-namecheap -w @izan/mcp-servers-serp-search -w @izan/mcp-servers-web-fetch && dotenv -e .env -- npm run dev -w @izan/mcp-servers",
     "build": "turbo build",
     "lint": "turbo lint",
     "deploy": "turbo deploy",
     "deploy:infra": "npm run build && dotenv -e .env -- npm run deploy --workspace=@izan/infra",
     "clean": "turbo clean",
-    "test:mcp": "npm run build -w @izan/mcp-servers-shared -w @izan/mcp-servers-namecheap -w @izan/mcp-servers-serp-search -w @izan/mcp-servers-web-fetch && npm run test -w @izan/mcp-servers",
-    "test:mcp:integration": "dotenv run -- npm run test:mcp",
-    "test:crypto": "npm run test -w @izan/mcp-browser-servers"
+    "build:extension": "npm run build -w @izan/mcp-extension-servers"
   },
   "devDependencies": {
     "dotenv-cli": "^11.0.0",

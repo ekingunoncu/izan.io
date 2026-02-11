@@ -30,7 +30,7 @@ interface AgentState {
   }) => Promise<Agent>
   updateAgent: (
     agentId: string,
-    updates: Partial<Pick<Agent, 'name' | 'description' | 'icon' | 'basePrompt' | 'enabled' | 'category' | 'implicitMCPIds' | 'customMCPIds' | 'linkedAgentIds' | 'temperature' | 'maxTokens' | 'topP'>>,
+    updates: Partial<Pick<Agent, 'name' | 'description' | 'icon' | 'basePrompt' | 'enabled' | 'category' | 'implicitMCPIds' | 'customMCPIds' | 'extensionMCPIds' | 'automationServerIds' | 'linkedAgentIds' | 'temperature' | 'maxTokens' | 'topP'>>,
   ) => Promise<void>
   deleteAgent: (agentId: string) => Promise<void>
   resetAgent: (agentId: string) => Promise<void>
@@ -135,6 +135,8 @@ export const useAgentStore = create<AgentState>((set, get) => ({
       source: 'user',
       implicitMCPIds: [],
       customMCPIds: [],
+      extensionMCPIds: [],
+      automationServerIds: [],
       linkedAgentIds: [],
       isEdited: false,
       createdAt: now,

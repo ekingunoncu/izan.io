@@ -67,8 +67,8 @@ export function AgentSelector({ onClose }: AgentSelectorProps) {
     const agent = useAgentStore.getState().getAgentById(agentId)
     await selectAgent(agentId)
     if (agent) {
-      await useMCPStore.getState().activateAgentMCPs(agent)
       navigate(`/chat/${getAgentSlug(agent)}`, { replace: true })
+      useMCPStore.getState().activateAgentMCPs(agent)
     }
     onClose()
   }

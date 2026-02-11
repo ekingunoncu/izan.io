@@ -65,13 +65,13 @@ function buildLinkedAgentTools(agent: Agent): ChatCompletionTool[] {
       type: 'function',
       function: {
         name: `ask_agent_${linkedId}`,
-        description: `Bu agent ile konuş: ${linkedAgent.name} - ${linkedAgent.description}`,
+        description: i18n.t('chat.talkToAgent', { name: linkedAgent.name, desc: linkedAgent.description }),
         parameters: {
           type: 'object',
           properties: {
             question: {
               type: 'string',
-              description: "Agent'a sorulacak soru",
+              description: i18n.t('chat.questionForAgent'),
             },
           },
           required: ['question'],
@@ -87,7 +87,7 @@ function buildLinkedAgentTools(agent: Agent): ChatCompletionTool[] {
 const MAX_TOOL_ROUNDS = 5
 
 /** LLM options - only send params user explicitly set. Omit for provider defaults to avoid API errors. */
-function getAgentGenerationOptions(agent: Agent | null): LLMGenerationOptions {
+function getAgentGenerationOptions(agent: Agent | null | undefined): LLMGenerationOptions {
   const opts: LLMGenerationOptions = {}
   if (!agent) return opts
   if (agent.isEdited) {
@@ -100,9 +100,6 @@ function getAgentGenerationOptions(agent: Agent | null): LLMGenerationOptions {
 
 /** Max depth for linked agent calls (A->B->C) */
 const MAX_AGENT_DEPTH = 3
-
-/** CoinGecko dashboard URL - shown when 429 rate limit hit */
-const COINGECKO_DASHBOARD_URL = 'https://www.coingecko.com/en/developers/dashboard'
 
 /** Module-level AbortController so stopGenerating can signal sendMessage */
 let currentAbortController: AbortController | null = null
@@ -121,7 +118,7 @@ async function executeToolCall(
   }
   const toolInfo = mcpTools.find(t => t.name === fnName)
   if (!toolInfo) {
-    return `Hata: Tool bulunamadı: ${fnName}. Mevcut araçlar: ${mcpTools.map(t => t.name).join(', ') || 'yok'}`
+    return i18n.t('chat.toolNotFound', { name: fnName, available: mcpTools.map(t => t.name).join(', ') || i18n.t('chat.noTools') })
   }
   if (import.meta.env?.DEV) {
     console.log('[chat] MCP tool call:', toolInfo.serverId, fnName, fnArgs)
@@ -132,25 +129,15 @@ async function executeToolCall(
         .filter((c): c is { type: 'text'; text: string } => c.type === 'text')
         .map(c => c.text)
         .join('\n')
-    : `Hata: ${toolResult.error ?? 'Bilinmeyen hata'}`
-
-  // CoinGecko 429: warn user and redirect to dashboard for API key
-  if (
-    !toolResult.success &&
-    toolInfo.serverId === 'crypto-analysis-client' &&
-    typeof toolResult.error === 'string' &&
-    (toolResult.error.includes('rate limit') || toolResult.error.includes('429'))
-  ) {
-    if (typeof window !== 'undefined') {
-      window.open(COINGECKO_DASHBOARD_URL, '_blank', 'noopener')
-    }
-  }
+    : i18n.t('chat.errorWithMessage', { message: toolResult.error ?? i18n.t('chat.unknownError') })
 
   if (import.meta.env?.DEV) {
     if (!toolResult.success) {
       console.error('[chat] MCP tool error:', toolInfo.serverId, fnName, toolResult.error)
     } else if (fnName === 'fetch_url') {
       console.log('[chat] fetch_url result preview:', resultText.slice(0, 200) + (resultText.length > 200 ? '...' : ''))
+    } else if (!resultText && toolInfo.serverId.startsWith('ext-')) {
+      console.warn('[chat] Extension tool returned empty. Raw content:', toolResult.content)
     }
   }
   return resultText
@@ -256,7 +243,7 @@ async function runToolCallingLoop(
   }
 
   if (!isAborted()) {
-    const finalContent = statusParts.join('\n') + '\n\nMaksimum adım sayısına ulaşıldı.'
+    const finalContent = statusParts.join('\n') + '\n\n' + i18n.t('chat.maxStepsReached')
     updateAssistantMsg(finalContent)
     await persistMessage(finalContent)
   }
@@ -272,7 +259,7 @@ async function executeLinkedAgentCall(
   depth: number,
 ): Promise<string> {
   if (depth >= MAX_AGENT_DEPTH) {
-    return 'Maksimum agent derinliği aşıldı. Daha fazla agent çağrısı yapılamaz.'
+    return i18n.t('chat.maxAgentDepth')
   }
 
   const agentStore = useAgentStore.getState()
@@ -280,7 +267,7 @@ async function executeLinkedAgentCall(
   const targetAgent = agentStore.getAgentById(targetAgentId)
 
   if (!targetAgent) {
-    return `Hata: Agent bulunamadı: ${targetAgentId}`
+    return i18n.t('chat.agentNotFound', { id: targetAgentId })
   }
 
   // Activate target agent's MCPs if needed
@@ -291,11 +278,7 @@ async function executeLinkedAgentCall(
   const linkedTools = buildLinkedAgentTools(targetAgent)
   const allTools = [...mcpTools.map(mcpToolToOpenAI), ...linkedTools]
 
-  const basePrompt =
-    (targetAgent as { basePrompt?: string; systemPrompt?: string }).basePrompt ??
-    (targetAgent as { systemPrompt?: string }).systemPrompt ??
-    'You are a helpful AI assistant.'
-  const systemContent = basePrompt + '\n\nRespond in the same language the user writes in.'
+  const systemContent = (targetAgent.basePrompt || 'You are a helpful AI assistant.') + '\n\nRespond in the same language the user writes in.'
   const messages: ChatCompletionMessageParam[] = [
     { role: 'system', content: systemContent },
     { role: 'user', content: question },
@@ -323,40 +306,11 @@ async function executeLinkedAgentCall(
             let fnArgs: Record<string, unknown> = {}
             try { fnArgs = JSON.parse(tc.function.arguments) } catch { fnArgs = { raw: tc.function.arguments } }
 
-            let toolResult: string
-
-            // Check if it's a linked agent call
-            if (fnName.startsWith('ask_agent_')) {
-              const nestedAgentId = fnName.replace('ask_agent_', '')
-              const nestedQuestion = (fnArgs.question as string) || ''
-              toolResult = await executeLinkedAgentCall(nestedAgentId, nestedQuestion, depth + 1)
-            } else {
-              // Regular MCP tool call
-              const toolInfo = mcpTools.find(t => t.name === fnName)
-              if (toolInfo) {
-                const r = await mcpStore.callTool(toolInfo.serverId, fnName, fnArgs)
-                toolResult = r.success
-                  ? r.content.filter((c): c is { type: 'text'; text: string } => c.type === 'text').map(c => c.text).join('\n')
-                  : `Hata: ${r.error ?? 'Bilinmeyen hata'}`
-                // CoinGecko 429: redirect to dashboard
-                if (
-                  !r.success &&
-                  toolInfo.serverId === 'crypto-analysis-client' &&
-                  typeof r.error === 'string' &&
-                  (r.error.includes('rate limit') || r.error.includes('429'))
-                ) {
-                  if (typeof window !== 'undefined') {
-                    window.open(COINGECKO_DASHBOARD_URL, '_blank', 'noopener')
-                  }
-                }
-              } else {
-                toolResult = `Hata: Tool bulunamadı: ${fnName}`
-              }
-            }
+            const toolResultText = await executeToolCall(fnName, fnArgs, mcpTools, mcpStore)
 
             messages.push({
               role: 'tool',
-              content: toolResult,
+              content: toolResultText,
               tool_call_id: tc.id,
             })
           }
@@ -366,7 +320,7 @@ async function executeLinkedAgentCall(
         // Final text response
         return result.content ?? ''
       }
-      return 'Maksimum adım sayısına ulaşıldı.'
+      return i18n.t('chat.maxStepsReached')
     } else {
       // No tools, just a simple chat
       let response = ''
@@ -376,7 +330,7 @@ async function executeLinkedAgentCall(
       return response
     }
   } catch (error) {
-    return `Hata: Agent yanıt veremedi: ${error instanceof Error ? error.message : String(error)}`
+    return i18n.t('chat.agentResponseFailed', { message: error instanceof Error ? error.message : String(error) })
   }
 }
 
@@ -407,7 +361,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   createChat: async (agentId: string, title?: string) => {
     const chat = await storageService.createChat({
       agentId,
-      title: title || 'Yeni Sohbet',
+      title: title || i18n.t('chat.newChatTitle'),
     })
     set(state => ({
       chats: [chat, ...state.chats],
@@ -461,7 +415,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     const { currentChatId, currentChat, messages } = get()
 
     if (!llmService.isConfigured()) {
-      throw new Error('LLM yapılandırılmadı. Ayarlardan bir provider ve model seçin.')
+      throw new Error(i18n.t('chat.llmNotConfigured'))
     }
 
     currentAbortController?.abort()
@@ -486,7 +440,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
     set(state => ({ messages: [...state.messages, userMessage] }))
 
-    if (isFirstMessage || currentChat?.title === 'Yeni Sohbet') {
+    if (isFirstMessage || currentChat?.title === i18n.t('chat.newChatTitle')) {
       await get().updateChatTitle(activeChatId, generateChatTitle(content))
     }
 
@@ -534,7 +488,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       const hasTools = allOpenAITools.length > 0
 
       // Build system prompt (append instruction to respond in user's language)
-      const basePrompt = (agent as { basePrompt?: string; systemPrompt?: string } | null)?.basePrompt ?? (agent as { systemPrompt?: string })?.systemPrompt ?? 'You are a helpful AI assistant.'
+      const basePrompt = agent?.basePrompt || 'You are a helpful AI assistant.'
       const systemContent = basePrompt + '\n\nRespond in the same language the user writes in.'
 
       // Build message history
@@ -590,8 +544,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
             isAborted,
             llmOptions,
           )
-        } catch {
+        } catch (toolLoopError) {
           if (isAborted()) return
+          if (import.meta.env?.DEV) {
+            console.warn('[chat] Tool-calling loop failed, falling back to plain chat:', toolLoopError)
+          }
           await streamPlainChat(chatMessages, updateAssistantMsg, persistMessage, isAborted, llmOptions)
         }
       } else {

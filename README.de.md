@@ -40,8 +40,9 @@
 |---------|--------------|
 | 🔐 **Privatsphäre** | API-Keys nur im Browser. Nie an unsere Server gesendet. |
 | 🧠 **Multi-Provider** | 17+ KI-Provider unterstützt (siehe unten). |
-| 🤖 **Smarte Agents** | MCP-vernetzte Agents - Websuche, Code, und mehr. |
+| 🤖 **Smarte Agents** | MCP-vernetzte Agents — Websuche, Code, und mehr. |
 | 🌐 **MCP** | Integrierte und eigene MCP-Server. |
+| 🎬 **Aktions-Recorder** | Browser-Aktionen im Extension-Seitenpanel aufzeichnen und als MCP-Tools speichern; kein Code nötig ([docs/visual-mcp-tool-builder.md](docs/visual-mcp-tool-builder.md)). |
 
 ---
 
@@ -55,13 +56,19 @@
 
 ```
 izan.io/
-├── apps/web/           # React + Vite Web-App
+├── apps/web/                    # React + Vite Web-App
 ├── packages/
-│   ├── agent-core/     # Agent-Routing, Tool-Ausführung, LLM-agnostisch
-│   ├── mcp-client/     # MCP-Protokoll-Client
-│   ├── mcp-servers/    # Google, Bing, Namecheap etc.
-│   └── infra/          # CDK-Infra
+│   ├── agent-core/             # Agent-Routing, Tool-Ausführung, LLM-agnostisch
+│   ├── mcp-client/              # MCP-Protokoll-Client
+│   ├── mcp-browser-servers/     # Browser-MCP-Server (TabServerTransport)
+│   │   ├── crypto-analysis/     # CoinGecko, technische Indikatoren
+│   │   ├── domain-check/       # RDAP + DoH Domain-Verfügbarkeit
+│   │   └── general/            # get_time, random_number, uuid, calculate, generate_password
+│   ├── mcp-extension-servers/   # Chrome-Extension: Seitenpanel-Recorder, dynamischer MCP, CDP-Automatisierung
+│   └── infra/                   # CDK-Infra (S3/CloudFront, inkl. /mcp-tools/)
 ```
+
+**Aktions-Recorder:** Die Extension (`mcp-extension-servers`) bietet ein Seitenpanel zum Aufzeichnen von Klicks, Tippen und Scrollen; URL-Parameter parametrisieren; Daten von Seiten extrahieren. Aufzeichnungen werden zu MCP-Tool-Definitionen (als JSON in IndexedDB oder von S3). Siehe [docs/visual-mcp-tool-builder.md](docs/visual-mcp-tool-builder.md).
 
 ---
 
@@ -79,6 +86,25 @@ npm run dev
 Öffne `http://localhost:5173`. In den Einstellungen Provider und API-Key hinzufügen, dann chatten.
 
 Siehe `apps/web/.env.example` für optionale Umgebungsvariablen. API-Keys werden im Browser gespeichert.
+
+---
+
+## 📦 MCP-Server
+
+| Typ | Paket | Beschreibung |
+|-----|-------|--------------|
+| **Browser** | `mcp-browser-servers/` | crypto-analysis, domain-check (RDAP/DoH), general. TabServerTransport, clientseitig. |
+| **Extension** | `mcp-extension-servers/` | Chrome-Extension: Seitenpanel (React + shadcn), Aktions-Recorder, Element-Picker, dynamischer MCP-Server. Vordefinierte Tools + vom Nutzer aufgezeichnete Tools (als JSON gespeichert). |
+
+**MCP aufzeichnen:** Extension installieren, Seitenpanel öffnen, **Aufzeichnen** klicken; der Aktions-Recorder erfasst Klicks, Tippen, Scroll und URL-Parameter. **Liste** / **Einzeln** für Extraktionsziele. **Fertig** sendet den Ablauf an die Web-App; in den Einstellungen als MCP-Tool speichern.
+
+---
+
+## 🌐 Deploy
+
+Deployment per `npm run deploy:infra` oder GitHub Actions (Push auf `main`). Stack nutzt S3 + CloudFront.
+
+**Eigene Domain (izan.io, www.izan.io):** `IZAN_DOMAIN_CERTIFICATE_ARN` auf ein ACM-Zertifikat in **us-east-1** setzen. DNS (A/CNAME) manuell verwalten.
 
 ---
 

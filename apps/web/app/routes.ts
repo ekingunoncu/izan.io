@@ -11,6 +11,10 @@ export default [
       index("routes/agents.tsx"),
       route(":agentSlug", "routes/agent-detail.tsx"),
     ]),
+    route("docs", "routes/docs-layout.tsx", [
+      index("routes/docs-index.tsx"),
+      route(":slug", "routes/docs-page.tsx"),
+    ]),
     route("settings", "routes/settings.tsx"),
     route("privacy", "routes/privacy.tsx"),
     route("terms", "routes/terms.tsx"),

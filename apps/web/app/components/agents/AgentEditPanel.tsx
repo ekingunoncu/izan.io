@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import {
@@ -24,9 +24,7 @@ import {
   Server,
   ChevronDown,
   ChevronRight,
-  Key,
-  Eye,
-  EyeOff,
+  Cog,
 } from 'lucide-react'
 import {
   AlertDialog,
@@ -40,78 +38,11 @@ import {
 } from '~/components/ui/alert-dialog'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
-import { useAgentStore, useUIStore, useMCPStore, useExternalApiKeysStore } from '~/store'
+import { useAgentStore, useUIStore, useMCPStore } from '~/store'
+import { useAutomationStore } from '~/store/automation.store'
 import { DEFAULT_MCP_SERVERS } from '~/lib/mcp/config'
-import { getAgentDisplayName, getAgentDisplayDescription, getAgentRequiredApiKeys, getAgentOptionalApiKeys } from '~/lib/agent-display'
-import { EXTERNAL_API_KEY_DEFINITIONS, type ExternalApiKeyDefinition } from '~/lib/external-api-keys'
+import { getAgentDisplayName, getAgentDisplayDescription } from '~/lib/agent-display'
 import { cn } from '~/lib/utils'
-
-const ExternalKeyInputRow = ({
-  def,
-  currentKey,
-  onSave,
-  t,
-  inputRef,
-  required = true,
-}: {
-  def: ExternalApiKeyDefinition
-  currentKey: string | null
-  onSave: (value: string) => void
-  t: (key: string) => string
-  inputRef?: React.RefObject<HTMLInputElement | null>
-  required?: boolean
-}) => {
-  const [key, setKey] = useState(currentKey ?? '')
-  const [showKey, setShowKey] = useState(false)
-  const hasKey = !!currentKey
-
-  return (
-    <div className="space-y-1.5">
-      <label className="text-sm font-medium flex items-center gap-2">
-        <Key className="h-3.5 w-3.5" />
-        {def.name}
-      </label>
-      {!hasKey && required && (
-        <p className="text-xs text-amber-700 dark:text-amber-400">{t('agents.missingApiKeyBanner')}</p>
-      )}
-      <div className="flex gap-2">
-        <div className="relative flex-1 min-w-0">
-          <Input
-            ref={inputRef}
-            type={showKey ? 'text' : 'password'}
-            value={key}
-            onChange={(e) => setKey(e.target.value)}
-            placeholder={def.placeholder}
-            className="pr-10 h-9"
-          />
-          <button
-            type="button"
-            onClick={() => setShowKey(!showKey)}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-          >
-            {showKey ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-          </button>
-        </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => key.trim() && onSave(key.trim())}
-          disabled={!key.trim()}
-        >
-          {t('agents.save')}
-        </Button>
-      </div>
-      <a
-        href={def.url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-xs text-primary hover:underline"
-      >
-        {t('settings.getApiKey')} →
-      </a>
-    </div>
-  )
-}
 
 const AVAILABLE_ICONS = [
   { id: 'bot', icon: Bot },
@@ -142,16 +73,16 @@ export function AgentEditPanel() {
   const location = useLocation()
   const lang = (i18n.language || 'en').split('-')[0] as string
   const { currentAgent, agents, updateAgent, resetAgent, deleteAgent } = useAgentStore()
-  const { closeAgentEdit, agentEditExpandSection, clearAgentEditExpandSection } = useUIStore()
+  const { closeAgentEdit } = useUIStore()
   const { userServers } = useMCPStore()
-  const { getExternalApiKey, setExternalApiKey } = useExternalApiKeysStore()
-
+  const automationServers = useAutomationStore(s => s.servers)
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [selectedIcon, setSelectedIcon] = useState('bot')
   const [basePrompt, setBasePrompt] = useState('')
   const [implicitMCPIds, setImplicitMCPIds] = useState<string[]>([])
   const [customMCPIds, setCustomMCPIds] = useState<string[]>([])
+  const [automationServerIds, setAutomationServerIds] = useState<string[]>([])
   const [linkedAgentIds, setLinkedAgentIds] = useState<string[]>([])
   const [temperature, setTemperature] = useState<number>(1)
   const [maxTokens, setMaxTokens] = useState<number>(4096)
@@ -160,22 +91,6 @@ export function AgentEditPanel() {
   const [expandedSection, setExpandedSection] = useState<string | null>('info')
   const [resetDialogOpen, setResetDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [globalKeyWarningOpen, setGlobalKeyWarningOpen] = useState(false)
-  const [pendingKeySave, setPendingKeySave] = useState<{ id: string; value: string } | null>(null)
-  const apiKeyInputRef = useRef<HTMLInputElement | null>(null)
-
-  // When opening with expandSection: 'api-keys', expand and focus (defer setState to avoid lint)
-  useEffect(() => {
-    if (agentEditExpandSection === 'api-keys') {
-      clearAgentEditExpandSection()
-      const id = setTimeout(() => {
-        setExpandedSection('api-keys')
-        apiKeyInputRef.current?.focus()
-      }, 0)
-      return () => clearTimeout(id)
-    }
-  }, [agentEditExpandSection, clearAgentEditExpandSection])
-
   // Sync local state when current agent changes (e.g. user switches agent)
   useEffect(() => {
     if (!currentAgent) return;
@@ -183,9 +98,10 @@ export function AgentEditPanel() {
       setName(currentAgent.name);
       setDescription(currentAgent.description);
       setSelectedIcon(currentAgent.icon);
-      setBasePrompt((currentAgent as { basePrompt?: string; systemPrompt?: string }).basePrompt ?? (currentAgent as { systemPrompt?: string }).systemPrompt ?? "");
+      setBasePrompt(currentAgent.basePrompt);
       setImplicitMCPIds(currentAgent.implicitMCPIds);
       setCustomMCPIds(currentAgent.customMCPIds);
+      setAutomationServerIds(currentAgent.automationServerIds ?? []);
       setLinkedAgentIds(currentAgent.linkedAgentIds);
       const hasCustomParams = currentAgent.temperature != null || currentAgent.maxTokens != null || currentAgent.topP != null;
       setUseDefaultParams(!hasCustomParams);
@@ -195,6 +111,7 @@ export function AgentEditPanel() {
     }, 0);
     return () => clearTimeout(t);
   }, [currentAgent]);
+
 
   if (!currentAgent) return null
 
@@ -206,6 +123,7 @@ export function AgentEditPanel() {
       basePrompt: basePrompt.trim(),
       implicitMCPIds,
       customMCPIds,
+      automationServerIds,
       linkedAgentIds,
     }
     if (!useDefaultParams) {
@@ -244,36 +162,19 @@ export function AgentEditPanel() {
     setExpandedSection(prev => prev === section ? null : section)
   }
 
-  const requiredApiKeys = getAgentRequiredApiKeys(currentAgent)
-  const requiredKeyDefs = requiredApiKeys
-    .map((id) => EXTERNAL_API_KEY_DEFINITIONS.find((d) => d.id === id))
-    .filter(Boolean) as typeof EXTERNAL_API_KEY_DEFINITIONS
-
-  const optionalApiKeys = getAgentOptionalApiKeys(currentAgent)
-  const optionalKeyDefs = optionalApiKeys
-    .map((id) => EXTERNAL_API_KEY_DEFINITIONS.find((d) => d.id === id))
-    .filter(Boolean) as typeof EXTERNAL_API_KEY_DEFINITIONS
-
-  const handleSaveExternalKey = (id: string, value: string) => {
-    setPendingKeySave({ id, value })
-    setGlobalKeyWarningOpen(true)
-  }
-
-  const handleConfirmGlobalKeySave = async () => {
-    if (pendingKeySave) {
-      await setExternalApiKey(pendingKeySave.id, pendingKeySave.value)
-      setPendingKeySave(null)
-    }
-    setGlobalKeyWarningOpen(false)
-  }
-
   // Available MCPs for adding (use local state)
   const availableImplicitMCPs = DEFAULT_MCP_SERVERS.filter(
-    s => !implicitMCPIds.includes(s.id)
+    s => !implicitMCPIds.includes(s.id) && !s.id.startsWith('ext-')
   )
   const availableCustomMCPs = userServers.filter(
     us => !customMCPIds.includes(us.id)
   )
+  // User-recorded macro servers from automation store
+  const userMacroServers = automationServers.filter(s => !s.disabled)
+  // All macros available for adding (not yet assigned)
+  const allAvailableMacros = [
+    ...userMacroServers.filter(s => !automationServerIds.includes(s.id)).map(s => ({ id: s.id, name: s.name, description: s.description })),
+  ]
 
   // Agents available for linking (exclude self and already linked)
   const availableAgentsForLinking = agents.filter(
@@ -339,26 +240,6 @@ export function AgentEditPanel() {
                 </AlertDialog>
               </>
             )}
-            <AlertDialog
-              open={globalKeyWarningOpen}
-              onOpenChange={(open) => {
-                setGlobalKeyWarningOpen(open)
-                if (!open) setPendingKeySave(null)
-              }}
-            >
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>{t('settings.externalApiKeyGlobalWarning')}</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    {t('agents.externalApiKeyGlobalWarningDetail')}
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel onClick={() => setPendingKeySave(null)}>{t('agents.cancel')}</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleConfirmGlobalKeySave}>{t('agents.save')}</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
             <Button variant="ghost" size="icon" className="h-11 w-11 min-h-[44px] min-w-[44px] sm:h-8 sm:w-8 sm:min-h-0 sm:min-w-0" onClick={closeAgentEdit}>
               <X className="h-4 w-4" />
             </Button>
@@ -487,75 +368,6 @@ export function AgentEditPanel() {
             </div>
           </CollapsibleSection>
 
-          {/* API Keys (for agents with requiredApiKeys) */}
-          {requiredKeyDefs.length > 0 && (
-            <CollapsibleSection
-              title={t('agents.requiredApiKeys')}
-              subtitle={t('agents.requiredApiKeysDesc')}
-              isOpen={expandedSection === 'api-keys'}
-              onToggle={() => toggleSection('api-keys')}
-            >
-              <div className="space-y-3">
-                <p className="text-xs text-amber-700 dark:text-amber-400 bg-amber-100/80 dark:bg-amber-950/40 px-3 py-2 rounded-lg">
-                  {t('settings.externalApiKeyGlobalWarning')}
-                </p>
-                {requiredKeyDefs.map((def, idx) => (
-                  <ExternalKeyInputRow
-                    key={`${def.id}-${getExternalApiKey(def.id) ?? ''}`}
-                    def={def}
-                    currentKey={getExternalApiKey(def.id)}
-                    onSave={(value) => handleSaveExternalKey(def.id, value)}
-                    t={t}
-                    inputRef={idx === 0 ? apiKeyInputRef : undefined}
-                  />
-                ))}
-                <Link
-                  to={`/${lang}/settings`}
-                  state={{ from: location.pathname }}
-                  onClick={closeAgentEdit}
-                  className="text-sm text-primary hover:underline inline-flex items-center gap-1"
-                >
-                  {t('agents.setApiKeyInSettings')} →
-                </Link>
-              </div>
-            </CollapsibleSection>
-          )}
-
-          {/* Optional API Keys (for agents with optionalApiKeys) */}
-          {optionalKeyDefs.length > 0 && (
-            <CollapsibleSection
-              title={t('agents.optionalApiKeys')}
-              subtitle={t('agents.optionalApiKeysDesc')}
-              isOpen={expandedSection === 'optional-api-keys'}
-              onToggle={() => toggleSection('optional-api-keys')}
-            >
-              <div className="space-y-3">
-                <p className="text-xs text-muted-foreground">
-                  {t('settings.externalApiKeyGlobalWarning')}
-                </p>
-                {optionalKeyDefs.map((def, idx) => (
-                  <ExternalKeyInputRow
-                    key={`${def.id}-${getExternalApiKey(def.id) ?? ''}`}
-                    def={def}
-                    currentKey={getExternalApiKey(def.id)}
-                    onSave={(value) => handleSaveExternalKey(def.id, value)}
-                    t={t}
-                    inputRef={idx === 0 ? apiKeyInputRef : undefined}
-                    required={false}
-                  />
-                ))}
-                <Link
-                  to={`/${lang}/settings#${optionalKeyDefs[0]?.id ?? 'coingecko_api'}`}
-                  state={{ from: location.pathname }}
-                  onClick={closeAgentEdit}
-                  className="text-sm text-primary hover:underline inline-flex items-center gap-1"
-                >
-                  {t('agents.setApiKeyInSettings')} →
-                </Link>
-              </div>
-            </CollapsibleSection>
-          )}
-
           {/* Implicit MCPs */}
           <CollapsibleSection
             title={t('agents.implicitMCPs')}
@@ -666,6 +478,66 @@ export function AgentEditPanel() {
                     >
                       <Plus className="h-3.5 w-3.5" />
                       <span>{us.name}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </CollapsibleSection>
+
+          {/* Macros */}
+          <CollapsibleSection
+            title={t('agents.macros')}
+            subtitle={t('agents.macrosDesc')}
+            isOpen={expandedSection === 'macros'}
+            onToggle={() => toggleSection('macros')}
+          >
+            <div className="space-y-2">
+              {/* Active macros (already assigned to this agent) */}
+              {automationServerIds.map(sId => {
+                const userServer = userMacroServers.find(s => s.id === sId)
+                const name = userServer?.name || sId
+                const desc = userServer?.description
+                return (
+                  <div key={sId} className="flex items-center justify-between rounded-lg border p-2.5">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Cog className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      <div className="min-w-0">
+                        <span className="text-sm truncate block">{name}</span>
+                        {desc && <span className="text-xs text-muted-foreground truncate block">{desc}</span>}
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-destructive"
+                      onClick={() => setAutomationServerIds(prev => prev.filter(id => id !== sId))}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                )
+              })}
+
+              {automationServerIds.length === 0 && allAvailableMacros.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-3">{t('agents.noMacros')}</p>
+              )}
+
+              {automationServerIds.length === 0 && allAvailableMacros.length > 0 && (
+                <p className="text-sm text-muted-foreground text-center py-2">{t('agents.noMacrosAssigned')}</p>
+              )}
+
+              {/* Available macros to add */}
+              {allAvailableMacros.length > 0 && (
+                <div className="pt-1 space-y-1">
+                  {allAvailableMacros.map(macro => (
+                    <button
+                      key={macro.id}
+                      onClick={() => setAutomationServerIds(prev => [...prev, macro.id])}
+                      className="w-full flex items-center gap-2 rounded-lg border border-dashed p-2.5 text-sm text-muted-foreground hover:bg-muted transition-colors"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      <span>{macro.name}</span>
                     </button>
                   ))}
                 </div>

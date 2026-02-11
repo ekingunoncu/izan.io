@@ -47,6 +47,7 @@ export {
   BUILTIN_BACKEND_SERVERS,
   BUILTIN_CLIENT_SERVER,
   BUILTIN_CLIENT_SERVERS,
+  BUILTIN_EXTENSION_SERVERS,
   BUILTIN_MCP_SERVER_METADATA,
 } from './builtin-servers.generated.js'
 export type { BuiltinServerMetadata } from './builtin-servers.generated.js'
@@ -65,7 +66,7 @@ export function getBuiltinMCPServerConfigs(mcpBaseUrl: string): MCPServerConfig[
     name: m.name,
     description: m.description,
     category: m.category,
-    url: m.urlType === 'client' ? m.url! : `${base}/${m.id}/mcp`,
+    url: (m.urlType === 'client' || m.urlType === 'extension') ? m.url! : `${base}/${m.id}/mcp`,
     source: 'builtin' as const,
   }))
 }

@@ -63,6 +63,36 @@
   </url>
 
   <url>
+    <loc>https://izan.io/tr/docs</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/docs" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/docs" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/docs" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/docs" />
+    <priority>0.8</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://izan.io/en/docs</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/docs" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/docs" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/docs" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/docs" />
+    <priority>0.8</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://izan.io/de/docs</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/docs" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/docs" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/docs" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/docs" />
+    <priority>0.8</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
     <loc>https://izan.io/tr/privacy</loc>
     <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/privacy" />
     <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/privacy" />
@@ -153,36 +183,6 @@
   </url>
 
   <url>
-    <loc>https://izan.io/tr/agents/crypto-analyst</loc>
-    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/agents/crypto-analyst" />
-    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/agents/crypto-analyst" />
-    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/agents/crypto-analyst" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/agents/crypto-analyst" />
-    <priority>0.7</priority>
-    <changefreq>weekly</changefreq>
-  </url>
-
-  <url>
-    <loc>https://izan.io/en/agents/crypto-analyst</loc>
-    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/agents/crypto-analyst" />
-    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/agents/crypto-analyst" />
-    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/agents/crypto-analyst" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/agents/crypto-analyst" />
-    <priority>0.7</priority>
-    <changefreq>weekly</changefreq>
-  </url>
-
-  <url>
-    <loc>https://izan.io/de/agents/crypto-analyst</loc>
-    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/agents/crypto-analyst" />
-    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/agents/crypto-analyst" />
-    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/agents/crypto-analyst" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/agents/crypto-analyst" />
-    <priority>0.7</priority>
-    <changefreq>weekly</changefreq>
-  </url>
-
-  <url>
     <loc>https://izan.io/tr/agents/domain-expert</loc>
     <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/agents/domain-expert" />
     <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/agents/domain-expert" />
@@ -213,31 +213,211 @@
   </url>
 
   <url>
-    <loc>https://izan.io/tr/agents/web-search</loc>
-    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/agents/web-search" />
-    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/agents/web-search" />
-    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/agents/web-search" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/agents/web-search" />
+    <loc>https://izan.io/tr/docs/getting-started</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/docs/getting-started" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/docs/getting-started" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/docs/getting-started" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/docs/getting-started" />
     <priority>0.7</priority>
     <changefreq>weekly</changefreq>
   </url>
 
   <url>
-    <loc>https://izan.io/en/agents/web-search</loc>
-    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/agents/web-search" />
-    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/agents/web-search" />
-    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/agents/web-search" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/agents/web-search" />
+    <loc>https://izan.io/en/docs/getting-started</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/docs/getting-started" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/docs/getting-started" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/docs/getting-started" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/docs/getting-started" />
     <priority>0.7</priority>
     <changefreq>weekly</changefreq>
   </url>
 
   <url>
-    <loc>https://izan.io/de/agents/web-search</loc>
-    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/agents/web-search" />
-    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/agents/web-search" />
-    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/agents/web-search" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/agents/web-search" />
+    <loc>https://izan.io/de/docs/getting-started</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/docs/getting-started" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/docs/getting-started" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/docs/getting-started" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/docs/getting-started" />
+    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://izan.io/tr/docs/agents</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/docs/agents" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/docs/agents" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/docs/agents" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/docs/agents" />
+    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://izan.io/en/docs/agents</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/docs/agents" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/docs/agents" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/docs/agents" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/docs/agents" />
+    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://izan.io/de/docs/agents</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/docs/agents" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/docs/agents" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/docs/agents" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/docs/agents" />
+    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://izan.io/tr/docs/mcp-servers</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/docs/mcp-servers" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/docs/mcp-servers" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/docs/mcp-servers" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/docs/mcp-servers" />
+    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://izan.io/en/docs/mcp-servers</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/docs/mcp-servers" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/docs/mcp-servers" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/docs/mcp-servers" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/docs/mcp-servers" />
+    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://izan.io/de/docs/mcp-servers</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/docs/mcp-servers" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/docs/mcp-servers" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/docs/mcp-servers" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/docs/mcp-servers" />
+    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://izan.io/tr/docs/macros</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/docs/macros" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/docs/macros" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/docs/macros" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/docs/macros" />
+    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://izan.io/en/docs/macros</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/docs/macros" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/docs/macros" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/docs/macros" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/docs/macros" />
+    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://izan.io/de/docs/macros</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/docs/macros" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/docs/macros" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/docs/macros" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/docs/macros" />
+    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://izan.io/tr/docs/chrome-extension</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/docs/chrome-extension" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/docs/chrome-extension" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/docs/chrome-extension" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/docs/chrome-extension" />
+    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://izan.io/en/docs/chrome-extension</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/docs/chrome-extension" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/docs/chrome-extension" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/docs/chrome-extension" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/docs/chrome-extension" />
+    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://izan.io/de/docs/chrome-extension</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/docs/chrome-extension" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/docs/chrome-extension" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/docs/chrome-extension" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/docs/chrome-extension" />
+    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://izan.io/tr/docs/api-keys-privacy</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/docs/api-keys-privacy" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/docs/api-keys-privacy" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/docs/api-keys-privacy" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/docs/api-keys-privacy" />
+    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://izan.io/en/docs/api-keys-privacy</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/docs/api-keys-privacy" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/docs/api-keys-privacy" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/docs/api-keys-privacy" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/docs/api-keys-privacy" />
+    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://izan.io/de/docs/api-keys-privacy</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/docs/api-keys-privacy" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/docs/api-keys-privacy" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/docs/api-keys-privacy" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/docs/api-keys-privacy" />
+    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://izan.io/tr/docs/providers</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/docs/providers" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/docs/providers" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/docs/providers" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/docs/providers" />
+    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://izan.io/en/docs/providers</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/docs/providers" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/docs/providers" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/docs/providers" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/docs/providers" />
+    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://izan.io/de/docs/providers</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/docs/providers" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/docs/providers" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/docs/providers" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/docs/providers" />
     <priority>0.7</priority>
     <changefreq>weekly</changefreq>
   </url>

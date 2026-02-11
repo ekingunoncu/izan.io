@@ -40,8 +40,9 @@
 |---------|-------------|
 | 🔐 **Privacy** | API keys stored only in your browser. Never sent to our servers. |
 | 🧠 **Multi-Provider** | 17+ AI providers supported (see below). |
-| 🤖 **Smart Agents** | MCP-connected agents - web search, code, and more. |
+| 🤖 **Smart Agents** | MCP-connected agents — web search, code, and more. |
 | 🌐 **MCP** | Built-in and custom MCP servers. |
+| 🎬 **Action recorder** | Record browser actions in the extension side panel and save as MCP tools; no coding required (see [docs/visual-mcp-tool-builder.md](docs/visual-mcp-tool-builder.md)). |
 
 ---
 
@@ -55,17 +56,19 @@
 
 ```
 izan.io/
-├── apps/web/              # React + Vite web app
+├── apps/web/                    # React + Vite web app
 ├── packages/
-│   ├── agent-core/        # Agent routing, tool execution, LLM-agnostic
-│   ├── mcp-client/        # MCP protocol client
-│   ├── mcp-servers/       # Node.js MCP servers (serp-search, web-fetch, namecheap)
-│   ├── mcp-browser-servers/   # Browser MCP servers (client-side, TabServerTransport)
-│   │   ├── crypto-analysis/   # CoinGecko, technical indicators, analyze_coin
-│   │   ├── domain-check/      # RDAP + DoH domain availability
-│   │   └── general/           # get_time, random_number, uuid, calculate, generate_password
-│   └── infra/             # CDK infra
+│   ├── agent-core/             # Agent routing, tool execution, LLM-agnostic
+│   ├── mcp-client/              # MCP protocol client
+│   ├── mcp-browser-servers/     # Browser MCP servers (TabServerTransport)
+│   │   ├── crypto-analysis/     # CoinGecko, technical indicators
+│   │   ├── domain-check/       # RDAP + DoH domain availability
+│   │   └── general/            # get_time, random_number, uuid, calculate, generate_password
+│   ├── mcp-extension-servers/   # Chrome extension: side panel recorder, dynamic MCP, CDP automation
+│   └── infra/                   # CDK infra (S3/CloudFront, incl. /mcp-tools/)
 ```
+
+**Action recorder:** The extension (`mcp-extension-servers`) provides a side panel to record clicks, typing, and scrolls; parameterize URL params; and extract data from pages. Recordings become MCP tool definitions (stored as JSON in IndexedDB or loaded from S3). See [docs/visual-mcp-tool-builder.md](docs/visual-mcp-tool-builder.md).
 
 ---
 
@@ -90,10 +93,10 @@ See `apps/web/.env.example` for optional env vars. API keys are stored in the br
 
 | Type | Package | Description |
 |------|---------|-------------|
-| **Node.js** | `mcp-servers/` | serp-search, web-fetch, namecheap (run server-side) |
-| **Browser** | `mcp-browser-servers/` | crypto-analysis (CoinGecko, indicators), domain-check (RDAP/DoH), general (time, uuid, calc, password) |
+| **Browser** | `mcp-browser-servers/` | crypto-analysis (CoinGecko, indicators), domain-check (RDAP/DoH), general (time, uuid, calc, password). TabServerTransport, client-side. |
+| **Extension** | `mcp-extension-servers/` | Chrome extension: side panel (React + shadcn), action recorder, element picker, dynamic MCP server. Built-in tools (e.g. random-number) + user-recorded tools (stored as JSON). |
 
-Browser servers use `@mcp-b/transports` TabServerTransport and run entirely in the client. No API keys needed for domain-check or general; crypto-analysis supports optional CoinGecko API key for higher rate limits.
+**Recording MCP tools:** Install the extension, open the side panel, click **Kaydet** (Record); the action recorder captures clicks, typing, scrolls and URL params. Use **Liste** / **Tekil** to pick extraction targets. **Tamamla** (Done) sends the flow to the web app; save as an MCP tool in Settings. Built-in tool definitions (JSON) can be served from S3/CloudFront.
 
 ---
 

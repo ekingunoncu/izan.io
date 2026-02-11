@@ -10,8 +10,10 @@ const __dirname = fileURLToPath(new URL('.', import.meta.url))
 const ROOT = join(__dirname, '..')
 const AGENTS_DIR = ROOT
 
+const EXCLUDED_AGENTS: string[] = []
+
 const dirs = readdirSync(AGENTS_DIR, { withFileTypes: true })
-  .filter((e) => e.isDirectory() && !['shared', 'scripts', 'src'].includes(e.name))
+  .filter((e) => e.isDirectory() && !['shared', 'scripts', 'src'].includes(e.name) && !EXCLUDED_AGENTS.includes(e.name))
   .filter((e) => existsSync(join(AGENTS_DIR, e.name, 'definition.ts')))
   .map((e) => e.name)
   .sort((a, b) => {

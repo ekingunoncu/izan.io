@@ -5,6 +5,8 @@ import {
   type Message, 
   type UserPreferences,
   type UserMCPServer,
+  type AutomationTool,
+  type AutomationServer,
   DEFAULT_AGENTS,
   DEFAULT_PREFERENCES,
   slugify,
@@ -20,6 +22,8 @@ export class IzanDB extends Dexie {
   preferences!: EntityTable<UserPreferences, 'id'>
   mcpServers!: EntityTable<UserMCPServer, 'id'>
   agents!: EntityTable<Agent, 'id'>
+  automationTools!: EntityTable<AutomationTool, 'id'>
+  automationServers!: EntityTable<AutomationServer, 'id'>
 
   constructor() {
     super('izan-db')
@@ -43,6 +47,16 @@ export class IzanDB extends Dexie {
       preferences: 'id',
       mcpServers: 'id',
       agents: 'id, source, category, enabled',
+    })
+
+    this.version(4).stores({
+      chats: 'id, agentId, updatedAt',
+      messages: 'id, chatId, timestamp',
+      preferences: 'id',
+      mcpServers: 'id',
+      agents: 'id, source, category, enabled',
+      automationTools: 'id, name, serverId, updatedAt',
+      automationServers: 'id, updatedAt',
     })
   }
 }
@@ -86,6 +100,22 @@ export async function initializeDatabase(): Promise<void> {
             updatedAt: Date.now(),
           })
         }
+        // Migration: add extensionMCPIds if missing
+        const ag = agent as { extensionMCPIds?: string[] }
+        if (!Array.isArray(ag.extensionMCPIds)) {
+          await db.agents.update(agent.id, {
+            extensionMCPIds: [],
+            updatedAt: Date.now(),
+          })
+        }
+        // Migration: add automationServerIds if missing
+        const agAuto = agent as { automationServerIds?: string[] }
+        if (!Array.isArray(agAuto.automationServerIds)) {
+          await db.agents.update(agent.id, {
+            automationServerIds: [],
+            updatedAt: Date.now(),
+          })
+        }
       }
 
       // Migration: backfill slug for agents missing it
@@ -114,9 +144,17 @@ export async function initializeDatabase(): Promise<void> {
       for (const defaultAgent of DEFAULT_AGENTS) {
         const existing = allAgents.find(a => a.id === defaultAgent.id && a.source === 'builtin')
         if (existing && !existing.isEdited) {
+          const defaultExt = (defaultAgent as { extensionMCPIds?: string[] }).extensionMCPIds ?? []
+          const existingExt = (existing as { extensionMCPIds?: string[] }).extensionMCPIds ?? []
+          const defaultAuto = (defaultAgent as { automationServerIds?: string[] }).automationServerIds ?? []
+          const existingAuto = (existing as { automationServerIds?: string[] }).automationServerIds ?? []
           const needsSync =
             existing.implicitMCPIds.length !== defaultAgent.implicitMCPIds.length ||
             existing.implicitMCPIds.some((id, i) => id !== defaultAgent.implicitMCPIds[i]) ||
+            existingExt.length !== defaultExt.length ||
+            existingExt.some((id, i) => id !== defaultExt[i]) ||
+            existingAuto.length !== defaultAuto.length ||
+            existingAuto.some((id, i) => id !== defaultAuto[i]) ||
             existing.basePrompt !== defaultAgent.basePrompt ||
             existing.temperature !== defaultAgent.temperature ||
             existing.maxTokens !== defaultAgent.maxTokens ||
@@ -124,6 +162,8 @@ export async function initializeDatabase(): Promise<void> {
           if (needsSync) {
             await db.agents.update(defaultAgent.id, {
               implicitMCPIds: defaultAgent.implicitMCPIds,
+              extensionMCPIds: defaultExt,
+              automationServerIds: defaultAuto,
               basePrompt: defaultAgent.basePrompt,
               temperature: defaultAgent.temperature,
               maxTokens: defaultAgent.maxTokens,
@@ -144,15 +184,17 @@ export async function initializeDatabase(): Promise<void> {
  * Clear all data from the database (for testing/reset)
  */
 export async function clearDatabase(): Promise<void> {
-  await db.transaction('rw', [db.chats, db.messages, db.preferences, db.mcpServers, db.agents], async () => {
+  await db.transaction('rw', [db.chats, db.messages, db.preferences, db.mcpServers, db.agents, db.automationTools, db.automationServers], async () => {
     await db.chats.clear()
     await db.messages.clear()
     await db.preferences.clear()
     await db.mcpServers.clear()
     await db.agents.clear()
+    await db.automationTools.clear()
+    await db.automationServers.clear()
   })
 }
 
 // Re-export types
-export type { Agent, Chat, Message, UserPreferences, UserMCPServer } from './schema'
+export type { Agent, Chat, Message, UserPreferences, UserMCPServer, AutomationTool, AutomationServer } from './schema'
 export { DEFAULT_AGENTS, DEFAULT_PREFERENCES, slugify } from './schema'
