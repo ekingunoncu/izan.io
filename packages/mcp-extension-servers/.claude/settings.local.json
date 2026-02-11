@@ -7,7 +7,9 @@
       "mcp__ide__getDiagnostics",
       "Bash(npm run prepare:extension-download:*)",
       "Bash(unzip:*)",
-      "Bash(npm run zip:*)"
+      "Bash(npm run zip:*)",
+      "Bash(npm run lint:*)",
+      "Bash(npm run build:*)"
     ]
   }
 }

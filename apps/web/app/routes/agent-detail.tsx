@@ -89,6 +89,7 @@ export default function AgentDetail() {
     isInitialized,
   } = useAgentStore();
   const { initialize: initMCP } = useMCPStore();
+  const isExtensionInstalled = useMCPStore((s) => s.isExtensionInstalled);
 
   useEffect(() => {
     const init = async () => {
@@ -153,7 +154,6 @@ export default function AgentDetail() {
   const usageExamples = getAgentUsageExamples(agent, t);
 
   const needsExtension = (agent.extensionMCPIds ?? []).length > 0 || (agent.automationServerIds ?? []).length > 0;
-  const isExtensionInstalled = useMCPStore((s) => s.isExtensionInstalled);
 
   const mcpIds = [...agent.implicitMCPIds, ...(agent.extensionMCPIds ?? []), ...agent.customMCPIds];
   const mcpServers = mcpIds

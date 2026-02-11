@@ -108,6 +108,7 @@ export function App() {
   const [editDesc, setEditDesc] = useState('')
   const [editSaving, setEditSaving] = useState(false)
   const [editError, setEditError] = useState<string | null>(null)
+  const [editParamMap, setEditParamMap] = useState<Map<number, Map<string, ParamMeta>>>(new Map())
   const editDragIdxRef = useRef<number | null>(null)
   const [isEditRecording, setIsEditRecording] = useState(false)
 
@@ -195,6 +196,31 @@ export function App() {
           setEditName(tool.displayName || tool.name)
           setEditDesc(tool.description ?? '')
           setEditError(null)
+
+          // Rebuild paramMap from tool's existing parameters + steps
+          const pMap = new Map<number, Map<string, ParamMeta>>()
+          const toolSteps = tool.steps ?? []
+          const toolParams = tool.parameters ?? []
+          for (let si = 0; si < toolSteps.length; si++) {
+            const s = toolSteps[si]
+            if (s.action !== 'navigate') continue
+            const navParams = s.urlParams ? Object.entries(s.urlParams) : (() => {
+              try { return Array.from(new URL(s.url ?? '', 'https://x').searchParams.entries()) } catch { return [] }
+            })()
+            if (navParams.length === 0) continue
+            const stepMeta = new Map<string, ParamMeta>()
+            for (const [k, v] of navParams) {
+              const isParameterized = typeof v === 'string' && /^\{\{.+\}\}$/.test(v)
+              const matchingParam = toolParams.find(p => p.sourceKey === k || p.name === k)
+              stepMeta.set(k, {
+                enabled: isParameterized,
+                description: matchingParam?.description ?? '',
+                originalValue: isParameterized ? (matchingParam?.name ?? k) : v,
+              })
+            }
+            if (stepMeta.size > 0) pMap.set(si, stepMeta)
+          }
+          setEditParamMap(pMap)
           setView('edit')
         }
       } else if (type === 'deleteAutomationServerDone' || type === 'deleteAutomationToolDone') {
@@ -551,13 +577,35 @@ export function App() {
     setEditSaving(true)
     setEditError(null)
     const hasMultipleLanes = editLanes.length > 1
+
+    // Apply paramMap to steps and build parameters array
+    const finalSteps = editSteps.map((s, i) => {
+      const meta = editParamMap.get(i)
+      if (!meta || s.action !== 'navigate') return s
+      const newParams: Record<string, string> = { ...(s.urlParams ?? {}) }
+      for (const [k, m] of meta) {
+        newParams[k] = m.enabled ? `{{${k}}}` : m.originalValue
+      }
+      return { ...s, urlParams: newParams }
+    })
+
+    const parameters: Array<{ name: string; type: string; description: string; required: boolean; source: string; sourceKey: string }> = []
+    for (const [, meta] of editParamMap) {
+      for (const [k, m] of meta) {
+        if (m.enabled) {
+          parameters.push({ name: k, type: 'string', description: m.description || k, required: true, source: 'urlParam', sourceKey: k })
+        }
+      }
+    }
+
     portRef.current?.postMessage({
       type: 'updateAutomationTool',
       toolId: editTool.id,
       name: slugify(editName),
       displayName: editName.trim(),
       description: editDesc.trim(),
-      steps: editSteps,
+      steps: finalSteps,
+      parameters,
       ...(hasMultipleLanes ? { lanes: editLanes } : { lanes: [] }),
     })
   }
@@ -572,16 +620,61 @@ export function App() {
     }
     setEditSteps(reorder)
     setEditLanes(prev => prev.map((l, i) => i === activeLane ? reorder(l) : l))
+    setEditParamMap(prev => {
+      const next = new Map<number, Map<string, ParamMeta>>()
+      for (const [k, v] of prev) {
+        let newK = k
+        if (k === from) newK = to
+        else if (from < to && k > from && k <= to) newK = k - 1
+        else if (from > to && k >= to && k < from) newK = k + 1
+        next.set(newK, v)
+      }
+      return next
+    })
   }
 
   const editDeleteStep = (idx: number) => {
     setEditSteps(prev => prev.filter((_, i) => i !== idx))
     setEditLanes(prev => prev.map((l, i) => i === activeLane ? l.filter((_, j) => j !== idx) : l))
+    setEditParamMap(prev => {
+      const next = new Map<number, Map<string, ParamMeta>>()
+      for (const [k, v] of prev) {
+        if (k < idx) next.set(k, v)
+        else if (k > idx) next.set(k - 1, v)
+      }
+      return next
+    })
   }
 
   const editDropStep = (dragFrom: number, dropTo: number) => {
     if (dragFrom === dropTo) return
     editMoveStep(dragFrom, dropTo)
+  }
+
+  const editToggleParam = (stepIdx: number, key: string, originalValue: string) => {
+    setEditParamMap(prev => {
+      const next = new Map(prev)
+      const stepMeta = new Map(next.get(stepIdx) ?? [])
+      const existing = stepMeta.get(key)
+      if (existing?.enabled) {
+        stepMeta.set(key, { ...existing, enabled: false })
+      } else {
+        stepMeta.set(key, { enabled: true, description: existing?.description ?? '', originalValue })
+      }
+      next.set(stepIdx, stepMeta)
+      return next
+    })
+  }
+
+  const editUpdateParamDescription = (stepIdx: number, key: string, description: string) => {
+    setEditParamMap(prev => {
+      const next = new Map(prev)
+      const stepMeta = new Map(next.get(stepIdx) ?? [])
+      const existing = stepMeta.get(key)
+      if (existing) stepMeta.set(key, { ...existing, description })
+      next.set(stepIdx, stepMeta)
+      return next
+    })
   }
 
   // ─── Lane management ────────────────────────────────────────────
@@ -681,61 +774,61 @@ export function App() {
           icon={isEditRecording ? <Circle className="h-4 w-4 text-destructive fill-destructive animate-pulse-dot" /> : <Pencil className="h-4 w-4 text-primary" />}
           onBack={() => { if (isEditRecording) handleEditStop(); backToList() }}
         />
-        <div className="flex-1 overflow-y-auto px-3 py-3 space-y-3">
-          <div className="rounded-lg border bg-card p-3 space-y-3">
+        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+          <div className="rounded-lg border bg-card p-4 space-y-3">
             <div className="space-y-1.5">
-              <label className="text-xs font-medium">Macro Name</label>
+              <label className="text-sm font-medium">Macro Name</label>
               <input type="text" value={editName} onChange={(e) => setEditName(e.target.value)}
                 className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-ring" autoFocus />
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-medium">Description</label>
+              <label className="text-sm font-medium">Description</label>
               <input type="text" value={editDesc} onChange={(e) => setEditDesc(e.target.value)}
                 placeholder="What does this macro do?"
                 className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-ring" />
             </div>
-            {editError && <p className="text-xs text-destructive">{editError}</p>}
+            {editError && <p className="text-sm text-destructive">{editError}</p>}
             <div className="flex gap-2 pt-1">
               <Button variant="outline" size="sm" className="flex-1" onClick={() => { if (isEditRecording) handleEditStop(); backToList() }} disabled={editSaving}>Cancel</Button>
               <Button variant="default" size="sm" className="flex-1" onClick={handleSaveEdit} disabled={editSaving || isEditRecording}>
                 {editSaving ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Saving…</> : 'Save Changes'}
               </Button>
             </div>
-            <div className="flex gap-1.5">
-              <Button variant="outline" size="xs" className="flex-1" onClick={() => addLane(true)} disabled={isEditRecording}>
-                <Columns className="h-3 w-3" /> Add Lane
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" className="flex-1" onClick={() => addLane(true)} disabled={isEditRecording}>
+                <Columns className="h-3.5 w-3.5" /> Add Lane
               </Button>
               {editTool && (
-                <Button variant="outline" size="xs" className="flex-1" onClick={() => handleExportTool(editTool.id)} disabled={isEditRecording}>
-                  <Download className="h-3 w-3" /> Export JSON
+                <Button variant="outline" size="sm" className="flex-1" onClick={() => handleExportTool(editTool.id)} disabled={isEditRecording}>
+                  <Download className="h-3.5 w-3.5" /> Export JSON
                 </Button>
               )}
             </div>
           </div>
 
           {/* Recording toolbar */}
-          <div className="flex flex-wrap gap-1.5 px-1">
+          <div className="flex flex-wrap gap-2 px-1">
             {isEditRecording ? (
-              <Button variant="destructive" size="xs" onClick={handleEditStop}>
-                <Square className="h-3 w-3" /> Stop
+              <Button variant="destructive" size="sm" onClick={handleEditStop}>
+                <Square className="h-3.5 w-3.5" /> Stop
               </Button>
             ) : (
-              <Button variant="default" size="xs" onClick={handleEditRecord}>
-                <Circle className="h-3 w-3" /> Record
+              <Button variant="default" size="sm" onClick={handleEditRecord}>
+                <Circle className="h-3.5 w-3.5" /> Record
               </Button>
             )}
-            <Button variant="outline" size="xs" disabled={!isEditRecording} onClick={() => handleEditExtract('list')}>
-              <List className="h-3 w-3" /> List
+            <Button variant="outline" size="sm" disabled={!isEditRecording} onClick={() => handleEditExtract('list')}>
+              <List className="h-3.5 w-3.5" /> List
             </Button>
-            <Button variant="outline" size="xs" disabled={!isEditRecording} onClick={() => handleEditExtract('single')}>
-              <FileText className="h-3 w-3" /> Single
+            <Button variant="outline" size="sm" disabled={!isEditRecording} onClick={() => handleEditExtract('single')}>
+              <FileText className="h-3.5 w-3.5" /> Single
             </Button>
           </div>
 
           {recordError && (
             <div className="px-1">
-              <div className="px-3 py-2 rounded-lg bg-destructive/10 text-destructive text-xs flex items-center gap-2">
-                <X className="h-3.5 w-3.5 shrink-0" />
+              <div className="px-3 py-2.5 rounded-lg bg-destructive/10 text-destructive text-sm flex items-center gap-2">
+                <X className="h-4 w-4 shrink-0" />
                 {recordError}
               </div>
             </div>
@@ -751,12 +844,12 @@ export function App() {
           />
 
           {/* Steps */}
-          <div className="space-y-1">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium px-1">
+          <div className="space-y-1.5">
+            <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium px-1">
               Steps ({editSteps.length}){editLanes.length > 1 && ` · Lane ${activeLane + 1}`}
             </p>
             {editSteps.length === 0 ? (
-              <p className="text-xs text-muted-foreground text-center py-4">
+              <p className="text-sm text-muted-foreground text-center py-6">
                 {isEditRecording ? 'Recording — interact with the page…' : 'No steps — press Record to add actions'}
               </p>
             ) : editSteps.map((step, i) => (
@@ -765,15 +858,15 @@ export function App() {
                 index={i}
                 total={editSteps.length}
                 step={step}
-                paramMeta={new Map()}
+                paramMeta={editParamMap.get(i) ?? new Map()}
                 onDelete={() => editDeleteStep(i)}
                 onMoveUp={() => editMoveStep(i, i - 1)}
                 onMoveDown={() => editMoveStep(i, i + 1)}
                 onDragStart={() => { editDragIdxRef.current = i }}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={() => { if (editDragIdxRef.current !== null) { editDropStep(editDragIdxRef.current, i); editDragIdxRef.current = null } }}
-                onToggleParam={() => {}}
-                onDescriptionChange={() => {}}
+                onToggleParam={(key, orig) => editToggleParam(i, key, orig)}
+                onDescriptionChange={(key, desc) => editUpdateParamDescription(i, key, desc)}
               />
             ))}
             <div ref={stepsEndRef} />
@@ -781,8 +874,8 @@ export function App() {
         </div>
 
         {/* Status bar */}
-        <div className="flex items-center gap-2 px-3 py-2 border-t text-[11px] text-muted-foreground">
-          {isEditRecording && <span className="w-1.5 h-1.5 rounded-full bg-destructive animate-pulse-dot" />}
+        <div className="flex items-center gap-2 px-4 py-2.5 border-t text-sm text-muted-foreground">
+          {isEditRecording && <span className="w-2 h-2 rounded-full bg-destructive animate-pulse-dot" />}
           <span>
             {editSteps.length} step{editSteps.length !== 1 ? 's' : ''}
             {editLanes.length > 1 && ` · Lane ${activeLane + 1}/${editLanes.length}`}
@@ -805,9 +898,9 @@ export function App() {
           icon={<Save className="h-4 w-4 text-primary" />}
           onBack={() => setView('record')}
         />
-        <div className="flex-1 overflow-y-auto px-3 py-3 space-y-3">
-          <div className="rounded-lg border bg-card p-3 space-y-3">
-            <p className="text-xs text-muted-foreground">
+        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+          <div className="rounded-lg border bg-card p-4 space-y-3">
+            <p className="text-sm text-muted-foreground">
               Server: <span className="font-medium text-foreground">{serverName}</span>
               {lanes.length > 1
                 ? ` · ${lanes.length} lanes · ${lanes.reduce((s, l) => s + l.length, 0)} total steps`
@@ -816,7 +909,7 @@ export function App() {
             </p>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-medium">Macro Name</label>
+              <label className="text-sm font-medium">Macro Name</label>
               <input
                 type="text"
                 value={toolName}
@@ -828,7 +921,7 @@ export function App() {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-medium">Description</label>
+              <label className="text-sm font-medium">Description</label>
               <input
                 type="text"
                 value={toolDesc}
@@ -838,7 +931,7 @@ export function App() {
               />
             </div>
 
-            {saveError && <p className="text-xs text-destructive">{saveError}</p>}
+            {saveError && <p className="text-sm text-destructive">{saveError}</p>}
 
             <div className="flex gap-2 pt-1">
               <Button variant="outline" size="sm" className="flex-1" onClick={() => setView('record')} disabled={isSaving}>
@@ -851,13 +944,13 @@ export function App() {
           </div>
 
           {/* Preview steps */}
-          <div className="space-y-1">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium px-1">Steps preview</p>
+          <div className="space-y-1.5">
+            <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium px-1">Steps preview</p>
             {steps.map((step, i) => {
               const Icon = STEP_ICONS[step.action] ?? Wrench
               return (
-                <div key={i} className="flex items-center gap-2 px-2 py-1.5 rounded-md bg-secondary/50 text-xs">
-                  <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-md bg-secondary/50 text-sm">
+                  <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
                   <span className="font-medium text-foreground">{step.action}</span>
                   <span className="text-muted-foreground truncate">{stepDetail(step)}</span>
                 </div>
@@ -886,66 +979,66 @@ export function App() {
           className="hidden"
           onChange={handleImportFile}
         />
-        <div className="flex-1 overflow-y-auto px-3 py-2 space-y-2">
+        <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
           {/* Import error banner */}
           {importError && (
-            <div className="flex items-start gap-2 rounded-lg border border-destructive/50 bg-destructive/10 p-2.5 text-xs text-destructive">
+            <div className="flex items-start gap-2 rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
               <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
               <div className="flex-1 min-w-0"><p>{importError}</p></div>
-              <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => setImportError(null)}>
-                <X className="h-3.5 w-3.5" />
+              <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => setImportError(null)}>
+                <X className="h-4 w-4" />
               </Button>
             </div>
           )}
 
           {/* Connection error banner */}
           {connectionError && (
-            <div className="flex items-start gap-2 rounded-lg border border-amber-500/50 bg-amber-500/10 p-2.5 text-xs text-amber-700 dark:text-amber-300">
+            <div className="flex items-start gap-2 rounded-lg border border-amber-500/50 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-300">
               <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
               <div className="flex-1 min-w-0">
                 <p>{connectionError}</p>
               </div>
-              <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 hover:bg-amber-500/20" onClick={() => { if (portRef.current) refreshServers(portRef.current) }} title="Retry">
-                <RefreshCw className="h-3.5 w-3.5" />
+              <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 hover:bg-amber-500/20" onClick={() => { if (portRef.current) refreshServers(portRef.current) }} title="Retry">
+                <RefreshCw className="h-4 w-4" />
               </Button>
             </div>
           )}
 
           {/* New server form */}
           {showNewServerForm && (
-            <div className="rounded-lg border bg-card p-3 space-y-2">
+            <div className="rounded-lg border bg-card p-4 space-y-3">
               <div className="flex items-center justify-between">
-                <p className="text-xs font-medium">New Macro Server</p>
-                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { setShowNewServerForm(false); setCreateError(null) }}>
-                  <X className="h-3.5 w-3.5" />
+                <p className="text-sm font-medium">New Macro Server</p>
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setShowNewServerForm(false); setCreateError(null) }}>
+                  <X className="h-4 w-4" />
                 </Button>
               </div>
               <input type="text" value={newServerName} onChange={(e) => setNewServerName(e.target.value)}
-                placeholder="Server name" className="w-full rounded-md border bg-background px-3 py-1.5 text-xs outline-none focus:ring-1 focus:ring-ring" autoFocus />
+                placeholder="Server name" className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-ring" autoFocus />
               <input type="text" value={newServerDesc} onChange={(e) => setNewServerDesc(e.target.value)}
-                placeholder="Description (optional)" className="w-full rounded-md border bg-background px-3 py-1.5 text-xs outline-none focus:ring-1 focus:ring-ring" />
-              {createError && <p className="text-xs text-destructive">{createError}</p>}
-              <div className="flex gap-1.5 justify-end">
-                <Button variant="outline" size="xs" onClick={() => { setShowNewServerForm(false); setCreateError(null) }}>Cancel</Button>
-                <Button variant="default" size="xs" onClick={handleCreateServer}>Create</Button>
+                placeholder="Description (optional)" className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-ring" />
+              {createError && <p className="text-sm text-destructive">{createError}</p>}
+              <div className="flex gap-2 justify-end">
+                <Button variant="outline" size="sm" onClick={() => { setShowNewServerForm(false); setCreateError(null) }}>Cancel</Button>
+                <Button variant="default" size="sm" onClick={handleCreateServer}>Create</Button>
               </div>
             </div>
           )}
 
           {/* Content */}
           {serversLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            <div className="flex items-center justify-center py-10">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           ) : servers.length === 0 && !showNewServerForm ? (
-            <div className="py-6 space-y-3 text-center">
-              <Server className="h-8 w-8 mx-auto text-muted-foreground/40" />
-              <p className="text-sm text-muted-foreground">No macro servers yet</p>
-              <p className="text-xs text-muted-foreground px-4">
+            <div className="py-8 space-y-3 text-center">
+              <Server className="h-10 w-10 mx-auto text-muted-foreground/40" />
+              <p className="text-base text-muted-foreground">No macro servers yet</p>
+              <p className="text-sm text-muted-foreground px-4">
                 Create a server to start recording macros.
               </p>
               <Button variant="default" size="sm" onClick={() => setShowNewServerForm(true)}>
-                <Plus className="h-3.5 w-3.5" /> New Server
+                <Plus className="h-4 w-4" /> New Server
               </Button>
             </div>
           ) : (
@@ -956,76 +1049,76 @@ export function App() {
                 return (
                   <div key={s.id} className="rounded-lg border bg-card overflow-hidden">
                     {isEditingServer ? (
-                      <div className="px-3 py-2.5 space-y-2">
+                      <div className="px-4 py-3 space-y-2.5">
                         <input type="text" value={editServerName} onChange={(e) => setEditServerName(e.target.value)}
-                          className="w-full rounded-md border bg-background px-2 py-1.5 text-sm font-medium outline-none focus:ring-1 focus:ring-ring" autoFocus />
+                          className="w-full rounded-md border bg-background px-3 py-2 text-sm font-medium outline-none focus:ring-1 focus:ring-ring" autoFocus />
                         <input type="text" value={editServerDesc} onChange={(e) => setEditServerDesc(e.target.value)}
-                          placeholder="Description" className="w-full rounded-md border bg-background px-2 py-1.5 text-xs outline-none focus:ring-1 focus:ring-ring" />
-                        <div className="flex gap-1.5 justify-end">
-                          <Button variant="outline" size="xs" onClick={cancelEditServer}>Cancel</Button>
-                          <Button variant="default" size="xs" onClick={saveEditServer}>Save</Button>
+                          placeholder="Description" className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-ring" />
+                        <div className="flex gap-2 justify-end">
+                          <Button variant="outline" size="sm" onClick={cancelEditServer}>Cancel</Button>
+                          <Button variant="default" size="sm" onClick={saveEditServer}>Save</Button>
                         </div>
                       </div>
                     ) : (
-                      <div className="px-3 py-2.5 space-y-2">
-                        <div className="flex items-center gap-2">
+                      <div className="px-4 py-3 space-y-2.5">
+                        <div className="flex items-center gap-2.5">
                           <Server className="h-4 w-4 text-muted-foreground shrink-0" />
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium truncate">{s.name}</p>
-                            {s.description && <p className="text-[11px] text-muted-foreground truncate">{s.description}</p>}
-                            <p className="text-[11px] text-muted-foreground">
+                            {s.description && <p className="text-sm text-muted-foreground truncate">{s.description}</p>}
+                            <p className="text-sm text-muted-foreground">
                               {serverTools.length} tool{serverTools.length !== 1 ? 's' : ''}
                             </p>
                           </div>
                           <div className="flex items-center gap-0.5 shrink-0">
-                            <Button variant="ghost" size="xs" className="h-7 w-7 p-0"
+                            <Button variant="ghost" size="xs" className="h-8 w-8 p-0"
                               onClick={() => handleExportServer(s.id)} title="Export server (JSON)">
-                              <Download className="h-3.5 w-3.5" />
+                              <Download className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="xs" className="h-7 w-7 p-0"
+                            <Button variant="ghost" size="xs" className="h-8 w-8 p-0"
                               onClick={() => handleImportTool(s.id)} title="Import tool (JSON)">
-                              <Upload className="h-3.5 w-3.5" />
+                              <Upload className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="xs" className="h-7 w-7 p-0"
+                            <Button variant="ghost" size="xs" className="h-8 w-8 p-0"
                               onClick={() => startEditServer(s)} title="Edit server">
-                              <Pencil className="h-3.5 w-3.5" />
+                              <Pencil className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="xs" className="text-destructive hover:text-destructive h-7 w-7 p-0"
+                            <Button variant="ghost" size="xs" className="text-destructive hover:text-destructive h-8 w-8 p-0"
                               onClick={() => handleDeleteServer(s.id, s.name)} title="Delete server">
-                              <Trash2 className="h-3.5 w-3.5" />
+                              <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
                         </div>
                         <button
                           onClick={() => openRecordView(s.id)}
-                          className="w-full flex items-center justify-center gap-1.5 rounded-md border border-dashed py-1.5 text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                          className="w-full flex items-center justify-center gap-2 rounded-md border border-dashed py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                         >
-                          <Circle className="h-3 w-3" />
+                          <Circle className="h-3.5 w-3.5" />
                           Record Macro
                         </button>
                       </div>
                     )}
 
                     {serverTools.length > 0 && (
-                      <div className="border-t px-3 py-2 bg-muted/30 space-y-0.5">
+                      <div className="border-t px-4 py-2.5 bg-muted/30 space-y-1">
                         {serverTools.map((t) => (
-                          <div key={t.id} className="flex items-center gap-2 py-1 group cursor-pointer hover:bg-secondary/50 rounded-md px-1 -mx-1 transition-colors"
+                          <div key={t.id} className="flex items-center gap-2.5 py-1.5 group cursor-pointer hover:bg-secondary/50 rounded-md px-2 -mx-2 transition-colors"
                             onClick={() => openEditView(t.id)} role="button" tabIndex={0}>
-                            <Wrench className="h-3 w-3 text-muted-foreground shrink-0" />
+                            <Wrench className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                             <div className="flex-1 min-w-0">
-                              <span className="text-xs text-foreground truncate block">{t.displayName || t.name}</span>
-                              {t.description && <span className="text-[10px] text-muted-foreground truncate block">{t.description}</span>}
+                              <span className="text-sm text-foreground truncate block">{t.displayName || t.name}</span>
+                              {t.description && <span className="text-sm text-muted-foreground truncate block">{t.description}</span>}
                             </div>
                             <button type="button"
-                              className="opacity-0 group-hover:opacity-100 rounded p-0.5 text-muted-foreground hover:text-foreground hover:bg-secondary transition-all cursor-pointer"
+                              className="opacity-0 group-hover:opacity-100 rounded p-1 text-muted-foreground hover:text-foreground hover:bg-secondary transition-all cursor-pointer"
                               onClick={(e) => { e.stopPropagation(); handleExportTool(t.id) }} title="Export tool (JSON)">
-                              <Download className="h-3 w-3" />
+                              <Download className="h-3.5 w-3.5" />
                             </button>
-                            <Pencil className="h-3 w-3 opacity-0 group-hover:opacity-100 text-muted-foreground shrink-0" />
+                            <Pencil className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 text-muted-foreground shrink-0" />
                             <button type="button"
-                              className="opacity-0 group-hover:opacity-100 rounded p-0.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all cursor-pointer"
+                              className="opacity-0 group-hover:opacity-100 rounded p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all cursor-pointer"
                               onClick={(e) => { e.stopPropagation(); handleDeleteTool(t.id, t.displayName || t.name) }} title="Delete macro">
-                              <Trash2 className="h-3 w-3" />
+                              <Trash2 className="h-3.5 w-3.5" />
                             </button>
                           </div>
                         ))}
@@ -1035,12 +1128,12 @@ export function App() {
                 )
               })}
               {!showNewServerForm && (
-                <div className="flex gap-1.5">
+                <div className="flex gap-2">
                   <Button variant="outline" size="sm" className="flex-1" onClick={() => setShowNewServerForm(true)}>
-                    <Plus className="h-3.5 w-3.5" /> New Server
+                    <Plus className="h-4 w-4" /> New Server
                   </Button>
                   <Button variant="outline" size="sm" className="flex-1" onClick={handleImportServer}>
-                    <Upload className="h-3.5 w-3.5" /> Import JSON
+                    <Upload className="h-4 w-4" /> Import JSON
                   </Button>
                 </div>
               )}
@@ -1062,34 +1155,34 @@ export function App() {
       />
 
       {recordError && (
-        <div className="mx-3 mt-2 px-3 py-2 rounded-lg bg-destructive/10 text-destructive text-xs flex items-center gap-2">
-          <X className="h-3.5 w-3.5 shrink-0" />
+        <div className="mx-4 mt-2 px-3 py-2.5 rounded-lg bg-destructive/10 text-destructive text-sm flex items-center gap-2">
+          <X className="h-4 w-4 shrink-0" />
           {recordError}
         </div>
       )}
 
       {/* Toolbar */}
-      <div className="flex flex-wrap gap-1.5 px-3 py-2.5 border-b">
+      <div className="flex flex-wrap gap-2 px-4 py-3 border-b">
         {isRecording ? (
-          <Button variant="destructive" size="xs" onClick={handleStop}>
-            <Square className="h-3 w-3" /> Stop
+          <Button variant="destructive" size="sm" onClick={handleStop}>
+            <Square className="h-3.5 w-3.5" /> Stop
           </Button>
         ) : (
-          <Button variant="default" size="xs" onClick={handleRecord}>
-            <Circle className="h-3 w-3" /> Record
+          <Button variant="default" size="sm" onClick={handleRecord}>
+            <Circle className="h-3.5 w-3.5" /> Record
           </Button>
         )}
-        <Button variant="outline" size="xs" disabled={!isRecording} onClick={() => handleExtract('list')}>
-          <List className="h-3 w-3" /> List
+        <Button variant="outline" size="sm" disabled={!isRecording} onClick={() => handleExtract('list')}>
+          <List className="h-3.5 w-3.5" /> List
         </Button>
-        <Button variant="outline" size="xs" disabled={!isRecording} onClick={() => handleExtract('single')}>
-          <FileText className="h-3 w-3" /> Single
+        <Button variant="outline" size="sm" disabled={!isRecording} onClick={() => handleExtract('single')}>
+          <FileText className="h-3.5 w-3.5" /> Single
         </Button>
-        <Button variant="outline" size="xs" disabled={isRecording} onClick={() => addLane(false)}>
-          <Columns className="h-3 w-3" /> Lane
+        <Button variant="outline" size="sm" disabled={isRecording} onClick={() => addLane(false)}>
+          <Columns className="h-3.5 w-3.5" /> Lane
         </Button>
-        <Button variant="secondary" size="xs" disabled={steps.length === 0 && lanes.every(l => l.length === 0)} onClick={handleDone}>
-          <Check className="h-3 w-3" /> Done
+        <Button variant="secondary" size="sm" disabled={steps.length === 0 && lanes.every(l => l.length === 0)} onClick={handleDone}>
+          <Check className="h-3.5 w-3.5" /> Done
         </Button>
       </div>
 
@@ -1103,21 +1196,21 @@ export function App() {
       />
 
       {/* Help text */}
-      <p className="text-[11px] text-muted-foreground px-3 py-2 leading-relaxed">
+      <p className="text-sm text-muted-foreground px-4 py-2.5 leading-relaxed">
         Press "Record" to capture clicks, typing, and navigation. Use "Parameterize" to turn URL values into LLM inputs.
       </p>
 
       {/* Steps list */}
-      <div className="flex-1 overflow-y-auto px-2 pb-2">
+      <div className="flex-1 overflow-y-auto px-3 pb-3">
         {steps.length === 0 ? (
-          <div className="text-center py-10 space-y-2">
-            <MousePointerClick className="h-6 w-6 mx-auto text-muted-foreground/40" />
-            <p className="text-sm text-muted-foreground">
+          <div className="text-center py-12 space-y-2">
+            <MousePointerClick className="h-8 w-8 mx-auto text-muted-foreground/40" />
+            <p className="text-base text-muted-foreground">
               {isRecording ? 'Recording — interact with the page…' : 'No steps yet'}
             </p>
           </div>
         ) : (
-          <div className="space-y-1">
+          <div className="space-y-1.5">
             {steps.map((step, i) => (
               <StepCard
                 key={i}
@@ -1141,8 +1234,8 @@ export function App() {
       </div>
 
       {/* Status bar */}
-      <div className="flex items-center gap-2 px-3 py-2 border-t text-[11px] text-muted-foreground">
-        {isRecording && <span className="w-1.5 h-1.5 rounded-full bg-destructive animate-pulse-dot" />}
+      <div className="flex items-center gap-2 px-4 py-2.5 border-t text-sm text-muted-foreground">
+        {isRecording && <span className="w-2 h-2 rounded-full bg-destructive animate-pulse-dot" />}
         <span>
           {steps.length} step{steps.length !== 1 ? 's' : ''}
           {lanes.length > 1 && ` · Lane ${activeLane + 1}/${lanes.length}`}
@@ -1172,21 +1265,21 @@ function LaneTabBar({
 }) {
   if (lanes.length <= 1) return null
   return (
-    <div className="flex items-center gap-0.5 px-3 py-1.5 border-b bg-muted/30 overflow-x-auto">
+    <div className="flex items-center gap-1 px-4 py-2 border-b bg-muted/30 overflow-x-auto">
       {lanes.map((lane, i) => (
         <button
           key={i}
           type="button"
           onClick={() => onSwitch(i)}
           className={cn(
-            'relative flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-colors shrink-0 cursor-pointer',
+            'relative flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors shrink-0 cursor-pointer',
             i === activeLane
               ? 'bg-primary text-primary-foreground'
               : 'text-muted-foreground hover:bg-secondary hover:text-foreground',
           )}
         >
           Lane {i + 1}
-          <span className="text-[10px] opacity-70">({lane.length})</span>
+          <span className="text-xs opacity-70">({lane.length})</span>
           {lanes.length > 1 && (
             <button
               type="button"
@@ -1199,7 +1292,7 @@ function LaneTabBar({
               )}
               title={`Remove Lane ${i + 1}`}
             >
-              <X className="h-2.5 w-2.5" />
+              <X className="h-3 w-3" />
             </button>
           )}
         </button>
@@ -1207,10 +1300,10 @@ function LaneTabBar({
       <button
         type="button"
         onClick={onAdd}
-        className="flex items-center gap-0.5 px-2 py-1 rounded-md text-xs text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors shrink-0 cursor-pointer"
+        className="flex items-center gap-1 px-2.5 py-1.5 rounded-md text-sm text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors shrink-0 cursor-pointer"
         title="Add parallel lane"
       >
-        <Plus className="h-3 w-3" />
+        <Plus className="h-3.5 w-3.5" />
       </button>
     </div>
   )
@@ -1220,14 +1313,14 @@ function LaneTabBar({
 
 function Header({ title, icon, onBack }: { title: string; icon: ReactNode; onBack?: () => void }) {
   return (
-    <div className="flex items-center gap-2 px-3 py-2.5 border-b bg-card">
+    <div className="flex items-center gap-2.5 px-4 py-3 border-b bg-card">
       {onBack && (
-        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onBack}>
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onBack}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
       )}
       {icon}
-      <span className="font-semibold text-sm">{title}</span>
+      <span className="font-semibold text-base">{title}</span>
     </div>
   )
 }
@@ -1257,7 +1350,7 @@ function StepCard({
 
   return (
     <div
-      className="group relative flex gap-1.5 p-2 rounded-lg border bg-card hover:bg-secondary/50 text-xs transition-colors"
+      className="group relative flex gap-2 p-3 rounded-lg border bg-card hover:bg-secondary/50 text-sm transition-colors"
       draggable
       onDragStart={onDragStart}
       onDragOver={onDragOver}
@@ -1265,14 +1358,14 @@ function StepCard({
     >
       {/* Drag handle + reorder buttons */}
       <div className="flex flex-col items-center gap-0.5 shrink-0 pt-0.5">
-        <GripVertical className="h-3.5 w-3.5 text-muted-foreground/50 cursor-grab active:cursor-grabbing" />
+        <GripVertical className="h-4 w-4 text-muted-foreground/50 cursor-grab active:cursor-grabbing" />
         <button type="button" onClick={onMoveUp} disabled={index === 0}
           className="rounded p-0.5 text-muted-foreground hover:text-foreground hover:bg-secondary disabled:opacity-20 disabled:pointer-events-none transition-all cursor-pointer" title="Move up">
-          <ChevronUp className="h-3 w-3" />
+          <ChevronUp className="h-3.5 w-3.5" />
         </button>
         <button type="button" onClick={onMoveDown} disabled={index === total - 1}
           className="rounded p-0.5 text-muted-foreground hover:text-foreground hover:bg-secondary disabled:opacity-20 disabled:pointer-events-none transition-all cursor-pointer" title="Move down">
-          <ChevronDown className="h-3 w-3" />
+          <ChevronDown className="h-3.5 w-3.5" />
         </button>
       </div>
       <Icon className="h-4 w-4 mt-0.5 shrink-0 text-muted-foreground" />
@@ -1281,23 +1374,23 @@ function StepCard({
         {detail && <p className="text-muted-foreground truncate mt-0.5">{detail}</p>}
 
         {params.length > 0 && (
-          <div className="mt-2 space-y-1">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">URL Parameters</p>
+          <div className="mt-2.5 space-y-1.5">
+            <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">URL Parameters</p>
             {params.map(([k, v]) => {
               const meta = paramMeta.get(k)
               const isP = meta?.enabled ?? false
               return (
                 <div key={k} className={cn('rounded-md border transition-colors', isP ? 'border-primary/30 bg-primary/5' : 'bg-background/50')}>
-                  <div className="flex items-center gap-1.5 px-2 py-1.5">
-                    <span className="font-mono font-medium text-[11px] shrink-0">{k}</span>
-                    <span className="text-[10px] text-muted-foreground truncate flex-1">
+                  <div className="flex items-center gap-2 px-2.5 py-2">
+                    <span className="font-mono font-medium text-sm shrink-0">{k}</span>
+                    <span className="text-xs text-muted-foreground truncate flex-1">
                       = {isP ? <span className="text-primary font-semibold">{`{{${k}}}`}</span> : v}
                     </span>
                     {/* Toggle switch */}
                     <button type="button"
                       onClick={(e) => { e.stopPropagation(); onToggleParam(k, v) }}
                       className={cn(
-                        'shrink-0 relative inline-flex h-4 w-7 items-center rounded-full transition-colors cursor-pointer',
+                        'shrink-0 relative inline-flex h-5 w-9 items-center rounded-full transition-colors cursor-pointer',
                         isP ? 'bg-primary' : 'bg-muted-foreground/25 hover:bg-muted-foreground/35'
                       )}
                       role="switch"
@@ -1305,17 +1398,17 @@ function StepCard({
                       title={isP ? 'Revert to static value' : 'Make dynamic — LLM will provide this value'}
                     >
                       <span className={cn(
-                        'inline-block h-3 w-3 rounded-full bg-white shadow-sm transition-transform',
-                        isP ? 'translate-x-3.5' : 'translate-x-0.5'
+                        'inline-block h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-transform',
+                        isP ? 'translate-x-[18px]' : 'translate-x-0.5'
                       )} />
                     </button>
                   </div>
                   {isP && (
-                    <div className="px-2 pb-1.5">
+                    <div className="px-2.5 pb-2">
                       <input type="text" value={meta?.description ?? ''}
                         onChange={(e) => onDescriptionChange(k, e.target.value)}
                         placeholder="Describe this parameter (e.g. Search query)"
-                        className="w-full rounded-md border bg-background/80 px-2 py-1 text-[11px] text-foreground placeholder:text-muted-foreground/60 outline-none focus:ring-1 focus:ring-ring"
+                        className="w-full rounded-md border bg-background/80 px-2.5 py-1.5 text-sm text-foreground placeholder:text-muted-foreground/60 outline-none focus:ring-1 focus:ring-ring"
                       />
                     </div>
                   )}
@@ -1327,9 +1420,9 @@ function StepCard({
       </div>
 
       <button type="button" onClick={onDelete}
-        className="opacity-0 group-hover:opacity-100 absolute top-1.5 right-1.5 h-5 w-5 flex items-center justify-center rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all cursor-pointer"
+        className="opacity-0 group-hover:opacity-100 absolute top-2 right-2 h-6 w-6 flex items-center justify-center rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all cursor-pointer"
         title="Delete step">
-        <Trash2 className="h-3 w-3" />
+        <Trash2 className="h-3.5 w-3.5" />
       </button>
     </div>
   )
