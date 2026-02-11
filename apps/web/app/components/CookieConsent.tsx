@@ -22,7 +22,7 @@ export function CookieConsent() {
   const matches = useMatches();
   const lang = getLangFromRoute(matches);
   const [show, setShow] = useState(
-    () => localStorage.getItem(CONSENT_KEY) === null
+    () => typeof localStorage !== "undefined" && localStorage.getItem(CONSENT_KEY) === null
   );
 
   const updateConsent = (granted: boolean) => {
