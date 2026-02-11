@@ -17,7 +17,8 @@
       "Bash(git add:*)",
       "Bash(npm run generate:mcp-registry:*)",
       "Bash(node -e:*)",
-      "Bash(brew list:*)"
+      "Bash(brew list:*)",
+      "Bash(npm run test:mcp:*)"
     ]
   }
 }
