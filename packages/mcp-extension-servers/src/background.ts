@@ -570,26 +570,39 @@ async function handleExtractList(p: P): Promise<R> {
   const container = p.containerSelector as string
   const fields = p.fields as Array<{ key: string; selector: string; type?: string; attribute?: string }>
   const fieldStr = JSON.stringify(fields)
-  const expr = `(function(){
-    var items=document.querySelectorAll(${JSON.stringify(container)});
+  const containerStr = JSON.stringify(container)
+  // Poll until elements appear (dynamic sites load content after 'load' event)
+  const expr = `new Promise(function(resolve){
+    var sel=${containerStr};
     var fields=${fieldStr};
-    var result=[];
-    items.forEach(function(item){
-      var row={};
-      fields.forEach(function(f){
-        var el=item.querySelector(f.selector);
-        if(!el){row[f.key]=null;return}
-        var t=f.type||'text';
-        if(t==='text')row[f.key]=(el.textContent||'').trim();
-        else if(t==='html')row[f.key]=el.innerHTML;
-        else if(t==='value')row[f.key]=el.value||'';
-        else if(t==='attribute')row[f.key]=el.getAttribute(f.attribute||'')||'';
-        else row[f.key]=(el.textContent||'').trim();
+    function extract(){
+      var items=document.querySelectorAll(sel);
+      if(items.length===0)return null;
+      var result=[];
+      items.forEach(function(item){
+        var row={};
+        fields.forEach(function(f){
+          try{var el=item.querySelector(f.selector);
+          if(!el){row[f.key]=null;return}
+          var t=f.type||'text';
+          if(t==='text')row[f.key]=(el.textContent||'').trim();
+          else if(t==='html')row[f.key]=el.innerHTML;
+          else if(t==='value')row[f.key]=el.value||'';
+          else if(t==='attribute')row[f.key]=el.getAttribute(f.attribute||'')||'';
+          else row[f.key]=(el.textContent||'').trim();
+          }catch(e){row[f.key]=null}
+        });
+        result.push(row);
       });
-      result.push(row);
-    });
-    return result;
-  })()`
+      return result;
+    }
+    var r=extract();if(r){resolve(r);return}
+    var tries=0;var maxTries=20;
+    var iv=setInterval(function(){
+      tries++;r=extract();
+      if(r||tries>=maxTries){clearInterval(iv);resolve(r||[])}
+    },500);
+  })`
   return handleEvaluate({ tabId: p.tabId, expression: expr })
 }
 
@@ -598,23 +611,35 @@ async function handleExtractSingle(p: P): Promise<R> {
   const fields = p.fields as Array<{ key: string; selector: string; type?: string; attribute?: string }>
   const fieldStr = JSON.stringify(fields)
   const containerStr = JSON.stringify(container)
-  const expr = `(function(){
-    var container=document.querySelector(${containerStr});
-    if(!container)throw new Error('Not found: '+${containerStr});
+  // Poll until container appears (dynamic sites load content after 'load' event)
+  const expr = `new Promise(function(resolve,reject){
+    var sel=${containerStr};
     var fields=${fieldStr};
-    var result={};
-    fields.forEach(function(f){
-      var el=f.selector?container.querySelector(f.selector):container;
-      if(!el){result[f.key]=null;return}
-      var t=f.type||'text';
-      if(t==='text')result[f.key]=(el.textContent||'').trim();
-      else if(t==='html')result[f.key]=el.innerHTML;
-      else if(t==='value')result[f.key]=el.value||'';
-      else if(t==='attribute')result[f.key]=el.getAttribute(f.attribute||'')||'';
-      else result[f.key]=(el.textContent||'').trim();
-    });
-    return result;
-  })()`
+    function extract(){
+      var container=document.querySelector(sel);
+      if(!container)return null;
+      var result={};
+      fields.forEach(function(f){
+        try{var el=f.selector?container.querySelector(f.selector):container;
+        if(!el){result[f.key]=null;return}
+        var t=f.type||'text';
+        if(t==='text')result[f.key]=(el.textContent||'').trim();
+        else if(t==='html')result[f.key]=el.innerHTML;
+        else if(t==='value')result[f.key]=el.value||'';
+        else if(t==='attribute')result[f.key]=el.getAttribute(f.attribute||'')||'';
+        else result[f.key]=(el.textContent||'').trim();
+        }catch(e){result[f.key]=null}
+      });
+      return result;
+    }
+    var r=extract();if(r){resolve(r);return}
+    var tries=0;var maxTries=20;
+    var iv=setInterval(function(){
+      tries++;r=extract();
+      if(r||tries>=maxTries){clearInterval(iv);
+        if(r)resolve(r);else reject(new Error('Not found after 10s: '+sel))}
+    },500);
+  })`
   return handleEvaluate({ tabId: p.tabId, expression: expr })
 }
 
