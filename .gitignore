@@ -23,6 +23,9 @@ build/
 # IDE
 .idea/
 .vscode/
+
+# Local Claude/Cursor settings (per-developer)
+.claude/settings.local.json
 *.swp
 *.swo
 
