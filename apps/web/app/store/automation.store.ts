@@ -7,7 +7,7 @@
  */
 
 import { create } from 'zustand'
-import { db, type AutomationTool, type AutomationServer, type Agent } from '~/lib/db'
+import { db, type AutomationTool, type AutomationServer } from '~/lib/db'
 import {
   syncToolDefinitions,
   notifyToolAdded,
