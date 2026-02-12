@@ -163,6 +163,20 @@ export function updateStepWaitUntilAt(
   setLanes(prev => prev.map((l, i) => i === activeLane ? { ...l, steps: update(l.steps) } : l))
 }
 
+// ─── Fields ──────────────────────────────────────────────────────────────────
+
+export function updateStepFieldsAt(
+  setSteps: SetState<Step[]>,
+  setLanes: SetState<Lane[]>,
+  activeLane: number,
+  idx: number,
+  fields: unknown[],
+): void {
+  const update = (arr: Step[]) => arr.map((s, i) => i === idx ? { ...s, fields } : s)
+  setSteps(update)
+  setLanes(prev => prev.map((l, i) => i === activeLane ? { ...l, steps: update(l.steps) } : l))
+}
+
 // ─── Build Final Data ───────────────────────────────────────────────────────
 
 interface ToolParameter {

@@ -31,6 +31,8 @@ Der Rekorder erfasst jede Interaktion als einzelnen Schritt mit Element-Selektor
 
 - **Listenextraktion** -- klicken Sie waehrend der Aufnahme auf **Liste**, um aehnliche Elemente zu erfassen (z. B. Suchergebnisse, Tabellenzeilen)
 - **Einzelextraktion** -- klicken Sie auf **Einzel**, um Daten aus einem einzelnen Element zu extrahieren
+- **Selektor** -- klicken Sie auf **Selector**, um das CSS-Selektor-Extraktions-Panel zu oeffnen (siehe [Extraktionsmethoden](#extraktionsmethoden) unten)
+- **A11y** -- klicken Sie auf **A11y**, um das Accessibility-Extraktions-Panel zu oeffnen; dort koennen Sie Daten per ARIA-Rolle extrahieren oder einen vollstaendigen Accessibility-Snapshot der Seite abrufen
 - **Warteschritt** -- klicken Sie auf **Warten**, um eine manuelle Verzoegerung (0,1--30 Sekunden) einzufuegen
 - **Lane** -- fuegen Sie eine parallele Lane fuer gleichzeitige Ausfuehrung in separaten Tabs hinzu
 
@@ -80,9 +82,13 @@ Klicken Sie auf ein Makro in der Liste, um die **Bearbeitungsansicht** zu oeffne
 
 ## Datenextraktion
 
-Extraktion ermoeglicht es Makros, **strukturierte Daten** aus Webseiten zu extrahieren. Waehrend der Aufnahme:
+Extraktion ermoeglicht es Makros, **strukturierte Daten** aus Webseiten zu extrahieren. Es gibt mehrere Wege, Extraktionsschritte zu erstellen:
 
-### Listenmodus
+### Element-Picker (Liste & Einzel)
+
+Der Element-Picker verwendet ein visuelles Overlay auf der Seite zur Elementauswahl.
+
+**Listenmodus:**
 
 1. Klicken Sie waehrend der Aufnahme auf **Liste**
 2. Fahren Sie ueber ein sich wiederholendes Element (z. B. ein Suchergebnis) -- es wird gelb hervorgehoben
@@ -90,12 +96,90 @@ Extraktion ermoeglicht es Makros, **strukturierte Daten** aus Webseiten zu extra
 4. Der Extraktionsschritt erfasst die Elementanzahl und Felddefinitionen
 5. Zur Laufzeit werden die Daten aller uebereinstimmenden Elemente als strukturierte Liste zurueckgegeben
 
-### Einzelmodus
+**Einzelmodus:**
 
 1. Klicken Sie waehrend der Aufnahme auf **Einzel**
 2. Fahren Sie ueber das Zielelement und klicken Sie
-3. Die Daten eines einzelnen Elements werden erfasst
-4. Zur Laufzeit werden die extrahierten Daten als einzelnes Objekt zurueckgegeben
+3. Felder werden **automatisch erkannt** (Text, Links, Bilder, Eingabefelder) -- wie im Listenmodus
+4. Optional koennen Sie auf weitere Unterelemente klicken, um zusaetzliche Felder hinzuzufuegen
+5. Klicken Sie auf **Fertig** -- der Extraktionsschritt wird sofort erstellt
+6. Zur Laufzeit werden die extrahierten Daten als einzelnes Objekt zurueckgegeben
+
+### Extraktionsmethoden
+
+Die Werkzeugleiste bietet zwei separate Buttons fuer die Extraktion:
+
+#### CSS-Selektor (Selector-Button)
+
+Klicken Sie auf **Selector**, um das CSS-Extraktions-Panel zu oeffnen. Geben Sie manuell einen CSS-Selektor ein (z. B. `.post-item`, `table tbody tr`). Waehlen Sie **Liste** oder **Einzel**, dann klicken Sie auf **Extract**.
+
+- **Liste** -- alle uebereinstimmenden Elemente werden als Items behandelt; Felder werden vom ersten Item automatisch erkannt
+- **Einzel** -- das erste uebereinstimmende Element wird verwendet; Felder werden davon automatisch erkannt
+- Tipp: Rechtsklick auf ein Element in DevTools → Kopieren → Selektor kopieren
+
+#### Accessibility (A11y-Button)
+
+Klicken Sie auf **A11y**, um das Accessibility-Extraktions-Panel zu oeffnen. Dieser Ansatz extrahiert Elemente anhand ihrer **ARIA-Rolle** statt CSS-Selektoren -- resistenter gegen Styling-Aenderungen, durchdringt Shadow-DOM-Grenzen und ist nicht von Klassennamen abhaengig.
+
+1. Waehlen Sie eine oder mehrere **Rollen** aus dem Dropdown (z. B. `link`, `button`, `heading`, `article`, `listitem`, `row`)
+2. Geben Sie optional einen **barrierefreien Namen** ein, um Ergebnisse zu filtern -- der Platzhalter zeigt Beispiele fuer die gewaehlte Rolle (z. B. fuer `link`: "Sign In", "Read more")
+3. Stellen Sie **Include children** ein:
+   - **AN** (Standard) -- jedes gefundene Element wird als Container behandelt und sein Unterinhalt (Links, Text, Bilder) wird als separate Felder automatisch erkannt. Verwenden Sie dies fuer reichhaltige Elemente wie `article`, `listitem` oder `row` mit verschachteltem Inhalt.
+   - **AUS** -- nur direkte Eigenschaften der gefundenen Elemente werden extrahiert (Textinhalt, `href` fuer Links, `src`/`alt` fuer Bilder, `value` fuer Eingabefelder). Verwenden Sie dies fuer einfache Elemente wie `link`, `button` oder `heading`.
+4. Klicken Sie auf **Extract**
+
+Die Accessibility-Methode erzeugt immer eine Liste aller uebereinstimmenden Elemente. Zur Laufzeit verwenden mit der A11y-Methode erstellte Extraktionsschritte den **echten Accessibility-Baum** ueber das Chrome DevTools Protocol -- zuverlaessig auch auf Websites mit dynamischen Klassennamen oder verschleiertem Markup.
+
+#### Accessibility-Snapshot
+
+Das A11y-Panel enthaelt ausserdem einen **Snapshot**-Bereich. Klicken Sie auf **Snapshot**, um den **vollstaendigen Accessibility-Baum** der aktuellen Seite abzurufen. Dies liefert eine kompakte Textdarstellung der Seitenstruktur mit Rollen, Namen und Eigenschaften -- nuetzlich, um die Seitenstruktur zu verstehen, bevor Sie entscheiden, welche Rollen extrahiert werden sollen.
+
+Der Snapshot ist auch als eingebautes MCP-Tool namens `accessibility_snapshot` verfuegbar (siehe [Makros Agenten zuweisen](#makros-agenten-zuweisen)).
+
+### Automatische Tabellenerkennung
+
+Wenn der Element-Picker ein `<table>`-Element erkennt, wird jede Spalte automatisch einem Feld zugeordnet, wobei die Tabellenueberschriften als Schluessel verwendet werden. So erhalten Sie strukturierte Daten zeilenweise, ohne Felder manuell definieren zu muessen.
+
+### Extraktionsfelder bearbeiten
+
+Nach der Erstellung eines Extraktionsschritts koennen Sie **einzelne Felder** durch Klick auf "Edit fields" auf der Schrittkarte bearbeiten. Jede Feldkarte zeigt:
+
+- **Schluessel** -- der Eigenschaftsname im Ausgabeobjekt
+- **Typ**-Dropdown -- waehlen Sie aus `text`, `html`, `attribute`, `value`, `regex`, `nested` oder `nested_list`
+- **Transform**-Dropdown -- wenden Sie `trim`, `lowercase`, `uppercase` oder `number` als Nachverarbeitung an
+- **Selektor** -- der CSS-Selektor zum Auffinden des Elements (als Monospace-Label angezeigt)
+
+Je nach ausgewaehltem Typ erscheinen zusaetzliche Eingabefelder:
+
+- **attribute** -- Dropdown fuer den HTML-Attributnamen (z. B. `href`, `src`), befuellt aus dem tatsaechlichen Element
+- **regex** -- Eingabe fuer das Regex-Muster sowie ein optionaler Standardwert
+- **nested / nested_list** -- Anzahl der Unterfelder wird angezeigt; Unterfelder ueber JSON-Export/Import bearbeiten
+
+Mit dem Button "+ Feld hinzufuegen" koennen Sie **neue Felder hinzufuegen** oder mit dem x-Button auf jeder Karte **Felder entfernen**. Aenderungen werden sofort auf die Schrittdaten angewendet und beim Speichern oder Exportieren des Makros uebernommen.
+
+### Datenvorschau
+
+Wenn ein Extraktionsschritt erstellt wird, wird eine **Vorschau** der extrahierten Daten von der Live-Seite erfasst und direkt auf der Schrittkarte angezeigt -- kein Aufklappen noetig. Die Vorschau aktualisiert sich live, wenn Sie Felder bearbeiten.
+
+- Im **Listenmodus** zeigt die Vorschau die ersten Eintraege mit ihren Schluessel-Wert-Paaren
+- Im **Einzelmodus** zeigt die Vorschau die Schluessel-Wert-Paare des extrahierten Objekts
+- Werte werden zur besseren Lesbarkeit gekuerzt; verschachtelte Objekte und Arrays zeigen ihre Groesse an
+- Klicken Sie auf die Vorschau-Ueberschrift, um sie ein-/auszuklappen
+
+Die Vorschau hilft Ihnen zu ueberpruefen, ob die richtigen Daten extrahiert werden, bevor Sie das Makro speichern.
+
+### Standardwerte
+
+Felder koennen einen **Standardwert** haben, der zurueckgegeben wird, wenn der Selektor kein Element findet oder die Extraktion ein leeres Ergebnis liefert. Standardwerte koennen ueber den Feldeditor oder JSON-Export gesetzt werden.
+
+### Transform-Pipeline
+
+Jedes Feld unterstuetzt eine optionale **Transformation**, die nach der Extraktion angewendet wird:
+
+- **trim** -- fuehrende/nachfolgende Leerzeichen entfernen
+- **lowercase** -- in Kleinbuchstaben umwandeln
+- **uppercase** -- in Grossbuchstaben umwandeln
+- **number** -- Text als Zahl parsen
 
 ## Parallele Lanes
 
@@ -132,3 +216,7 @@ Ein Makro wird erst nuetzlich, wenn es einem Agenten zugewiesen wird:
 3. Waehlen Sie die Makros aus, die der Agent nutzen darf
 
 Im Chat sieht das LLM jedes zugewiesene Makro als aufrufbares Tool. Wenn das Modell ein Makro aufruft, **fuehrt die Chrome-Erweiterung die aufgezeichneten Schritte** im Browser aus und gibt die Ergebnisse an das Gespraech zurueck. Der Agent kann die extrahierten Daten dann fuer seine Antwort verwenden.
+
+### Eingebautes Accessibility-Snapshot-Tool
+
+Zusaetzlich zu benutzerdefinierten Makros hat jeder Agent mit aktivierten Makros automatisch Zugriff auf das `accessibility_snapshot`-Tool. Dieses eingebaute Tool gibt den **vollstaendigen Accessibility-Baum** der aktuellen Automatisierungs-Browserseite als kompakten Text zurueck -- Rollen, Namen und Eigenschaften in Baumstruktur. Agenten koennen es nutzen, um die Seitenstruktur zu verstehen, Navigationsergebnisse zu ueberpruefen oder zu entscheiden, mit welchen Elementen als Naechstes interagiert werden soll.

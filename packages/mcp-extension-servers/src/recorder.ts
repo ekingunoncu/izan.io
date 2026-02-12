@@ -32,6 +32,11 @@ type StepCallback = (step: ActionStep, index: number) => void
 
 // ─── Selector Generation ─────────────────────────────────────────────────────
 
+/** Escape a string for use inside a CSS `[attr="value"]` selector. */
+function escapeAttrValue(s: string): string {
+  return s.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
+}
+
 /**
  * Generate a robust CSS selector for a DOM element.
  * Prioritizes stable attributes over fragile class names.
@@ -39,7 +44,7 @@ type StepCallback = (step: ActionStep, index: number) => void
 export function generateSelector(el: Element): string {
   // 1. data-testid
   const testId = el.getAttribute('data-testid')
-  if (testId) return `[data-testid="${testId}"]`
+  if (testId) return `[data-testid="${escapeAttrValue(testId)}"]`
 
   // 2. ID (must be unique on the page)
   if (el.id && document.querySelectorAll(`#${CSS.escape(el.id)}`).length === 1) {
@@ -49,14 +54,14 @@ export function generateSelector(el: Element): string {
   // 3. aria-label
   const ariaLabel = el.getAttribute('aria-label')
   if (ariaLabel) {
-    const sel = `${el.tagName.toLowerCase()}[aria-label="${CSS.escape(ariaLabel)}"]`
+    const sel = `${el.tagName.toLowerCase()}[aria-label="${escapeAttrValue(ariaLabel)}"]`
     if (document.querySelectorAll(sel).length === 1) return sel
   }
 
   // 4. name attribute (for form elements)
   const name = el.getAttribute('name')
   if (name) {
-    const sel = `${el.tagName.toLowerCase()}[name="${CSS.escape(name)}"]`
+    const sel = `${el.tagName.toLowerCase()}[name="${escapeAttrValue(name)}"]`
     if (document.querySelectorAll(sel).length === 1) return sel
   }
 
@@ -65,7 +70,7 @@ export function generateSelector(el: Element): string {
     const type = el.getAttribute('type') || 'text'
     const placeholder = el.getAttribute('placeholder')
     if (placeholder) {
-      const sel = `${el.tagName.toLowerCase()}[type="${CSS.escape(type)}"][placeholder="${CSS.escape(placeholder)}"]`
+      const sel = `${el.tagName.toLowerCase()}[type="${escapeAttrValue(type)}"][placeholder="${escapeAttrValue(placeholder)}"]`
       if (document.querySelectorAll(sel).length === 1) return sel
     }
   }
@@ -170,11 +175,13 @@ export class ActionRecorder {
 
   /**
    * Start recording user actions.
+   * @param onStep callback fired for each new step
+   * @param initialSteps optional pre-existing steps (from cross-page navigation)
    */
-  start(onStep?: StepCallback): void {
+  start(onStep?: StepCallback, initialSteps?: ActionStep[]): void {
     if (this.recording) return
     this.recording = true
-    this.steps = []
+    this.steps = initialSteps ?? []
     this.onStep = onStep ?? null
     this.lastScrollY = window.scrollY
 
@@ -298,13 +305,12 @@ export class ActionRecorder {
         this.inputDebounceTimers.delete(target)
         if (!this.recording) return
 
-        // Remove previous type step for same element if it's the last step
-        const lastStep = this.steps[this.steps.length - 1]
-        if (
-          lastStep?.action === 'type' &&
-          lastStep.selector === selector
-        ) {
-          this.steps.pop()
+        // Remove previous type step for same element (search backward)
+        for (let i = this.steps.length - 1; i >= 0; i--) {
+          if (this.steps[i].action === 'type' && this.steps[i].selector === selector) {
+            this.steps.splice(i, 1)
+            break
+          }
         }
 
         this.addStep({
@@ -339,8 +345,14 @@ export class ActionRecorder {
   }
 
   private handleBeforeUnload(): void {
-    // Navigation is happening - the new page will need a new recorder start
-    // We don't record this as a step since the new URL will be captured on start
+    // Send accumulated steps to background so they survive cross-page navigation.
+    // The background will re-inject the recorder and pass these steps back.
+    if (this.recording && this.steps.length > 0) {
+      chrome.runtime.sendMessage({
+        type: 'recording-steps-snapshot',
+        steps: this.steps,
+      }).catch(() => {})
+    }
   }
 
   // ─── Helpers ────────────────────────────────────────────────────

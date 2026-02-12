@@ -29,6 +29,8 @@ The recorder captures each interaction as a discrete step with element selectors
 
 - **List extraction** -- click the **List** button during recording to enter element picker mode for extracting lists of similar items (e.g., search results, table rows)
 - **Single extraction** -- click **Single** to extract data from a single element
+- **Selector** -- click the **Selector** button to open the CSS selector extraction panel (see [Extraction Methods](#extraction-methods) below)
+- **A11y** -- click the **A11y** button to open the accessibility extraction panel, where you can extract data by ARIA role or take a full-page accessibility snapshot
 - **Wait step** -- click **Wait** to insert a manual delay (0.1--30 seconds) between steps
 - **Lane** -- add a parallel lane for concurrent execution in separate tabs
 
@@ -78,9 +80,13 @@ Click any macro in the list to open the **edit view**. You can:
 
 ## Data Extraction
 
-Extraction lets macros **pull structured data** from web pages. During recording:
+Extraction lets macros **pull structured data** from web pages. There are several ways to create extraction steps:
 
-### List Mode
+### Element Picker (List & Single)
+
+The element picker uses an on-page overlay to visually select elements.
+
+**List mode:**
 
 1. Click **List** while recording
 2. Hover over a repeating element (e.g., a search result item) -- it highlights in yellow
@@ -88,12 +94,90 @@ Extraction lets macros **pull structured data** from web pages. During recording
 4. The extraction step captures the item count and field definitions
 5. At runtime, data from all matching elements is returned as a structured list
 
-### Single Mode
+**Single mode:**
 
 1. Click **Single** while recording
 2. Hover over the target element and click
-3. A single element's data is captured
-4. At runtime, the extracted data is returned as a single object
+3. Fields are **auto-detected** from the element (text, links, images, inputs) -- just like list mode
+4. Optionally click additional sub-elements to add more fields
+5. Click **Done** to confirm -- the extraction step is created immediately
+6. At runtime, the extracted data is returned as a single object
+
+### Extraction Methods
+
+The toolbar provides two separate buttons for extraction:
+
+#### CSS Selector (Selector button)
+
+Click the **Selector** button to open the CSS extraction panel. Enter a CSS selector manually (e.g., `.post-item`, `table tbody tr`). Choose **List** or **Single** mode, then click **Extract**.
+
+- **List** -- all matching elements are treated as items; fields are auto-detected from the first item
+- **Single** -- the first matching element is used; fields are auto-detected from it
+- Tip: right-click an element in DevTools → Copy → Copy selector
+
+#### Accessibility (A11y button)
+
+Click the **A11y** button to open the accessibility extraction panel. This approach extracts elements by their **ARIA role** instead of CSS selectors -- more resilient to styling changes, penetrates Shadow DOM boundaries, and doesn't depend on class names.
+
+1. Select one or more **roles** from the dropdown (e.g., `link`, `button`, `heading`, `article`, `listitem`, `row`)
+2. Optionally enter an **accessible name** to filter results -- the placeholder shows examples for the selected role (e.g., for `link`: "Sign In", "Read more")
+3. Toggle **Include children**:
+   - **ON** (default) -- each matched element is treated as a container and its child content (links, text, images) is auto-detected as separate fields. Use this for rich elements like `article`, `listitem`, or `row` that contain nested content.
+   - **OFF** -- only direct properties of the matched elements are extracted (text content, `href` for links, `src`/`alt` for images, `value` for inputs). Use this for simple elements like `link`, `button`, or `heading`.
+4. Click **Extract**
+
+The accessibility method always produces a list of all matching elements. At runtime, extraction steps created with the A11y method use the **real accessibility tree** via Chrome DevTools Protocol, making them reliable even on sites with dynamic class names or obfuscated markup.
+
+#### Accessibility Snapshot
+
+The A11y panel also includes a **Snapshot** section. Click **Snapshot** to retrieve the **full accessibility tree** of the current page. This returns a compact text representation showing the page structure with roles, names, and properties -- useful for understanding page layout before deciding which roles to extract.
+
+The snapshot is also available as a built-in MCP tool called `accessibility_snapshot` (see [Using Macros with Agents](#using-macros-with-agents)).
+
+### Table Auto-Detection
+
+When the element picker detects a `<table>` element, it automatically maps each column to a field using the table headers as keys. This means you get structured row-by-row data without manually defining fields.
+
+### Editing Extraction Fields
+
+After an extraction step is created, you can **edit individual fields** by clicking "Edit fields" on the step card. Each field card shows:
+
+- **Key** -- the property name in the output object
+- **Type** dropdown -- choose from `text`, `html`, `attribute`, `value`, `regex`, `nested`, or `nested_list`
+- **Transform** dropdown -- apply `trim`, `lowercase`, `uppercase`, or `number` post-processing
+- **Selector** -- the CSS selector used to locate the element (shown as a monospace label)
+
+Depending on the selected type, additional inputs appear:
+
+- **attribute** -- a dropdown for the HTML attribute name to extract (e.g., `href`, `src`), populated from the actual element
+- **regex** -- an input for the regex pattern, plus an optional default value
+- **nested / nested_list** -- sub-field count is displayed; edit sub-fields via JSON export/import
+
+You can **add new fields** with the "+ Add Field" button or **remove fields** with the x button on each card. Changes are applied immediately to the step data and included when you save or export the macro.
+
+### Data Preview
+
+When an extraction step is created, a **preview** of the extracted data is captured from the live page and shown directly on the step card -- no need to expand anything. The preview updates live as you edit fields.
+
+- For **list mode**, the preview shows the first few items with their key-value pairs
+- For **single mode**, the preview shows the extracted object's key-value pairs
+- Values are truncated for readability; nested objects and arrays show their size
+- Click the preview header to collapse/expand it
+
+The preview helps you verify that the correct data is being extracted before saving the macro.
+
+### Default Values
+
+Fields can have a **default value** that is returned when the selector matches no element or the extraction yields an empty result. Set defaults via the field editor or JSON export.
+
+### Transform Pipeline
+
+Each field supports an optional **transform** applied after extraction:
+
+- **trim** -- remove leading/trailing whitespace
+- **lowercase** -- convert to lowercase
+- **uppercase** -- convert to uppercase
+- **number** -- parse the text as a number
 
 ## Parallel Lanes
 
@@ -130,3 +214,7 @@ To make a macro available to an agent:
 3. Select which macros the agent can use
 
 During a conversation, the LLM sees each assigned macro as a callable tool. When the model decides to invoke a macro, the **Chrome extension executes the recorded steps** in the browser and returns the results to the conversation. The agent can then use the extracted data to continue its response.
+
+### Built-in Accessibility Snapshot Tool
+
+In addition to user-created macros, every agent with macros enabled automatically has access to the `accessibility_snapshot` tool. This built-in tool returns the **full accessibility tree** of the current automation browser page as compact text -- roles, names, and properties in a tree format. Agents can use it to understand page structure, verify navigation results, or decide which elements to interact with next.

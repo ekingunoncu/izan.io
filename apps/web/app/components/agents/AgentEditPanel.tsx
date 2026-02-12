@@ -126,7 +126,7 @@ export function AgentEditPanel() {
       basePrompt: basePrompt.trim(),
       implicitMCPIds,
       customMCPIds,
-      automationServerIds,
+      automationServerIds: validAutomationServerIds,
       linkedAgentIds,
     }
     if (!useDefaultParams) {
@@ -174,9 +174,11 @@ export function AgentEditPanel() {
   )
   // User-recorded macro servers from automation store
   const userMacroServers = automationServers.filter(s => !s.disabled)
+  // Filter out stale IDs referencing deleted servers
+  const validAutomationServerIds = automationServerIds.filter(id => automationServers.some(s => s.id === id))
   // All macros available for adding (not yet assigned)
   const allAvailableMacros = [
-    ...userMacroServers.filter(s => !automationServerIds.includes(s.id)).map(s => ({ id: s.id, name: s.name, description: s.description })),
+    ...userMacroServers.filter(s => !validAutomationServerIds.includes(s.id)).map(s => ({ id: s.id, name: s.name, description: s.description })),
   ]
 
   // Agents available for linking (exclude self and already linked)
@@ -506,7 +508,7 @@ export function AgentEditPanel() {
           >
             <div className="space-y-2">
               {/* Active macros (already assigned to this agent) */}
-              {automationServerIds.map(sId => {
+              {validAutomationServerIds.map(sId => {
                 const userServer = userMacroServers.find(s => s.id === sId)
                 const name = userServer?.name || sId
                 const desc = userServer?.description
@@ -531,11 +533,11 @@ export function AgentEditPanel() {
                 )
               })}
 
-              {automationServerIds.length === 0 && allAvailableMacros.length === 0 && (
+              {validAutomationServerIds.length === 0 && allAvailableMacros.length === 0 && (
                 <p className="text-sm text-muted-foreground text-center py-3">{t('agents.noMacros')}</p>
               )}
 
-              {automationServerIds.length === 0 && allAvailableMacros.length > 0 && (
+              {validAutomationServerIds.length === 0 && allAvailableMacros.length > 0 && (
                 <p className="text-sm text-muted-foreground text-center py-2">{t('agents.noMacrosAssigned')}</p>
               )}
 

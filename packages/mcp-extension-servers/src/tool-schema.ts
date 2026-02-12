@@ -44,18 +44,41 @@ export type ToolParameter = z.infer<typeof toolParameterSchema>
 
 // ─── Extraction Field Schema ─────────────────────────────────────────────────
 
-export const extractionFieldSchema = z.object({
-  /** Key name for the extracted value */
-  key: z.string(),
-  /** CSS or XPath selector relative to the container */
-  selector: z.string(),
-  /** What to extract from the element */
-  type: z.enum(['text', 'html', 'attribute', 'value']).default('text'),
-  /** Attribute name (required when type is 'attribute') */
-  attribute: z.string().optional(),
-})
+export interface ExtractionField {
+  key: string
+  selector: string
+  type: 'text' | 'html' | 'attribute' | 'value' | 'regex' | 'nested' | 'nested_list'
+  attribute?: string
+  /** Regex pattern - capture group 1 is returned, else full match (type='regex') */
+  pattern?: string
+  /** Fallback value when extraction fails */
+  default?: string | number | null
+  /** Post-extraction transform */
+  transform?: 'trim' | 'lowercase' | 'uppercase' | 'number'
+  /** Sub-fields for nested / nested_list extraction */
+  fields?: ExtractionField[]
+}
 
-export type ExtractionField = z.infer<typeof extractionFieldSchema>
+export const extractionFieldSchema: z.ZodType<ExtractionField, z.ZodTypeDef, unknown> = z.lazy(() =>
+  z.object({
+    /** Key name for the extracted value */
+    key: z.string(),
+    /** CSS or XPath selector relative to the container */
+    selector: z.string(),
+    /** What to extract from the element */
+    type: z.enum(['text', 'html', 'attribute', 'value', 'regex', 'nested', 'nested_list']).default('text'),
+    /** Attribute name (required when type is 'attribute') */
+    attribute: z.string().optional(),
+    /** Regex pattern - capture group 1 is returned, else full match (type='regex') */
+    pattern: z.string().optional(),
+    /** Fallback value when extraction fails */
+    default: z.union([z.string(), z.number(), z.null()]).optional(),
+    /** Post-extraction transform */
+    transform: z.enum(['trim', 'lowercase', 'uppercase', 'number']).optional(),
+    /** Sub-fields for nested / nested_list extraction */
+    fields: z.array(extractionFieldSchema).optional(),
+  }),
+)
 
 // ─── Action Step Schemas ─────────────────────────────────────────────────────
 
@@ -155,6 +178,14 @@ export const extractStepSchema = baseStepSchema.extend({
   fields: z.array(extractionFieldSchema).min(1),
   /** Number of items detected at recording time (informational, list mode only) */
   itemCount: z.number().optional(),
+  /** Extraction method: 'css' (default) uses containerSelector, 'role' uses accessibility tree, 'snapshot' returns full AX tree */
+  extractionMethod: z.enum(['css', 'role', 'snapshot']).optional(),
+  /** ARIA roles to query (when extractionMethod='role') */
+  roles: z.array(z.string()).optional(),
+  /** Accessible name filter (when extractionMethod='role') */
+  roleName: z.string().optional(),
+  /** Whether to include children content in role extraction (default true) */
+  roleIncludeChildren: z.boolean().optional(),
 })
 
 /** Union of all step types */

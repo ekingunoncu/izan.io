@@ -41,6 +41,7 @@ const SelectContent = React.forwardRef<
       )}
       position={position}
       data-slot="select-content"
+      collisionPadding={8}
       {...props}
     >
       <SelectPrimitive.Viewport

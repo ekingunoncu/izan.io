@@ -20,6 +20,8 @@ chrome.runtime.onInstalled.addListener(({ reason }) => {
 
 let sidePanelPort: chrome.runtime.Port | null = null
 let recordingTabId: number | null = null
+/** Steps accumulated before a cross-page navigation, sent back to the re-injected recorder */
+let pendingRecordingSteps: unknown[] | null = null
 
 /** Stricter match: only tabs whose origin is izan.io or localhost */
 function isIzanTab(tab: chrome.tabs.Tab): boolean {
@@ -54,12 +56,14 @@ function bestEffortSyncToTab(): void {
 chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
   if (tabId !== recordingTabId || changeInfo.status !== 'complete') return
   // The recording tab finished loading - re-inject the recorder script
+  const steps = pendingRecordingSteps
+  pendingRecordingSteps = null
   chrome.scripting
     .executeScript({ target: { tabId }, files: ['recorder-inject.js'], world: 'ISOLATED' })
     .then(() => new Promise<void>((r) => setTimeout(r, 150)))
-    .then(() => chrome.tabs.sendMessage(tabId, { type: 'recorder-start' }))
+    .then(() => chrome.tabs.sendMessage(tabId, { type: 'recorder-resume', steps: steps ?? [] }))
     .then(() => {
-      console.log('[izan-ext] Re-injected recorder after page reload, tabId:', tabId)
+      console.log('[izan-ext] Re-injected recorder after navigation, tabId:', tabId)
       sidePanelPort?.postMessage({ type: 'recording-reinjected' })
     })
     .catch((err) => {
@@ -104,6 +108,19 @@ chrome.runtime.onConnect.addListener((port) => {
       recordingTabId = null
     } else if (msg.type === 'extract' && recordingTabId != null) {
       chrome.tabs.sendMessage(recordingTabId, { type: 'recorder-extract', mode: msg.mode ?? 'list' }).catch(() => {})
+    } else if (msg.type === 'extract' && recordingTabId == null) {
+      // Not recording — inject picker on-demand into the active tab
+      chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
+        if (!tab?.id) return
+        const tabId = tab.id
+        chrome.scripting
+          .executeScript({ target: { tabId }, files: ['recorder-inject.js'], world: 'ISOLATED' })
+          .then(() => new Promise<void>((r) => setTimeout(r, 150)))
+          .then(() => chrome.tabs.sendMessage(tabId, { type: 'recorder-extract', mode: msg.mode ?? 'list' }))
+          .catch((err) => {
+            console.error('[izan-ext] Picker inject failed:', err)
+          })
+      })
     } else if (msg.type === 'recordingComplete') {
       // Clear highlights in the recording tab (user finished with Done) without requesting steps
       if (recordingTabId != null) {
@@ -218,6 +235,37 @@ chrome.runtime.onConnect.addListener((port) => {
           bestEffortSyncToTab()
         })
         .catch((err) => sidePanelPort?.postMessage({ type: 'importAutomationToolDone', error: String(err) }))
+    } else if (msg.type === 'selectorExtract') {
+      const m = msg as Record<string, unknown>
+      const selector = m.selector as string
+      const mode = (m.mode as 'list' | 'single') || 'list'
+      chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
+        if (!tab?.id) {
+          sidePanelPort?.postMessage({ type: 'selector-extract-error', error: 'No active tab' })
+          return
+        }
+        handleSelectorExtract(tab.id, selector, mode)
+      })
+    } else if (msg.type === 'roleExtract') {
+      const m = msg as Record<string, unknown>
+      const roles = (Array.isArray(m.roles) ? m.roles : [m.role]) as string[]
+      const name = (m.name as string) || ''
+      const includeChildren = m.includeChildren !== false
+      chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
+        if (!tab?.id) {
+          sidePanelPort?.postMessage({ type: 'selector-extract-error', error: 'No active tab' })
+          return
+        }
+        handleRoleExtract(tab.id, roles.filter(Boolean), name, includeChildren)
+      })
+    } else if (msg.type === 'fullAccessibilitySnapshot') {
+      chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
+        if (!tab?.id) {
+          sidePanelPort?.postMessage({ type: 'accessibility-snapshot-error', error: 'No active tab' })
+          return
+        }
+        handleFullAccessibilitySnapshotForSidepanel(tab.id)
+      })
     }
   })
 })
@@ -227,6 +275,13 @@ chrome.runtime.onMessage.addListener(
     // Forward recorder events from content script → side panel
     if (msg.type === 'recording-step' || msg.type === 'recording-complete' || msg.type === 'extract-result') {
       sidePanelPort?.postMessage(msg)
+      sendResponse({ ok: true })
+      return true
+    }
+
+    // Snapshot of accumulated steps before cross-page navigation
+    if (msg.type === 'recording-steps-snapshot') {
+      pendingRecordingSteps = msg.steps as unknown[] ?? null
       sendResponse({ ok: true })
       return true
     }
@@ -566,35 +621,81 @@ async function handleScroll(p: P): Promise<R> {
   return handleEvaluate({ tabId: p.tabId, expression: expr })
 }
 
+/**
+ * Shared JS helper injected via CDP to recursively extract a field value.
+ * Supports: text, html, value, attribute, regex, nested, nested_list + transform + default.
+ */
+const EXTRACT_FIELD_JS = `function extractField(el,f){
+  if(!el)return f.default!=null?f.default:null;
+  var t=f.type||'text';
+  if(t==='nested'){
+    var nested=el.querySelector(f.selector);
+    if(!nested)return f.default!=null?f.default:{};
+    var obj={};
+    (f.fields||[]).forEach(function(sf){obj[sf.key]=extractField(nested,sf)});
+    return obj;
+  }
+  if(t==='nested_list'){
+    var items=el.querySelectorAll(f.selector);
+    return Array.from(items).map(function(item){
+      var obj={};
+      (f.fields||[]).forEach(function(sf){obj[sf.key]=extractField(item,sf)});
+      return obj;
+    });
+  }
+  var target=f.selector?el.querySelector(f.selector):el;
+  if(!target)return f.default!=null?f.default:null;
+  var val;
+  if(t==='text')val=(target.textContent||'').trim();
+  else if(t==='html')val=target.innerHTML;
+  else if(t==='value')val=target.value||'';
+  else if(t==='attribute')val=target.getAttribute(f.attribute||'')||'';
+  else if(t==='regex'){
+    var txt=(target.textContent||'').trim();
+    try{
+      var re=new RegExp(f.pattern||'');
+      var m=txt.match(re);
+      if(m){
+        if(m.groups){var gk=Object.keys(m.groups);if(gk.length>0){val=m.groups[gk[0]]||m[1]||m[0]}else{val=m[1]||m[0]}}
+        else{val=m[1]||m[0]}
+      }else{val=null}
+    }catch(e){val=null}
+  }
+  else val=(target.textContent||'').trim();
+  if(val!=null&&f.transform){
+    if(f.transform==='trim')val=typeof val==='string'?val.trim():val;
+    else if(f.transform==='lowercase')val=typeof val==='string'?val.toLowerCase():val;
+    else if(f.transform==='uppercase')val=typeof val==='string'?val.toUpperCase():val;
+    else if(f.transform==='number')val=parseFloat(String(val).replace(/[^\\d.,\\-]/g,''))||null;
+  }
+  return val!=null?val:(f.default!=null?f.default:null);
+}`
+
 async function handleExtractList(p: P): Promise<R> {
   const container = p.containerSelector as string
-  const fields = p.fields as Array<{ key: string; selector: string; type?: string; attribute?: string }>
+  const fields = p.fields as Array<Record<string, unknown>>
   const fieldStr = JSON.stringify(fields)
   const containerStr = JSON.stringify(container)
   // Poll until elements appear (dynamic sites load content after 'load' event)
   const expr = `new Promise(function(resolve){
+    ${EXTRACT_FIELD_JS}
     var sel=${containerStr};
     var fields=${fieldStr};
+    function isVisible(el){var r=el.getBoundingClientRect();return r.width>0&&r.height>0&&getComputedStyle(el).visibility!=='hidden'}
+    function isEmptyRow(row){for(var k in row){var v=row[k];if(v!=null&&v!=='')return false}return true}
     function extract(){
       var items=document.querySelectorAll(sel);
       if(items.length===0)return null;
       var result=[];
       items.forEach(function(item){
+        if(!isVisible(item))return;
         var row={};
         fields.forEach(function(f){
-          try{var el=item.querySelector(f.selector);
-          if(!el){row[f.key]=null;return}
-          var t=f.type||'text';
-          if(t==='text')row[f.key]=(el.textContent||'').trim();
-          else if(t==='html')row[f.key]=el.innerHTML;
-          else if(t==='value')row[f.key]=el.value||'';
-          else if(t==='attribute')row[f.key]=el.getAttribute(f.attribute||'')||'';
-          else row[f.key]=(el.textContent||'').trim();
-          }catch(e){row[f.key]=null}
+          try{row[f.key]=extractField(item,f)}catch(e){row[f.key]=null}
         });
-        result.push(row);
+        if(!isEmptyRow(row))result.push(row);
       });
-      return result;
+      return result.length>0?result:null;
     }
     var r=extract();if(r){resolve(r);return}
     var tries=0;var maxTries=20;
@@ -608,27 +709,23 @@ async function handleExtractList(p: P): Promise<R> {
 
 async function handleExtractSingle(p: P): Promise<R> {
   const container = p.containerSelector as string
-  const fields = p.fields as Array<{ key: string; selector: string; type?: string; attribute?: string }>
+  const fields = p.fields as Array<Record<string, unknown>>
+  const continueOnError = p.continueOnError as boolean | undefined
   const fieldStr = JSON.stringify(fields)
   const containerStr = JSON.stringify(container)
+  const coStr = continueOnError ? 'true' : 'false'
   // Poll until container appears (dynamic sites load content after 'load' event)
   const expr = `new Promise(function(resolve,reject){
+    ${EXTRACT_FIELD_JS}
     var sel=${containerStr};
     var fields=${fieldStr};
+    var continueOnError=${coStr};
     function extract(){
       var container=document.querySelector(sel);
       if(!container)return null;
       var result={};
       fields.forEach(function(f){
-        try{var el=f.selector?container.querySelector(f.selector):container;
-        if(!el){result[f.key]=null;return}
-        var t=f.type||'text';
-        if(t==='text')result[f.key]=(el.textContent||'').trim();
-        else if(t==='html')result[f.key]=el.innerHTML;
-        else if(t==='value')result[f.key]=el.value||'';
-        else if(t==='attribute')result[f.key]=el.getAttribute(f.attribute||'')||'';
-        else result[f.key]=(el.textContent||'').trim();
-        }catch(e){result[f.key]=null}
+        try{result[f.key]=extractField(container,f)}catch(e){result[f.key]=null}
       });
       return result;
     }
@@ -637,7 +734,9 @@ async function handleExtractSingle(p: P): Promise<R> {
     var iv=setInterval(function(){
       tries++;r=extract();
       if(r||tries>=maxTries){clearInterval(iv);
-        if(r)resolve(r);else reject(new Error('Not found after 10s: '+sel))}
+        if(r)resolve(r);
+        else if(continueOnError)resolve({});
+        else reject(new Error('Not found after 10s: '+sel))}
     },500);
   })`
   return handleEvaluate({ tabId: p.tabId, expression: expr })
@@ -759,6 +858,1043 @@ async function handleWaitForNetworkIdle(p: P): Promise<R> {
   return { success: true }
 }
 
+// ─── Selector-based Extraction ────────────────────────────────────────────────
+
+/**
+ * Evaluate a user-provided CSS selector on the active tab to auto-detect fields
+ * and generate an extract step. Uses chrome.scripting.executeScript to run in
+ * the page context — no debugger banner, works on CSP-restricted sites.
+ */
+async function handleSelectorExtract(tabId: number, selector: string, mode: 'list' | 'single'): Promise<void> {
+  try {
+    const results = await chrome.scripting.executeScript({
+      target: { tabId },
+      world: 'MAIN',
+      func: selectorExtractInPage,
+      args: [selector, mode],
+    })
+    const data = results?.[0]?.result as {
+      containerSelector: string
+      fields: Array<{ key: string; selector: string; type: string; attribute?: string }>
+      preview: Record<string, unknown>[] | Record<string, unknown>
+      previewHtml: string[]
+      itemCount?: number
+      name: string
+      mode: string
+      error?: string
+    } | null
+
+    if (data?.error) {
+      sidePanelPort?.postMessage({ type: 'selector-extract-error', error: data.error })
+    } else if (data && data.fields && data.fields.length > 0) {
+      const step = {
+        action: 'extract' as const,
+        name: data.name,
+        mode: data.mode,
+        containerSelector: data.containerSelector,
+        fields: data.fields,
+        itemCount: data.itemCount,
+        label: data.mode === 'list'
+          ? `${data.itemCount ?? '?'} items · ${data.fields.length} fields (list)`
+          : `${data.fields.length} fields (single)`,
+      }
+      sidePanelPort?.postMessage({
+        type: 'selector-extract-result',
+        step,
+        preview: data.preview,
+        previewHtml: data.previewHtml,
+      })
+    } else {
+      sidePanelPort?.postMessage({ type: 'selector-extract-error', error: 'No elements found for this selector' })
+    }
+  } catch (err) {
+    sidePanelPort?.postMessage({ type: 'selector-extract-error', error: err instanceof Error ? err.message : String(err) })
+  }
+}
+
+/**
+ * Injected into the page via chrome.scripting.executeScript.
+ * Finds elements matching the selector, auto-detects fields, generates preview.
+ */
+function selectorExtractInPage(selector: string, mode: string) {
+  /* eslint-disable no-var */
+  try {
+    // ── Helpers ──
+    function isDynamicClass(cls: string) {
+      if (cls.length < 3) return true
+      if (/^[a-z]{1,2}-/.test(cls)) return true
+      if (/^[a-zA-Z]{1,3}[A-Z][a-zA-Z]{4,}$/.test(cls)) return true
+      if (/^(bg|text|flex|grid|p|m|w|h)-/.test(cls)) return true
+      return false
+    }
+
+    function generateRelativeSelector(el: Element, container: Element, structuralOnly: boolean): string {
+      var parts: string[] = []
+      var cur: Element | null = el
+      while (cur && cur !== container) {
+        var p = cur.parentElement
+        if (!p) break
+        var tag = cur.tagName.toLowerCase()
+        if (!structuralOnly) {
+          for (var ci = 0; ci < cur.classList.length; ci++) {
+            var cls = cur.classList[ci]
+            if (isDynamicClass(cls) || cls.indexOf('izan-') === 0) continue
+            if (p.querySelectorAll('.' + CSS.escape(cls)).length === 1) {
+              parts.unshift('.' + CSS.escape(cls))
+              return parts.join(' > ') || '*'
+            }
+          }
+        }
+        var sibs = Array.from(p.children).filter(function(c) { return c.tagName === cur!.tagName })
+        if (sibs.length === 1) parts.unshift(tag)
+        else parts.unshift(tag + ':nth-of-type(' + (sibs.indexOf(cur) + 1) + ')')
+        cur = p
+      }
+      return parts.join(' > ') || '*'
+    }
+
+    function slugify(s: string) {
+      return s.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 30) || 'field'
+    }
+
+    function inferType(el: Element) {
+      var t = el.tagName
+      if (t === 'INPUT' || t === 'TEXTAREA' || t === 'SELECT') return 'value'
+      if (t === 'A' || t === 'IMG') return 'attribute'
+      return 'text'
+    }
+
+    /** Filter out tracking pixels, tiny icons, and placeholder images */
+    function isJunkImage(el: Element) {
+      var w = (el as HTMLImageElement).naturalWidth || (el as HTMLImageElement).width || 0
+      var h = (el as HTMLImageElement).naturalHeight || (el as HTMLImageElement).height || 0
+      // 1x1 tracking pixels or invisible images
+      if (w <= 1 || h <= 1) return true
+      // Tiny icons (< 24x24)
+      if (w < 24 && h < 24) return true
+      // Common tracker/spacer URL patterns
+      var src = el.getAttribute('src') || ''
+      if (/\b(pixel|tracker|spacer|blank|1x1|beacon|\.gif\?)/i.test(src)) return true
+      // Data URIs that are very short (likely single-pixel placeholders)
+      if (src.startsWith('data:') && src.length < 200) return true
+      return false
+    }
+
+    function fieldKey(el: Element, idx: number) {
+      var tag = el.tagName
+      if (tag === 'TIME') return 'date'
+      if (tag === 'A') return 'link'
+      if (tag === 'IMG') return 'image'
+      var attrs = el.getAttributeNames ? el.getAttributeNames() : []
+      for (var ai = 0; ai < attrs.length; ai++) {
+        if (attrs[ai].indexOf('data-') === 0 && attrs[ai] !== 'data-izan-recorder') {
+          var k = attrs[ai].slice(5)
+          if (k.length >= 3 && k.length <= 20) return slugify(k)
+        }
+      }
+      var al = el.getAttribute('aria-label'); if (al) return slugify(al)
+      var nm = el.getAttribute('name'); if (nm) return slugify(nm)
+      var cn = el.className ? el.className.toString() : ''
+      if (cn) {
+        var classes = cn.split(/\s+/)
+        for (var ci = 0; ci < classes.length; ci++) {
+          if (classes[ci].length > 3 && !isDynamicClass(classes[ci])) return slugify(classes[ci])
+        }
+      }
+      var txt = (el.textContent || '').trim().slice(0, 20)
+      if (txt) return slugify(txt)
+      return 'field_' + idx
+    }
+
+    function autoDetectFields(item: Element, structural: boolean) {
+      var fields: Array<{ key: string; selector: string; type: string; attribute?: string }> = []
+      var usedKeys: Record<string, boolean> = {}
+      function uniqueKey(base: string) {
+        var key = base, i = 2
+        while (usedKeys[key]) { key = base + '_' + i; i++ }
+        usedKeys[key] = true
+        return key
+      }
+      var candidates: Element[] = []
+      var seen = new Set<Element>()
+      function walk(el: Element, depth: number) {
+        if (depth > 15 || candidates.length >= 20 || seen.has(el)) return
+        seen.add(el)
+        if (el.hasAttribute && el.hasAttribute('data-izan-recorder')) return
+        var h = el as HTMLElement
+        if (!h.offsetWidth && !h.offsetHeight) return
+        var tag = el.tagName
+        if (tag === 'A' && el.getAttribute('href')) { candidates.push(el); return }
+        if (tag === 'IMG' && el.getAttribute('src') && !isJunkImage(el)) { candidates.push(el); return }
+        if (tag === 'TIME' || tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') { candidates.push(el); return }
+        var hasChildren = el.children.length > 0
+        var text = (el.textContent || '').trim()
+        if (!hasChildren && text.length > 0) { candidates.push(el); return }
+        if (hasChildren) {
+          var childEls = Array.from(el.children)
+          var hasDeep = childEls.some(function(c) { return c.children.length > 0 })
+          if (!hasDeep && text.length > 0 && text.length < 200 && childEls.length <= 3) { candidates.push(el); return }
+          childEls.forEach(function(c) { walk(c, depth + 1) })
+        }
+      }
+      // Check root element itself before walking children
+      var rootTag = item.tagName
+      if (rootTag === 'A' && item.getAttribute('href')) { candidates.push(item) }
+      else if (rootTag === 'IMG' && item.getAttribute('src') && !isJunkImage(item)) { candidates.push(item) }
+      // Then walk children for nested content
+      Array.from(item.children).forEach(function(c) { walk(c, 0) })
+      var rootHasHref = rootTag === 'A' && item.getAttribute('href')
+      var rootHasImg = rootTag === 'IMG' && item.getAttribute('src')
+      if (candidates.length === 0 && (item.textContent || '').trim()) {
+        var rootFields: Array<{ key: string; selector: string; type: string; attribute?: string }> = [{ key: 'text', selector: '*', type: 'text' }]
+        if (rootHasHref) rootFields.push({ key: 'href', selector: '*', type: 'attribute', attribute: 'href' })
+        if (rootHasImg) {
+          rootFields.push({ key: 'src', selector: '*', type: 'attribute', attribute: 'src' })
+          if (item.getAttribute('alt')) rootFields.push({ key: 'alt', selector: '*', type: 'attribute', attribute: 'alt' })
+        }
+        return rootFields
+      }
+      for (var i = 0; i < candidates.length; i++) {
+        var c = candidates[i]
+        var sel = generateRelativeSelector(c, item, structural)
+        var type = inferType(c)
+        var bk = fieldKey(c, fields.length)
+        var key = uniqueKey(bk)
+        var field: { key: string; selector: string; type: string; attribute?: string } = { key: key, selector: sel, type: type }
+        if (type === 'attribute') field.attribute = c.tagName === 'A' ? 'href' : 'src'
+        if (c.tagName === 'A' && (c.textContent || '').trim())
+          fields.push({ key: uniqueKey(bk + '_text'), selector: sel, type: 'text' })
+        fields.push(field)
+      }
+      if (rootHasHref && !usedKeys['href']) {
+        fields.unshift({ key: uniqueKey('href'), selector: '*', type: 'attribute', attribute: 'href' })
+        if (!usedKeys['text']) fields.unshift({ key: uniqueKey('text'), selector: '*', type: 'text' })
+      }
+      if (rootHasImg && !usedKeys['src']) {
+        fields.unshift({ key: uniqueKey('src'), selector: '*', type: 'attribute', attribute: 'src' })
+        if (item.getAttribute('alt') && !usedKeys['alt']) fields.unshift({ key: uniqueKey('alt'), selector: '*', type: 'attribute', attribute: 'alt' })
+      }
+      return fields
+    }
+
+    function autoDetectTableFields(row: Element) {
+      var fields: Array<{ key: string; selector: string; type: string; attribute?: string }> = []
+      var usedKeys: Record<string, boolean> = {}
+      function uniqueKey(base: string) {
+        var key = base, i = 2
+        while (usedKeys[key]) { key = base + '_' + i; i++ }
+        usedKeys[key] = true
+        return key
+      }
+      var table = row.closest('table')
+      var headers: string[] = []
+      if (table) {
+        table.querySelectorAll('thead th, tr:first-child th').forEach(function(th) { headers.push((th.textContent || '').trim()) })
+      }
+      Array.from(row.children).forEach(function(cell, childIdx) {
+        if (cell.tagName !== 'TD' && cell.tagName !== 'TH') return
+        if (!(cell as HTMLElement).offsetWidth && !(cell as HTMLElement).offsetHeight) return
+        var headerText = headers[childIdx]
+        var baseKey = headerText ? slugify(headerText) : 'col_' + (childIdx + 1)
+        var tag = cell.tagName.toLowerCase()
+        var nthSel = tag + ':nth-child(' + (childIdx + 1) + ')'
+        fields.push({ key: uniqueKey(baseKey), selector: nthSel, type: 'text' })
+        if (cell.querySelector('a[href]'))
+          fields.push({ key: uniqueKey(baseKey + '_url'), selector: nthSel + ' a', type: 'attribute', attribute: 'href' })
+        if (cell.querySelector('img[src]'))
+          fields.push({ key: uniqueKey(baseKey + '_img'), selector: nthSel + ' img', type: 'attribute', attribute: 'src' })
+      })
+      return fields
+    }
+
+    function extractValue(el: Element, f: { type: string; attribute?: string }) {
+      if (!el) return null
+      switch (f.type) {
+        case 'text': return (el.textContent || '').trim()
+        case 'html': return el.innerHTML
+        case 'value': return (el as HTMLInputElement).value || ''
+        case 'attribute': return el.getAttribute(f.attribute || '') || ''
+        default: return (el.textContent || '').trim()
+      }
+    }
+
+    function cleanHtml(el: Element) {
+      var clone = el.cloneNode(true) as Element
+      clone.querySelectorAll('[data-izan-recorder]').forEach(function(n) { n.remove() })
+      return clone.outerHTML
+    }
+
+    // ── Main logic ──
+    if (mode === 'list') {
+      var items = document.querySelectorAll(selector)
+      if (items.length === 0) return { error: 'No elements match "' + selector + '"' }
+      var firstItem = items[0]
+      var fields = firstItem.tagName === 'TR' ? autoDetectTableFields(firstItem) : autoDetectFields(firstItem, true)
+      if (!fields || fields.length === 0) fields = [{ key: 'text', selector: '*', type: 'text' }]
+      var previewItems = Array.from(items).slice(0, 3)
+      var preview = previewItems.map(function(item) {
+        var row: Record<string, unknown> = {}
+        for (var fi = 0; fi < fields.length; fi++) {
+          var f = fields[fi]
+          try {
+            var target = f.selector === '*' ? item : item.querySelector(f.selector)
+            row[f.key] = target ? extractValue(target, f) : null
+          } catch { row[f.key] = null }
+        }
+        return row
+      })
+      return {
+        containerSelector: selector,
+        fields: fields,
+        preview: preview,
+        previewHtml: previewItems.map(cleanHtml),
+        itemCount: items.length,
+        name: slugify(selector.slice(0, 30)) || 'data',
+        mode: 'list',
+      }
+    } else {
+      var el = document.querySelector(selector)
+      if (!el) return { error: 'No element matches "' + selector + '"' }
+      var fields = el.tagName === 'TR' ? autoDetectTableFields(el) : autoDetectFields(el, false)
+      if (!fields || fields.length === 0) fields = [{ key: 'text', selector: '*', type: 'text' }]
+      var row: Record<string, unknown> = {}
+      for (var fi = 0; fi < fields.length; fi++) {
+        var f = fields[fi]
+        try {
+          var target = f.selector === '*' ? el : el.querySelector(f.selector)
+          row[f.key] = target ? extractValue(target, f) : null
+        } catch { row[f.key] = null }
+      }
+      return {
+        containerSelector: selector,
+        fields: fields,
+        preview: row,
+        previewHtml: [cleanHtml(el)],
+        name: slugify(selector.slice(0, 30)) || 'data',
+        mode: 'single',
+      }
+    }
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : String(e) }
+  }
+  /* eslint-enable no-var */
+}
+
+// ─── Role-based Extraction (Accessibility Tree) ──────────────────────────────
+
+async function cleanupRoleExtract(tabId: number): Promise<void> {
+  try { await chrome.debugger.sendCommand({ tabId }, 'Accessibility.disable') } catch {}
+  try { await chrome.debugger.sendCommand({ tabId }, 'DOM.disable') } catch {}
+  await cdpDetach(tabId)
+}
+
+function processRoleResult(value: unknown, mode: 'list' | 'single'): void {
+  const v = value as { containerSelector?: string; fields?: unknown[]; preview?: unknown; previewHtml?: string[]; itemCount?: number; name?: string; error?: string } | null
+  if (!v || v.error) {
+    sidePanelPort?.postMessage({ type: 'selector-extract-error', error: v?.error || 'Extraction failed' })
+    return
+  }
+  if (!v.fields || (v.fields as unknown[]).length === 0) {
+    sidePanelPort?.postMessage({ type: 'selector-extract-error', error: 'No fields detected' })
+    return
+  }
+  const step = {
+    action: 'extract' as const,
+    name: v.name || 'data',
+    mode,
+    containerSelector: v.containerSelector,
+    fields: v.fields,
+    itemCount: v.itemCount,
+    label: mode === 'list'
+      ? `${v.itemCount ?? '?'} items · ${(v.fields as unknown[]).length} fields (list)`
+      : `${(v.fields as unknown[]).length} fields (single)`,
+  }
+  sidePanelPort?.postMessage({
+    type: 'selector-extract-result',
+    step,
+    preview: v.preview,
+    previewHtml: v.previewHtml,
+  })
+}
+
+/**
+ * Build a self-contained function string for Runtime.callFunctionOn.
+ * `this` = first matched DOM element. arguments[0]=role, arguments[1]=name, arguments[2]=includeChildren.
+ *
+ * includeChildren=true  → treat each matched element as a container, auto-detect child fields
+ * includeChildren=false → extract direct properties of matched elements (text, href, src etc.)
+ */
+function buildRoleExtractExpression(): string {
+  // Shared helper functions (must be self-contained for CDP Runtime.callFunctionOn)
+  const helpers = `
+    function isDynamicClass(cls) {
+      if (cls.length < 3) return true;
+      if (/^[a-z]{1,2}-/.test(cls)) return true;
+      if (/^[a-zA-Z]{1,3}[A-Z][a-zA-Z]{4,}$/.test(cls)) return true;
+      if (/^(bg|text|flex|grid|p|m|w|h)-/.test(cls)) return true;
+      return false;
+    }
+    function generateRelativeSelector(el, container, structuralOnly) {
+      var parts = [];
+      var cur = el;
+      while (cur && cur !== container) {
+        var p = cur.parentElement;
+        if (!p) break;
+        var tag = cur.tagName.toLowerCase();
+        if (!structuralOnly) {
+          for (var ci = 0; ci < cur.classList.length; ci++) {
+            var cls = cur.classList[ci];
+            if (isDynamicClass(cls) || cls.indexOf('izan-') === 0) continue;
+            if (p.querySelectorAll('.' + CSS.escape(cls)).length === 1) {
+              parts.unshift('.' + CSS.escape(cls));
+              return parts.join(' > ') || '*';
+            }
+          }
+        }
+        var sibs = Array.from(p.children).filter(function(c) { return c.tagName === cur.tagName });
+        if (sibs.length === 1) parts.unshift(tag);
+        else parts.unshift(tag + ':nth-of-type(' + (sibs.indexOf(cur) + 1) + ')');
+        cur = p;
+      }
+      return parts.join(' > ') || '*';
+    }
+    function slugify(s) {
+      return s.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 30) || 'field';
+    }
+    function inferType(el) {
+      var t = el.tagName;
+      if (t === 'INPUT' || t === 'TEXTAREA' || t === 'SELECT') return 'value';
+      if (t === 'A' || t === 'IMG') return 'attribute';
+      return 'text';
+    }
+    function isJunkImage(el) {
+      var w = el.naturalWidth || el.width || 0;
+      var h = el.naturalHeight || el.height || 0;
+      if (w <= 1 || h <= 1) return true;
+      if (w < 24 && h < 24) return true;
+      var src = el.getAttribute('src') || '';
+      if (/\\b(pixel|tracker|spacer|blank|1x1|beacon|\\.gif\\?)/i.test(src)) return true;
+      if (src.indexOf('data:') === 0 && src.length < 200) return true;
+      return false;
+    }
+    function fieldKey(el, idx) {
+      var tag = el.tagName;
+      if (tag === 'TIME') return 'date';
+      if (tag === 'A') return 'link';
+      if (tag === 'IMG') return 'image';
+      var attrs = el.getAttributeNames ? el.getAttributeNames() : [];
+      for (var ai = 0; ai < attrs.length; ai++) {
+        if (attrs[ai].indexOf('data-') === 0 && attrs[ai] !== 'data-izan-recorder') {
+          var k = attrs[ai].slice(5);
+          if (k.length >= 3 && k.length <= 20) return slugify(k);
+        }
+      }
+      var al = el.getAttribute('aria-label'); if (al) return slugify(al);
+      var nm = el.getAttribute('name'); if (nm) return slugify(nm);
+      var cn = el.className ? el.className.toString() : '';
+      if (cn) {
+        var classes = cn.split(/\\s+/);
+        for (var ci = 0; ci < classes.length; ci++) {
+          if (classes[ci].length > 3 && !isDynamicClass(classes[ci])) return slugify(classes[ci]);
+        }
+      }
+      var txt = (el.textContent || '').trim().slice(0, 20);
+      if (txt) return slugify(txt);
+      return 'field_' + idx;
+    }
+    function autoDetectFields(item, structural) {
+      var fields = [];
+      var usedKeys = {};
+      function uniqueKey(base) {
+        var key = base, i = 2;
+        while (usedKeys[key]) { key = base + '_' + i; i++; }
+        usedKeys[key] = true;
+        return key;
+      }
+      var candidates = [];
+      var seen = new Set();
+      function walk(el, depth) {
+        if (depth > 15 || candidates.length >= 20 || seen.has(el)) return;
+        seen.add(el);
+        if (el.hasAttribute && el.hasAttribute('data-izan-recorder')) return;
+        var h = el;
+        if (!h.offsetWidth && !h.offsetHeight) return;
+        var tag = el.tagName;
+        if (tag === 'A' && el.getAttribute('href')) { candidates.push(el); return; }
+        if (tag === 'IMG' && el.getAttribute('src') && !isJunkImage(el)) { candidates.push(el); return; }
+        if (tag === 'TIME' || tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') { candidates.push(el); return; }
+        var hasChildren = el.children.length > 0;
+        var text = (el.textContent || '').trim();
+        if (!hasChildren && text.length > 0) { candidates.push(el); return; }
+        if (hasChildren) {
+          var childEls = Array.from(el.children);
+          var hasDeep = childEls.some(function(c) { return c.children.length > 0 });
+          if (!hasDeep && text.length > 0 && text.length < 200 && childEls.length <= 3) { candidates.push(el); return; }
+          childEls.forEach(function(c) { walk(c, depth + 1); });
+        }
+      }
+      // Check root element itself before walking children
+      var rootTag = item.tagName;
+      if (rootTag === 'A' && item.getAttribute('href')) { candidates.push(item); }
+      else if (rootTag === 'IMG' && item.getAttribute('src') && !isJunkImage(item)) { candidates.push(item); }
+      // Then walk children for nested content
+      Array.from(item.children).forEach(function(c) { walk(c, 0); });
+      var rootHasHref = rootTag === 'A' && item.getAttribute('href');
+      var rootHasImg = rootTag === 'IMG' && item.getAttribute('src');
+      if (candidates.length === 0 && (item.textContent || '').trim()) {
+        var rootFields = [{ key: 'text', selector: '*', type: 'text' }];
+        if (rootHasHref) rootFields.push({ key: 'href', selector: '*', type: 'attribute', attribute: 'href' });
+        if (rootHasImg) {
+          rootFields.push({ key: 'src', selector: '*', type: 'attribute', attribute: 'src' });
+          if (item.getAttribute('alt')) rootFields.push({ key: 'alt', selector: '*', type: 'attribute', attribute: 'alt' });
+        }
+        return rootFields;
+      }
+      for (var i = 0; i < candidates.length; i++) {
+        var c = candidates[i];
+        var sel = generateRelativeSelector(c, item, structural);
+        var type = inferType(c);
+        var bk = fieldKey(c, fields.length);
+        var key = uniqueKey(bk);
+        var field = { key: key, selector: sel, type: type };
+        if (type === 'attribute') field.attribute = c.tagName === 'A' ? 'href' : 'src';
+        if (c.tagName === 'A' && (c.textContent || '').trim())
+          fields.push({ key: uniqueKey(bk + '_text'), selector: sel, type: 'text' });
+        fields.push(field);
+      }
+      // If root element has href/src but no child candidate picked it up, add root-level fields
+      if (rootHasHref && !usedKeys['href']) {
+        fields.unshift({ key: uniqueKey('href'), selector: '*', type: 'attribute', attribute: 'href' });
+        if (!usedKeys['text']) fields.unshift({ key: uniqueKey('text'), selector: '*', type: 'text' });
+      }
+      if (rootHasImg && !usedKeys['src']) {
+        fields.unshift({ key: uniqueKey('src'), selector: '*', type: 'attribute', attribute: 'src' });
+        if (item.getAttribute('alt') && !usedKeys['alt']) fields.unshift({ key: uniqueKey('alt'), selector: '*', type: 'attribute', attribute: 'alt' });
+      }
+      return fields;
+    }
+    function autoDetectTableFields(row) {
+      var fields = [];
+      var usedKeys = {};
+      function uniqueKey(base) {
+        var key = base, i = 2;
+        while (usedKeys[key]) { key = base + '_' + i; i++; }
+        usedKeys[key] = true;
+        return key;
+      }
+      var table = row.closest('table');
+      var headers = [];
+      if (table) {
+        table.querySelectorAll('thead th, tr:first-child th').forEach(function(th) { headers.push((th.textContent || '').trim()); });
+      }
+      Array.from(row.children).forEach(function(cell, childIdx) {
+        if (cell.tagName !== 'TD' && cell.tagName !== 'TH') return;
+        if (!cell.offsetWidth && !cell.offsetHeight) return;
+        var headerText = headers[childIdx];
+        var baseKey = headerText ? slugify(headerText) : 'col_' + (childIdx + 1);
+        var tag = cell.tagName.toLowerCase();
+        var nthSel = tag + ':nth-child(' + (childIdx + 1) + ')';
+        fields.push({ key: uniqueKey(baseKey), selector: nthSel, type: 'text' });
+        if (cell.querySelector('a[href]'))
+          fields.push({ key: uniqueKey(baseKey + '_url'), selector: nthSel + ' a', type: 'attribute', attribute: 'href' });
+        if (cell.querySelector('img[src]'))
+          fields.push({ key: uniqueKey(baseKey + '_img'), selector: nthSel + ' img', type: 'attribute', attribute: 'src' });
+      });
+      return fields;
+    }
+    function extractValue(el, f) {
+      if (!el) return null;
+      switch (f.type) {
+        case 'text': return (el.textContent || '').trim();
+        case 'html': return el.innerHTML;
+        case 'value': return el.value || '';
+        case 'attribute': return el.getAttribute(f.attribute || '') || '';
+        default: return (el.textContent || '').trim();
+      }
+    }
+    function cleanHtml(el) {
+      var clone = el.cloneNode(true);
+      clone.querySelectorAll('[data-izan-recorder]').forEach(function(n) { n.remove(); });
+      return clone.outerHTML;
+    }
+    var IMPLICIT_ROLES = {
+      button: 'button', link: 'a', heading: 'h1,h2,h3,h4,h5,h6',
+      listitem: 'li', row: 'tr', cell: 'td,th', img: 'img',
+      article: 'article', navigation: 'nav', textbox: 'input,textarea',
+      list: 'ul,ol', table: 'table', form: 'form', banner: 'header',
+      contentinfo: 'footer', main: 'main', complementary: 'aside',
+      region: 'section', checkbox: 'input[type=checkbox]',
+      radio: 'input[type=radio]', separator: 'hr',
+    };
+    function isVisible(el) {
+      var r = el.getBoundingClientRect();
+      if (r.width === 0 && r.height === 0) return false;
+      var s = getComputedStyle(el);
+      return s.visibility !== 'hidden' && s.display !== 'none' && s.opacity !== '0';
+    }
+    /** Find all elements matching a single role — merges explicit [role] attr AND implicit HTML tags */
+    function findByRole(role, name) {
+      var seen = new Set();
+      var items = [];
+      // Explicit role attribute
+      Array.from(document.querySelectorAll('[role="' + role + '"]')).forEach(function(el) {
+        if (!seen.has(el) && isVisible(el)) { seen.add(el); items.push(el); }
+      });
+      // Implicit HTML roles (always merge, not just as fallback)
+      if (IMPLICIT_ROLES[role]) {
+        Array.from(document.querySelectorAll(IMPLICIT_ROLES[role])).forEach(function(el) {
+          if (!seen.has(el) && isVisible(el)) { seen.add(el); items.push(el); }
+        });
+      }
+      if (name && items.length > 0) {
+        var lowerName = name.toLowerCase();
+        items = items.filter(function(el) {
+          var accName = (el.getAttribute('aria-label') || el.getAttribute('alt') || el.getAttribute('title') || el.textContent || '').trim().toLowerCase();
+          return accName.indexOf(lowerName) !== -1;
+        });
+      }
+      return items;
+    }
+    /** Find elements matching ANY of the given roles */
+    function findByRoles(roles, name) {
+      var seen = new Set();
+      var items = [];
+      for (var ri = 0; ri < roles.length; ri++) {
+        var roleItems = findByRole(roles[ri], name);
+        for (var i = 0; i < roleItems.length; i++) {
+          if (!seen.has(roleItems[i])) { seen.add(roleItems[i]); items.push(roleItems[i]); }
+        }
+      }
+      return items;
+    }
+    function buildContainerSelector(roles) {
+      var parts = [];
+      for (var ri = 0; ri < roles.length; ri++) {
+        var role = roles[ri];
+        parts.push('[role="' + role + '"]');
+        if (IMPLICIT_ROLES[role]) parts.push(IMPLICIT_ROLES[role]);
+      }
+      return parts.join(', ');
+    }
+    /** Build fields for direct properties of matched elements (no children walk) */
+    function directFields(el) {
+      var fields = [];
+      var tag = el.tagName;
+      fields.push({ key: 'text', selector: '*', type: 'text' });
+      if (tag === 'A' && el.getAttribute('href'))
+        fields.push({ key: 'href', selector: '*', type: 'attribute', attribute: 'href' });
+      if (tag === 'IMG') {
+        if (el.getAttribute('src')) fields.push({ key: 'src', selector: '*', type: 'attribute', attribute: 'src' });
+        if (el.getAttribute('alt')) fields.push({ key: 'alt', selector: '*', type: 'attribute', attribute: 'alt' });
+      }
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT')
+        fields.push({ key: 'value', selector: '*', type: 'value' });
+      return fields;
+    }
+  `
+
+  return `function(roles, name, includeChildren) {
+    try {
+      ${helpers}
+      // roles can be a single string (legacy) or an array
+      if (typeof roles === 'string') roles = [roles];
+      var items = findByRoles(roles, name);
+      if (items.length === 0) {
+        return { error: 'No elements found with role="' + roles.join(', ') + '"' + (name ? ' and name containing "' + name + '"' : '') };
+      }
+      var totalCount = items.length;
+      if (items.length > 100) items = items.slice(0, 100);
+      var firstItem = items[0];
+      var fields;
+      if (includeChildren) {
+        fields = firstItem.tagName === 'TR' ? autoDetectTableFields(firstItem) : autoDetectFields(firstItem, true);
+      } else {
+        fields = directFields(firstItem);
+      }
+      if (!fields || fields.length === 0) fields = [{ key: 'text', selector: '*', type: 'text' }];
+      var containerSelector = buildContainerSelector(roles);
+      function isEmptyRow(row) { for (var k in row) { var v = row[k]; if (v != null && v !== '') return false; } return true; }
+      var previewItems = [];
+      var previewHtmls = [];
+      for (var pi = 0; pi < items.length && previewItems.length < 5; pi++) {
+        var item = items[pi];
+        var row = {};
+        for (var fi = 0; fi < fields.length; fi++) {
+          var f = fields[fi];
+          try {
+            var target = f.selector === '*' ? item : item.querySelector(f.selector);
+            row[f.key] = target ? extractValue(target, f) : null;
+          } catch(e) { row[f.key] = null; }
+        }
+        if (!isEmptyRow(row)) {
+          previewItems.push(row);
+          previewHtmls.push(cleanHtml(item));
+        }
+      }
+      return {
+        containerSelector: containerSelector,
+        fields: fields,
+        preview: previewItems,
+        previewHtml: previewHtmls,
+        itemCount: totalCount,
+        name: roles.map(function(r) { return slugify(r); }).join('_') || 'data',
+        mode: 'list',
+      };
+    } catch(e) {
+      return { error: e.message || String(e) };
+    }
+  }`
+}
+
+/**
+ * Get full accessibility tree snapshot for the sidepanel.
+ * Attaches CDP to the active tab, gets the AX tree, detaches.
+ */
+async function handleFullAccessibilitySnapshotForSidepanel(tabId: number): Promise<void> {
+  try {
+    await cdpAttach(tabId)
+    await chrome.debugger.sendCommand({ tabId }, 'DOM.enable')
+    await chrome.debugger.sendCommand({ tabId }, 'Accessibility.enable')
+
+    const result = await chrome.debugger.sendCommand({ tabId }, 'Accessibility.getFullAXTree', { depth: -1 }) as { nodes: AXNode[] }
+    const formatted = formatAXTree(result.nodes)
+
+    await chrome.debugger.sendCommand({ tabId }, 'Accessibility.disable').catch(() => {})
+    await chrome.debugger.sendCommand({ tabId }, 'DOM.disable').catch(() => {})
+    await cdpDetach(tabId)
+
+    sidePanelPort?.postMessage({ type: 'accessibility-snapshot-result', data: formatted })
+  } catch (e) {
+    try {
+      await chrome.debugger.sendCommand({ tabId }, 'Accessibility.disable').catch(() => {})
+      await chrome.debugger.sendCommand({ tabId }, 'DOM.disable').catch(() => {})
+      await cdpDetach(tabId)
+    } catch {}
+    sidePanelPort?.postMessage({ type: 'accessibility-snapshot-error', error: e instanceof Error ? e.message : String(e) })
+  }
+}
+
+async function handleRoleExtract(tabId: number, roles: string[], name: string, includeChildren: boolean): Promise<void> {
+  try {
+    await cdpAttach(tabId)
+    await chrome.debugger.sendCommand({ tabId }, 'DOM.enable')
+    await chrome.debugger.sendCommand({ tabId }, 'Accessibility.enable')
+
+    const { root } = await chrome.debugger.sendCommand({ tabId }, 'DOM.getDocument', { depth: 0 }) as { root: { nodeId: number } }
+
+    // Query accessibility tree for ALL roles, merge backendDOMNodeIds
+    const allBackendNodeIds: number[] = []
+    for (const role of roles) {
+      const queryParams: Record<string, unknown> = { nodeId: root.nodeId, role }
+      if (name) queryParams.name = name
+      try {
+        const { nodes } = await chrome.debugger.sendCommand({ tabId }, 'Accessibility.queryAXTree', queryParams) as { nodes: Array<{ backendDOMNodeId?: number }> }
+        if (nodes) {
+          for (const n of nodes) {
+            if (n.backendDOMNodeId != null && !allBackendNodeIds.includes(n.backendDOMNodeId)) {
+              allBackendNodeIds.push(n.backendDOMNodeId)
+            }
+          }
+        }
+      } catch { /* skip failed role queries */ }
+    }
+
+    if (allBackendNodeIds.length === 0) {
+      const rolesStr = roles.join(', ')
+      sidePanelPort?.postMessage({ type: 'selector-extract-error', error: `No elements found with role="${rolesStr}"${name ? ` and name="${name}"` : ''}` })
+      await cleanupRoleExtract(tabId)
+      return
+    }
+
+    // Resolve the first node to get an objectId for Runtime.callFunctionOn
+    const { object } = await chrome.debugger.sendCommand({ tabId }, 'DOM.resolveNode', {
+      backendNodeId: allBackendNodeIds[0],
+    }) as { object: { objectId: string } }
+
+    const result = await chrome.debugger.sendCommand({ tabId }, 'Runtime.callFunctionOn', {
+      objectId: object.objectId,
+      functionDeclaration: buildRoleExtractExpression(),
+      arguments: [{ value: roles }, { value: name }, { value: includeChildren }],
+      returnByValue: true,
+    }) as { result: { value: unknown } }
+
+    await cleanupRoleExtract(tabId)
+    processRoleResult(result.result.value, 'list')
+  } catch (err: unknown) {
+    try { await cleanupRoleExtract(tabId) } catch {}
+    const message = err instanceof Error ? err.message : String(err)
+    sidePanelPort?.postMessage({ type: 'selector-extract-error', error: message })
+  }
+}
+
+// ─── Runtime Role-Based Extraction ────────────────────────────────────────────
+
+/**
+ * Build a self-contained function string for Runtime.callFunctionOn that extracts
+ * data from role-matched elements using provided field definitions.
+ * Used at runtime (macro execution) — unlike buildRoleExtractExpression which is for recording preview.
+ */
+function buildRuntimeRoleExtractExpression(): string {
+  return `function(roles, name, includeChildren, fields) {
+    try {
+      ${EXTRACT_FIELD_JS}
+      var IMPLICIT_ROLES = {
+        button: 'button', link: 'a', heading: 'h1,h2,h3,h4,h5,h6',
+        listitem: 'li', row: 'tr', cell: 'td,th', img: 'img',
+        article: 'article', navigation: 'nav', textbox: 'input,textarea',
+        list: 'ul,ol', table: 'table', form: 'form', banner: 'header',
+        contentinfo: 'footer', main: 'main', complementary: 'aside',
+        region: 'section', checkbox: 'input[type=checkbox]',
+        radio: 'input[type=radio]', separator: 'hr',
+      };
+      function isVisible(el) {
+        var r = el.getBoundingClientRect();
+        if (r.width === 0 && r.height === 0) return false;
+        var s = getComputedStyle(el);
+        return s.visibility !== 'hidden' && s.display !== 'none' && s.opacity !== '0';
+      }
+      function findByRole(role, name) {
+        var seen = new Set();
+        var items = [];
+        Array.from(document.querySelectorAll('[role="' + role + '"]')).forEach(function(el) {
+          if (!seen.has(el) && isVisible(el)) { seen.add(el); items.push(el); }
+        });
+        if (IMPLICIT_ROLES[role]) {
+          Array.from(document.querySelectorAll(IMPLICIT_ROLES[role])).forEach(function(el) {
+            if (!seen.has(el) && isVisible(el)) { seen.add(el); items.push(el); }
+          });
+        }
+        if (name && items.length > 0) {
+          var lowerName = name.toLowerCase();
+          items = items.filter(function(el) {
+            var accName = (el.getAttribute('aria-label') || el.getAttribute('alt') || el.getAttribute('title') || el.textContent || '').trim().toLowerCase();
+            return accName.indexOf(lowerName) !== -1;
+          });
+        }
+        return items;
+      }
+      function findByRoles(roles, name) {
+        var seen = new Set();
+        var items = [];
+        for (var ri = 0; ri < roles.length; ri++) {
+          var roleItems = findByRole(roles[ri], name);
+          for (var i = 0; i < roleItems.length; i++) {
+            if (!seen.has(roleItems[i])) { seen.add(roleItems[i]); items.push(roleItems[i]); }
+          }
+        }
+        return items;
+      }
+      if (typeof roles === 'string') roles = [roles];
+      var items = findByRoles(roles, name);
+      if (items.length === 0) return [];
+      if (items.length > 100) items = items.slice(0, 100);
+      function isEmptyRow(row) { for (var k in row) { var v = row[k]; if (v != null && v !== '') return false; } return true; }
+      var result = [];
+      for (var ii = 0; ii < items.length; ii++) {
+        var item = items[ii];
+        var row = {};
+        for (var fi = 0; fi < fields.length; fi++) {
+          var f = fields[fi];
+          try { row[f.key] = extractField(item, f); } catch(e) { row[f.key] = null; }
+        }
+        if (!isEmptyRow(row)) result.push(row);
+      }
+      return result;
+    } catch(e) {
+      return [];
+    }
+  }`
+}
+
+/**
+ * Runtime handler: extract data using accessibility roles via CDP.
+ * Used by automation-runner when step.extractionMethod === 'role'.
+ */
+async function handleExtractByRole(p: P): Promise<R> {
+  const tid = p.tabId as number
+  const roles = p.roles as string[]
+  const name = (p.name as string) || ''
+  const includeChildren = p.includeChildren !== false
+  const fields = p.fields as Array<Record<string, unknown>>
+
+  try {
+    // Enable additional CDP domains (Runtime already enabled by cdpAttach)
+    await chrome.debugger.sendCommand({ tabId: tid }, 'DOM.enable')
+    await chrome.debugger.sendCommand({ tabId: tid }, 'Accessibility.enable')
+
+    const { root } = await chrome.debugger.sendCommand({ tabId: tid }, 'DOM.getDocument', { depth: 0 }) as { root: { nodeId: number } }
+
+    // Query AX tree for all roles
+    const allBackendNodeIds: number[] = []
+    for (const role of roles) {
+      const params: Record<string, unknown> = { nodeId: root.nodeId, role }
+      if (name) params.name = name
+      try {
+        const { nodes } = await chrome.debugger.sendCommand({ tabId: tid }, 'Accessibility.queryAXTree', params) as { nodes: Array<{ backendDOMNodeId?: number }> }
+        if (nodes) {
+          for (const n of nodes) {
+            if (n.backendDOMNodeId != null && !allBackendNodeIds.includes(n.backendDOMNodeId))
+              allBackendNodeIds.push(n.backendDOMNodeId)
+          }
+        }
+      } catch { /* skip failed role queries */ }
+    }
+
+    if (allBackendNodeIds.length === 0) {
+      await chrome.debugger.sendCommand({ tabId: tid }, 'Accessibility.disable').catch(() => {})
+      await chrome.debugger.sendCommand({ tabId: tid }, 'DOM.disable').catch(() => {})
+      return { success: true, data: [] }
+    }
+
+    // Resolve first node to get an objectId for Runtime.callFunctionOn
+    const { object } = await chrome.debugger.sendCommand({ tabId: tid }, 'DOM.resolveNode', {
+      backendNodeId: allBackendNodeIds[0],
+    }) as { object: { objectId: string } }
+
+    const result = await chrome.debugger.sendCommand({ tabId: tid }, 'Runtime.callFunctionOn', {
+      objectId: object.objectId,
+      functionDeclaration: buildRuntimeRoleExtractExpression(),
+      arguments: [{ value: roles }, { value: name }, { value: includeChildren }, { value: fields }],
+      returnByValue: true,
+    }) as { result: { value: unknown } }
+
+    await chrome.debugger.sendCommand({ tabId: tid }, 'Accessibility.disable').catch(() => {})
+    await chrome.debugger.sendCommand({ tabId: tid }, 'DOM.disable').catch(() => {})
+
+    return { success: true, data: result.result.value }
+  } catch (e) {
+    await chrome.debugger.sendCommand({ tabId: tid }, 'Accessibility.disable').catch(() => {})
+    await chrome.debugger.sendCommand({ tabId: tid }, 'DOM.disable').catch(() => {})
+    return { success: false, error: e instanceof Error ? e.message : String(e) }
+  }
+}
+
+// ─── Accessibility Snapshot ──────────────────────────────────────────────────
+
+interface AXNode {
+  nodeId: string
+  parentId?: string
+  role?: { type: string; value: string }
+  name?: { type: string; value: string }
+  properties?: Array<{ name: string; value: { type: string; value: unknown } }>
+  ignored?: boolean
+  childIds?: string[]
+}
+
+/**
+ * Format flat AX node list into a compact text tree (Playwright-style).
+ * Filters out ignored nodes, generic/none roles, and empty StaticText.
+ */
+function formatAXTree(nodes: AXNode[]): string {
+  const nodeMap = new Map<string, AXNode>()
+  for (const n of nodes) nodeMap.set(n.nodeId, n)
+
+  const SKIP_ROLES = new Set([
+    'generic', 'none', 'InlineTextBox', 'LineBreak',
+    'presentation',  // layout-only elements
+    'separator',      // visual dividers (hr etc.)
+  ])
+
+  /** Roles considered noise when they have no accessible name */
+  const NOISE_UNNAMED = new Set([
+    'group', 'Section', 'div',
+  ])
+
+  function shouldSkip(node: AXNode): boolean {
+    if (node.ignored) return true
+    const role = node.role?.value
+    if (!role || SKIP_ROLES.has(role)) return true
+    if (role === 'StaticText' && (!node.name?.value || !(node.name.value as string).trim())) return true
+    // Skip unnamed noise containers (but still render their children)
+    if (NOISE_UNNAMED.has(role) && !node.name?.value) return true
+    // Skip hidden elements flagged via properties
+    if (node.properties) {
+      for (const p of node.properties) {
+        if (p.name === 'hidden' && p.value.value === true) return true
+      }
+    }
+    return false
+  }
+
+  function formatProperties(node: AXNode): string {
+    const props: string[] = []
+    if (node.properties) {
+      for (const p of node.properties) {
+        if (p.name === 'level') props.push(`level=${p.value.value}`)
+        if (p.name === 'checked') props.push(`checked=${p.value.value}`)
+        if (p.name === 'disabled' && p.value.value === true) props.push('disabled')
+        if (p.name === 'required' && p.value.value === true) props.push('required')
+        if (p.name === 'expanded') props.push(`expanded=${p.value.value}`)
+        if (p.name === 'selected' && p.value.value === true) props.push('selected')
+      }
+    }
+    return props.length > 0 ? ` [${props.join(', ')}]` : ''
+  }
+
+  function renderNode(nodeId: string, depth: number): string[] {
+    const node = nodeMap.get(nodeId)
+    if (!node) return []
+    if (shouldSkip(node)) {
+      // Still render children of skipped nodes
+      const lines: string[] = []
+      if (node.childIds) {
+        for (const cid of node.childIds) lines.push(...renderNode(cid, depth))
+      }
+      return lines
+    }
+
+    const role = node.role?.value || 'unknown'
+    const name = node.name?.value as string | undefined
+    const props = formatProperties(node)
+    const indent = '  '.repeat(depth)
+    const nameStr = name?.trim() ? ` "${name.trim().slice(0, 100)}"` : ''
+    const lines = [`${indent}- ${role}${nameStr}${props}`]
+
+    if (node.childIds) {
+      for (const cid of node.childIds) lines.push(...renderNode(cid, depth + 1))
+    }
+    return lines
+  }
+
+  // Find root node (first node without parentId, or nodeId "1")
+  let rootId = nodes[0]?.nodeId
+  for (const n of nodes) {
+    if (!n.parentId) { rootId = n.nodeId; break }
+  }
+  if (!rootId) return '(empty accessibility tree)'
+
+  const lines = renderNode(rootId, 0)
+  // Limit output to prevent massive responses
+  if (lines.length > 2000) {
+    return lines.slice(0, 2000).join('\n') + `\n... (truncated, ${lines.length - 2000} more lines)`
+  }
+  return lines.join('\n') || '(empty accessibility tree)'
+}
+
+/**
+ * Runtime handler: get full accessibility tree snapshot of the page.
+ */
+async function handleAccessibilitySnapshot(p: P): Promise<R> {
+  const tid = p.tabId as number
+  try {
+    await chrome.debugger.sendCommand({ tabId: tid }, 'DOM.enable')
+    await chrome.debugger.sendCommand({ tabId: tid }, 'Accessibility.enable')
+
+    const result = await chrome.debugger.sendCommand({ tabId: tid }, 'Accessibility.getFullAXTree', { depth: -1 }) as { nodes: AXNode[] }
+
+    const formatted = formatAXTree(result.nodes)
+
+    await chrome.debugger.sendCommand({ tabId: tid }, 'Accessibility.disable').catch(() => {})
+    await chrome.debugger.sendCommand({ tabId: tid }, 'DOM.disable').catch(() => {})
+
+    return { success: true, data: formatted }
+  } catch (e) {
+    await chrome.debugger.sendCommand({ tabId: tid }, 'Accessibility.disable').catch(() => {})
+    await chrome.debugger.sendCommand({ tabId: tid }, 'DOM.disable').catch(() => {})
+    return { success: false, error: e instanceof Error ? e.message : String(e) }
+  }
+}
+
 // ─── Message Router ───────────────────────────────────────────────────────────
 
 const HANDLERS: Record<string, (p: P) => Promise<R>> = {
@@ -779,6 +1915,8 @@ const HANDLERS: Record<string, (p: P) => Promise<R>> = {
   scroll: handleScroll,
   extractList: handleExtractList,
   extractSingle: handleExtractSingle,
+  extractByRole: handleExtractByRole,
+  accessibilitySnapshot: handleAccessibilitySnapshot,
   waitForSelector: handleWaitForSelector,
   waitForUrl: handleWaitForUrl,
   waitForLoad: handleWaitForLoad,

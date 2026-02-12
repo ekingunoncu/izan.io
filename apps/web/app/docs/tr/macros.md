@@ -31,6 +31,8 @@ Kaydedici, her etkilesimi element selektorleri, islem tipleri ve giris degerleri
 
 - **Liste cikarma** -- kayit sirasinda **Liste** butonuna tiklayarak benzer ogelerin listesini cikarabilirsiniz (ornegin arama sonuclari, tablo satirlari)
 - **Tekil cikarma** -- **Tekil** butonuna tiklayarak tek bir elemandan veri cikarabilirsiniz
+- **Selektor** -- **Selector** butonuna tiklayarak CSS selektor cikarma panelini acin (asagidaki [Cikarma Yontemleri](#cikarma-yontemleri) bolumune bakin)
+- **A11y** -- **A11y** butonuna tiklayarak erisebilirlik cikarma panelini acin; ARIA rolu ile veri cikarabilir veya tam sayfa erisebilirlik goruntusu alabilirsiniz
 - **Bekleme adimi** -- **Bekle** butonuna tiklayarak adimlar arasina manuel gecikme ekleyebilirsiniz (0.1--30 saniye)
 - **Serit** -- ayri sekmelerde eszamanli yurutme icin paralel serit ekleyebilirsiniz
 
@@ -80,9 +82,13 @@ Listedeki herhangi bir makroya tiklayarak **duzenleme gorunumunu** acabilirsiniz
 
 ## Veri Cikarma
 
-Veri cikarma, makrolarin web sayfalarindan **yapilandirilmis veri cekmesini** saglar. Kayit sirasinda:
+Veri cikarma, makrolarin web sayfalarindan **yapilandirilmis veri cekmesini** saglar. Cikarma adimlari olusturmanin birkac yolu vardir:
 
-### Liste Modu
+### Eleman Secici (Liste ve Tekil)
+
+Eleman secici, sayfada gorsel bir kaplama kullanarak eleman secmenizi saglar.
+
+**Liste modu:**
 
 1. Kayit sirasinda **Liste** butonuna tiklayin
 2. Tekrarlanan bir elemanin (ornegin bir arama sonucu ogesi) uzerine gelin -- sari renkle vurgulanir
@@ -90,12 +96,90 @@ Veri cikarma, makrolarin web sayfalarindan **yapilandirilmis veri cekmesini** sa
 4. Cikarma adimi, oge sayisini ve alan tanimlarini yakalar
 5. Calisma zamaninda, eslesen tum elemanlarin verileri yapilandirilmis liste olarak dondurulur
 
-### Tekil Mod
+**Tekil modu:**
 
 1. Kayit sirasinda **Tekil** butonuna tiklayin
 2. Hedef elemanin uzerine gelin ve tiklayin
-3. Tek bir elemanin verileri yakalanir
-4. Calisma zamaninda, cikarilan veriler tek bir nesne olarak dondurulur
+3. Alanlar elemandan **otomatik olarak algilanir** (metin, baglantilar, gorseller, giris alanlari) -- liste modu gibi
+4. Istege bagli olarak ek alt elemanlara tiklayarak daha fazla alan ekleyin
+5. **Bitti** butonuna tiklayin -- cikarma adimi hemen olusturulur
+6. Calisma zamaninda, cikarilan veriler tek bir nesne olarak dondurulur
+
+### Cikarma Yontemleri
+
+Arac cubugunda cikarma icin iki ayri buton bulunur:
+
+#### CSS Selektor (Selector butonu)
+
+**Selector** butonuna tiklayarak CSS cikarma panelini acin. Manuel olarak bir CSS selektoru girin (ornegin `.post-item`, `table tbody tr`). **Liste** veya **Tekil** modu secin, ardindan **Extract** butonuna tiklayin.
+
+- **Liste** -- eslesen tum elemanlar oge olarak islenir; alanlar ilk ogeden otomatik algilanir
+- **Tekil** -- ilk eslesen eleman kullanilir; alanlar ondan otomatik algilanir
+- Ipucu: DevTools'ta bir elemana sag tiklayin → Kopyala → Selektoru kopyala
+
+#### Erisebilirlik (A11y butonu)
+
+**A11y** butonuna tiklayarak erisebilirlik cikarma panelini acin. Bu yontem CSS selektoru yerine **ARIA rolu** ile eleman cikarimi yapar -- stil degisikliklerine karsi daha dayaniklidir, Shadow DOM sinirlarini asar ve sinif adlarina bagimli degildir.
+
+1. Acilir menuden bir veya birden fazla **rol** secin (ornegin `link`, `button`, `heading`, `article`, `listitem`, `row`)
+2. Istege bagli olarak sonuclari filtrelemek icin bir **erisebilir ad** girin -- yer tutucu, secilen role gore ornekler gosterir (ornegin `link` icin: "Sign In", "Read more")
+3. **Include children** secenegini ayarlayin:
+   - **ACIK** (varsayilan) -- her eslesen eleman bir konteyner olarak islenir ve alt icerigi (baglantilar, metin, gorseller) ayri alanlar olarak otomatik algilanir. `article`, `listitem`, `row` gibi ic ice icerik barindiran zengin elemanlar icin kullanin.
+   - **KAPALI** -- yalnizca eslesen elemanlarin dogrudan ozellikleri cikarilir (metin icerigi, baglantilar icin `href`, gorseller icin `src`/`alt`, giris alanlari icin `value`). `link`, `button`, `heading` gibi basit elemanlar icin kullanin.
+4. **Extract** butonuna tiklayin
+
+Erisebilirlik yontemi her zaman eslesen tum elemanlarin bir listesini uretir. Calisma zamaninda, A11y yontemiyle olusturulan cikarma adimlari **gercek erisebilirlik agacini** Chrome DevTools Protokolu uzerinden kullanir; bu sayede dinamik sinif adlarina veya karmasik HTML yapisina sahip sitelerde bile guvenilir calisir.
+
+#### Erisebilirlik Goruntusu (Snapshot)
+
+A11y panelinde ayrica bir **Goruntu** bolumu bulunur. **Snapshot** butonuna tiklayarak mevcut sayfanin **tam erisebilirlik agacini** alin. Bu, sayfa yapisini roller, isimler ve ozelliklerle gosteren kompakt bir metin temsili dondurur -- hangi rolleri cikaracaginiza karar vermeden once sayfa yapisini anlamak icin kullanislidir.
+
+Goruntu ayni zamanda `accessibility_snapshot` adli yerlesik bir MCP araci olarak da mevcuttur (bkz. [Agentlara Makro Atama](#agentlara-makro-atama)).
+
+### Tablo Otomatik Algilama
+
+Eleman secici bir `<table>` elemani algiladiginda, tablo basliklarini anahtar olarak kullanarak her sutunu otomatik olarak bir alana esler. Boylece alanlari manuel tanimlamadan satirlar halinde yapilandirilmis veri elde edersiniz.
+
+### Cikarma Alanlarini Duzenleme
+
+Bir cikarma adimi olusturulduktan sonra, adim kartindaki "Edit fields" butonuna tiklayarak **alanlari tek tek duzenleyebilirsiniz**. Her alan karti su bilgileri gosterir:
+
+- **Anahtar** -- cikis nesnesindeki ozellik adi
+- **Tip** acilir menusu -- `text`, `html`, `attribute`, `value`, `regex`, `nested` veya `nested_list` secenekleri
+- **Donusum** acilir menusu -- `trim`, `lowercase`, `uppercase` veya `number` son isleme uygulama
+- **Selektor** -- elemani bulmak icin kullanilan CSS selektoru (monospace etiket olarak gosterilir)
+
+Secilen tipe gore ek giris alanlari goruntulenir:
+
+- **attribute** -- cikarilacak HTML ozellik adi icin acilir menu (ornegin `href`, `src`), gercek elemandan doldurulur
+- **regex** -- regex deseni icin giris ve istege bagli varsayilan deger
+- **nested / nested_list** -- alt alan sayisi goruntulenir; alt alanlari JSON disa/ice aktarma ile duzenleyin
+
+"+ Alan Ekle" butonu ile **yeni alan ekleyebilir** veya her karttaki x butonu ile **alan silebilirsiniz**. Degisiklikler adim verisine aninda uygulanir ve makroyu kaydederken veya disa aktarirken dahil edilir.
+
+### Veri Onizleme
+
+Bir cikarma adimi olusturuldugunda, canli sayfadan cikarilan verilerin bir **onizlemesi** yakalanir ve adim kartinda dogrudan gosterilir -- herhangi bir seyi genisletmenize gerek yoktur. Alanlari duzenledikce onizleme canli olarak guncellenir.
+
+- **Liste modunda** onizleme, ilk birkac ogeyi anahtar-deger ciftleriyle gosterir
+- **Tekil modda** onizleme, cikarilan nesnenin anahtar-deger ciftlerini gosterir
+- Degerler okunabilirlik icin kisaltilir; ic ice nesneler ve diziler boyutlarini gosterir
+- Daraltmak/genisletmek icin onizleme basligina tiklayin
+
+Onizleme, makroyu kaydetmeden once dogru verilerin cikarildigini dogrulamaniza yardimci olur.
+
+### Varsayilan Degerler
+
+Alanlar, selektor hicbir elemanla eslesmediginde veya cikarma bos sonuc verdiginde dondurulecek bir **varsayilan degere** sahip olabilir. Varsayilan degerleri alan duzenleyici veya JSON disa aktarma ile ayarlayin.
+
+### Donusum Hatti
+
+Her alan, cikarmadan sonra uygulanan istege bagli bir **donusum** destekler:
+
+- **trim** -- bastaki/sondaki bosluklari kaldir
+- **lowercase** -- kucuk harfe donustur
+- **uppercase** -- buyuk harfe donustur
+- **number** -- metni sayi olarak ayristir
 
 ## Paralel Seritler
 
@@ -132,3 +216,7 @@ Bir makroyu agente atamak icin:
 3. Agentin kullanabilecegi makrolari secin
 
 Sohbet sirasinda LLM, atanmis her makroyu cagrilabilir bir arac olarak gorur. Model bir makroyu cagirmaya karar verdiginde, **Chrome eklentisi kaydedilen adimlari tarayicida yurutur** ve sonuclari sohbete dondurur. Agent daha sonra cikarilan verileri kullanarak yanitini olusturur.
+
+### Yerlesik Erisebilirlik Goruntusu Araci
+
+Kullanici tarafindan olusturulan makrolara ek olarak, makro etkinlestirilmis her agent otomatik olarak `accessibility_snapshot` aracina erisebilir. Bu yerlesik arac, mevcut otomasyon tarayici sayfasinin **tam erisebilirlik agacini** kompakt metin olarak dondurur -- roller, isimler ve ozellikler agac formatinda. Agentlar bunu sayfa yapisini anlamak, navigasyon sonuclarini dogrulamak veya hangi elemanlarla etkilesime gecilecegine karar vermek icin kullanabilir.

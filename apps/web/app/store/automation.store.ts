@@ -7,7 +7,7 @@
  */
 
 import { create } from 'zustand'
-import { db, type AutomationTool, type AutomationServer } from '~/lib/db'
+import { db, type AutomationTool, type AutomationServer, type Agent } from '~/lib/db'
 import {
   syncToolDefinitions,
   notifyToolAdded,
@@ -128,6 +128,23 @@ function toToolDefinition(tool: AutomationTool): unknown {
   }
 }
 
+/**
+ * Remove deleted automation server IDs from all agents' automationServerIds.
+ * Prevents ghost entries in the agent edit panel.
+ */
+async function cleanupAgentReferences(deletedServerIds: string[]): Promise<void> {
+  if (deletedServerIds.length === 0) return
+  const deletedSet = new Set(deletedServerIds)
+  const agents = await db.agents.toArray()
+  for (const agent of agents) {
+    const ids = agent.automationServerIds ?? []
+    if (ids.some(id => deletedSet.has(id))) {
+      const cleaned = ids.filter(id => !deletedSet.has(id))
+      await db.agents.update(agent.id, { automationServerIds: cleaned, updatedAt: Date.now() })
+    }
+  }
+}
+
 // ─── Store ───────────────────────────────────────────────────────────────────
 
 export const useAutomationStore = create<AutomationStore>((set, get) => ({
@@ -238,6 +255,8 @@ export const useAutomationStore = create<AutomationStore>((set, get) => ({
     }
 
     await db.automationServers.delete(id)
+    // Remove from agents' automationServerIds
+    await cleanupAgentReferences([id])
     set((state) => ({
       servers: state.servers.filter((s) => s.id !== id),
       tools: state.tools.filter((t) => t.serverId !== id),
@@ -393,11 +412,17 @@ export const useAutomationStore = create<AutomationStore>((set, get) => ({
 
     // Delete servers that exist locally but NOT in incoming data
     const localServers = await db.automationServers.toArray()
+    const deletedServerIds: string[] = []
     for (const local of localServers) {
       if (!incomingServerIds.has(local.id)) {
         await db.automationServers.delete(local.id)
+        deletedServerIds.push(local.id)
         changed = true
       }
+    }
+    // Clean up agent references for deleted servers
+    if (deletedServerIds.length > 0) {
+      await cleanupAgentReferences(deletedServerIds)
     }
 
     // Merge tools: add/update incoming

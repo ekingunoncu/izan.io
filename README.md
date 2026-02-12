@@ -42,7 +42,7 @@
 | 🧠 **Multi-Provider** | 17+ AI providers supported (see below). |
 | 🤖 **Smart Agents** | MCP-connected agents - web search, code, and more. |
 | 🌐 **MCP** | Built-in and custom MCP servers. |
-| 🎬 **Action recorder** | Record browser actions in the extension side panel and save as MCP tools; no coding required (see [docs/visual-mcp-tool-builder.md](docs/visual-mcp-tool-builder.md)). |
+| 🎬 **Action recorder** | Record browser actions, extract data via CSS or accessibility tree, and save as MCP tools; no coding required (see [docs/visual-mcp-tool-builder.md](docs/visual-mcp-tool-builder.md)). |
 
 ---
 
@@ -68,7 +68,7 @@ izan.io/
 │   └── infra/                   # CDK infra (S3/CloudFront, incl. /mcp-tools/)
 ```
 
-**Action recorder:** The extension (`mcp-extension-servers`) provides a side panel to record clicks, typing, and scrolls; parameterize URL params; and extract data from pages. Recordings become MCP tool definitions (stored as JSON in IndexedDB or loaded from S3). See [docs/visual-mcp-tool-builder.md](docs/visual-mcp-tool-builder.md).
+**Action recorder:** The extension (`mcp-extension-servers`) provides a side panel to record clicks, typing, and scrolls; parameterize URL/path segments; and extract data via CSS selectors or the accessibility tree (ARIA roles, full-page snapshot). The element picker works with or without an active recording. Recordings become MCP tool definitions (stored as JSON in IndexedDB or loaded from S3). A built-in `accessibility_snapshot` tool is always available to agents. See [docs/visual-mcp-tool-builder.md](docs/visual-mcp-tool-builder.md).
 
 ---
 
@@ -94,9 +94,9 @@ See `apps/web/.env.example` for optional env vars. API keys are stored in the br
 | Type | Package | Description |
 |------|---------|-------------|
 | **Browser** | `mcp-browser-servers/` | crypto-analysis (CoinGecko, indicators), domain-check (RDAP/DoH), general (time, uuid, calc, password). TabServerTransport, client-side. |
-| **Extension** | `mcp-extension-servers/` | Chrome extension: side panel (React + shadcn), action recorder, element picker, dynamic MCP server. Built-in tools (e.g. random-number) + user-recorded tools (stored as JSON). |
+| **Extension** | `mcp-extension-servers/` | Chrome extension: side panel (React + shadcn), action recorder, element picker (CSS + accessibility), dynamic MCP server, built-in `accessibility_snapshot` tool. User-recorded tools stored as JSON. |
 
-**Recording MCP tools:** Install the extension, open the side panel, click **Kaydet** (Record); the action recorder captures clicks, typing, scrolls and URL params. Use **Liste** / **Tekil** to pick extraction targets. **Tamamla** (Done) sends the flow to the web app; save as an MCP tool in Settings. Built-in tool definitions (JSON) can be served from S3/CloudFront.
+**Recording MCP tools:** Install the extension, open the side panel, click **Record**; the action recorder captures clicks, typing, scrolls and URL params. Use **List** / **Single** to pick extraction targets via CSS, or **A11y** to extract by ARIA roles or full-page accessibility tree. **Done** sends the flow to the web app; save as an MCP tool in Settings. Built-in tool definitions (JSON) can be served from S3/CloudFront.
 
 ---
 

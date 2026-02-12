@@ -42,7 +42,7 @@
 | 🧠 **Multi-Provider** | 17+ KI-Provider unterstützt (siehe unten). |
 | 🤖 **Smarte Agents** | MCP-vernetzte Agents - Websuche, Code, und mehr. |
 | 🌐 **MCP** | Integrierte und eigene MCP-Server. |
-| 🎬 **Aktions-Recorder** | Browser-Aktionen im Extension-Seitenpanel aufzeichnen und als MCP-Tools speichern; kein Code nötig ([docs/visual-mcp-tool-builder.md](docs/visual-mcp-tool-builder.md)). |
+| 🎬 **Aktions-Recorder** | Browser-Aktionen aufzeichnen, Daten per CSS oder Accessibility-Tree extrahieren und als MCP-Tools speichern; kein Code nötig ([docs/visual-mcp-tool-builder.md](docs/visual-mcp-tool-builder.md)). |
 
 ---
 
@@ -68,7 +68,7 @@ izan.io/
 │   └── infra/                   # CDK-Infra (S3/CloudFront, inkl. /mcp-tools/)
 ```
 
-**Aktions-Recorder:** Die Extension (`mcp-extension-servers`) bietet ein Seitenpanel zum Aufzeichnen von Klicks, Tippen und Scrollen; URL-Parameter parametrisieren; Daten von Seiten extrahieren. Aufzeichnungen werden zu MCP-Tool-Definitionen (als JSON in IndexedDB oder von S3). Siehe [docs/visual-mcp-tool-builder.md](docs/visual-mcp-tool-builder.md).
+**Aktions-Recorder:** Die Extension (`mcp-extension-servers`) bietet ein Seitenpanel zum Aufzeichnen von Klicks, Tippen und Scrollen; URL-/Pfad-Parametrisierung; Datenextraktion per CSS-Selektoren oder Accessibility-Tree (ARIA-Rollen, Ganzseitig-Snapshot). Der Element-Picker funktioniert auch ohne aktive Aufnahme. Aufzeichnungen werden zu MCP-Tool-Definitionen (als JSON in IndexedDB oder von S3). Ein integriertes `accessibility_snapshot`-Tool steht Agents jederzeit zur Verfügung. Siehe [docs/visual-mcp-tool-builder.md](docs/visual-mcp-tool-builder.md).
 
 ---
 
@@ -94,9 +94,9 @@ Siehe `apps/web/.env.example` für optionale Umgebungsvariablen. API-Keys werden
 | Typ | Paket | Beschreibung |
 |-----|-------|--------------|
 | **Browser** | `mcp-browser-servers/` | crypto-analysis, domain-check (RDAP/DoH), general. TabServerTransport, clientseitig. |
-| **Extension** | `mcp-extension-servers/` | Chrome-Extension: Seitenpanel (React + shadcn), Aktions-Recorder, Element-Picker, dynamischer MCP-Server. Vordefinierte Tools + vom Nutzer aufgezeichnete Tools (als JSON gespeichert). |
+| **Extension** | `mcp-extension-servers/` | Chrome-Extension: Seitenpanel (React + shadcn), Aktions-Recorder, Element-Picker (CSS + Accessibility), dynamischer MCP-Server, integriertes `accessibility_snapshot`-Tool. Nutzer-Tools als JSON gespeichert. |
 
-**MCP aufzeichnen:** Extension installieren, Seitenpanel öffnen, **Aufzeichnen** klicken; der Aktions-Recorder erfasst Klicks, Tippen, Scroll und URL-Parameter. **Liste** / **Einzeln** für Extraktionsziele. **Fertig** sendet den Ablauf an die Web-App; in den Einstellungen als MCP-Tool speichern.
+**MCP aufzeichnen:** Extension installieren, Seitenpanel öffnen, **Aufzeichnen** klicken; der Aktions-Recorder erfasst Klicks, Tippen, Scroll und URL-Parameter. **Liste** / **Einzeln** für CSS-Extraktion, oder **A11y** für ARIA-Rollen bzw. Ganzseitig-Accessibility-Tree. **Fertig** sendet den Ablauf an die Web-App; in den Einstellungen als MCP-Tool speichern.
 
 ---
 

@@ -1,11 +1,11 @@
-import { useState, useEffect, useCallback, useRef, type ReactNode } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo, type ReactNode } from 'react'
 import {
   ArrowLeft, Server, Plus, Trash2, X, Circle, Square,
   List, FileText, Check, Globe, MousePointerClick,
   Keyboard, ArrowDownUp, ListFilter, Timer, Hourglass,
   Link, Database, Save, Wrench, Loader2, AlertTriangle, RefreshCw,
   GripVertical, ChevronUp, ChevronDown, Pencil, Columns,
-  Download, Upload,
+  Download, Upload, Code, ScanEye,
 } from 'lucide-react'
 import { Button } from '~ui/button'
 import { Input } from '~ui/input'
@@ -14,7 +14,7 @@ import { cn } from '~lib/utils'
 import {
   addStepToLane, deleteStepAt, moveStepAt,
   toggleParamAt, updateParamDescAt, updateParamNameAt, updateStepWaitUntilAt,
-  applyParamMap,
+  updateStepFieldsAt, applyParamMap,
 } from './step-utils'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -137,6 +137,21 @@ export function App() {
   const [exportingToolId, setExportingToolId] = useState<string | null>(null)
   const exportingToolIdRef = useRef<string | null>(null)
 
+  // Selector extract (manual CSS selector input)
+  const [showSelectorInput, setShowSelectorInput] = useState(false)
+  const [selectorValue, setSelectorValue] = useState('')
+  const [selectorMode, setSelectorMode] = useState<'list' | 'single'>('list')
+  const [selectorLoading, setSelectorLoading] = useState(false)
+  const [selectorError, setSelectorError] = useState<string | null>(null)
+
+  // Accessibility role extraction (separate A11y button)
+  const [showAccessibilityInput, setShowAccessibilityInput] = useState(false)
+  const [roleValues, setRoleValues] = useState<string[]>([])
+  const [roleNameValue, setRoleNameValue] = useState('')
+  const [roleIncludeChildren, setRoleIncludeChildren] = useState(true)
+  const [axSnapshot, setAxSnapshot] = useState<string | null>(null)
+  const [axSnapshotLoading, setAxSnapshotLoading] = useState(false)
+
   // Auto-scroll & drag state
   const stepsEndRef = useRef<HTMLDivElement>(null)
   const dragIdxRef = useRef<number | null>(null)
@@ -254,7 +269,7 @@ export function App() {
                 })
               }
 
-              // Path segments — detect {{...}} placeholders in the URL path
+              // Path segments - detect {{...}} placeholders in the URL path
               if (s.url) {
                 try {
                   const parsed = new URL(s.url, 'https://x')
@@ -278,7 +293,7 @@ export function App() {
               }
             }
 
-            // Type inputs — detect {{...}} placeholder in step.text
+            // Type inputs - detect {{...}} placeholder in step.text
             if (s.action === 'type' && s.text) {
               const match = /^\{\{(.+)\}\}$/.exec(s.text)
               if (match) {
@@ -330,7 +345,7 @@ export function App() {
         }
         if (msg.error) setRecordError(msg.error as string)
       } else if (type === 'extract-result' && msg.step != null && (msg.step as Step).action === 'extract') {
-        const newStep = msg.step as Step
+        const newStep = { ...(msg.step as Step), _preview: (msg as Record<string, unknown>).preview, _previewHtml: (msg as Record<string, unknown>).previewHtml as string[] | undefined }
         if (viewRef.current === 'edit') {
           addStepToLane(setEditSteps, setEditLanes, activeLaneRef.current, newStep)
         } else {
@@ -350,6 +365,36 @@ export function App() {
           setImportError(null)
           refreshServers(port)
         }
+      } else if (type === 'selector-extract-result' && msg.step != null && (msg.step as Step).action === 'extract') {
+        setSelectorLoading(false)
+        setSelectorError(null)
+        setShowSelectorInput(false)
+        setShowAccessibilityInput(false)
+        setSelectorValue('')
+        const newStep = { ...(msg.step as Step), _preview: (msg as Record<string, unknown>).preview, _previewHtml: (msg as Record<string, unknown>).previewHtml as string[] | undefined }
+        // Add role metadata when extracted via accessibility
+        if (showA11yRef.current) {
+          newStep.extractionMethod = 'role'
+          newStep.roles = roleValuesRef.current
+          newStep.roleName = roleNameRef.current.trim()
+          newStep.roleIncludeChildren = roleIncChildRef.current
+        }
+        setRoleValues([])
+        setRoleNameValue('')
+        if (viewRef.current === 'edit') {
+          addStepToLane(setEditSteps, setEditLanes, activeLaneRef.current, newStep)
+        } else {
+          addStepToLane(setSteps, setLanes, activeLaneRef.current, newStep)
+        }
+      } else if (type === 'selector-extract-error') {
+        setSelectorLoading(false)
+        setSelectorError(msg.error as string)
+      } else if (type === 'accessibility-snapshot-result') {
+        setAxSnapshotLoading(false)
+        setAxSnapshot(msg.data as string)
+      } else if (type === 'accessibility-snapshot-error') {
+        setAxSnapshotLoading(false)
+        setSelectorError(msg.error as string)
       }
     })
 
@@ -371,13 +416,27 @@ export function App() {
   }, [view])
 
   // Keep refs in sync with state for use in callbacks
+  const showA11yRef = useRef(false)
+  const roleValuesRef = useRef<string[]>([])
+  const roleNameRef = useRef('')
+  const roleIncChildRef = useRef(true)
   useEffect(() => { activeLaneRef.current = activeLane }, [activeLane])
   useEffect(() => { exportingToolIdRef.current = exportingToolId }, [exportingToolId])
   useEffect(() => { viewRef.current = view }, [view])
+  useEffect(() => { showA11yRef.current = showAccessibilityInput }, [showAccessibilityInput])
+  useEffect(() => { roleValuesRef.current = roleValues }, [roleValues])
+  useEffect(() => { roleNameRef.current = roleNameValue }, [roleNameValue])
+  useEffect(() => { roleIncChildRef.current = roleIncludeChildren }, [roleIncludeChildren])
 
-  // Auto-scroll to bottom when new steps are added
+  // Auto-scroll to bottom only when new steps are added (not on delete)
+  const prevStepsLenRef = useRef(0)
+  const prevEditStepsLenRef = useRef(0)
   useEffect(() => {
-    stepsEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    if (steps.length > prevStepsLenRef.current || editSteps.length > prevEditStepsLenRef.current) {
+      stepsEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }
+    prevStepsLenRef.current = steps.length
+    prevEditStepsLenRef.current = editSteps.length
   }, [steps.length, editSteps.length])
 
   // ─── Handlers ───────────────────────────────────────────────────
@@ -415,6 +474,50 @@ export function App() {
 
   const handleEditExtract = (mode: 'list' | 'single') => {
     portRef.current?.postMessage({ type: 'extract', mode })
+  }
+
+  const handleSelectorExtract = () => {
+    if (!selectorValue.trim()) return
+    setSelectorLoading(true)
+    setSelectorError(null)
+    portRef.current?.postMessage({ type: 'selectorExtract', selector: selectorValue.trim(), mode: selectorMode })
+  }
+
+  const handleAccessibilityExtract = () => {
+    if (roleValues.length === 0) return
+    setSelectorLoading(true)
+    setSelectorError(null)
+    portRef.current?.postMessage({ type: 'roleExtract', roles: roleValues, name: roleNameValue.trim(), includeChildren: roleIncludeChildren })
+  }
+
+  const handleAccessibilitySnapshot = () => {
+    setAxSnapshotLoading(true)
+    setSelectorError(null)
+    setAxSnapshot(null)
+    portRef.current?.postMessage({ type: 'fullAccessibilitySnapshot' })
+  }
+
+  const handleSnapshotExtract = () => {
+    const newStep: Step = {
+      action: 'extract',
+      name: 'accessibility_tree',
+      mode: 'single',
+      containerSelector: '',
+      extractionMethod: 'snapshot',
+      fields: [{ key: 'tree', selector: '', type: 'text' }],
+      label: 'Extract full accessibility tree',
+    }
+    // If we already have a snapshot, attach it as preview
+    if (axSnapshot) {
+      (newStep as Record<string, unknown>)._preview = { tree: axSnapshot }
+    }
+    setShowAccessibilityInput(false)
+    setAxSnapshot(null)
+    if (viewRef.current === 'edit') {
+      addStepToLane(setEditSteps, setEditLanes, activeLaneRef.current, newStep)
+    } else {
+      addStepToLane(setSteps, setLanes, activeLaneRef.current, newStep)
+    }
   }
 
   const buildFinalData = () => {
@@ -570,6 +673,18 @@ export function App() {
 
     setShowWaitInput(false)
     setWaitSeconds('1')
+  }
+
+  const handleClearAllSteps = (isEditMode: boolean) => {
+    if (isEditMode) {
+      setEditSteps([])
+      setEditLanes(prev => prev.map((l, i) => i === activeLane ? { ...l, steps: [] } : l))
+      setEditParamMap(new Map())
+    } else {
+      setSteps([])
+      setLanes(prev => prev.map((l, i) => i === activeLane ? { ...l, steps: [] } : l))
+      setParamMap(new Map())
+    }
   }
 
   const handleDeleteStep = (idx: number) => {
@@ -800,16 +915,53 @@ export function App() {
                 <Circle className="h-3.5 w-3.5" /> Record
               </Button>
             )}
-            <Button variant="outline" size="sm" disabled={!isEditRecording} onClick={() => handleEditExtract('list')}>
+            <Button variant="outline" size="sm" onClick={() => handleEditExtract('list')}>
               <List className="h-3.5 w-3.5" /> List
             </Button>
-            <Button variant="outline" size="sm" disabled={!isEditRecording} onClick={() => handleEditExtract('single')}>
+            <Button variant="outline" size="sm" onClick={() => handleEditExtract('single')}>
               <FileText className="h-3.5 w-3.5" /> Single
+            </Button>
+            <Button variant={showSelectorInput ? 'secondary' : 'outline'} size="sm" onClick={() => { setShowSelectorInput(!showSelectorInput); setShowAccessibilityInput(false); setSelectorError(null) }}>
+              <Code className="h-3.5 w-3.5" /> Selector
+            </Button>
+            <Button variant={showAccessibilityInput ? 'secondary' : 'outline'} size="sm" onClick={() => { setShowAccessibilityInput(!showAccessibilityInput); setShowSelectorInput(false); setSelectorError(null) }}>
+              <ScanEye className="h-3.5 w-3.5" /> A11y
             </Button>
             <Button variant="outline" size="sm" onClick={() => setShowWaitInput(!showWaitInput)}>
               <Timer className="h-3.5 w-3.5" /> Wait
             </Button>
+            <Button variant="outline" size="sm" disabled={isEditRecording || editSteps.length === 0} onClick={() => handleClearAllSteps(true)}>
+              <Trash2 className="h-3.5 w-3.5" /> Clear
+            </Button>
           </div>
+
+          {/* CSS Selector input (edit mode) */}
+          {showSelectorInput && (
+            <div className="px-1">
+              <SelectorInputForm
+                value={selectorValue} onChange={setSelectorValue}
+                mode={selectorMode} onModeChange={setSelectorMode}
+                loading={selectorLoading} error={selectorError}
+                onSubmit={handleSelectorExtract}
+                onClose={() => { setShowSelectorInput(false); setSelectorError(null); setSelectorValue('') }}
+              />
+            </div>
+          )}
+
+          {/* Accessibility input (edit mode) */}
+          {showAccessibilityInput && (
+            <div className="px-1">
+              <AccessibilityInputForm
+                roleValues={roleValues} onRoleValuesChange={setRoleValues}
+                roleNameValue={roleNameValue} onRoleNameValueChange={setRoleNameValue}
+                roleIncludeChildren={roleIncludeChildren} onRoleIncludeChildrenChange={setRoleIncludeChildren}
+                loading={selectorLoading} error={selectorError}
+                onSubmit={handleAccessibilityExtract}
+                onClose={() => { setShowAccessibilityInput(false); setSelectorError(null); setRoleValues([]); setRoleNameValue(''); setRoleIncludeChildren(true); setAxSnapshot(null) }}
+                snapshot={axSnapshot} snapshotLoading={axSnapshotLoading} onSnapshot={handleAccessibilitySnapshot} onSnapshotExtract={handleSnapshotExtract}
+              />
+            </div>
+          )}
 
           {/* Manual wait input (edit mode) */}
           {showWaitInput && (
@@ -879,6 +1031,9 @@ export function App() {
                 onDescriptionChange={(key, desc) => editUpdateParamDescription(i, key, desc)}
                 onParamNameChange={(key, name) => editUpdateParamName(i, key, name)}
                 onWaitUntilChange={(val) => updateStepWaitUntil(i, val, true)}
+                onUpdateFields={step.action === 'extract'
+                  ? (fields) => updateStepFieldsAt(setEditSteps, setEditLanes, activeLane, i, fields)
+                  : undefined}
               />
             ))}
             <div ref={stepsEndRef} />
@@ -1173,11 +1328,17 @@ export function App() {
             <Circle className="h-3.5 w-3.5" /> Record
           </Button>
         )}
-        <Button variant="outline" size="sm" disabled={!isRecording} onClick={() => handleExtract('list')}>
+        <Button variant="outline" size="sm" onClick={() => handleExtract('list')}>
           <List className="h-3.5 w-3.5" /> List
         </Button>
-        <Button variant="outline" size="sm" disabled={!isRecording} onClick={() => handleExtract('single')}>
+        <Button variant="outline" size="sm" onClick={() => handleExtract('single')}>
           <FileText className="h-3.5 w-3.5" /> Single
+        </Button>
+        <Button variant={showSelectorInput ? 'secondary' : 'outline'} size="sm" onClick={() => { setShowSelectorInput(!showSelectorInput); setShowAccessibilityInput(false); setSelectorError(null) }}>
+          <Code className="h-3.5 w-3.5" /> Selector
+        </Button>
+        <Button variant={showAccessibilityInput ? 'secondary' : 'outline'} size="sm" onClick={() => { setShowAccessibilityInput(!showAccessibilityInput); setShowSelectorInput(false); setSelectorError(null) }}>
+          <ScanEye className="h-3.5 w-3.5" /> A11y
         </Button>
         <Button variant="outline" size="sm" disabled={isRecording} onClick={() => addLane(false)}>
           <Columns className="h-3.5 w-3.5" /> Lane
@@ -1185,10 +1346,41 @@ export function App() {
         <Button variant="outline" size="sm" onClick={() => setShowWaitInput(!showWaitInput)}>
           <Timer className="h-3.5 w-3.5" /> Wait
         </Button>
+        <Button variant="outline" size="sm" disabled={isRecording || steps.length === 0} onClick={() => handleClearAllSteps(false)}>
+          <Trash2 className="h-3.5 w-3.5" /> Clear
+        </Button>
         <Button variant="secondary" size="sm" disabled={steps.length === 0 && lanes.every(l => l.steps.length === 0)} onClick={handleDone}>
           <Check className="h-3.5 w-3.5" /> Done
         </Button>
       </div>
+
+      {/* CSS Selector input */}
+      {showSelectorInput && (
+        <div className="px-4 py-2 border-b">
+          <SelectorInputForm
+            value={selectorValue} onChange={setSelectorValue}
+            mode={selectorMode} onModeChange={setSelectorMode}
+            loading={selectorLoading} error={selectorError}
+            onSubmit={handleSelectorExtract}
+            onClose={() => { setShowSelectorInput(false); setSelectorError(null); setSelectorValue('') }}
+          />
+        </div>
+      )}
+
+      {/* Accessibility input */}
+      {showAccessibilityInput && (
+        <div className="px-4 py-2 border-b">
+          <AccessibilityInputForm
+            roleValues={roleValues} onRoleValuesChange={setRoleValues}
+            roleNameValue={roleNameValue} onRoleNameValueChange={setRoleNameValue}
+            roleIncludeChildren={roleIncludeChildren} onRoleIncludeChildrenChange={setRoleIncludeChildren}
+            loading={selectorLoading} error={selectorError}
+            onSubmit={handleAccessibilityExtract}
+            onClose={() => { setShowAccessibilityInput(false); setSelectorError(null); setRoleValues([]); setRoleNameValue(''); setRoleIncludeChildren(true); setAxSnapshot(null) }}
+            snapshot={axSnapshot} snapshotLoading={axSnapshotLoading} onSnapshot={handleAccessibilitySnapshot} onSnapshotExtract={handleSnapshotExtract}
+          />
+        </div>
+      )}
 
       {/* Manual wait input */}
       {showWaitInput && (
@@ -1256,6 +1448,9 @@ export function App() {
                 onDescriptionChange={(key, desc) => updateParamDescription(i, key, desc)}
                 onParamNameChange={(key, name) => updateParamName(i, key, name)}
                 onWaitUntilChange={(val) => updateStepWaitUntil(i, val, false)}
+                onUpdateFields={step.action === 'extract'
+                  ? (fields) => updateStepFieldsAt(setSteps, setLanes, activeLane, i, fields)
+                  : undefined}
               />
             ))}
             <div ref={stepsEndRef} />
@@ -1399,12 +1594,359 @@ function Header({ title, icon, onBack }: { title: string; icon: ReactNode; onBac
   )
 }
 
+// ─── Extract Field Types ──────────────────────────────────────────────────────
+
+// ─── SelectorInputForm (CSS only) ────────────────────────────────────────────
+
+function SelectorInputForm({ value, onChange, mode, onModeChange, loading, error, onSubmit, onClose }: {
+  value: string
+  onChange: (v: string) => void
+  mode: 'list' | 'single'
+  onModeChange: (m: 'list' | 'single') => void
+  loading: boolean
+  error: string | null
+  onSubmit: () => void
+  onClose: () => void
+}) {
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-1">
+        <span className="text-xs font-medium text-muted-foreground">CSS Selector</span>
+        <div className="flex-1" />
+        <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={onClose}>
+          <X className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+      <Input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="CSS selector (e.g. .post-item, table tbody tr)"
+        className="flex-1 font-mono text-xs"
+        autoFocus
+        onKeyDown={(e) => { if (e.key === 'Enter' && !loading) onSubmit() }}
+      />
+      <div className="flex items-center gap-2">
+        <Select value={mode} onValueChange={(v) => onModeChange(v as 'list' | 'single')}>
+          <SelectTrigger className="w-24 h-7 text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="list">List</SelectItem>
+            <SelectItem value="single">Single</SelectItem>
+          </SelectContent>
+        </Select>
+        <Button variant="default" size="sm" onClick={onSubmit} disabled={loading || !value.trim()} className="h-7">
+          {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Extract'}
+        </Button>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Tip: Right-click an element in DevTools &rarr; Copy &rarr; Copy selector
+      </p>
+      {error && <p className="text-xs text-destructive">{error}</p>}
+    </div>
+  )
+}
+
+// ─── AccessibilityInputForm ──────────────────────────────────────────────────
+
+const ARIA_ROLES = [
+  'button', 'link', 'heading', 'listitem', 'row', 'cell',
+  'img', 'article', 'navigation', 'textbox', 'list', 'table',
+  'form', 'checkbox', 'radio', 'separator', 'main', 'banner',
+] as const
+
+const ROLE_NAME_HINTS: Record<string, string> = {
+  button: 'e.g. "Submit", "Cancel"',
+  link: 'e.g. "Sign In", "Read more"',
+  heading: 'e.g. "Welcome", "About"',
+  listitem: 'e.g. item text to filter',
+  img: 'e.g. alt text like "Logo"',
+  textbox: 'e.g. "Search", "Email"',
+  checkbox: 'e.g. "Accept terms"',
+  radio: 'e.g. "Option A"',
+  navigation: 'e.g. "Main navigation"',
+}
+
+function AccessibilityInputForm({ roleValues, onRoleValuesChange, roleNameValue, onRoleNameValueChange,
+  roleIncludeChildren, onRoleIncludeChildrenChange, loading, error, onSubmit, onClose,
+  snapshot, snapshotLoading, onSnapshot, onSnapshotExtract,
+}: {
+  roleValues: string[]
+  onRoleValuesChange: (v: string[]) => void
+  roleNameValue: string
+  onRoleNameValueChange: (v: string) => void
+  roleIncludeChildren: boolean
+  onRoleIncludeChildrenChange: (v: boolean) => void
+  loading: boolean
+  error: string | null
+  onSubmit: () => void
+  onClose: () => void
+  snapshot: string | null
+  snapshotLoading: boolean
+  onSnapshot: () => void
+  onSnapshotExtract: () => void
+}) {
+  const [a11yTab, setA11yTab] = useState<'role' | 'fullpage'>('fullpage')
+  const [roleDropdownOpen, setRoleDropdownOpen] = useState(false)
+  const [snapshotAdded, setSnapshotAdded] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+  const canSubmit = roleValues.length > 0
+
+  useEffect(() => {
+    if (!roleDropdownOpen) return
+    const handler = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) setRoleDropdownOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [roleDropdownOpen])
+
+  const toggleRole = (role: string) => {
+    onRoleValuesChange(
+      roleValues.includes(role) ? roleValues.filter(r => r !== role) : [...roleValues, role]
+    )
+  }
+
+  const handleSnapshotAdd = () => {
+    onSnapshotExtract()
+    setSnapshotAdded(true)
+    setTimeout(() => setSnapshotAdded(false), 1500)
+  }
+
+  const nameHint = roleValues.length === 1 ? (ROLE_NAME_HINTS[roleValues[0]] || 'Filter by name (optional)') : 'Filter by name (optional)'
+
+  return (
+    <div className="space-y-2">
+      {/* Header */}
+      <div className="flex items-center gap-1">
+        <span className="text-xs font-medium text-muted-foreground">Accessibility</span>
+        <div className="flex-1" />
+        <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={onClose}>
+          <X className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+
+      {/* Tab switcher */}
+      <div className="flex rounded-md border border-input overflow-hidden">
+        <button type="button"
+          onClick={() => setA11yTab('role')}
+          className={cn(
+            'flex-1 py-1.5 text-xs font-medium transition-colors cursor-pointer',
+            a11yTab === 'role' ? 'bg-primary text-primary-foreground' : 'hover:bg-accent/50 text-muted-foreground'
+          )}
+        >By Role</button>
+        <button type="button"
+          onClick={() => setA11yTab('fullpage')}
+          className={cn(
+            'flex-1 py-1.5 text-xs font-medium transition-colors cursor-pointer border-l border-input',
+            a11yTab === 'fullpage' ? 'bg-primary text-primary-foreground' : 'hover:bg-accent/50 text-muted-foreground'
+          )}
+        >Full Page</button>
+      </div>
+
+      {/* ── By Role tab ── */}
+      {a11yTab === 'role' && (
+        <>
+          <div className="space-y-1.5">
+            {/* Multi-select role dropdown */}
+            <div className="relative" ref={dropdownRef}>
+              <button type="button"
+                onClick={() => setRoleDropdownOpen(!roleDropdownOpen)}
+                className="flex min-h-8 w-full items-center gap-1 rounded-md border border-input bg-transparent px-2 py-1 text-xs shadow-sm cursor-pointer hover:bg-accent/50 transition-colors"
+              >
+                {roleValues.length === 0 ? (
+                  <span className="text-muted-foreground font-mono">Select roles…</span>
+                ) : (
+                  <span className="flex flex-wrap gap-1 flex-1">
+                    {roleValues.map(r => (
+                      <span key={r} className="inline-flex items-center gap-0.5 rounded bg-primary/15 text-primary px-1.5 py-0.5 font-mono text-xs">
+                        {r}
+                        <button type="button" onClick={(e) => { e.stopPropagation(); toggleRole(r) }}
+                          className="hover:text-destructive cursor-pointer">
+                          <X className="h-2.5 w-2.5" />
+                        </button>
+                      </span>
+                    ))}
+                  </span>
+                )}
+                <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0 ml-auto" />
+              </button>
+              {roleDropdownOpen && (
+                <div className="absolute z-50 mt-1 w-full max-h-48 overflow-y-auto rounded-md border bg-popover shadow-md p-1">
+                  {ARIA_ROLES.map(r => (
+                    <button key={r} type="button"
+                      onClick={() => toggleRole(r)}
+                      className="flex items-center gap-2 w-full rounded-sm px-2 py-1.5 text-xs font-mono hover:bg-accent cursor-pointer transition-colors"
+                    >
+                      <span className={cn(
+                        'flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-sm border',
+                        roleValues.includes(r) ? 'bg-primary border-primary text-primary-foreground' : 'border-input'
+                      )}>
+                        {roleValues.includes(r) && <Check className="h-2.5 w-2.5" />}
+                      </span>
+                      {r}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <Input
+              value={roleNameValue}
+              onChange={(e) => onRoleNameValueChange(e.target.value)}
+              placeholder={nameHint}
+              className="font-mono text-xs"
+              onKeyDown={(e) => { if (e.key === 'Enter' && !loading && canSubmit) onSubmit() }}
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <button type="button"
+              onClick={() => onRoleIncludeChildrenChange(!roleIncludeChildren)}
+              className={cn(
+                'shrink-0 relative inline-flex h-5 w-9 items-center rounded-full transition-colors cursor-pointer',
+                roleIncludeChildren ? 'bg-primary' : 'bg-muted-foreground/25 hover:bg-muted-foreground/35'
+              )}
+              role="switch"
+              aria-checked={roleIncludeChildren}
+            >
+              <span className={cn(
+                'inline-block h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-transform',
+                roleIncludeChildren ? 'translate-x-[18px]' : 'translate-x-0.5'
+              )} />
+            </button>
+            <span className="text-xs text-muted-foreground">Include children</span>
+            <div className="flex-1" />
+            <Button variant="default" size="sm" onClick={onSubmit} disabled={loading || !canSubmit} className="h-7">
+              {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Extract'}
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {roleIncludeChildren
+              ? 'Extracts child content (links, text, images) within each matched element'
+              : 'Extracts only direct properties (text, href, src) of matched elements'}
+          </p>
+        </>
+      )}
+
+      {/* ── Full Page tab ── */}
+      {a11yTab === 'fullpage' && (
+        <div className="space-y-2">
+          <p className="text-xs text-muted-foreground">
+            Extract the complete accessibility tree of the current page. Works reliably on any site — no selectors or class names needed.
+          </p>
+          <Button
+            variant="default" size="sm" className="w-full h-8"
+            onClick={handleSnapshotAdd}
+            disabled={snapshotLoading || snapshotAdded}
+          >
+            {snapshotAdded
+              ? <><Check className="h-3.5 w-3.5" /> Step added</>
+              : snapshotLoading
+                ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Extracting…</>
+                : <><ScanEye className="h-3.5 w-3.5" /> Extract full page tree</>}
+          </Button>
+          {!snapshot && !snapshotLoading && (
+            <button type="button" onClick={onSnapshot}
+              className="text-[10px] text-muted-foreground hover:text-foreground underline underline-offset-2 cursor-pointer transition-colors"
+            >Preview tree before adding</button>
+          )}
+          {snapshotLoading && !snapshot && (
+            <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+              <Loader2 className="h-3 w-3 animate-spin" /> Loading preview…
+            </div>
+          )}
+          {snapshot && (
+            <pre className="max-h-48 overflow-auto rounded-md border bg-muted/50 p-2 text-[10px] leading-tight font-mono whitespace-pre select-all">{snapshot}</pre>
+          )}
+        </div>
+      )}
+
+      {error && <p className="text-xs text-destructive">{error}</p>}
+    </div>
+  )
+}
+
+// ─── Extract Field Types ──────────────────────────────────────────────────────
+
+interface ExtractField {
+  key: string
+  selector: string
+  type?: string
+  attribute?: string
+  pattern?: string
+  default?: string | number | null
+  transform?: string
+  fields?: ExtractField[]
+}
+
+const FIELD_TYPES = ['text', 'html', 'attribute', 'value', 'regex', 'nested', 'nested_list'] as const
+const TRANSFORM_OPTIONS = ['', 'trim', 'lowercase', 'uppercase', 'number'] as const
+
+/** Parse an HTML fragment safely (handles table elements like <tr>, <td>) */
+function parseHtmlFragment(html: string): Element | null {
+  const trimmed = html.trim()
+  // Table-specific elements need proper table context to survive innerHTML parsing
+  if (/^<tr[\s>]/i.test(trimmed)) {
+    const tbl = document.createElement('table')
+    const tbody = document.createElement('tbody')
+    tbody.innerHTML = trimmed
+    tbl.appendChild(tbody)
+    return tbody.firstElementChild as Element | null
+  }
+  if (/^<td[\s>]/i.test(trimmed) || /^<th[\s>]/i.test(trimmed)) {
+    const tbl = document.createElement('table')
+    const tbody = document.createElement('tbody')
+    const tr = document.createElement('tr')
+    tr.innerHTML = trimmed
+    tbody.appendChild(tr)
+    tbl.appendChild(tbody)
+    return tr.firstElementChild as Element | null
+  }
+  const tpl = document.createElement('template')
+  tpl.innerHTML = trimmed
+  return tpl.content.firstElementChild as Element | null
+}
+
+/** Re-extract preview data from stored HTML using current field definitions */
+function extractFromHtml(htmlStrings: string[], fields: ExtractField[]): Record<string, unknown>[] {
+  return htmlStrings.map(html => {
+    const item = parseHtmlFragment(html)
+    if (!item) return {}
+    const row: Record<string, unknown> = {}
+    for (const f of fields) {
+      try {
+        const el = f.selector === '*' ? item : item.querySelector(f.selector)
+        if (!el) { row[f.key || '_'] = null; continue }
+        const t = f.type ?? 'text'
+        if (t === 'attribute') row[f.key || '_'] = el.getAttribute(f.attribute || '') || null
+        else if (t === 'html') row[f.key || '_'] = el.innerHTML
+        else if (t === 'value') row[f.key || '_'] = (el as HTMLInputElement).value || null
+        else if (t === 'regex') {
+          const txt = (el.textContent || '').trim()
+          const m = f.pattern ? txt.match(new RegExp(f.pattern)) : null
+          row[f.key || '_'] = m ? (m[1] || m[0]) : null
+        } else row[f.key || '_'] = (el.textContent || '').trim()
+      } catch { row[f.key || '_'] = null }
+    }
+    return row
+  })
+}
+
+/** Get actual attribute names of the element matching a field's selector */
+function getFieldAttributes(htmlStrings: string[], selector: string): string[] {
+  if (!htmlStrings.length) return []
+  const item = parseHtmlFragment(htmlStrings[0])
+  if (!item) return []
+  const el = selector === '*' ? item : item.querySelector(selector)
+  if (!el) return []
+  return el.getAttributeNames().filter(a => !a.startsWith('data-izan'))
+}
+
 // ─── StepCard ────────────────────────────────────────────────────────────────
 
 function StepCard({
   step, index, total, paramMeta, onDelete, onMoveUp, onMoveDown,
   onDragStart, onDragOver, onDrop, onToggleParam, onDescriptionChange,
-  onParamNameChange, onWaitUntilChange,
+  onParamNameChange, onWaitUntilChange, onUpdateFields,
 }: {
   step: Step
   index: number
@@ -1420,12 +1962,19 @@ function StepCard({
   onDescriptionChange: (key: string, desc: string) => void
   onParamNameChange?: (key: string, name: string) => void
   onWaitUntilChange?: (value: Step['waitUntil']) => void
+  onUpdateFields?: (fields: ExtractField[]) => void
 }) {
   const Icon = STEP_ICONS[step.action] ?? Wrench
   const detail = stepDetail(step)
   const params = getNavParams(step)
   const pathSegments = getPathSegments(step)
   const typeText = step.action === 'type' ? (step.text ?? '') : ''
+
+  // Expandable: steps with editable details start collapsed
+  const hasDetails = (step.action === 'navigate' && (params.length > 0 || pathSegments.length > 0 || onWaitUntilChange))
+    || (step.action === 'type' && !!typeText)
+    || (step.action === 'extract' && Array.isArray(step.fields))
+  const [expanded, setExpanded] = useState(false)
 
   return (
     <div
@@ -1451,8 +2000,22 @@ function StepCard({
       <div className="flex-1 min-w-0">
         <span className="font-medium text-foreground">{step.action}</span>
         {detail && <p className="text-muted-foreground truncate mt-0.5">{detail}</p>}
+        {hasDetails && (
+          <button
+            type="button"
+            onClick={() => setExpanded(!expanded)}
+            className="text-xs text-primary/70 hover:text-primary mt-1 cursor-pointer transition-colors"
+          >
+            {expanded
+              ? 'Close'
+              : step.action === 'extract' ? 'Edit fields'
+              : step.action === 'navigate' ? 'Parameterize'
+              : step.action === 'type' ? 'Parameterize'
+              : 'Edit'}
+          </button>
+        )}
 
-        {step.action === 'navigate' && onWaitUntilChange && (
+        {expanded && step.action === 'navigate' && onWaitUntilChange && (
           <div className="flex items-center gap-2 mt-2">
             <span className="text-sm text-muted-foreground shrink-0">Wait until</span>
             <Select value={step.waitUntil ?? 'load'} onValueChange={(v) => onWaitUntilChange(v as Step['waitUntil'])}>
@@ -1469,7 +2032,7 @@ function StepCard({
         )}
 
         {/* Path Segments (navigate steps) */}
-        {pathSegments.length > 0 && (
+        {expanded && pathSegments.length > 0 && (
           <div className="mt-2.5 space-y-1.5">
             <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Path Segments</p>
             {pathSegments.map(([segIdx, segment]) => {
@@ -1514,7 +2077,7 @@ function StepCard({
         )}
 
         {/* URL Parameters (navigate steps) */}
-        {params.length > 0 && (
+        {expanded && params.length > 0 && (
           <div className="mt-2.5 space-y-1.5">
             <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">URL Parameters</p>
             {params.map(([k, v]) => {
@@ -1558,7 +2121,7 @@ function StepCard({
         )}
 
         {/* Input Value (type steps) */}
-        {step.action === 'type' && typeText && (
+        {expanded && step.action === 'type' && typeText && (
           <div className="mt-2.5 space-y-1.5">
             <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Input Value</p>
             {(() => {
@@ -1600,6 +2163,172 @@ function StepCard({
             })()}
           </div>
         )}
+
+        {/* Extraction Fields (extract steps) */}
+        {expanded && step.action === 'extract' && onUpdateFields && Array.isArray(step.fields) && (
+          <div className="mt-2.5 space-y-1.5">
+            <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Extraction Fields</p>
+            {(step.fields as ExtractField[]).map((field, fi) => {
+              const fieldType = field.type ?? 'text'
+              const isNested = fieldType === 'nested' || fieldType === 'nested_list'
+              return (
+                <div key={fi} className="rounded-md border bg-background/50 px-2.5 py-2 space-y-1.5">
+                  {/* Row 1: key + delete */}
+                  <div className="flex items-center gap-1.5">
+                    <Input
+                      value={field.key}
+                      onChange={(e) => {
+                        const updated = [...step.fields as ExtractField[]]
+                        updated[fi] = { ...updated[fi], key: e.target.value }
+                        onUpdateFields(updated)
+                      }}
+                      className="flex-1 min-w-0 h-7 text-xs font-medium"
+                      placeholder="key"
+                    />
+                    <button type="button"
+                      onClick={() => {
+                        const updated = (step.fields as ExtractField[]).filter((_, i) => i !== fi)
+                        onUpdateFields(updated)
+                      }}
+                      className="shrink-0 rounded p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all cursor-pointer"
+                      title="Remove field">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                  {/* Row 2: type + transform */}
+                  <div className="flex items-center gap-1.5">
+                    <Select
+                      value={fieldType}
+                      onValueChange={(v) => {
+                        const updated = [...step.fields as ExtractField[]]
+                        const patch: Partial<ExtractField> = { type: v === 'text' ? undefined : v }
+                        if (v !== 'attribute') patch.attribute = undefined
+                        if (v !== 'regex') patch.pattern = undefined
+                        if (v === 'nested' || v === 'nested_list') {
+                          if (!updated[fi].fields) patch.fields = []
+                        }
+                        updated[fi] = { ...updated[fi], ...patch }
+                        onUpdateFields(updated)
+                      }}
+                    >
+                      <SelectTrigger className="flex-1 h-7 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {FIELD_TYPES.map(t => (
+                          <SelectItem key={t} value={t}>{t}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Select
+                      value={field.transform ?? '__none'}
+                      onValueChange={(v) => {
+                        const updated = [...step.fields as ExtractField[]]
+                        updated[fi] = { ...updated[fi], transform: v === '__none' ? undefined : v }
+                        onUpdateFields(updated)
+                      }}
+                    >
+                      <SelectTrigger className="flex-1 h-7 text-xs">
+                        <SelectValue placeholder="transform" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {TRANSFORM_OPTIONS.map(t => (
+                          <SelectItem key={t || '__none'} value={t || '__none'}>{t || '\u2014'}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {/* Row 3: selector */}
+                  <p className="font-mono text-xs text-muted-foreground truncate">{field.selector}</p>
+                  {/* Row 4: conditional inputs */}
+                  {fieldType === 'attribute' && (() => {
+                    const currentAttr = field.attribute ?? ''
+                    const previewHtml = step._previewHtml as string[] | undefined
+                    const actualAttrs = previewHtml?.length
+                      ? getFieldAttributes(previewHtml, field.selector)
+                      : []
+                    const options = actualAttrs.length > 0
+                      ? actualAttrs
+                      : ['href', 'src', 'alt', 'title']
+                    // Ensure current value is in list
+                    const finalOptions = currentAttr && !options.includes(currentAttr)
+                      ? [currentAttr, ...options]
+                      : options
+                    return (
+                      <Select
+                        value={currentAttr || finalOptions[0] || 'href'}
+                        onValueChange={(v) => {
+                          const updated = [...step.fields as ExtractField[]]
+                          updated[fi] = { ...updated[fi], attribute: v || undefined }
+                          onUpdateFields(updated)
+                        }}
+                      >
+                        <SelectTrigger className="h-7 text-xs">
+                          <SelectValue placeholder="Select attribute" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {finalOptions.map(a => (
+                            <SelectItem key={a} value={a}>{a}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )
+                  })()}
+                  {fieldType === 'regex' && (
+                    <Input
+                      value={field.pattern ?? ''}
+                      onChange={(e) => {
+                        const updated = [...step.fields as ExtractField[]]
+                        updated[fi] = { ...updated[fi], pattern: e.target.value || undefined }
+                        onUpdateFields(updated)
+                      }}
+                      className="h-7 text-xs font-mono"
+                      placeholder="Regex pattern (e.g. \d+)"
+                    />
+                  )}
+                  {(fieldType === 'regex' || field.default !== undefined) && (
+                    <Input
+                      value={field.default != null ? String(field.default) : ''}
+                      onChange={(e) => {
+                        const updated = [...step.fields as ExtractField[]]
+                        updated[fi] = { ...updated[fi], default: e.target.value || undefined }
+                        onUpdateFields(updated)
+                      }}
+                      className="h-7 text-xs"
+                      placeholder="Default value"
+                    />
+                  )}
+                  {isNested && (
+                    <p className="text-xs text-muted-foreground italic">
+                      {fieldType} - {field.fields?.length ?? 0} sub-fields (edit via JSON export)
+                    </p>
+                  )}
+                </div>
+              )
+            })}
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full h-7 text-xs"
+              onClick={() => {
+                const updated = [...(step.fields as ExtractField[]), { key: '', selector: '', type: 'text' } as ExtractField]
+                onUpdateFields(updated)
+              }}
+            >
+              <Plus className="h-3 w-3" /> Add Field
+            </Button>
+          </div>
+        )}
+
+        {/* Extraction Preview (always visible, no expand needed) */}
+        {step.action === 'extract' && (step._previewHtml || step._preview != null) && (
+          <ExtractPreview
+            preview={step._preview}
+            previewHtml={step._previewHtml as string[] | undefined}
+            fields={step.fields as ExtractField[] | undefined}
+            mode={(step.mode as string) ?? 'single'}
+          />
+        )}
       </div>
 
       <button type="button" onClick={onDelete}
@@ -1609,6 +2338,93 @@ function StepCard({
       </button>
     </div>
   )
+}
+
+// ─── ExtractPreview ──────────────────────────────────────────────────────────
+
+function ExtractPreview({ preview, previewHtml, fields, mode }: {
+  preview?: unknown
+  previewHtml?: string[]
+  fields?: ExtractField[]
+  mode: string
+}) {
+  const [expanded, setExpanded] = useState(true)
+
+  // Re-extract from HTML when fields change; fall back to static preview if all null
+  const items = useMemo(() => {
+    if (previewHtml?.length && fields?.length) {
+      const extracted = extractFromHtml(previewHtml, fields)
+      const hasData = extracted.some(row => Object.values(row).some(v => v != null))
+      if (hasData) return extracted
+    }
+    if (preview == null) return []
+    return Array.isArray(preview) ? preview : [preview]
+  }, [previewHtml, fields, preview])
+
+  if (items.length === 0) return null
+
+  const label = mode === 'list'
+    ? `Preview (${items.length} item${items.length !== 1 ? 's' : ''})`
+    : 'Preview'
+
+  const renderItem = (item: Record<string, unknown>, idx: number, total: number) => {
+    const entries = Object.entries(item)
+    return (
+      <div key={idx} className={cn(
+        'space-y-0.5 px-2.5 py-1.5',
+        idx > 0 && 'border-t',
+        idx % 2 === 0 ? 'bg-muted/20' : 'bg-muted/40',
+      )}>
+        <div className="flex items-center gap-1.5 mb-0.5">
+          <span className="text-[10px] font-semibold text-muted-foreground bg-muted rounded px-1 py-0 leading-relaxed">
+            #{idx + 1}/{total}
+          </span>
+        </div>
+        {entries.slice(0, expanded ? entries.length : 4).map(([k, v]) => (
+          <div key={k} className="flex gap-1.5 text-xs leading-tight">
+            <span className="text-muted-foreground shrink-0 font-medium">{k}:</span>
+            <span className="text-foreground truncate">{formatPreviewValue(v)}</span>
+          </div>
+        ))}
+        {!expanded && entries.length > 4 && (
+          <span className="text-xs text-muted-foreground">+{entries.length - 4} more fields</span>
+        )}
+      </div>
+    )
+  }
+
+  const visibleItems = expanded ? items : items.slice(0, 3)
+  const hiddenCount = items.length > visibleItems.length ? items.length - visibleItems.length : 0
+
+  return (
+    <div className="mt-2.5 space-y-1">
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); setExpanded(!expanded) }}
+        className="text-xs uppercase tracking-wider text-muted-foreground font-medium flex items-center gap-1 cursor-pointer hover:text-foreground transition-colors"
+      >
+        <ChevronDown className={cn('h-3 w-3 transition-transform', !expanded && '-rotate-90')} />
+        {label}
+      </button>
+      {expanded && (
+        <div className="rounded-md border overflow-hidden max-h-64 overflow-y-auto">
+          {visibleItems.map((item, i) => renderItem(item as Record<string, unknown>, i, items.length))}
+          {hiddenCount > 0 && (
+            <p className="text-xs text-muted-foreground text-center py-1.5 bg-muted/30">+{hiddenCount} more items</p>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function formatPreviewValue(v: unknown): string {
+  if (v == null) return '-'
+  if (typeof v === 'string') return v.length > 60 ? v.slice(0, 57) + '...' : v
+  if (typeof v === 'number' || typeof v === 'boolean') return String(v)
+  if (Array.isArray(v)) return `[${v.length} items]`
+  if (typeof v === 'object') return `{${Object.keys(v).length} keys}`
+  return String(v)
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────

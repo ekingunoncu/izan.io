@@ -100,11 +100,17 @@ export class BrowserWindow {
 
   // ─── Extraction ─────────────────────────────────────────────────
 
-  async extractList(containerSelector: string, fields: Array<{ key: string; selector: string; type?: string; attribute?: string }>): Promise<Record<string, unknown>[]> {
+  async extractList(containerSelector: string, fields: Array<Record<string, unknown>>): Promise<Record<string, unknown>[]> {
     return (await this.send('extractList', { containerSelector, fields })) as Record<string, unknown>[]
   }
-  async extractSingle(containerSelector: string, fields: Array<{ key: string; selector: string; type?: string; attribute?: string }>): Promise<Record<string, unknown>> {
-    return (await this.send('extractSingle', { containerSelector, fields })) as Record<string, unknown>
+  async extractSingle(containerSelector: string, fields: Array<Record<string, unknown>>, opts?: { continueOnError?: boolean }): Promise<Record<string, unknown>> {
+    return (await this.send('extractSingle', { containerSelector, fields, continueOnError: opts?.continueOnError })) as Record<string, unknown>
+  }
+  async extractByRole(roles: string[], name: string, includeChildren: boolean, fields: Array<Record<string, unknown>>): Promise<Record<string, unknown>[]> {
+    return (await this.send('extractByRole', { roles, name, includeChildren, fields })) as Record<string, unknown>[]
+  }
+  async accessibilitySnapshot(): Promise<string> {
+    return (await this.send('accessibilitySnapshot', {})) as string
   }
 
   // ─── Waiting ────────────────────────────────────────────────────

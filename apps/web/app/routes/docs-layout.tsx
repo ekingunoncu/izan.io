@@ -56,8 +56,10 @@ export default function DocsLayout() {
       </header>
 
       <div className="flex">
-        {/* Desktop sidebar */}
-        <aside className="hidden lg:block w-64 min-w-64 shrink-0 border-r bg-muted/30 dark:bg-muted/10 sticky top-[57px] h-[calc(100vh-57px)] overflow-y-auto">
+        {/* Spacer so main content doesn't sit under the fixed sidebar */}
+        <div className="hidden lg:block w-64 min-w-64 shrink-0" aria-hidden />
+        {/* Desktop sidebar - fixed so it stays visible when scrolling long pages */}
+        <aside className="hidden lg:block fixed left-0 top-[57px] w-64 h-[calc(100vh-57px)] overflow-y-auto border-r bg-muted/30 dark:bg-muted/10 z-10">
           <div className="p-4">
             <DocsSidebar />
           </div>

@@ -406,18 +406,26 @@ export class AutomationRunner {
     bw: BrowserWindow,
     step: Extract<ActionStep, { action: 'extract' }>,
   ): Promise<unknown> {
-    const fields: Array<{ key: string; selector: string; type?: string; attribute?: string }> =
-      step.fields.map((f: ExtractionField) => ({
-        key: f.key,
-        selector: f.selector,
-        type: f.type,
-        attribute: f.attribute,
-      }))
-
-    if (step.mode === 'list') {
-      return bw.extractList(step.containerSelector, fields)
-    } else {
-      return bw.extractSingle(step.containerSelector, fields)
+    // Full accessibility snapshot — returns compact AX tree text
+    if (step.extractionMethod === 'snapshot') {
+      return bw.accessibilitySnapshot()
     }
+
+    const mapField = (f: ExtractionField): Record<string, unknown> => ({
+      key: f.key, selector: f.selector, type: f.type,
+      ...(f.attribute && { attribute: f.attribute }),
+      ...(f.pattern && { pattern: f.pattern }),
+      ...(f.default !== undefined && { default: f.default }),
+      ...(f.transform && { transform: f.transform }),
+      ...(f.fields && { fields: f.fields.map(mapField) }),
+    })
+    const fields = step.fields.map(mapField)
+
+    if (step.extractionMethod === 'role' && step.roles?.length) {
+      return bw.extractByRole(step.roles, step.roleName || '', step.roleIncludeChildren ?? true, fields)
+    }
+    return step.mode === 'list'
+      ? bw.extractList(step.containerSelector, fields)
+      : bw.extractSingle(step.containerSelector, fields, { continueOnError: step.continueOnError })
   }
 }

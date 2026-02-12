@@ -20,6 +20,7 @@ import { TabServerTransport } from '@mcp-b/transports'
 import { z } from 'zod'
 import { EXTENSION_CHANNEL_PREFIX } from './protocol.js'
 import { AutomationRunner, type RunnerResult } from './automation-runner.js'
+import { BrowserWindow } from './browser-window.js'
 import {
   type ToolDefinition,
   type ToolParameter,
@@ -124,20 +125,145 @@ function tryHostname(url?: string): string | undefined {
   try { return new URL(url).hostname } catch { return undefined }
 }
 
+/** Escape pipe chars in cell values for markdown table */
+function escapeCell(v: unknown): string {
+  if (v == null || v === '') return ''
+  const s = String(v).replace(/\n/g, ' ').replace(/\|/g, '\\|').trim()
+  // Truncate very long values to keep table readable
+  return s.length > 200 ? s.slice(0, 197) + '...' : s
+}
+
 /**
- * Format a RunnerResult into a structured text response for the LLM.
- * Produces human-readable output with per-lane summaries when applicable.
- * Includes source hostname when extraction data is present.
+ * Format a flat array of objects as a markdown table.
+ * Most token-efficient format for tabular data — LLMs parse it natively.
  */
+function toMarkdownTable(items: Record<string, unknown>[]): string {
+  if (items.length === 0) return ''
+  // Collect all keys across items
+  const keys: string[] = []
+  const keySet = new Set<string>()
+  for (const item of items) {
+    for (const k of Object.keys(item)) {
+      if (!keySet.has(k)) { keySet.add(k); keys.push(k) }
+    }
+  }
+  const header = '| ' + keys.join(' | ') + ' |'
+  const sep = '|' + keys.map(() => '---|').join('')
+  const rows = items.map(item =>
+    '| ' + keys.map(k => escapeCell(item[k])).join(' | ') + ' |',
+  )
+  return [header, sep, ...rows].join('\n')
+}
+
+/**
+ * Format a single object as key: value lines.
+ */
+function toKeyValue(obj: Record<string, unknown>): string {
+  return Object.entries(obj)
+    .filter(([, v]) => v != null && v !== '')
+    .map(([k, v]) => {
+      if (typeof v === 'object') return `${k}: ${JSON.stringify(v)}`
+      return `${k}: ${v}`
+    })
+    .join('\n')
+}
+
+/** Clean extraction data: remove null/empty values, filter empty items from arrays. */
+function cleanData(data: Record<string, unknown>): Record<string, unknown> {
+  const cleaned: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(data)) {
+    if (Array.isArray(value)) {
+      const filtered = (value as Record<string, unknown>[])
+        .map(item => {
+          if (item && typeof item === 'object' && !Array.isArray(item)) {
+            const obj: Record<string, unknown> = {}
+            for (const [k, v] of Object.entries(item)) {
+              if (v != null && v !== '') obj[k] = v
+            }
+            return Object.keys(obj).length > 0 ? obj : null
+          }
+          return item
+        })
+        .filter((item): item is Record<string, unknown> => item != null)
+      if (filtered.length > 0) cleaned[key] = filtered
+    } else if (value != null && value !== '') {
+      cleaned[key] = value
+    }
+  }
+  return cleaned
+}
+
+/** Max items to include in a table before truncating */
+const MAX_TABLE_ITEMS = 200
+/** Max total characters for the formatted LLM response */
+const MAX_RESULT_CHARS = 50_000
+
+/** Format a single extraction result (could be array or object) */
+function formatExtraction(value: unknown): string {
+  if (Array.isArray(value)) {
+    // Flat array of objects → markdown table
+    const items = value as Record<string, unknown>[]
+    if (items.length === 0) return ''
+    // Check if items are flat objects (all values are primitives)
+    const isFlat = items.every(item =>
+      typeof item === 'object' && item !== null &&
+      Object.values(item).every(v => v == null || typeof v !== 'object'),
+    )
+    if (isFlat) {
+      if (items.length > MAX_TABLE_ITEMS) {
+        const table = toMarkdownTable(items.slice(0, MAX_TABLE_ITEMS))
+        return `${table}\n\n*Showing ${MAX_TABLE_ITEMS} of ${items.length} items.*`
+      }
+      return toMarkdownTable(items)
+    }
+    // Nested objects fallback to JSON — truncate if massive
+    const json = JSON.stringify(value, null, 2)
+    if (json.length > MAX_RESULT_CHARS) {
+      const truncItems = items.slice(0, Math.max(10, Math.floor(items.length / 2)))
+      return JSON.stringify(truncItems, null, 2) + `\n\n/* Showing ${truncItems.length} of ${items.length} items */`
+    }
+    return json
+  }
+  if (typeof value === 'object' && value !== null) {
+    return toKeyValue(value as Record<string, unknown>)
+  }
+  return String(value)
+}
+
+/**
+ * Format a RunnerResult into a structured response for the LLM.
+ * Uses markdown tables for list data (most token-efficient).
+ * Uses key: value pairs for single extractions.
+ */
+/** Apply final character cap to any formatted output */
+function capOutput(text: string): string {
+  if (text.length <= MAX_RESULT_CHARS) return text
+  return text.slice(0, MAX_RESULT_CHARS) + '\n\n---\n*Output truncated — exceeded maximum response size.*'
+}
+
+/** Format cleaned extraction data into markdown sections */
+function formatCleanedData(data: Record<string, unknown>, parts: string[]): void {
+  const cleaned = cleanData(data)
+  const keys = Object.entries(cleaned)
+  for (const [key, value] of keys) {
+    if (keys.length > 1) parts.push(`### ${key}`)
+    parts.push(formatExtraction(value))
+  }
+}
+
 function formatResultForLLM(result: RunnerResult): string {
   const hasData = Object.keys(result.data).length > 0
 
   // Single-lane execution (no laneSummaries)
   if (!result.laneSummaries) {
     if (!hasData) return 'Action completed successfully.'
+    const cleaned = cleanData(result.data)
+    if (Object.keys(cleaned).length === 0) return 'Action completed but no meaningful data was extracted.'
+    const parts: string[] = []
     const hostname = tryHostname(result.sourceUrl)
-    const json = JSON.stringify(result.data, null, 2)
-    return hostname ? `Data extracted from ${hostname}:\n${json}` : json
+    if (hostname) parts.push(`Source: ${hostname}`)
+    formatCleanedData(result.data, parts)
+    return capOutput(parts.join('\n\n'))
   }
 
   // Multi-lane execution
@@ -146,7 +272,7 @@ function formatResultForLLM(result: RunnerResult): string {
 
   // All lanes completed, none have extraction data
   if (!anyData) {
-    const lines = [`All lanes completed successfully.`]
+    const lines = ['All lanes completed successfully.']
     for (const lane of lanes) {
       const status = lane.success ? 'completed' : `failed: ${lane.error}`
       lines.push(`- "${lane.name}": ${status} (${lane.stepCount} steps)`)
@@ -154,23 +280,20 @@ function formatResultForLLM(result: RunnerResult): string {
     return lines.join('\n')
   }
 
-  // Multi-lane with extraction data (possibly mixed)
-  const lines = [`Results from ${lanes.length} parallel lanes:`]
+  // Multi-lane with extraction data
+  const parts: string[] = []
   for (const lane of lanes) {
-    lines.push('')
     const hostname = tryHostname(lane.sourceUrl)
-    const header = hostname ? `## ${lane.name} (${hostname})` : `## ${lane.name}`
-    lines.push(header)
-    const laneHasData = Object.keys(lane.data).length > 0
+    parts.push(hostname ? `## ${lane.name} (${hostname})` : `## ${lane.name}`)
     if (!lane.success) {
-      lines.push(`Error: ${lane.error}`)
-    } else if (laneHasData) {
-      lines.push(JSON.stringify(lane.data, null, 2))
+      parts.push(`Error: ${lane.error}`)
+    } else if (Object.keys(lane.data).length > 0) {
+      formatCleanedData(lane.data, parts)
     } else {
-      lines.push(`Action completed (${lane.stepCount} steps).`)
+      parts.push(`Completed (${lane.stepCount} steps).`)
     }
   }
-  return lines.join('\n')
+  return capOutput(parts.join('\n\n'))
 }
 
 // ─── Public API ──────────────────────────────────────────────────────────────
@@ -271,10 +394,30 @@ export function getLoadedToolCount(): number {
 export async function startDynamicServer(): Promise<boolean> {
   if (serverInstance) return false
 
-  const hasTools = loadedTools.size > 0
+  // Always has at least accessibility_snapshot built-in tool
   const server = new McpServer(
     { name: DYNAMIC_SERVER_NAME, version: '0.1.0' },
-    hasTools ? { capabilities: { tools: {} } } : {},
+    { capabilities: { tools: {} } },
+  )
+
+  // Register built-in accessibility_snapshot tool
+  server.registerTool(
+    'accessibility_snapshot',
+    {
+      description: 'Get the accessibility tree of the current page. Returns a compact text representation with roles, names, and properties. Use to understand page structure.',
+      inputSchema: {},
+    },
+    async () => {
+      const bw = BrowserWindow.getInstance()
+      if (!bw.isOpen()) {
+        return {
+          content: [{ type: 'text' as const, text: 'No automation browser is open. Run a macro with navigate step first.' }],
+          isError: true,
+        }
+      }
+      const tree = await bw.accessibilitySnapshot()
+      return { content: [{ type: 'text' as const, text: tree as string }] }
+    },
   )
 
   // Register all queued/pre-loaded tools
@@ -292,7 +435,7 @@ export async function startDynamicServer(): Promise<boolean> {
   serverInstance = server
   transportInstance = transport
 
-  console.log(`[izan-ext] Dynamic server started with ${loadedTools.size} tool(s)`)
+  console.log(`[izan-ext] Dynamic server started with ${loadedTools.size} tool(s) + accessibility_snapshot`)
   return true
 }
 

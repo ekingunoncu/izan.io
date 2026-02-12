@@ -290,6 +290,32 @@ export default function Home() {
           </div>
         </section>
 
+        {/* ========== DEMO VIDEO ========== */}
+        <section className="py-10 sm:py-14 md:py-20">
+          <div className="container mx-auto px-4 sm:px-6">
+            <div className="text-center mb-8 sm:mb-12">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3">
+                {t("home.demoTitle")}
+              </h2>
+              <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto">
+                {t("home.demoDesc")}
+              </p>
+            </div>
+            <div className="max-w-4xl mx-auto">
+              <div className="relative rounded-2xl overflow-hidden border border-border/50 shadow-2xl shadow-primary/5 bg-black aspect-video">
+                <iframe
+                  src="https://www.youtube.com/embed/5CHOTIYhP1w?rel=0&modestbranding=1"
+                  title={t("home.demoTitle")}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  loading="lazy"
+                  className="absolute inset-0 w-full h-full"
+                />
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* ========== FEATURES - Bento Grid ========== */}
         <section className="py-10 sm:py-14 md:py-20">
           <div className="container mx-auto px-4 sm:px-6">
@@ -754,6 +780,22 @@ export default function Home() {
                   className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                 >
                   GitHub
+                </a>
+                <a
+                  href="https://x.com/izan_io"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  X (Twitter)
+                </a>
+                <a
+                  href="https://www.youtube.com/@izan_io"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  YouTube
                 </a>
               </div>
             </div>

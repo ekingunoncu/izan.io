@@ -42,7 +42,7 @@
 | 🧠 **Çoklu Sağlayıcı** | 17+ AI sağlayıcı desteklenir (aşağıda). |
 | 🤖 **Akıllı Ajanlar** | MCP ile bağlı ajanlar - web araması, kod, vb. |
 | 🌐 **MCP** | Hazır ve özel MCP sunucuları. |
-| 🎬 **Aksiyon kaydedici** | Extension yan panelinden aksiyon kaydederek MCP aracı olarak kaydedin; kod gerekmez ([docs/visual-mcp-tool-builder.md](docs/visual-mcp-tool-builder.md)). |
+| 🎬 **Aksiyon kaydedici** | Tarayıcı aksiyonları kaydedin, CSS veya erişilebilirlik ağacı ile veri çıkarın ve MCP aracı olarak kaydedin; kod gerekmez ([docs/visual-mcp-tool-builder.md](docs/visual-mcp-tool-builder.md)). |
 
 ---
 
@@ -68,7 +68,7 @@ izan.io/
 │   └── infra/                   # CDK altyapı (S3/CloudFront, /mcp-tools/ dahil)
 ```
 
-**Aksiyon kaydedici:** Extension (`mcp-extension-servers`) yan panelde tıklama, yazma, scroll kaydı; URL parametrelerini parametreleme; sayfadan veri çıkarma sunar. Kayıtlar MCP aracı tanımına dönüşür (JSON olarak IndexedDB veya S3’te). Bkz. [docs/visual-mcp-tool-builder.md](docs/visual-mcp-tool-builder.md).
+**Aksiyon kaydedici:** Extension (`mcp-extension-servers`) yan panelde tıklama, yazma, scroll kaydı; URL/path parametreleme; CSS veya erişilebilirlik ağacı (ARIA rolleri, tam sayfa snapshot) ile veri çıkarma sunar. Element seçici aktif kayıt olmadan da çalışır. Kayıtlar MCP aracı tanımına dönüşür (JSON olarak IndexedDB veya S3'te). Ajanlara her zaman hazır `accessibility_snapshot` aracı sunulur. Bkz. [docs/visual-mcp-tool-builder.md](docs/visual-mcp-tool-builder.md).
 
 ---
 
@@ -94,9 +94,9 @@ npm run dev
 | Tür | Paket | Açıklama |
 |-----|-------|----------|
 | **Tarayıcı** | `mcp-browser-servers/` | crypto-analysis, domain-check (RDAP/DoH), general. TabServerTransport, istemci tarafı. |
-| **Extension** | `mcp-extension-servers/` | Chrome extension: yan panel (React + shadcn), aksiyon kayıt, element seçici, dinamik MCP sunucusu. Hazır araçlar + kullanıcının kaydettiği araçlar (JSON olarak saklanır). |
+| **Extension** | `mcp-extension-servers/` | Chrome extension: yan panel (React + shadcn), aksiyon kayıt, element seçici (CSS + erişilebilirlik), dinamik MCP sunucusu, dahili `accessibility_snapshot` aracı. Kullanıcı araçları JSON olarak saklanır. |
 
-**MCP kaydı:** Extension'ı kurun, yan paneli açın, **Kaydet**'e tıklayın; aksiyon kaydedici tıklama, yazma, scroll ve URL parametrelerini yakalar. **Liste** / **Tekil** ile çıkarma alanı seçin. **Tamamla** akışı web uygulamasına gönderir; Ayarlar'dan MCP aracı olarak kaydedin.
+**MCP kaydı:** Extension'ı kurun, yan paneli açın, **Kaydet**'e tıklayın; aksiyon kaydedici tıklama, yazma, scroll ve URL parametrelerini yakalar. **Liste** / **Tekil** ile CSS, veya **A11y** ile ARIA rolleri ya da tam sayfa erişilebilirlik ağacı kullanarak veri çıkarın. **Tamamla** akışı web uygulamasına gönderir; Ayarlar'dan MCP aracı olarak kaydedin.
 
 ---
 
