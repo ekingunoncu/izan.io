@@ -23,6 +23,7 @@ export const DOC_ENTRIES: DocEntry[] = [
   { slug: 'chrome-extension', titleKey: 'docs.titleChromeExtension', category: 'features' },
   { slug: 'api-keys-privacy', titleKey: 'docs.titleApiKeysPrivacy', category: 'configuration' },
   { slug: 'providers', titleKey: 'docs.titleProviders', category: 'configuration' },
+  { slug: 'analytics', titleKey: 'docs.titleAnalytics', category: 'features' },
 ]
 
 export const DOC_SLUGS = DOC_ENTRIES.map((d) => d.slug)

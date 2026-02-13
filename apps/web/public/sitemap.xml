@@ -422,4 +422,34 @@
     <changefreq>weekly</changefreq>
   </url>
 
+  <url>
+    <loc>https://izan.io/tr/docs/analytics</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/docs/analytics" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/docs/analytics" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/docs/analytics" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/docs/analytics" />
+    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://izan.io/en/docs/analytics</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/docs/analytics" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/docs/analytics" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/docs/analytics" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/docs/analytics" />
+    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://izan.io/de/docs/analytics</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/docs/analytics" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/docs/analytics" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/docs/analytics" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/docs/analytics" />
+    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
 </urlset>

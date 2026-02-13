@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Bot, User, Wrench, Loader2, ExternalLink } from 'lucide-react'
+import { Bot, User, Wrench, Loader2, ExternalLink, ChevronDown } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { cn, stripThinkTags } from '~/lib/utils'
@@ -9,6 +9,7 @@ interface ChatMessage {
   id: string
   role: 'user' | 'assistant' | 'system'
   content: string
+  timestamp?: number
 }
 
 interface MessageListProps {
@@ -16,10 +17,11 @@ interface MessageListProps {
   isGenerating?: boolean
 }
 
-/** Parse tool call and agent call lines from message content (strips <think> tags for display) */
+/** Parse tool call, agent call, and agent response blocks from message content (strips <think> tags for display) */
 function parseContent(content: string): {
   toolCalls: string[]
   agentCalls: string[]
+  agentResponses: string[]
   text: string
   isLoading: boolean
   loadingText?: string
@@ -28,12 +30,36 @@ function parseContent(content: string): {
   const lines = cleaned.split('\n')
   const toolCalls: string[] = []
   const agentCalls: string[] = []
+  const agentResponses: string[] = []
   const textLines: string[] = []
   let isLoading = false
   let loadingText: string | undefined
+  let inAgentResponse = false
+  let agentResponseLines: string[] = []
 
   for (const line of lines) {
     const trimmed = line.trim()
+
+    if (trimmed === '[agent-response]') {
+      inAgentResponse = true
+      agentResponseLines = []
+      continue
+    }
+    if (trimmed === '[/agent-response]') {
+      inAgentResponse = false
+      agentResponses.push(agentResponseLines.join('\n').trim())
+      continue
+    }
+    if (inAgentResponse) {
+      agentResponseLines.push(line)
+      continue
+    }
+
+    // Hide continuation check markers from display
+    if (trimmed.startsWith('🔄')) {
+      continue
+    }
+
     if (trimmed.startsWith('[🔧')) {
       // Extract tool info: [🔧 tool_name({...})]
       const match = trimmed.match(/\[🔧\s*(.+?)\((.+)\)\]/)
@@ -54,7 +80,12 @@ function parseContent(content: string): {
     }
   }
 
-  return { toolCalls, agentCalls, text: textLines.join('\n').trim(), isLoading, loadingText }
+  // If we're still inside an agent-response block (streaming in progress), capture what we have
+  if (inAgentResponse && agentResponseLines.length > 0) {
+    agentResponses.push(agentResponseLines.join('\n').trim())
+  }
+
+  return { toolCalls, agentCalls, agentResponses, text: textLines.join('\n').trim(), isLoading, loadingText }
 }
 
 function ToolCallBadge({ call }: { call: string }) {
@@ -101,6 +132,56 @@ function AgentCallBadge({ agentId }: { agentId: string }) {
     <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-violet-200/90 dark:bg-violet-950 border border-violet-300 dark:border-violet-800 text-xs">
       <Bot className="h-3.5 w-3.5 text-violet-700 dark:text-violet-400 flex-shrink-0" />
       <span className="font-medium text-violet-900 dark:text-violet-300">{displayName}</span>
+    </div>
+  )
+}
+
+function AgentResponseBlock({ content, isStreaming }: { content: string; isStreaming?: boolean }) {
+  const { t } = useTranslation('common')
+  const [expanded, setExpanded] = useState(false)
+  const contentRef = useRef<HTMLDivElement>(null)
+  const [isOverflowing, setIsOverflowing] = useState(false)
+
+  useEffect(() => {
+    const el = contentRef.current
+    if (!el) return
+    // Check if content overflows the collapsed max-height (6rem ≈ 96px)
+    setIsOverflowing(el.scrollHeight > 112)
+  }, [content])
+
+  const collapsible = isOverflowing && !isStreaming
+
+  return (
+    <div className="rounded-xl border border-border/60 bg-muted/50 overflow-hidden">
+      <div className="relative">
+        <div
+          ref={contentRef}
+          className={cn(
+            'px-3 py-2.5 transition-[max-height] duration-300 ease-in-out overflow-hidden',
+            collapsible && !expanded ? 'max-h-28' : 'max-h-[80vh]',
+          )}
+        >
+          <div className="markdown-content min-w-0 text-xs sm:text-sm text-foreground/85 [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1 [&_li]:ml-4 [&_pre]:my-2 [&_pre]:p-2 [&_pre]:rounded-lg [&_pre]:bg-muted-foreground/10 [&_pre]:overflow-x-auto [&_code]:bg-muted-foreground/10 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_table]:w-full [&_td]:px-2 [&_td]:py-1 [&_th]:px-2 [&_th]:py-1 break-words">
+            <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ a: LinkRenderer }}>
+              {content}
+            </ReactMarkdown>
+          </div>
+        </div>
+        {/* Gradient fade when collapsed */}
+        {collapsible && !expanded && (
+          <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-muted/90 to-transparent pointer-events-none" />
+        )}
+      </div>
+      {collapsible && (
+        <button
+          type="button"
+          onClick={() => setExpanded(e => !e)}
+          className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+        >
+          <ChevronDown className={cn('h-3 w-3 transition-transform duration-200', expanded && 'rotate-180')} />
+          {expanded ? t('chat.showLess') : t('chat.showMore')}
+        </button>
+      )}
     </div>
   )
 }
@@ -213,6 +294,16 @@ function ToolLoadingIndicator({ loadingText }: { loadingText?: string }) {
   )
 }
 
+/** Recursively extract plain text from React children (for title attribute on table cells) */
+function extractText(children: React.ReactNode): string {
+  if (children == null) return ''
+  if (typeof children === 'string') return children
+  if (typeof children === 'number') return String(children)
+  if (Array.isArray(children)) return children.map(extractText).join('')
+  if (typeof children === 'object' && 'props' in children) return extractText((children as React.ReactElement).props.children)
+  return ''
+}
+
 function MarkdownMessage({
   text,
   messageId,
@@ -250,7 +341,22 @@ function MarkdownMessage({
         <div className="markdown-content text-sm sm:text-base min-w-0 [&_p]:my-1 [&_h1]:text-lg [&_h2]:text-base [&_h3]:text-sm [&_ul]:my-1 [&_ol]:my-1 [&_li]:ml-4 [&_pre]:my-2 [&_pre]:p-3 [&_pre]:rounded-lg [&_pre]:bg-muted-foreground/10 [&_pre]:overflow-x-auto [&_code]:bg-muted-foreground/10 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded break-words">
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
-            components={{ a: LinkRenderer }}
+            components={{
+              a: LinkRenderer,
+              table: ({ children, ...props }) => (
+                <div className="my-2 overflow-x-auto rounded-lg border border-border">
+                  <table {...props}>{children}</table>
+                </div>
+              ),
+              td: ({ children, ...props }) => {
+                const text = extractText(children)
+                return <td {...props} title={text.length > 30 ? text : undefined}>{children}</td>
+              },
+              th: ({ children, ...props }) => {
+                const text = extractText(children)
+                return <th {...props} title={text.length > 20 ? text : undefined}>{children}</th>
+              },
+            }}
           >
             {text}
           </ReactMarkdown>
@@ -280,6 +386,21 @@ function MarkdownMessage({
   )
 }
 
+function formatMessageTime(timestamp: number, yesterdayLabel: string): string {
+  const date = new Date(timestamp)
+  const now = new Date()
+  const isToday = date.toDateString() === now.toDateString()
+  const prev = new Date(now)
+  prev.setDate(prev.getDate() - 1)
+  const isYesterday = date.toDateString() === prev.toDateString()
+
+  const time = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+
+  if (isToday) return time
+  if (isYesterday) return `${time} · ${yesterdayLabel}`
+  return `${time} · ${date.toLocaleDateString([], { day: 'numeric', month: 'short' })}`
+}
+
 function MessageBubble({
   message,
   rawModeIds,
@@ -291,10 +412,13 @@ function MessageBubble({
   onToggleRaw: (id: string) => void
   isStreaming?: boolean
 }) {
+  const { t } = useTranslation('common')
   const isUser = message.role === 'user'
 
   // For assistant messages, parse tool calls
   const parsed = !isUser ? parseContent(message.content) : null
+
+  const timeLabel = message.timestamp ? formatMessageTime(message.timestamp, t('chat.yesterday')) : null
 
   return (
     <div
@@ -313,16 +437,26 @@ function MessageBubble({
       </div>
 
       {isUser ? (
-        <div className="rounded-2xl px-3 py-2 sm:px-4 max-w-[85%] sm:max-w-[80%] min-w-0 bg-primary text-primary-foreground">
-          <p className="whitespace-pre-wrap break-words text-sm sm:text-base">{message.content}</p>
+        <div className="min-w-0 max-w-[85%] sm:max-w-[80%]">
+          <div className="rounded-2xl px-3 py-2 sm:px-4 bg-primary text-primary-foreground">
+            <p className="whitespace-pre-wrap break-words text-sm sm:text-base">{message.content}</p>
+          </div>
+          {timeLabel && (
+            <p className="text-[10px] text-muted-foreground mt-1 text-right">{timeLabel}</p>
+          )}
         </div>
       ) : (
         <div className="max-w-[85%] sm:max-w-[80%] min-w-0 space-y-2">
-          {/* Agent call badges (linked agent – no raw args) */}
+          {/* Agent call badges + collapsible responses */}
           {parsed && parsed.agentCalls.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
+            <div className="space-y-1.5">
               {parsed.agentCalls.map((agentId, i) => (
-                <AgentCallBadge key={i} agentId={agentId} />
+                <div key={i} className="space-y-1.5">
+                  <AgentCallBadge agentId={agentId} />
+                  {parsed.agentResponses[i] && (
+                    <AgentResponseBlock content={parsed.agentResponses[i]} isStreaming={isStreaming} />
+                  )}
+                </div>
               ))}
             </div>
           )}
@@ -359,6 +493,9 @@ function MessageBubble({
               </div>
             </div>
           ) : null}
+          {timeLabel && (
+            <p className="text-[10px] text-muted-foreground mt-1">{timeLabel}</p>
+          )}
         </div>
       )}
     </div>

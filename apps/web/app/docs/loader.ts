@@ -6,6 +6,7 @@ import enMacros from './en/macros.md?raw'
 import enChromeExtension from './en/chrome-extension.md?raw'
 import enApiKeysPrivacy from './en/api-keys-privacy.md?raw'
 import enProviders from './en/providers.md?raw'
+import enAnalytics from './en/analytics.md?raw'
 
 import trGettingStarted from './tr/getting-started.md?raw'
 import trAgents from './tr/agents.md?raw'
@@ -14,6 +15,7 @@ import trMacros from './tr/macros.md?raw'
 import trChromeExtension from './tr/chrome-extension.md?raw'
 import trApiKeysPrivacy from './tr/api-keys-privacy.md?raw'
 import trProviders from './tr/providers.md?raw'
+import trAnalytics from './tr/analytics.md?raw'
 
 import deGettingStarted from './de/getting-started.md?raw'
 import deAgents from './de/agents.md?raw'
@@ -22,6 +24,7 @@ import deMacros from './de/macros.md?raw'
 import deChromeExtension from './de/chrome-extension.md?raw'
 import deApiKeysPrivacy from './de/api-keys-privacy.md?raw'
 import deProviders from './de/providers.md?raw'
+import deAnalytics from './de/analytics.md?raw'
 
 const CONTENT: Record<string, Record<string, string>> = {
   en: {
@@ -32,6 +35,7 @@ const CONTENT: Record<string, Record<string, string>> = {
     'chrome-extension': enChromeExtension,
     'api-keys-privacy': enApiKeysPrivacy,
     providers: enProviders,
+    analytics: enAnalytics,
   },
   tr: {
     'getting-started': trGettingStarted,
@@ -41,6 +45,7 @@ const CONTENT: Record<string, Record<string, string>> = {
     'chrome-extension': trChromeExtension,
     'api-keys-privacy': trApiKeysPrivacy,
     providers: trProviders,
+    analytics: trAnalytics,
   },
   de: {
     'getting-started': deGettingStarted,
@@ -50,6 +55,7 @@ const CONTENT: Record<string, Record<string, string>> = {
     'chrome-extension': deChromeExtension,
     'api-keys-privacy': deApiKeysPrivacy,
     providers: deProviders,
+    analytics: deAnalytics,
   },
 }
 

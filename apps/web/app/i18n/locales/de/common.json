@@ -3,7 +3,8 @@
     "agents": "Agenten",
     "startChat": "Chat starten",
     "settings": "Einstellungen",
-    "docs": "Dokumentation"
+    "docs": "Dokumentation",
+    "analytics": "Analytik"
   },
   "github": {
     "feedbackAria": "Bug melden oder Feature anfragen",
@@ -156,12 +157,14 @@
     "roadmapDesc": "Wir bauen die Zukunft zugänglicher KI-Agenten. Hier ist unsere Roadmap.",
     "roadmapItem1Title": "Makro- & Agent-Marktplatz",
     "roadmapItem1Desc": "Von der Community erstellte Makros und Agent-Konfigurationen mit einem Klick teilen, entdecken und installieren.",
-    "roadmapItem2Title": "Browser-LLMs",
-    "roadmapItem2Desc": "KI-Modelle direkt im Browser ausführen - kein API-Schlüssel nötig.",
-    "roadmapItem3Title": "Visuelle Generierung",
-    "roadmapItem3Desc": "Bild- und Design-Generierungsmodelle kommen auf die Plattform.",
-    "roadmapItem4Title": "Client-seitige KI-Modelle",
-    "roadmapItem4Desc": "Spezialisierte Modelle, die lokal für bestimmte Aufgaben laufen, direkt in Agenten integriert.",
+    "roadmapItem2Title": "Langzeitaufgaben",
+    "roadmapItem2Desc": "Lassen Sie Agenten im Hintergrund an komplexer Recherche und mehrstufigen Workflows arbeiten. Benachrichtigung, wenn Ergebnisse bereit sind.",
+    "roadmapItem3Title": "Geplante Automatisierungen",
+    "roadmapItem3Desc": "Makros nach Zeitplan oder mit Auslösern ausführen - Preisverfolgung, Datenerfassung und wiederkehrende Workflows auf Autopilot.",
+    "roadmapItem4Title": "Agent-Gedächtnis & Wissensbasis",
+    "roadmapItem4Desc": "Agenten, die sich an vergangene Gespräche erinnern und aus Ihren Dokumenten lernen - für intelligentere, kontextbewusste Antworten.",
+    "roadmapItem5Title": "Browser-LLMs",
+    "roadmapItem5Desc": "Leichte KI-Modelle direkt im Browser ausführen - vollständig privat, kein API-Schlüssel für einfache Aufgaben nötig.",
 
     "providersTitle": "Nutzen Sie jedes KI-Modell",
     "providersDesc": "17+ KI-Provider, eine Plattform. Bringen Sie Ihren eigenen API-Schlüssel mit - kein Vendor Lock-in, keine Mittelsmann-Gebühren. Ihre Schlüssel verlassen nie Ihren Browser.",
@@ -196,6 +199,7 @@
     "rateLimitError": "Anfragelimit überschritten. Bitte warten Sie einen Moment und versuchen Sie es erneut, oder prüfen Sie Ihre Plan-Limits.",
     "serverError": "Beim API-Anbieter treten derzeit Probleme auf. Bitte versuchen Sie es später erneut.",
     "maxStepsReached": "Maximale Anzahl von Schritten erreicht.",
+    "continuationCheck": "Überprüfung ob Aufgabe abgeschlossen ist...",
     "modelResponding": "Modell antwortet...",
     "toolRunning": "Tool wird ausgeführt...",
     "agentResponding": "Warte auf Agent-Antwort...",
@@ -217,6 +221,9 @@
     "viewRendered": "Vorschau anzeigen",
     "copy": "Kopieren",
     "copied": "Kopiert",
+    "showMore": "Mehr anzeigen",
+    "showLess": "Weniger anzeigen",
+    "yesterday": "gestern",
     "toolNames": {
       "check_domains_availability": "Domain-Verfügbarkeit",
       "get_domain_price": "Domain-Preis",
@@ -376,11 +383,47 @@
     "titleMacros": "Makros",
     "titleChromeExtension": "Chrome-Erweiterung",
     "titleApiKeysPrivacy": "API-Schlüssel & Datenschutz",
-    "titleProviders": "Anbieter"
+    "titleProviders": "Anbieter",
+    "titleAnalytics": "Analytik"
   },
   "errors": {
     "notConfigured": "LLM nicht konfiguriert. Wählen Sie einen Provider und ein Modell in den Einstellungen.",
     "providerNotFound": "Provider nicht gefunden: {{provider}}",
     "toolNotFound": "Tool nicht gefunden: {{tool}}"
+  },
+  "analytics": {
+    "title": "Analytik",
+    "description": "Verfolgen Sie Ihre Token-Nutzung und Kosten nach Modellen und Agenten.",
+    "totalTokens": "Gesamte Token",
+    "totalCost": "Gesamtkosten",
+    "totalCalls": "API-Aufrufe",
+    "timeRange7d": "7 Tage",
+    "timeRange30d": "30 Tage",
+    "timeRange90d": "90 Tage",
+    "timeRangeAll": "Alle",
+    "usageOverTime": "Nutzung im Zeitverlauf",
+    "perAgent": "Nach Agent",
+    "perModel": "Nach Modell",
+    "toolUsage": "Tool-Nutzung",
+    "noData": "Noch keine Nutzungsdaten. Starten Sie einen Chat, um Analysen zu sehen.",
+    "clearData": "Analytik-Daten löschen",
+    "clearDataConfirm": "Alle Analytik-Daten werden dauerhaft gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.",
+    "inputTokens": "Eingabe",
+    "outputTokens": "Ausgabe",
+    "cost": "Kosten",
+    "tokens": "Token",
+    "calls": "Aufrufe",
+    "avgPerCall": "Durchschn. / Aufruf",
+    "viewAnalytics": "Nutzungsanalysen und Kostenverfolgung anzeigen",
+    "trendVsPrev": "ggü. letzten {{range}}"
+  },
+  "longTask": {
+    "bannerMessage": "Diese Aufgabe kann eine Weile dauern.",
+    "runInBackground": "Im Hintergrund ausführen",
+    "notifyWhenDone": "Benachrichtigen wenn fertig",
+    "notifyEnabled": "Benachrichtigung aktiv",
+    "notificationDone": "Aufgabe abgeschlossen: {{title}}",
+    "notificationFailed": "Aufgabe fehlgeschlagen: {{title}}",
+    "stepProgress": "Schritt {{current}}/{{total}}"
   }
 }

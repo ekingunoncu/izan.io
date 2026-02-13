@@ -3,7 +3,8 @@
     "agents": "Agentlar",
     "startChat": "Sohbete Başla",
     "settings": "Ayarlar",
-    "docs": "Dokümantasyon"
+    "docs": "Dokümantasyon",
+    "analytics": "Analitik"
   },
   "github": {
     "feedbackAria": "Hata bildir veya özellik iste",
@@ -156,12 +157,14 @@
     "roadmapDesc": "Erişilebilir AI agentların geleceğini inşa ediyoruz. İşte yol haritamız.",
     "roadmapItem1Title": "Makro ve Agent Marketplace",
     "roadmapItem1Desc": "Topluluk tarafından oluşturulan makroları ve agent yapılandırmalarını tek tıkla paylaşın, keşfedin ve kurun.",
-    "roadmapItem2Title": "Tarayıcıda Çalışan LLM'ler",
-    "roadmapItem2Desc": "AI modellerini doğrudan tarayıcınızda çalıştırın - API key gerekmez.",
-    "roadmapItem3Title": "Görsel Üretim",
-    "roadmapItem3Desc": "Görsel ve tasarım üretim modelleri platforma ekleniyor.",
-    "roadmapItem4Title": "İstemci Tarafı AI Modelleri",
-    "roadmapItem4Desc": "Belirli görevler için yerel olarak çalışan özel modeller, agentlara doğrudan entegre.",
+    "roadmapItem2Title": "Uzun Süreli Görevler",
+    "roadmapItem2Desc": "Agentların karmaşık araştırma ve çok adımlı iş akışlarında arka planda çalışmasını sağlayın. Sonuçlar hazır olduğunda bildirim alın.",
+    "roadmapItem3Title": "Zamanlanmış Otomasyonlar",
+    "roadmapItem3Desc": "Makroları zamanlayıcı veya tetikleyicilerle çalıştırın - fiyat takibi, veri toplama ve tekrarlayan iş akışları otomatik pilotta.",
+    "roadmapItem4Title": "Agent Hafızası ve Bilgi Tabanı",
+    "roadmapItem4Desc": "Geçmiş konuşmaları hatırlayan ve belgelerinizden öğrenen agentlar ile daha akıllı, bağlam farkındalıklı yanıtlar.",
+    "roadmapItem5Title": "Tarayıcıda Çalışan LLM'ler",
+    "roadmapItem5Desc": "Hafif AI modellerini doğrudan tarayıcınızda çalıştırın - tamamen gizli, temel görevler için API key gerekmez.",
 
     "providersTitle": "İstediğiniz AI Modelini Kullanın",
     "providersDesc": "17+ AI sağlayıcı, tek platform. Kendi API key'inizi getirin - platform bağımlılığı yok, aracı ücreti yok. Key'leriniz tarayıcınızdan asla çıkmaz.",
@@ -196,6 +199,7 @@
     "rateLimitError": "İstek limiti aşıldı. Lütfen bir süre bekleyip tekrar deneyin veya plan limitinizi kontrol edin.",
     "serverError": "API sağlayıcısında sorun yaşanıyor. Lütfen daha sonra tekrar deneyin.",
     "maxStepsReached": "Maksimum adım sayısına ulaşıldı.",
+    "continuationCheck": "Görev tamamlandı mı kontrol ediliyor...",
     "modelResponding": "Model yanıt veriyor...",
     "toolRunning": "Tool çalıştırılıyor...",
     "agentResponding": "Agent yanıtı bekleniyor...",
@@ -217,6 +221,9 @@
     "viewRendered": "Önizleme",
     "copy": "Kopyala",
     "copied": "Kopyalandı",
+    "showMore": "Devamını göster",
+    "showLess": "Daralt",
+    "yesterday": "dün",
     "toolNames": {
       "check_domains_availability": "Domain müsaitliği",
       "get_domain_price": "Domain fiyatı",
@@ -376,11 +383,47 @@
     "titleMacros": "Makrolar",
     "titleChromeExtension": "Chrome Eklentisi",
     "titleApiKeysPrivacy": "API Anahtarları ve Gizlilik",
-    "titleProviders": "Sağlayıcılar"
+    "titleProviders": "Sağlayıcılar",
+    "titleAnalytics": "Analitik"
   },
   "errors": {
     "notConfigured": "LLM yapılandırılmadı. Ayarlardan bir provider ve model seçin.",
     "providerNotFound": "Provider bulunamadı: {{provider}}",
     "toolNotFound": "Tool bulunamadı: {{tool}}"
+  },
+  "analytics": {
+    "title": "Analitik",
+    "description": "Model ve agent bazında token kullanımınızı ve maliyetlerinizi takip edin.",
+    "totalTokens": "Toplam Token",
+    "totalCost": "Toplam Maliyet",
+    "totalCalls": "API Çağrısı",
+    "timeRange7d": "7 gün",
+    "timeRange30d": "30 gün",
+    "timeRange90d": "90 gün",
+    "timeRangeAll": "Tümü",
+    "usageOverTime": "Zamana Göre Kullanım",
+    "perAgent": "Agent Bazında",
+    "perModel": "Model Bazında",
+    "toolUsage": "Tool Kullanımı",
+    "noData": "Henüz kullanım verisi yok. Analitik görmek için bir sohbet başlatın.",
+    "clearData": "Analitik Verisini Temizle",
+    "clearDataConfirm": "Tüm analitik verileri kalıcı olarak silinecek. Bu işlem geri alınamaz.",
+    "inputTokens": "Giriş",
+    "outputTokens": "Çıkış",
+    "cost": "Maliyet",
+    "tokens": "Token",
+    "calls": "çağrı",
+    "avgPerCall": "Ort. / çağrı",
+    "viewAnalytics": "Kullanım analitiği ve maliyet takibini görüntüle",
+    "trendVsPrev": "önceki {{range}} ile"
+  },
+  "longTask": {
+    "bannerMessage": "Bu görev uzun sürebilir.",
+    "runInBackground": "Arka planda çalıştır",
+    "notifyWhenDone": "Bitince bildir",
+    "notifyEnabled": "Bildirim açık",
+    "notificationDone": "Görev tamamlandı: {{title}}",
+    "notificationFailed": "Görev başarısız oldu: {{title}}",
+    "stepProgress": "Adım {{current}}/{{total}}"
   }
 }

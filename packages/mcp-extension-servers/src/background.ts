@@ -309,6 +309,64 @@ chrome.runtime.onConnect.addListener((port) => {
         }
         handleFullAccessibilitySnapshotForSidepanel(tab.id)
       })
+    } else if (msg.type === 'accessibilityNeighborsPreview') {
+      const m = msg as Record<string, unknown>
+      chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
+        if (!tab?.id) {
+          sidePanelPort?.postMessage({ type: 'accessibility-neighbors-error', error: 'No active tab' })
+          return
+        }
+        handleAccessibilityNeighborsForSidepanel(
+          tab.id,
+          m.targetName as string,
+          m.targetRole as string | undefined,
+          (m.count as number) ?? 3,
+          (m.direction as 'both' | 'above' | 'below') ?? 'both',
+          (m.includeChildren as boolean) ?? true,
+          (m.matchMode as 'contains' | 'equals') ?? 'contains',
+        )
+      })
+    } else if (msg.type === 'trySelectorHighlight') {
+      const selector = (msg as Record<string, unknown>).selector as string
+      chrome.tabs.query({ active: true, currentWindow: true }, async ([tab]) => {
+        if (!tab?.id) {
+          sidePanelPort?.postMessage({ type: 'trySelectorHighlight-result', found: false, error: 'No active tab' })
+          return
+        }
+        try {
+          const results = await chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            func: (sel: string) => {
+              const isXPath = sel.startsWith('/') || sel.startsWith('(') || sel.includes('//')
+              const el = isXPath
+                ? document.evaluate(sel, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue as HTMLElement | null
+                : document.querySelector<HTMLElement>(sel)
+              if (!el) return { found: false, tag: '' }
+              // Flash outline 3 times
+              const prev = el.style.outline
+              const prevOffset = el.style.outlineOffset
+              const prevTransition = el.style.transition
+              el.style.transition = 'outline-color 0.15s ease'
+              el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+              let count = 0
+              const flash = () => {
+                if (count >= 6) { el.style.outline = prev; el.style.outlineOffset = prevOffset; el.style.transition = prevTransition; return }
+                el.style.outline = count % 2 === 0 ? '3px solid hsl(200 90% 50%)' : '3px solid transparent'
+                el.style.outlineOffset = '2px'
+                count++
+                setTimeout(flash, 250)
+              }
+              flash()
+              return { found: true, tag: el.tagName.toLowerCase() + (el.id ? '#' + el.id : '') + (el.className ? '.' + el.className.split(' ')[0] : '') }
+            },
+            args: [selector],
+          })
+          const r = results?.[0]?.result as { found: boolean; tag: string } | undefined
+          sidePanelPort?.postMessage({ type: 'trySelectorHighlight-result', found: r?.found ?? false, tag: r?.tag ?? '' })
+        } catch (e) {
+          sidePanelPort?.postMessage({ type: 'trySelectorHighlight-result', found: false, error: e instanceof Error ? e.message : String(e) })
+        }
+      })
     }
   })
 })
@@ -476,6 +534,7 @@ type P = Record<string, unknown>
 async function handleOpen(p: P): Promise<R> {
   const url = p.url as string
   const viewport = p.viewport as { width: number; height: number } | undefined
+  const background = p.background !== false // default true for backward compat
   // Use a small physical window; actual viewport is emulated via CDP
   const opts = { width: 400, height: 300 }
   const laneId = getLaneId(p)
@@ -503,6 +562,9 @@ async function handleOpen(p: P): Promise<R> {
       if (viewport) {
         await cdpSetViewport(existingTab, viewport.width, viewport.height)
       }
+      if (!background && automationWindowId != null) {
+        await chrome.windows.update(automationWindowId, { focused: true })
+      }
       return { success: true, data: { tabId: existingTab } }
     } catch {
       laneTabs.delete(laneId)
@@ -529,6 +591,9 @@ async function handleOpen(p: P): Promise<R> {
     // Window exists (possibly created by another lane) - add a tab
     const tab = await chrome.tabs.create({ windowId: automationWindowId, url, active: true })
     tid = tab.id!
+    if (!background) {
+      await chrome.windows.update(automationWindowId, { focused: true })
+    }
   } else {
     // First lane - create the window under a lock
     let resolveCreation!: () => void
@@ -540,7 +605,7 @@ async function handleOpen(p: P): Promise<R> {
         type: 'normal',
         width: opts.width,
         height: opts.height,
-        focused: false,
+        focused: !background,
       })
       if (!win) return { success: false, error: 'Failed to create window' }
       tid = win.tabs?.[0]?.id ?? null
@@ -1729,6 +1794,38 @@ async function handleFullAccessibilitySnapshotForSidepanel(tabId: number): Promi
   }
 }
 
+async function handleAccessibilityNeighborsForSidepanel(
+  tabId: number,
+  targetName: string,
+  targetRole: string | undefined,
+  count: number,
+  direction: 'both' | 'above' | 'below',
+  includeChildren: boolean,
+  matchMode: 'contains' | 'equals' = 'contains',
+): Promise<void> {
+  try {
+    await cdpAttach(tabId)
+    const result = await handleAccessibilityNeighbors({
+      tabId,
+      targetName,
+      targetRole,
+      count,
+      direction,
+      includeChildren,
+      matchMode,
+    })
+    await cdpDetach(tabId)
+    if ((result as { success: boolean }).success) {
+      sidePanelPort?.postMessage({ type: 'accessibility-neighbors-result', data: (result as { data: string }).data })
+    } else {
+      sidePanelPort?.postMessage({ type: 'accessibility-neighbors-error', error: (result as { error: string }).error })
+    }
+  } catch (e) {
+    try { await cdpDetach(tabId) } catch {}
+    sidePanelPort?.postMessage({ type: 'accessibility-neighbors-error', error: e instanceof Error ? e.message : String(e) })
+  }
+}
+
 async function handleRoleExtract(tabId: number, roles: string[], name: string, includeChildren: boolean): Promise<void> {
   try {
     await cdpAttach(tabId)
@@ -2118,6 +2215,130 @@ async function handleAccessibilitySnapshot(p: P): Promise<R> {
   }
 }
 
+/**
+ * Runtime handler: get accessibility tree neighbors around a target node.
+ * Finds a node by accessible name (and optionally role), then returns
+ * its siblings (above/below/both) from the parent's children.
+ */
+async function handleAccessibilityNeighbors(p: P): Promise<R> {
+  const tid = p.tabId as number
+  const targetName = p.targetName as string
+  const targetRole = p.targetRole as string | undefined
+  const count = (p.count as number) ?? 3
+  const direction = (p.direction as 'both' | 'above' | 'below') ?? 'both'
+  const matchMode = (p.matchMode as 'contains' | 'equals') ?? 'contains'
+
+  console.log(`[izan-ext] accessibilityNeighbors: tab=${tid} target="${targetName}" role=${targetRole ?? '(any)'} count=${count} dir=${direction} match=${matchMode}`)
+
+  if (!targetName) return { success: false, error: 'targetName is required' }
+
+  try {
+    await chrome.debugger.sendCommand({ tabId: tid }, 'DOM.enable')
+    await chrome.debugger.sendCommand({ tabId: tid }, 'Accessibility.enable')
+
+    const result = await chrome.debugger.sendCommand({ tabId: tid }, 'Accessibility.getFullAXTree', { depth: -1 }) as { nodes: AXNode[] }
+
+    // Render the full AX tree, then find target lines and slice neighbors.
+    // This uses the rendered line order (same as full-page snapshot) so `count`
+    // directly controls how many visible lines above/below are returned.
+    const allLines = formatAXTree(result.nodes).split('\n')
+
+    // Support comma-separated target names
+    const targets = targetName.split(',').map(t => t.trim().toLowerCase()).filter(Boolean)
+    if (targets.length === 0) return { success: false, error: 'No valid target names provided' }
+
+    // Line matcher: extract the quoted name from a rendered AX line
+    const extractName = (line: string): string | null => {
+      const m = line.match(/"([^"]*)"/)
+      return m ? m[1].toLowerCase() : null
+    }
+
+    const matchLine = (line: string, target: string): boolean => {
+      if (matchMode === 'equals') {
+        const name = extractName(line)
+        return name !== null && name === target
+      }
+      return line.toLowerCase().includes(target)
+    }
+
+    // Find all matching line indices
+    const matchedIndices: number[] = []
+    for (let i = 0; i < allLines.length; i++) {
+      const line = allLines[i]
+      // Role filter: check "- role" at the start of trimmed line
+      if (targetRole) {
+        const roleMatch = line.match(/- (\S+)/)
+        if (!roleMatch || roleMatch[1].toLowerCase() !== targetRole.toLowerCase()) continue
+      }
+      for (const target of targets) {
+        if (matchLine(line, target)) {
+          matchedIndices.push(i)
+          break
+        }
+      }
+    }
+
+    if (matchedIndices.length === 0) {
+      await chrome.debugger.sendCommand({ tabId: tid }, 'Accessibility.disable').catch(() => {})
+      await chrome.debugger.sendCommand({ tabId: tid }, 'DOM.disable').catch(() => {})
+      const roleMsg = targetRole ? ` with role "${targetRole}"` : ''
+      const modeMsg = matchMode === 'equals' ? 'matching' : 'containing'
+      return { success: false, error: `No accessibility node found with name ${modeMsg} "${targetName}"${roleMsg}` }
+    }
+
+    // Mark all target lines
+    for (const idx of matchedIndices) {
+      allLines[idx] = allLines[idx] + ' ← TARGET'
+    }
+
+    // Build ranges around each match, then merge overlapping ranges
+    const ranges: Array<[number, number]> = []
+    for (const idx of matchedIndices) {
+      let s: number, e: number
+      if (direction === 'above') {
+        s = Math.max(0, idx - count); e = idx
+      } else if (direction === 'below') {
+        s = idx; e = Math.min(allLines.length - 1, idx + count)
+      } else {
+        s = Math.max(0, idx - count); e = Math.min(allLines.length - 1, idx + count)
+      }
+      ranges.push([s, e])
+    }
+    // Sort and merge overlapping ranges
+    ranges.sort((a, b) => a[0] - b[0])
+    const merged: Array<[number, number]> = [ranges[0]]
+    for (let i = 1; i < ranges.length; i++) {
+      const prev = merged[merged.length - 1]
+      if (ranges[i][0] <= prev[1] + 1) {
+        prev[1] = Math.max(prev[1], ranges[i][1])
+      } else {
+        merged.push(ranges[i])
+      }
+    }
+
+    // Collect lines from merged ranges, separate non-adjacent ranges with a divider
+    const lines: string[] = []
+    for (let i = 0; i < merged.length; i++) {
+      if (i > 0) lines.push('---')
+      const [s, e] = merged[i]
+      for (let j = s; j <= e; j++) lines.push(allLines[j])
+    }
+
+    await chrome.debugger.sendCommand({ tabId: tid }, 'Accessibility.disable').catch(() => {})
+    await chrome.debugger.sendCommand({ tabId: tid }, 'DOM.disable').catch(() => {})
+
+    if (lines.length === 0) return { success: true, data: '(no neighbor nodes found)' }
+    if (lines.length > 2000) {
+      return { success: true, data: lines.slice(0, 2000).join('\n') + `\n... (truncated, ${lines.length - 2000} more lines)` }
+    }
+    return { success: true, data: lines.join('\n') }
+  } catch (e) {
+    await chrome.debugger.sendCommand({ tabId: tid }, 'Accessibility.disable').catch(() => {})
+    await chrome.debugger.sendCommand({ tabId: tid }, 'DOM.disable').catch(() => {})
+    return { success: false, error: e instanceof Error ? e.message : String(e) }
+  }
+}
+
 // ─── Message Router ───────────────────────────────────────────────────────────
 
 const HANDLERS: Record<string, (p: P) => Promise<R>> = {
@@ -2140,6 +2361,7 @@ const HANDLERS: Record<string, (p: P) => Promise<R>> = {
   extractSingle: handleExtractSingle,
   extractByRole: handleExtractByRole,
   accessibilitySnapshot: handleAccessibilitySnapshot,
+  accessibilityNeighbors: handleAccessibilityNeighbors,
   waitForSelector: handleWaitForSelector,
   waitForUrl: handleWaitForUrl,
   waitForLoad: handleWaitForLoad,

@@ -53,11 +53,18 @@ export interface ChatCompletionTool {
   }
 }
 
+/** Token usage from an API response */
+export interface TokenUsage {
+  inputTokens: number
+  outputTokens: number
+}
+
 /** Result from a chat completion that may include tool calls */
 export interface ChatCompletionResult {
   content: string | null
   toolCalls: ChatCompletionMessageToolCall[] | null
   finishReason: string
+  usage: TokenUsage | null
 }
 
 /** Optional model hyperparameters for chat completion */
@@ -82,7 +89,7 @@ export interface ILLMService {
     messages: ChatCompletionMessageParam[],
     onChunk: (chunk: string) => void,
     options?: LLMGenerationOptions,
-  ): Promise<void>
+  ): Promise<TokenUsage | null>
 
   // Chat completion with tools (non-streaming, returns tool_calls or text)
   chatWithTools(

@@ -5,6 +5,7 @@ import type {
   ChatCompletionResult,
   ChatCompletionMessageToolCall,
   LLMGenerationOptions,
+  TokenUsage,
 } from './interfaces'
 
 /** Partial tool call from stream delta (accumulated across chunks) */
@@ -171,7 +172,7 @@ export class LLMService implements ILLMService {
     messages: ChatCompletionMessageParam[],
     onChunk: (chunk: string) => void,
     options?: LLMGenerationOptions,
-  ): Promise<void> {
+  ): Promise<TokenUsage | null> {
     if (!this.isConfigured()) {
       throw new Error('LLM not configured. Select a provider and model in settings.')
     }
@@ -184,7 +185,7 @@ export class LLMService implements ILLMService {
       throw new Error('Invalid provider configuration')
     }
 
-    await this.streamDirect(messages, onChunk, options)
+    return this.streamDirect(messages, onChunk, options)
   }
 
   /** Models that require max_completion_tokens instead of max_tokens (OpenAI o1, o3, o4) */
@@ -240,11 +241,18 @@ export class LLMService implements ILLMService {
     return response
   }
 
+  /** Whether the current provider supports stream_options (OpenAI extension, not universal) */
+  private supportsStreamOptions(): boolean {
+    const p = this.provider
+    // Google Gemini and Cohere compatibility endpoints may reject unknown fields
+    return p !== 'google' && p !== 'cohere'
+  }
+
   private async streamDirect(
     messages: ChatCompletionMessageParam[],
     onChunk: (chunk: string) => void,
     options?: LLMGenerationOptions,
-  ): Promise<void> {
+  ): Promise<TokenUsage | null> {
     const normalizedMessages = normalizeMessagesForStrictRoles(messages)
     const isResponsesApi = this.useResponsesApi && this.responsesUrl
     const requestUrl = isResponsesApi ? this.responsesUrl : this.url
@@ -252,6 +260,9 @@ export class LLMService implements ILLMService {
     const body: Record<string, unknown> = isResponsesApi
       ? { model: this.model, input: normalizedMessages, stream: true }
       : { model: this.model, messages: normalizedMessages, stream: true }
+    if (!isResponsesApi && this.supportsStreamOptions()) {
+      body.stream_options = { include_usage: true }
+    }
     this.applyOptions(body, options, !!isResponsesApi)
 
     const response = await this.fetchApi(requestUrl, body)
@@ -259,6 +270,7 @@ export class LLMService implements ILLMService {
     const reader = response.body?.getReader()
     if (!reader) throw new Error('Response body is not readable')
 
+    let usage: TokenUsage | null = null
     const isAborted = () => this.abortController?.signal.aborted ?? false
     if (isResponsesApi) {
       for await (const parsed of parseSSEStream(reader, isAborted)) {
@@ -272,6 +284,12 @@ export class LLMService implements ILLMService {
           const delta = parsed.delta as string | undefined
           if (delta) await Promise.resolve(onChunk(delta))
         }
+        if (parsed.type === 'response.completed') {
+          const resp = parsed.response as { usage?: { input_tokens?: number; output_tokens?: number } } | undefined
+          if (resp?.usage) {
+            usage = { inputTokens: resp.usage.input_tokens ?? 0, outputTokens: resp.usage.output_tokens ?? 0 }
+          }
+        }
       }
     } else {
       for await (const parsed of parseSSEStream(reader, isAborted)) {
@@ -281,8 +299,16 @@ export class LLMService implements ILLMService {
         if (content) {
           await Promise.resolve(onChunk(content))
         }
+        const u = parsed.usage as { prompt_tokens?: number; completion_tokens?: number; input_tokens?: number; output_tokens?: number } | undefined
+        if (u) {
+          usage = {
+            inputTokens: u.prompt_tokens ?? u.input_tokens ?? 0,
+            outputTokens: u.completion_tokens ?? u.output_tokens ?? 0,
+          }
+        }
       }
     }
+    return usage
   }
 
   private async streamDirectWithTools(
@@ -294,6 +320,9 @@ export class LLMService implements ILLMService {
     const body: Record<string, unknown> = {
       model: this.model, messages, tools, tool_choice: 'auto', stream: true,
     }
+    if (this.supportsStreamOptions()) {
+      body.stream_options = { include_usage: true }
+    }
     this.applyOptions(body, options)
 
     const response = await this.fetchApi(this.url, body)
@@ -303,6 +332,7 @@ export class LLMService implements ILLMService {
     let fullContent = ''
     const toolCallsAccum: Record<number, StreamToolCallAccum> = {}
     let finishReason = 'stop'
+    let usage: TokenUsage | null = null
 
     const isAborted = () => this.abortController?.signal.aborted ?? false
     for await (const parsed of parseSSEStream(reader, isAborted)) {
@@ -341,6 +371,13 @@ export class LLMService implements ILLMService {
           }
         }
       }
+      const u = parsed.usage as { prompt_tokens?: number; completion_tokens?: number; input_tokens?: number; output_tokens?: number } | undefined
+      if (u) {
+        usage = {
+          inputTokens: u.prompt_tokens ?? u.input_tokens ?? 0,
+          outputTokens: u.completion_tokens ?? u.output_tokens ?? 0,
+        }
+      }
     }
 
     const toolCalls: ChatCompletionMessageToolCall[] | null =
@@ -365,6 +402,7 @@ export class LLMService implements ILLMService {
       content: fullContent || null,
       toolCalls,
       finishReason,
+      usage,
     }
   }
 
@@ -423,6 +461,7 @@ export class LLMService implements ILLMService {
         }
         finish_reason?: string
       }>
+      usage?: { prompt_tokens?: number; completion_tokens?: number; input_tokens?: number; output_tokens?: number }
     }
 
     const choice = data.choices?.[0]
@@ -433,10 +472,16 @@ export class LLMService implements ILLMService {
       function: { name: tc.function.name, arguments: tc.function.arguments },
     }))
 
+    const u = data.usage
+    const usage: TokenUsage | null = u
+      ? { inputTokens: u.prompt_tokens ?? u.input_tokens ?? 0, outputTokens: u.completion_tokens ?? u.output_tokens ?? 0 }
+      : null
+
     return {
       content: msg?.content ?? null,
       toolCalls: toolCalls ?? null,
       finishReason: choice?.finish_reason ?? 'stop',
+      usage,
     }
   }
 

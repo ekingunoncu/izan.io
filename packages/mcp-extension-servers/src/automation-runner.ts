@@ -452,6 +452,19 @@ export class AutomationRunner {
       return bw.accessibilitySnapshot()
     }
 
+    // Accessibility neighbors - returns siblings around a target AX node
+    if (method === 'neighbors' && step.neighborTargetName) {
+      console.log(`[izan-ext] stepExtract: neighbors target="${step.neighborTargetName}" role=${step.neighborTargetRole ?? '(any)'} count=${step.neighborCount ?? 3} dir=${step.neighborDirection ?? 'both'}`)
+      return bw.accessibilityNeighbors(
+        step.neighborTargetName,
+        step.neighborTargetRole,
+        step.neighborCount ?? 3,
+        step.neighborDirection ?? 'both',
+        step.neighborIncludeChildren ?? true,
+        step.neighborMatchMode ?? 'contains',
+      )
+    }
+
     const mapField = (f: ExtractionField): Record<string, unknown> => ({
       key: f.key, selector: f.selector, type: f.type,
       ...(f.attribute && { attribute: f.attribute }),
@@ -514,20 +527,23 @@ export class AutomationRunner {
     console.log(`[izan-ext] forEachItem: ${items.length} items after maxItems=${step.maxItems}`)
 
     // Apply filters (AND logic - all must match)
+    // Filter field, value all support {{param}} placeholders so LLMs can pass dynamic values
     if (step.filters && step.filters.length > 0) {
       const beforeCount = items.length
       items = items.filter(raw => {
         const obj = raw as Record<string, unknown>
         return step.filters!.every(f => {
-          const val = String(obj[f.field] ?? '')
+          const field = resolveTemplate(f.field, args)
+          const val = String(obj[field] ?? '')
+          const fv = resolveTemplate(f.value, args)
           switch (f.op) {
-            case 'contains': return val.includes(f.value)
-            case 'not_contains': return !val.includes(f.value)
-            case 'equals': return val === f.value
-            case 'not_equals': return val !== f.value
-            case 'starts_with': return val.startsWith(f.value)
-            case 'ends_with': return val.endsWith(f.value)
-            case 'regex': try { return new RegExp(f.value).test(val) } catch { return false }
+            case 'contains': return val.includes(fv)
+            case 'not_contains': return !val.includes(fv)
+            case 'equals': return val === fv
+            case 'not_equals': return val !== fv
+            case 'starts_with': return val.startsWith(fv)
+            case 'ends_with': return val.endsWith(fv)
+            case 'regex': try { return new RegExp(fv).test(val) } catch { return false }
             default: return true
           }
         })

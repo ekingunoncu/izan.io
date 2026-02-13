@@ -1,4 +1,4 @@
-import { db, type Chat, type Message, type UserPreferences, DEFAULT_PREFERENCES } from '../db'
+import { db, type Chat, type Message, type UserPreferences, type UsageRecord, DEFAULT_PREFERENCES } from '../db'
 import type { IStorageService } from './interfaces'
 
 /**
@@ -145,6 +145,28 @@ export class StorageService implements IStorageService {
         await db.chats.delete(chat.id)
       }
     })
+  }
+
+  // ============ Usage Analytics Operations ============
+
+  async createUsageRecord(record: UsageRecord): Promise<void> {
+    await db.usageRecords.add(record)
+  }
+
+  async getUsageRecords(fromTimestamp?: number, toTimestamp?: number): Promise<UsageRecord[]> {
+    if (fromTimestamp != null || toTimestamp != null) {
+      const from = fromTimestamp ?? 0
+      const to = toTimestamp ?? Infinity
+      return db.usageRecords
+        .where('timestamp')
+        .between(from, to, true, true)
+        .sortBy('timestamp')
+    }
+    return db.usageRecords.orderBy('timestamp').toArray()
+  }
+
+  async clearUsageRecords(): Promise<void> {
+    await db.usageRecords.clear()
   }
 
   // ============ Preferences Operations ============

@@ -154,6 +154,19 @@ export function App() {
   const [axSnapshot, setAxSnapshot] = useState<string | null>(null)
   const [axSnapshotLoading, setAxSnapshotLoading] = useState(false)
 
+  // Accessibility neighbors extraction
+  const [neighborTargetName, setNeighborTargetName] = useState('')
+  const [neighborTargetRole, setNeighborTargetRole] = useState('')
+  const [neighborCount, setNeighborCount] = useState(3)
+  const [neighborDirection, setNeighborDirection] = useState<'both' | 'above' | 'below'>('both')
+  const [neighborIncludeChildren, setNeighborIncludeChildren] = useState(true)
+  const [neighborMatchMode, setNeighborMatchMode] = useState<'contains' | 'equals'>('contains')
+  const [neighborPreview, setNeighborPreview] = useState<string | null>(null)
+  const [neighborLoading, setNeighborLoading] = useState(false)
+
+  // Try selector feedback
+  const [trySelectorResult, setTrySelectorResult] = useState<'found' | 'not_found' | null>(null)
+
   // ForEachItem sub-action recording flow
   const [subActionFlow, setSubActionFlow] = useState<{
     sourceExtractName: string
@@ -274,41 +287,54 @@ export function App() {
             const stepMeta = new Map<string, ParamMeta>()
 
             if (s.action === 'navigate') {
-              // Query params
-              const navParams = s.urlParams ? Object.entries(s.urlParams) : (() => {
-                try { return Array.from(new URL(s.url ?? '', 'https://x').searchParams.entries()) } catch { return [] }
-              })()
-              for (const [k, v] of navParams) {
-                const isParameterized = typeof v === 'string' && /^\{\{.+\}\}$/.test(v)
-                const matchingParam = toolParams.find(p => p.sourceKey === k || p.name === k)
-                stepMeta.set(k, {
-                  enabled: isParameterized,
+              // Full URL parameterization - detect {{...}} as the entire URL
+              const urlMatch = s.url ? /^\{\{(.+)\}\}$/.exec(s.url) : null
+              if (urlMatch) {
+                const paramName = urlMatch[1]
+                const matchingParam = toolParams.find(p => p.sourceKey === '__url' || p.name === paramName)
+                stepMeta.set('__url', {
+                  enabled: true,
                   description: matchingParam?.description ?? '',
-                  originalValue: isParameterized ? (matchingParam?.name ?? k) : v,
+                  originalValue: paramName,
+                  paramName,
                 })
-              }
+              } else {
+                // Query params
+                const navParams = s.urlParams ? Object.entries(s.urlParams) : (() => {
+                  try { return Array.from(new URL(s.url ?? '', 'https://x').searchParams.entries()) } catch { return [] }
+                })()
+                for (const [k, v] of navParams) {
+                  const isParameterized = typeof v === 'string' && /^\{\{.+\}\}$/.test(v)
+                  const matchingParam = toolParams.find(p => p.sourceKey === k || p.name === k)
+                  stepMeta.set(k, {
+                    enabled: isParameterized,
+                    description: matchingParam?.description ?? '',
+                    originalValue: isParameterized ? (matchingParam?.name ?? k) : v,
+                  })
+                }
 
-              // Path segments - detect {{...}} placeholders in the URL path
-              if (s.url) {
-                try {
-                  const parsed = new URL(s.url, 'https://x')
-                  const segments = parsed.pathname.split('/').slice(1)
-                  for (let idx = 0; idx < segments.length; idx++) {
-                    const seg = segments[idx]
-                    const match = /^\{\{(.+)\}\}$/.exec(seg)
-                    if (match) {
-                      const paramName = match[1]
-                      const key = `__path:${idx}`
-                      const matchingParam = toolParams.find(p => p.sourceKey === key || p.name === paramName)
-                      stepMeta.set(key, {
-                        enabled: true,
-                        description: matchingParam?.description ?? '',
-                        originalValue: paramName,
-                        paramName,
-                      })
+                // Path segments - detect {{...}} placeholders in the URL path
+                if (s.url) {
+                  try {
+                    const parsed = new URL(s.url, 'https://x')
+                    const segments = parsed.pathname.split('/').slice(1)
+                    for (let idx = 0; idx < segments.length; idx++) {
+                      const seg = segments[idx]
+                      const match = /^\{\{(.+)\}\}$/.exec(seg)
+                      if (match) {
+                        const paramName = match[1]
+                        const key = `__path:${idx}`
+                        const matchingParam = toolParams.find(p => p.sourceKey === key || p.name === paramName)
+                        stepMeta.set(key, {
+                          enabled: true,
+                          description: matchingParam?.description ?? '',
+                          originalValue: paramName,
+                          paramName,
+                        })
+                      }
                     }
-                  }
-                } catch { /* invalid URL */ }
+                  } catch { /* invalid URL */ }
+                }
               }
             }
 
@@ -462,6 +488,16 @@ export function App() {
       } else if (type === 'accessibility-snapshot-error') {
         setAxSnapshotLoading(false)
         setSelectorError(msg.error as string)
+      } else if (type === 'accessibility-neighbors-result') {
+        setNeighborLoading(false)
+        setNeighborPreview(msg.data as string)
+      } else if (type === 'accessibility-neighbors-error') {
+        setNeighborLoading(false)
+        setSelectorError(msg.error as string)
+      } else if (type === 'trySelectorHighlight-result') {
+        const found = msg.found as boolean
+        setTrySelectorResult(found ? 'found' : 'not_found')
+        setTimeout(() => setTrySelectorResult(null), 2000)
       }
     })
 
@@ -662,6 +698,69 @@ export function App() {
     } else {
       addStepToLane(setSteps, setLanes, activeLaneRef.current, newStep)
     }
+  }
+
+  const handleNeighborPreview = () => {
+    if (!neighborTargetName.trim()) return
+    if (!portRef.current) {
+      setSelectorError('Extension not connected')
+      return
+    }
+    setNeighborLoading(true)
+    setSelectorError(null)
+    setNeighborPreview(null)
+    // Sync count from string input before sending
+    const n = parseInt(String(neighborCount), 10)
+    const count = isNaN(n) || n < 1 ? 3 : Math.min(20, n)
+    portRef.current.postMessage({
+      type: 'accessibilityNeighborsPreview',
+      targetName: neighborTargetName.trim(),
+      targetRole: neighborTargetRole || undefined,
+      count,
+      direction: neighborDirection,
+      includeChildren: neighborIncludeChildren,
+      matchMode: neighborMatchMode,
+    })
+  }
+
+  const handleNeighborExtract = () => {
+    if (!neighborTargetName.trim()) return
+    const safeName = slugify(neighborTargetName.trim())
+    const newStep: Step = {
+      action: 'extract',
+      name: `neighbors_of_${safeName}`,
+      mode: 'single',
+      containerSelector: '',
+      extractionMethod: 'neighbors',
+      neighborTargetName: neighborTargetName.trim(),
+      neighborTargetRole: neighborTargetRole || undefined,
+      neighborCount,
+      neighborDirection,
+      neighborIncludeChildren,
+      neighborMatchMode,
+      fields: [{ key: 'tree', selector: '', type: 'text' }],
+      label: `Extract neighbors of "${neighborTargetName.trim()}"`,
+    }
+    if (neighborPreview) {
+      (newStep as Record<string, unknown>)._preview = { tree: neighborPreview }
+    }
+    setShowAccessibilityInput(false)
+    setNeighborPreview(null)
+    setNeighborTargetName('')
+    setNeighborTargetRole('')
+    if (subActionFlowRef.current?.phase === 'recording') {
+      setSubActionFlow(prev => prev ? { ...prev, detailSteps: [...prev.detailSteps, newStep] } : prev)
+    } else if (viewRef.current === 'edit') {
+      addStepToLane(setEditSteps, setEditLanes, activeLaneRef.current, newStep)
+    } else {
+      addStepToLane(setSteps, setLanes, activeLaneRef.current, newStep)
+    }
+  }
+
+  const handleTrySelector = (selector: string) => {
+    if (!portRef.current || !selector.trim()) return
+    setTrySelectorResult(null)
+    portRef.current.postMessage({ type: 'trySelectorHighlight', selector: selector.trim() })
   }
 
   const buildFinalData = () => {
@@ -1052,34 +1151,52 @@ export function App() {
           </div>
 
           {/* Recording toolbar */}
-          <div className="flex flex-wrap gap-2 px-1">
-            {isEditRecording ? (
-              <Button variant="destructive" size="sm" onClick={handleEditStop}>
-                <Square className="h-3.5 w-3.5" /> Stop
-              </Button>
-            ) : (
-              <Button variant="default" size="sm" onClick={handleEditRecord}>
-                <Circle className="h-3.5 w-3.5" /> Record
-              </Button>
-            )}
-            <Button variant="outline" size="sm" onClick={() => handleEditExtract('list')}>
-              <List className="h-3.5 w-3.5" /> List
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => handleEditExtract('single')}>
-              <FileText className="h-3.5 w-3.5" /> Single
-            </Button>
-            <Button variant={showSelectorInput ? 'secondary' : 'outline'} size="sm" onClick={() => { setShowSelectorInput(!showSelectorInput); setShowAccessibilityInput(false); setSelectorError(null) }}>
-              <Code className="h-3.5 w-3.5" /> Selector
-            </Button>
-            <Button variant={showAccessibilityInput ? 'secondary' : 'outline'} size="sm" onClick={() => { setShowAccessibilityInput(!showAccessibilityInput); setShowSelectorInput(false); setSelectorError(null) }}>
-              <ScanEye className="h-3.5 w-3.5" /> A11y
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => setShowWaitInput(!showWaitInput)}>
-              <Timer className="h-3.5 w-3.5" /> Wait
-            </Button>
-            <Button variant="outline" size="sm" disabled={isEditRecording || editSteps.length === 0} onClick={() => handleClearAllSteps(true)}>
-              <Trash2 className="h-3.5 w-3.5" /> Clear
-            </Button>
+          <div className="flex flex-col divide-y px-1">
+            {/* Recording control */}
+            <div className="py-2">
+              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5">Recording</p>
+              <div className="flex flex-wrap gap-1.5">
+                {isEditRecording ? (
+                  <Button variant="destructive" size="sm" onClick={handleEditStop}>
+                    <Square className="h-3.5 w-3.5" /> Stop
+                  </Button>
+                ) : (
+                  <Button variant="default" size="sm" onClick={handleEditRecord}>
+                    <Circle className="h-3.5 w-3.5" /> Record
+                  </Button>
+                )}
+                <Button variant="outline" size="sm" disabled={isEditRecording || editSteps.length === 0} onClick={() => handleClearAllSteps(true)}>
+                  <Trash2 className="h-3.5 w-3.5" /> Clear
+                </Button>
+              </div>
+            </div>
+            {/* Data extraction */}
+            <div className="py-2">
+              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5">Extract</p>
+              <div className="flex flex-wrap gap-1.5">
+                <Button variant="outline" size="sm" onClick={() => handleEditExtract('list')}>
+                  <List className="h-3.5 w-3.5" /> List
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => handleEditExtract('single')}>
+                  <FileText className="h-3.5 w-3.5" /> Single
+                </Button>
+                <Button variant={showSelectorInput ? 'secondary' : 'outline'} size="sm" onClick={() => { setShowSelectorInput(!showSelectorInput); setShowAccessibilityInput(false); setSelectorError(null) }}>
+                  <Code className="h-3.5 w-3.5" /> Selector
+                </Button>
+                <Button variant={showAccessibilityInput ? 'secondary' : 'outline'} size="sm" onClick={() => { setShowAccessibilityInput(!showAccessibilityInput); setShowSelectorInput(false); setSelectorError(null) }}>
+                  <ScanEye className="h-3.5 w-3.5" /> A11y
+                </Button>
+              </div>
+            </div>
+            {/* Flow control */}
+            <div className="py-2">
+              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5">Flow</p>
+              <div className="flex flex-wrap gap-1.5">
+                <Button variant="outline" size="sm" onClick={() => setShowWaitInput(!showWaitInput)}>
+                  <Timer className="h-3.5 w-3.5" /> Wait
+                </Button>
+              </div>
+            </div>
           </div>
 
           {/* CSS Selector input (edit mode) */}
@@ -1104,8 +1221,15 @@ export function App() {
                 roleIncludeChildren={roleIncludeChildren} onRoleIncludeChildrenChange={setRoleIncludeChildren}
                 loading={selectorLoading} error={selectorError}
                 onSubmit={handleAccessibilityExtract}
-                onClose={() => { setShowAccessibilityInput(false); setSelectorError(null); setRoleValues([]); setRoleNameValue(''); setRoleIncludeChildren(true); setAxSnapshot(null) }}
+                onClose={() => { setShowAccessibilityInput(false); setSelectorError(null); setRoleValues([]); setRoleNameValue(''); setRoleIncludeChildren(true); setAxSnapshot(null); setNeighborPreview(null); setNeighborTargetName(''); setNeighborTargetRole('') }}
                 snapshot={axSnapshot} snapshotLoading={axSnapshotLoading} onSnapshot={handleAccessibilitySnapshot} onSnapshotExtract={handleSnapshotExtract}
+                neighborTargetName={neighborTargetName} onNeighborTargetNameChange={setNeighborTargetName}
+                neighborTargetRole={neighborTargetRole} onNeighborTargetRoleChange={setNeighborTargetRole}
+                neighborCount={neighborCount} onNeighborCountChange={setNeighborCount}
+                neighborDirection={neighborDirection} onNeighborDirectionChange={setNeighborDirection}
+                neighborIncludeChildren={neighborIncludeChildren} onNeighborIncludeChildrenChange={setNeighborIncludeChildren}
+                neighborMatchMode={neighborMatchMode} onNeighborMatchModeChange={setNeighborMatchMode}
+                neighborPreview={neighborPreview} neighborLoading={neighborLoading} onNeighborPreview={handleNeighborPreview} onNeighborExtract={handleNeighborExtract}
               />
             </div>
           )}
@@ -1196,6 +1320,7 @@ export function App() {
                   })
                 }}
                 onUpdateStepProps={(props) => updateStepPropsAt(setEditSteps, setEditLanes, activeLane, i, props)}
+                onTrySelector={handleTrySelector} trySelectorResult={trySelectorResult}
                 sourceFieldKeys={step.action === 'forEachItem' ? (() => {
                   const src = editSteps.find(s => s.action === 'extract' && s.name === step.sourceExtract)
                   return (src?.fields as Array<{ key: string }> | undefined)?.map(f => f.key) ?? []
@@ -1503,40 +1628,58 @@ export function App() {
       )}
 
       {/* Toolbar */}
-      <div className="flex flex-wrap gap-2 px-4 py-3 border-b">
-        {isRecording ? (
-          <Button variant="destructive" size="sm" onClick={handleStop}>
-            <Square className="h-3.5 w-3.5" /> Stop
-          </Button>
-        ) : (
-          <Button variant="default" size="sm" onClick={handleRecord}>
-            <Circle className="h-3.5 w-3.5" /> Record
-          </Button>
-        )}
-        <Button variant="outline" size="sm" onClick={() => handleExtract('list')}>
-          <List className="h-3.5 w-3.5" /> List
-        </Button>
-        <Button variant="outline" size="sm" onClick={() => handleExtract('single')}>
-          <FileText className="h-3.5 w-3.5" /> Single
-        </Button>
-        <Button variant={showSelectorInput ? 'secondary' : 'outline'} size="sm" onClick={() => { setShowSelectorInput(!showSelectorInput); setShowAccessibilityInput(false); setSelectorError(null) }}>
-          <Code className="h-3.5 w-3.5" /> Selector
-        </Button>
-        <Button variant={showAccessibilityInput ? 'secondary' : 'outline'} size="sm" onClick={() => { setShowAccessibilityInput(!showAccessibilityInput); setShowSelectorInput(false); setSelectorError(null) }}>
-          <ScanEye className="h-3.5 w-3.5" /> A11y
-        </Button>
-        <Button variant="outline" size="sm" disabled={isRecording} onClick={() => addLane(false)}>
-          <Columns className="h-3.5 w-3.5" /> Lane
-        </Button>
-        <Button variant="outline" size="sm" onClick={() => setShowWaitInput(!showWaitInput)}>
-          <Timer className="h-3.5 w-3.5" /> Wait
-        </Button>
-        <Button variant="outline" size="sm" disabled={isRecording || steps.length === 0} onClick={() => handleClearAllSteps(false)}>
-          <Trash2 className="h-3.5 w-3.5" /> Clear
-        </Button>
-        <Button variant="secondary" size="sm" disabled={steps.length === 0 && lanes.every(l => l.steps.length === 0)} onClick={handleDone}>
-          <Check className="h-3.5 w-3.5" /> Done
-        </Button>
+      <div className="flex flex-col divide-y px-4 py-2 border-b">
+        {/* Recording control */}
+        <div className="py-2">
+          <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5">Recording</p>
+          <div className="flex flex-wrap gap-1.5">
+            {isRecording ? (
+              <Button variant="destructive" size="sm" onClick={handleStop}>
+                <Square className="h-3.5 w-3.5" /> Stop
+              </Button>
+            ) : (
+              <Button variant="default" size="sm" onClick={handleRecord}>
+                <Circle className="h-3.5 w-3.5" /> Record
+              </Button>
+            )}
+            <Button variant="outline" size="sm" disabled={isRecording || steps.length === 0} onClick={() => handleClearAllSteps(false)}>
+              <Trash2 className="h-3.5 w-3.5" /> Clear
+            </Button>
+            <Button variant="secondary" size="sm" disabled={steps.length === 0 && lanes.every(l => l.steps.length === 0)} onClick={handleDone}>
+              <Check className="h-3.5 w-3.5" /> Done
+            </Button>
+          </div>
+        </div>
+        {/* Data extraction */}
+        <div className="py-2">
+          <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5">Extract</p>
+          <div className="flex flex-wrap gap-1.5">
+            <Button variant="outline" size="sm" onClick={() => handleExtract('list')}>
+              <List className="h-3.5 w-3.5" /> List
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => handleExtract('single')}>
+              <FileText className="h-3.5 w-3.5" /> Single
+            </Button>
+            <Button variant={showSelectorInput ? 'secondary' : 'outline'} size="sm" onClick={() => { setShowSelectorInput(!showSelectorInput); setShowAccessibilityInput(false); setSelectorError(null) }}>
+              <Code className="h-3.5 w-3.5" /> Selector
+            </Button>
+            <Button variant={showAccessibilityInput ? 'secondary' : 'outline'} size="sm" onClick={() => { setShowAccessibilityInput(!showAccessibilityInput); setShowSelectorInput(false); setSelectorError(null) }}>
+              <ScanEye className="h-3.5 w-3.5" /> A11y
+            </Button>
+          </div>
+        </div>
+        {/* Flow control */}
+        <div className="py-2">
+          <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5">Flow</p>
+          <div className="flex flex-wrap gap-1.5">
+            <Button variant="outline" size="sm" disabled={isRecording} onClick={() => addLane(false)}>
+              <Columns className="h-3.5 w-3.5" /> Lane
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setShowWaitInput(!showWaitInput)}>
+              <Timer className="h-3.5 w-3.5" /> Wait
+            </Button>
+          </div>
+        </div>
       </div>
 
       {/* CSS Selector input */}
@@ -1561,8 +1704,15 @@ export function App() {
             roleIncludeChildren={roleIncludeChildren} onRoleIncludeChildrenChange={setRoleIncludeChildren}
             loading={selectorLoading} error={selectorError}
             onSubmit={handleAccessibilityExtract}
-            onClose={() => { setShowAccessibilityInput(false); setSelectorError(null); setRoleValues([]); setRoleNameValue(''); setRoleIncludeChildren(true); setAxSnapshot(null) }}
+            onClose={() => { setShowAccessibilityInput(false); setSelectorError(null); setRoleValues([]); setRoleNameValue(''); setRoleIncludeChildren(true); setAxSnapshot(null); setNeighborPreview(null); setNeighborTargetName(''); setNeighborTargetRole('') }}
             snapshot={axSnapshot} snapshotLoading={axSnapshotLoading} onSnapshot={handleAccessibilitySnapshot} onSnapshotExtract={handleSnapshotExtract}
+            neighborTargetName={neighborTargetName} onNeighborTargetNameChange={setNeighborTargetName}
+            neighborTargetRole={neighborTargetRole} onNeighborTargetRoleChange={setNeighborTargetRole}
+            neighborCount={neighborCount} onNeighborCountChange={setNeighborCount}
+            neighborDirection={neighborDirection} onNeighborDirectionChange={setNeighborDirection}
+            neighborIncludeChildren={neighborIncludeChildren} onNeighborIncludeChildrenChange={setNeighborIncludeChildren}
+            neighborMatchMode={neighborMatchMode} onNeighborMatchModeChange={setNeighborMatchMode}
+            neighborPreview={neighborPreview} neighborLoading={neighborLoading} onNeighborPreview={handleNeighborPreview} onNeighborExtract={handleNeighborExtract}
           />
         </div>
       )}
@@ -1651,6 +1801,7 @@ export function App() {
                   })
                 }}
                 onUpdateStepProps={(props) => updateStepPropsAt(setSteps, setLanes, activeLane, i, props)}
+                onTrySelector={handleTrySelector} trySelectorResult={trySelectorResult}
                 sourceFieldKeys={step.action === 'forEachItem' ? (() => {
                   const src = steps.find(s => s.action === 'extract' && s.name === step.sourceExtract)
                   return (src?.fields as Array<{ key: string }> | undefined)?.map(f => f.key) ?? []
@@ -1893,6 +2044,13 @@ const ROLE_NAME_HINTS: Record<string, string> = {
 function AccessibilityInputForm({ roleValues, onRoleValuesChange, roleNameValue, onRoleNameValueChange,
   roleIncludeChildren, onRoleIncludeChildrenChange, loading, error, onSubmit, onClose,
   snapshot, snapshotLoading, onSnapshot, onSnapshotExtract,
+  neighborTargetName, onNeighborTargetNameChange,
+  neighborTargetRole, onNeighborTargetRoleChange,
+  neighborCount, onNeighborCountChange,
+  neighborDirection, onNeighborDirectionChange,
+  neighborIncludeChildren, onNeighborIncludeChildrenChange,
+  neighborMatchMode, onNeighborMatchModeChange,
+  neighborPreview, neighborLoading, onNeighborPreview, onNeighborExtract,
 }: {
   roleValues: string[]
   onRoleValuesChange: (v: string[]) => void
@@ -1908,10 +2066,27 @@ function AccessibilityInputForm({ roleValues, onRoleValuesChange, roleNameValue,
   snapshotLoading: boolean
   onSnapshot: () => void
   onSnapshotExtract: () => void
+  neighborTargetName: string
+  onNeighborTargetNameChange: (v: string) => void
+  neighborTargetRole: string
+  onNeighborTargetRoleChange: (v: string) => void
+  neighborCount: number
+  onNeighborCountChange: (v: number) => void
+  neighborDirection: 'both' | 'above' | 'below'
+  onNeighborDirectionChange: (v: 'both' | 'above' | 'below') => void
+  neighborIncludeChildren: boolean
+  onNeighborIncludeChildrenChange: (v: boolean) => void
+  neighborMatchMode: 'contains' | 'equals'
+  onNeighborMatchModeChange: (v: 'contains' | 'equals') => void
+  neighborPreview: string | null
+  neighborLoading: boolean
+  onNeighborPreview: () => void
+  onNeighborExtract: () => void
 }) {
-  const [a11yTab, setA11yTab] = useState<'role' | 'fullpage'>('fullpage')
+  const [a11yTab, setA11yTab] = useState<'role' | 'neighbors' | 'fullpage'>('fullpage')
   const [roleDropdownOpen, setRoleDropdownOpen] = useState(false)
   const [snapshotAdded, setSnapshotAdded] = useState(false)
+  const [countStr, setCountStr] = useState(String(neighborCount))
   const dropdownRef = useRef<HTMLDivElement>(null)
   const canSubmit = roleValues.length > 0
 
@@ -1958,6 +2133,13 @@ function AccessibilityInputForm({ roleValues, onRoleValuesChange, roleNameValue,
             a11yTab === 'role' ? 'bg-primary text-primary-foreground' : 'hover:bg-accent/50 text-muted-foreground'
           )}
         >By Role</button>
+        <button type="button"
+          onClick={() => setA11yTab('neighbors')}
+          className={cn(
+            'flex-1 py-1.5 text-xs font-medium transition-colors cursor-pointer border-l border-input',
+            a11yTab === 'neighbors' ? 'bg-primary text-primary-foreground' : 'hover:bg-accent/50 text-muted-foreground'
+          )}
+        >Neighbors</button>
         <button type="button"
           onClick={() => setA11yTab('fullpage')}
           className={cn(
@@ -2047,6 +2229,113 @@ function AccessibilityInputForm({ roleValues, onRoleValuesChange, roleNameValue,
               ? 'Extracts child content (links, text, images) within each matched element'
               : 'Extracts only direct properties (text, href, src) of matched elements'}
           </p>
+        </>
+      )}
+
+      {/* ── Neighbors tab ── */}
+      {a11yTab === 'neighbors' && (
+        <>
+          <div className="space-y-1.5">
+            <Input
+              value={neighborTargetName}
+              onChange={(e) => onNeighborTargetNameChange(e.target.value)}
+              placeholder='Target name(s), comma-separated (e.g. "Price, Rating")'
+              className="font-mono text-xs"
+              autoFocus
+              onKeyDown={(e) => { if (e.key === 'Enter' && neighborTargetName.trim()) onNeighborExtract() }}
+            />
+            <div className="flex items-center gap-2">
+              <Select value={neighborMatchMode} onValueChange={(v) => onNeighborMatchModeChange(v as 'contains' | 'equals')}>
+                <SelectTrigger className="h-8 w-[100px] text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="contains">Contains</SelectItem>
+                  <SelectItem value="equals">Equals</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={neighborTargetRole || '__any__'} onValueChange={(v) => onNeighborTargetRoleChange(v === '__any__' ? '' : v)}>
+                <SelectTrigger className="h-8 flex-1 text-xs font-mono">
+                  <SelectValue placeholder="Any role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__any__">Any role</SelectItem>
+                  {ARIA_ROLES.map(r => (
+                    <SelectItem key={r} value={r}>{r}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-muted-foreground">Neighbors</span>
+                <Input
+                  type="number" min={1} max={20}
+                  value={countStr}
+                  onChange={(e) => {
+                    setCountStr(e.target.value)
+                    const n = parseInt(e.target.value, 10)
+                    if (!isNaN(n) && n >= 1 && n <= 20) onNeighborCountChange(n)
+                  }}
+                  onBlur={() => {
+                    const n = parseInt(countStr, 10)
+                    const clamped = isNaN(n) || n < 1 ? 3 : Math.min(20, n)
+                    setCountStr(String(clamped))
+                    onNeighborCountChange(clamped)
+                  }}
+                  className="w-14 h-7 text-xs font-mono text-center"
+                />
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-muted-foreground">Direction</span>
+                <Select value={neighborDirection} onValueChange={(v) => onNeighborDirectionChange(v as 'both' | 'above' | 'below')}>
+                  <SelectTrigger className="h-7 w-[80px] text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="both">Both</SelectItem>
+                    <SelectItem value="above">Above</SelectItem>
+                    <SelectItem value="below">Below</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button type="button"
+              onClick={() => onNeighborIncludeChildrenChange(!neighborIncludeChildren)}
+              className={cn(
+                'shrink-0 relative inline-flex h-5 w-9 items-center rounded-full transition-colors cursor-pointer',
+                neighborIncludeChildren ? 'bg-primary' : 'bg-muted-foreground/25 hover:bg-muted-foreground/35'
+              )}
+              role="switch"
+              aria-checked={neighborIncludeChildren}
+            >
+              <span className={cn(
+                'inline-block h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-transform',
+                neighborIncludeChildren ? 'translate-x-[18px]' : 'translate-x-0.5'
+              )} />
+            </button>
+            <span className="text-xs text-muted-foreground">Include children</span>
+            <div className="flex-1" />
+            <Button variant="outline" size="sm" onClick={onNeighborPreview} disabled={neighborLoading || !neighborTargetName.trim()} className="h-7">
+              {neighborLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Preview'}
+            </Button>
+            <Button variant="default" size="sm" onClick={onNeighborExtract} disabled={neighborLoading || !neighborTargetName.trim()} className="h-7">
+              Extract
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Find element(s) by accessible name (comma-separated) and extract surrounding siblings from the AX tree.
+          </p>
+          {neighborLoading && !neighborPreview && (
+            <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+              <Loader2 className="h-3 w-3 animate-spin" /> Loading preview…
+            </div>
+          )}
+          {neighborPreview && (
+            <pre className="max-h-48 overflow-auto rounded-md border bg-muted/50 p-2 text-[10px] leading-tight font-mono whitespace-pre select-all">{neighborPreview}</pre>
+          )}
         </>
       )}
 
@@ -2170,7 +2459,7 @@ function StepCard({
   step, index, total, paramMeta, onDelete, onMoveUp, onMoveDown,
   onDragStart, onDragOver, onDrop, onToggleParam, onDescriptionChange,
   onParamNameChange, onWaitUntilChange, onUpdateFields, onSubActions,
-  onUpdateStepProps, sourceFieldKeys,
+  onUpdateStepProps, onTrySelector, trySelectorResult, sourceFieldKeys,
 }: {
   step: Step
   index: number
@@ -2189,6 +2478,8 @@ function StepCard({
   onUpdateFields?: (fields: ExtractField[]) => void
   onSubActions?: (sourceExtractName: string, sourceStep: Step) => void
   onUpdateStepProps?: (props: Partial<Step>) => void
+  onTrySelector?: (selector: string) => void
+  trySelectorResult?: 'found' | 'not_found' | null
   /** Field keys from the source extract step (for forEachItem filter dropdowns) */
   sourceFieldKeys?: string[]
 }) {
@@ -2198,9 +2489,16 @@ function StepCard({
   const pathSegments = getPathSegments(step)
   const typeText = step.action === 'type' ? (step.text ?? '') : ''
 
+  const urlParamMeta = paramMeta.get('__url')
+  const isUrlParam = urlParamMeta?.enabled ?? false
+
+  const hasSelector = step.action === 'click' || step.action === 'type' || step.action === 'select'
+    || step.action === 'scroll' || step.action === 'waitForSelector'
+
   // Expandable: steps with editable details start collapsed
-  const hasDetails = (step.action === 'navigate' && (params.length > 0 || pathSegments.length > 0 || onWaitUntilChange))
+  const hasDetails = (step.action === 'navigate')
     || (step.action === 'type' && !!typeText)
+    || hasSelector
     || (step.action === 'extract' && Array.isArray(step.fields))
     || (step.action === 'forEachItem')
   const [expanded, setExpanded] = useState(step.action === 'forEachItem')
@@ -2239,8 +2537,9 @@ function StepCard({
               ? 'Close'
               : step.action === 'extract' ? 'Edit fields'
               : step.action === 'navigate' ? 'Parameterize'
-              : step.action === 'type' ? 'Parameterize'
+              : step.action === 'type' ? 'Advanced'
               : step.action === 'forEachItem' ? 'Show details'
+              : hasSelector ? 'Advanced'
               : 'Edit'}
           </button>
         )}
@@ -2261,8 +2560,52 @@ function StepCard({
           </div>
         )}
 
-        {/* Path Segments (navigate steps) */}
-        {expanded && pathSegments.length > 0 && (
+        {/* Full URL parameterization (navigate steps) */}
+        {expanded && step.action === 'navigate' && (
+          <div className="mt-2.5 space-y-1.5">
+            <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">URL</p>
+            {(() => {
+              const key = '__url'
+              return (
+                <div className={cn('rounded-md border transition-colors', isUrlParam ? 'border-primary/30 bg-primary/5' : 'bg-background/50')}>
+                  <div className="flex items-center gap-2 px-2.5 py-2">
+                    <span className={cn('font-mono text-sm truncate flex-1', isUrlParam ? 'text-primary font-semibold' : 'text-muted-foreground')}>
+                      {isUrlParam ? `{{${urlParamMeta?.paramName || 'url'}}}` : (step.url ?? '').slice(0, 60)}
+                    </span>
+                    <button type="button"
+                      onClick={(e) => { e.stopPropagation(); onToggleParam(key, step.url ?? '') }}
+                      className={cn(
+                        'shrink-0 relative inline-flex h-5 w-9 items-center rounded-full transition-colors cursor-pointer',
+                        isUrlParam ? 'bg-primary' : 'bg-muted-foreground/25 hover:bg-muted-foreground/35'
+                      )}
+                      role="switch"
+                      aria-checked={isUrlParam}
+                      title={isUrlParam ? 'Revert to static URL' : 'Make dynamic - LLM will provide the full URL'}
+                    >
+                      <span className={cn(
+                        'inline-block h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-transform',
+                        isUrlParam ? 'translate-x-[18px]' : 'translate-x-0.5'
+                      )} />
+                    </button>
+                  </div>
+                  {isUrlParam && (
+                    <div className="px-2.5 pb-2 space-y-1.5">
+                      <Input value={urlParamMeta?.paramName ?? ''}
+                        onChange={(e) => onParamNameChange?.(key, e.target.value)}
+                        placeholder="Parameter name (e.g. url, target_url)" />
+                      <Input value={urlParamMeta?.description ?? ''}
+                        onChange={(e) => onDescriptionChange(key, e.target.value)}
+                        placeholder="Description (e.g. The page URL to extract data from)" />
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
+          </div>
+        )}
+
+        {/* Path Segments (navigate steps) - hidden when full URL is parametric */}
+        {expanded && !isUrlParam && pathSegments.length > 0 && (
           <div className="mt-2.5 space-y-1.5">
             <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Path Segments</p>
             {pathSegments.map(([segIdx, segment]) => {
@@ -2306,8 +2649,8 @@ function StepCard({
           </div>
         )}
 
-        {/* URL Parameters (navigate steps) */}
-        {expanded && params.length > 0 && (
+        {/* URL Parameters (navigate steps) - hidden when full URL is parametric */}
+        {expanded && !isUrlParam && params.length > 0 && (
           <div className="mt-2.5 space-y-1.5">
             <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">URL Parameters</p>
             {params.map(([k, v]) => {
@@ -2391,6 +2734,32 @@ function StepCard({
                 </div>
               )
             })()}
+          </div>
+        )}
+
+        {/* Selector editor (click, type, select, scroll, waitForSelector) */}
+        {expanded && hasSelector && onUpdateStepProps && (
+          <div className="mt-2.5 space-y-1.5">
+            <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Selector</p>
+            <div className="flex items-center gap-1.5">
+              <Input
+                value={step.selector ?? ''}
+                onChange={(e) => onUpdateStepProps({ selector: e.target.value })}
+                placeholder="CSS or XPath (e.g. #btn, //button[@type='submit'])"
+                className="font-mono text-xs flex-1"
+              />
+              {onTrySelector && (
+                <Button variant="outline" size="sm"
+                  className={cn('h-9 shrink-0 text-xs min-w-[52px]',
+                    trySelectorResult === 'found' && 'border-green-500/50 text-green-600',
+                    trySelectorResult === 'not_found' && 'border-destructive/50 text-destructive',
+                  )}
+                  disabled={!step.selector?.trim()}
+                  onClick={() => onTrySelector(step.selector as string)}>
+                  {trySelectorResult === 'found' ? '✓ Found' : trySelectorResult === 'not_found' ? '✗ None' : 'Try'}
+                </Button>
+              )}
+            </div>
           </div>
         )}
 
@@ -2829,14 +3198,14 @@ function ForEachFilterEditor({ filters, fieldKeys, onChange }: {
               {fieldKeys.map(k => <option key={k} value={k}>{k}</option>)}
             </select>
           ) : (
-            <LocalTextInput className="h-6 text-[11px] border rounded px-1.5 bg-background w-[72px] shrink-0 outline-none focus:ring-1 focus:ring-primary/50" placeholder="field"
+            <LocalTextInput className="h-6 text-[11px] border rounded px-1.5 bg-background w-[72px] shrink-0 outline-none focus:ring-1 focus:ring-primary/50" placeholder="field or {{p}}"
               value={f.field} onCommit={v => updateFilter(i, { field: v })} />
           )}
           <select className="h-6 text-[11px] border rounded px-0.5 bg-background shrink-0 w-[68px]"
             value={f.op} onChange={e => updateFilter(i, { op: e.target.value })}>
             {FILTER_OPS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
-          <LocalTextInput className="h-6 text-[11px] border rounded px-1.5 bg-background flex-1 min-w-0 outline-none focus:ring-1 focus:ring-primary/50" placeholder="value"
+          <LocalTextInput className="h-6 text-[11px] border rounded px-1.5 bg-background flex-1 min-w-0 outline-none focus:ring-1 focus:ring-primary/50" placeholder="value or {{param}}"
             value={f.value} onCommit={v => updateFilter(i, { value: v })} />
           <button type="button" onClick={() => removeFilter(i)}
             className="h-5 w-5 flex items-center justify-center rounded text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 shrink-0 cursor-pointer transition-colors">

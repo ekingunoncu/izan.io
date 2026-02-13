@@ -5,6 +5,7 @@ import {
   Bot,
   Shield,
   Settings,
+  BarChart3,
   Sparkles,
   ChevronRight,
   Code2,
@@ -12,9 +13,10 @@ import {
   Link2,
   Puzzle,
   Eye,
-  Brain,
+  Clock,
+  Database,
+  Hourglass,
   Monitor,
-  Image,
   Store,
   ArrowRight,
   Star,
@@ -139,17 +141,22 @@ const ROADMAP_ITEMS = [
   {
     titleKey: "home.roadmapItem2Title",
     descKey: "home.roadmapItem2Desc",
-    icon: Monitor,
+    icon: Hourglass,
   },
   {
     titleKey: "home.roadmapItem3Title",
     descKey: "home.roadmapItem3Desc",
-    icon: Image,
+    icon: Clock,
   },
   {
     titleKey: "home.roadmapItem4Title",
     descKey: "home.roadmapItem4Desc",
-    icon: Brain,
+    icon: Database,
+  },
+  {
+    titleKey: "home.roadmapItem5Title",
+    descKey: "home.roadmapItem5Desc",
+    icon: Monitor,
   },
 ];
 
@@ -184,6 +191,15 @@ export default function Home() {
               >
                 <BookOpen className="h-4 w-4" />
                 <span className="hidden sm:inline">{t("nav.docs")}</span>
+              </Button>
+            </Link>
+            <Link to={`/${lang}/analytics`} state={{ from: location.pathname }}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-11 w-11 min-h-[44px] min-w-[44px] sm:h-9 sm:w-9 sm:min-h-0 sm:min-w-0 rounded-lg"
+              >
+                <BarChart3 className="h-5 w-5" />
               </Button>
             </Link>
             <Link to={`/${lang}/settings`} state={{ from: location.pathname }}>

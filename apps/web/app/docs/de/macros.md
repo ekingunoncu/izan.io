@@ -130,6 +130,12 @@ Klicken Sie auf **A11y**, um das Accessibility-Extraktions-Panel zu oeffnen. Die
 
 Die Accessibility-Methode erzeugt immer eine Liste aller uebereinstimmenden Elemente. Zur Laufzeit verwenden mit der A11y-Methode erstellte Extraktionsschritte den **echten Accessibility-Baum** ueber das Chrome DevTools Protocol -- zuverlaessig auch auf Websites mit dynamischen Klassennamen oder verschleiertem Markup.
 
+#### Nachbarn (Neighbors)
+
+Der **Nachbarn**-Tab extrahiert Kontext um ein bestimmtes Element im Accessibility-Baum. Geben Sie einen **Zielnamen** ein (z. B. "Price"), filtern Sie optional nach **Rolle**, legen Sie die Anzahl der **Geschwister** fest (1--20, Standard 3) und waehlen Sie eine **Richtung** (beide/oben/unten). Der Zielknoten wird in der Ausgabe mit `← TARGET` markiert.
+
+Nuetzlich, wenn die rollenbasierte Extraktion zu flach ist und Sie die umgebende Struktur benoetigen -- z. B. eine "Price"-Ueberschrift finden und die 3 Geschwister darunter sehen.
+
 #### Accessibility-Snapshot
 
 Das A11y-Panel enthaelt ausserdem einen **Snapshot**-Bereich. Klicken Sie auf **Snapshot**, um den **vollstaendigen Accessibility-Baum** der aktuellen Seite abzurufen. Dies liefert eine kompakte Textdarstellung der Seitenstruktur mit Rollen, Namen und Eigenschaften -- nuetzlich, um die Seitenstruktur zu verstehen, bevor Sie entscheiden, welche Rollen extrahiert werden sollen.
@@ -180,6 +186,19 @@ Jedes Feld unterstuetzt eine optionale **Transformation**, die nach der Extrakti
 - **lowercase** -- in Kleinbuchstaben umwandeln
 - **uppercase** -- in Grossbuchstaben umwandeln
 - **number** -- Text als Zahl parsen
+
+### Limits
+
+| Limit | Wert | Geltungsbereich |
+|-------|------|-----------------|
+| AX-Baumzeilen | 2.000 | pro Extraktion |
+| Rollen-Elemente | 100 | pro Extraktion |
+| Zeichenkettenwerte | 500 Zeichen | pro Extraktion |
+| Tabellenzellen | 200 Zeichen | pro Extraktion |
+| Tabellenzeilen | 200 | pro Extraktion |
+| Gesamtantwort | 50.000 Zeichen | gesamte Tool-Antwort |
+
+Pro-Extraktion-Limits gelten **pro Lane** -- 4 parallele Lanes mit jeweils einem Snapshot ergeben bis zu 4 × 2.000 AX-Baumzeilen. Das Gesamtantwort-Limit wird zuletzt auf die kombinierte Ausgabe aller Lanes angewendet. Wenn Daten abgeschnitten werden, grenzen Sie den Bereich mit spezifischeren Selektoren oder Rollennamenfiltern ein.
 
 ## Parallele Lanes
 

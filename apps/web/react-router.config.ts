@@ -13,6 +13,7 @@ const DOC_SLUGS = [
   "chrome-extension",
   "api-keys-privacy",
   "providers",
+  "analytics",
 ];
 
 export default {

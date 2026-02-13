@@ -28,6 +28,7 @@ const DOC_SLUGS = [
   "chrome-extension",
   "api-keys-privacy",
   "providers",
+  "analytics",
 ];
 
 /** Routes to include in sitemap (under :lang). Excludes chat (client-only), settings (private). */

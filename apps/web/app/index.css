@@ -129,6 +129,53 @@ body {
   background: var(--color-foreground);
 }
 
+/* Chat markdown table styling */
+.markdown-content table {
+  width: max-content;
+  min-width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+.markdown-content th,
+.markdown-content td {
+  padding: 0.375rem 0.625rem;
+  border-bottom: 1px solid var(--color-border);
+  text-align: left;
+  white-space: nowrap;
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.markdown-content th {
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  color: var(--color-muted-foreground);
+  background: var(--color-muted);
+  position: sticky;
+  top: 0;
+}
+.markdown-content tr:hover td {
+  background: var(--color-muted);
+}
+/* Thin scrollbar for table wrapper */
+.markdown-content .overflow-x-auto {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-muted-foreground) transparent;
+}
+.markdown-content .overflow-x-auto::-webkit-scrollbar {
+  height: 4px;
+}
+.markdown-content .overflow-x-auto::-webkit-scrollbar-track {
+  background: transparent;
+}
+.markdown-content .overflow-x-auto::-webkit-scrollbar-thumb {
+  background: var(--color-muted-foreground);
+  border-radius: 9999px;
+}
+
 /* ===== Homepage Visual Effects ===== */
 
 /* Floating animation for decorative elements */

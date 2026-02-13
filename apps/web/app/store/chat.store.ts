@@ -5,13 +5,23 @@ import type {
   ChatCompletionMessageParam,
   ChatCompletionTool,
   LLMGenerationOptions,
+  TokenUsage,
 } from '~/lib/services/interfaces'
 import { storageService, llmService } from '~/lib/services'
 import { LLMApiError, LLMNetworkError } from '~/lib/services/llm.service'
-import type { Chat, Message, Agent } from '~/lib/db'
+import type { Chat, Message, Agent, TaskStatus, UsageRecord } from '~/lib/db'
+import { PROVIDERS } from '~/lib/providers'
 import { useMCPStore } from './mcp.store'
 import { useAgentStore } from './agent.store'
 import type { MCPToolInfo } from '@izan/mcp-client'
+
+/** Background task tracking info */
+export interface BackgroundTask {
+  status: TaskStatus
+  currentStep: number
+  totalSteps: number
+  agentId: string
+}
 
 /**
  * ChatState - State interface for chat management
@@ -24,6 +34,11 @@ interface ChatState {
   isGenerating: boolean
   isLoadingChats: boolean
   isLoadingMessages: boolean
+  sessionTokens: { input: number; output: number }
+  /** Background task status keyed by chatId */
+  backgroundTasks: Record<string, BackgroundTask>
+  /** Chat IDs where a long task has been auto-detected (3+ tool rounds) */
+  longTaskDetectedChats: Record<string, boolean>
 
   loadChats: (agentId: string) => Promise<void>
   createChat: (agentId: string, title?: string) => Promise<Chat>
@@ -33,6 +48,11 @@ interface ChatState {
   sendMessage: (content: string, agentId: string) => Promise<void>
   stopGenerating: () => void
   clearCurrentChat: () => void
+  addTokenUsage: (usage: TokenUsage) => void
+  resetSessionTokens: () => void
+  moveToBackground: (chatId: string) => void
+  clearTaskStatus: (chatId: string) => void
+  enableNotifyOnCompletion: (chatId: string) => void
 }
 
 function generateChatTitle(content: string): string {
@@ -85,7 +105,19 @@ function buildLinkedAgentTools(agent: Agent): ChatCompletionTool[] {
 }
 
 /** Max tool-calling rounds to prevent runaway tool chains */
-const MAX_TOOL_ROUNDS = 5
+const MAX_TOOL_ROUNDS = 25
+
+/** Extended limit for background tasks */
+const MAX_TOOL_ROUNDS_BACKGROUND = 50
+
+/** After this many tool-call rounds, auto-detect as long task and show banner */
+const LONG_TASK_THRESHOLD = 3
+
+/** Chat IDs currently running in background (module-level so the running promise can check) */
+const backgroundChatIds = new Set<string>()
+
+/** Chat IDs that should fire a browser notification on completion (foreground or background) */
+const notifyOnCompletionChatIds = new Set<string>()
 
 /** LLM options - only send params user explicitly set. Omit for provider defaults to avoid API errors. */
 function getAgentGenerationOptions(agent: Agent | null | undefined): LLMGenerationOptions {
@@ -111,11 +143,12 @@ async function executeToolCall(
   fnArgs: Record<string, unknown>,
   mcpTools: MCPToolInfo[],
   mcpStore: ReturnType<typeof useMCPStore.getState>,
+  onLinkedAgentChunk?: (chunk: string) => void,
 ): Promise<string> {
   if (fnName.startsWith('ask_agent_')) {
     const targetAgentId = fnName.replace('ask_agent_', '')
     const question = (fnArgs.question as string) || ''
-    return executeLinkedAgentCall(targetAgentId, question, 0)
+    return executeLinkedAgentCall(targetAgentId, question, 0, onLinkedAgentChunk)
   }
   const toolInfo = mcpTools.find(t => t.name === fnName)
   if (!toolInfo) {
@@ -151,9 +184,9 @@ async function streamPlainChat(
   persistMessage: (content: string) => Promise<void>,
   isAborted: () => boolean,
   options?: LLMGenerationOptions,
-): Promise<void> {
+): Promise<TokenUsage | null> {
   let fullContent = ''
-  await llmService.streamChat(chatMessages, async (chunk) => {
+  const usage = await llmService.streamChat(chatMessages, async (chunk) => {
     if (isAborted()) return
     fullContent += chunk
     updateAssistantMsg(fullContent)
@@ -163,6 +196,7 @@ async function streamPlainChat(
   if (fullContent) {
     await persistMessage(fullContent)
   }
+  return usage
 }
 
 /** Run the tool-calling loop: call LLM with tools, execute tools, repeat until done */
@@ -175,13 +209,24 @@ async function runToolCallingLoop(
   persistMessage: (content: string) => Promise<void>,
   isAborted: () => boolean,
   options?: LLMGenerationOptions,
+  onUsage?: (usage: TokenUsage, toolCallNames: string[]) => void,
+  getMaxRounds: () => number = () => MAX_TOOL_ROUNDS,
+  onProgress?: (current: number, total: number) => void,
 ): Promise<void> {
   let rounds = 0
   const statusParts: string[] = []
+  // Track nudges: consecutive text rounds (no tools) AND total nudges sent across the whole task
+  let consecutiveTextRounds = 0
+  let totalNudgesSent = 0
+  const MAX_CONSECUTIVE_TEXT = 2  // accept as done after 2 text-only rounds in a row
+  const MAX_TOTAL_NUDGES = 3     // stop nudging after 3 total nudges across the task
+  // Track nudge message indices so we can remove them when model resumes tool calling
+  let nudgeMessageIndices: number[] = []
 
-  while (rounds < MAX_TOOL_ROUNDS) {
+  while (rounds < getMaxRounds()) {
     if (isAborted()) break
     rounds++
+    if (onProgress) onProgress(rounds, getMaxRounds())
 
     updateAssistantMsg(
       statusParts.join('\n') + (statusParts.length ? '\n\n' : '') + '⏳ ' + i18n.t('chat.modelResponding'),
@@ -196,9 +241,21 @@ async function runToolCallingLoop(
       await new Promise<void>((r) => requestAnimationFrame(() => r()))
     }, options)
 
+    // Collect tool names from THIS round's response (before executing them)
+    const roundToolNames = result.toolCalls?.map(tc => tc.function.name) ?? []
+    if (result.usage && onUsage) onUsage(result.usage, roundToolNames)
+
     if (isAborted()) break
 
     if (result.toolCalls && result.toolCalls.length > 0) {
+      consecutiveTextRounds = 0 // model is actively working, reset counter
+      // Remove synthetic nudge messages to keep context clean
+      if (nudgeMessageIndices.length > 0) {
+        for (let i = nudgeMessageIndices.length - 1; i >= 0; i--) {
+          chatMessages.splice(nudgeMessageIndices[i], 1)
+        }
+        nudgeMessageIndices = []
+      }
       chatMessages.push({
         role: 'assistant',
         content: result.content ?? '',
@@ -224,7 +281,20 @@ async function runToolCallingLoop(
           statusParts.join('\n') + '\n\n⏳ ' + (isLinkedAgent ? i18n.t('chat.agentResponding') : i18n.t('chat.toolRunning')),
         )
 
-        const toolResultText = await executeToolCall(fnName, fnArgs, mcpTools, mcpStore)
+        // For linked agents, stream their response to the UI in real-time (with markers for collapsible UI)
+        const statusPrefix = statusParts.join('\n') + '\n'
+        let linkedAgentStreamed = ''
+        const onLinkedAgentChunk = isLinkedAgent ? (chunk: string) => {
+          linkedAgentStreamed += chunk
+          updateAssistantMsg(statusPrefix + `[agent-response]\n${linkedAgentStreamed}\n[/agent-response]`)
+        } : undefined
+
+        const toolResultText = await executeToolCall(fnName, fnArgs, mcpTools, mcpStore, onLinkedAgentChunk)
+
+        // Keep linked agent's response visible in the message (wrapped in markers for collapsible UI)
+        if (isLinkedAgent && toolResultText) {
+          statusParts.push(`[agent-response]\n${toolResultText}\n[/agent-response]`)
+        }
 
         chatMessages.push({
           role: 'tool',
@@ -234,6 +304,41 @@ async function runToolCallingLoop(
       }
 
       if (isAborted()) break
+      continue
+    }
+
+    // Model gave a text response with no tool calls
+    // Continuation check: if this is a long task (3+ rounds done), nudge the model to keep using tools
+    if (rounds >= LONG_TASK_THRESHOLD && consecutiveTextRounds < MAX_CONSECUTIVE_TEXT && totalNudgesSent < MAX_TOTAL_NUDGES && rounds < getMaxRounds()) {
+      consecutiveTextRounds++
+      totalNudgesSent++
+
+      // Do NOT put the model's text in chatMessages — when the model sees its own
+      // "shall I continue?" text, it anchors to it and keeps generating text.
+      // Instead, push a short continuation-oriented assistant message so the model's
+      // last context is tool results + "continue" instruction → resumes tool calling.
+      //
+      // Count actual tool calls made so far to give the model concrete context.
+      const toolCallCount = statusParts.filter(s => s.startsWith('[🔧')).length
+      nudgeMessageIndices.push(chatMessages.length) // track for later cleanup
+      chatMessages.push({
+        role: 'assistant',
+        content: `I have made ${toolCallCount} tool calls so far. Continuing with more tool calls.`,
+      })
+      nudgeMessageIndices.push(chatMessages.length)
+      chatMessages.push({
+        role: 'user',
+        content: `You stopped too early — you only made ${toolCallCount} tool calls. Keep making tool calls to complete the task. Do not list results without tool calls, do not ask whether to continue. Call the next tool now.`,
+      })
+
+      // But DO show the model's text in UI so user sees it
+      if (result.content) {
+        statusParts.push(result.content)
+      }
+      statusParts.push('🔄 ' + i18n.t('chat.continuationCheck'))
+      updateAssistantMsg(
+        statusParts.join('\n') + '\n\n⏳ ' + i18n.t('chat.modelResponding'),
+      )
       continue
     }
 
@@ -258,6 +363,7 @@ async function executeLinkedAgentCall(
   targetAgentId: string,
   question: string,
   depth: number,
+  onChunk?: (chunk: string) => void,
 ): Promise<string> {
   if (depth >= MAX_AGENT_DEPTH) {
     return i18n.t('chat.maxAgentDepth')
@@ -271,8 +377,8 @@ async function executeLinkedAgentCall(
     return i18n.t('chat.agentNotFound', { id: targetAgentId })
   }
 
-  // Activate target agent's MCPs if needed
-  await mcpStore.activateAgentMCPs(targetAgent)
+  // Ensure target agent's MCPs are connected (additive — don't disconnect parent's MCPs)
+  await mcpStore.ensureAgentMCPsConnected(targetAgent)
 
   // Get target agent's tools (MCP + linked agents)
   const mcpTools = mcpStore.getToolsForAgent(targetAgent)
@@ -287,13 +393,27 @@ async function executeLinkedAgentCall(
 
   const linkedOptions = getAgentGenerationOptions(targetAgent)
 
+  const isDev = import.meta.env?.DEV
+  if (isDev) {
+    console.log('[linked-agent] Call:', targetAgentId, 'depth:', depth, 'tools:', allTools.length, 'mcpTools:', mcpTools.map(t => t.name))
+  }
+
   try {
     if (allTools.length > 0) {
-      // Tool-calling loop for the linked agent
+      // Tool-calling loop for the linked agent (streaming)
       let rounds = 0
       while (rounds < MAX_TOOL_ROUNDS) {
         rounds++
-        const result = await llmService.chatWithTools(messages, allTools, linkedOptions)
+        if (isDev) console.log('[linked-agent] Round', rounds, 'messages:', messages.length)
+        const t0 = performance.now()
+
+        let streamedContent = ''
+        const result = await llmService.streamChatWithTools(messages, allTools, (chunk) => {
+          streamedContent += chunk
+          if (onChunk) onChunk(chunk)
+        }, linkedOptions)
+
+        if (isDev) console.log('[linked-agent] Round', rounds, 'LLM responded in', Math.round(performance.now() - t0), 'ms — content:', result.content?.slice(0, 200), 'toolCalls:', result.toolCalls?.length ?? 0, 'finishReason:', result.finishReason)
 
         if (result.toolCalls && result.toolCalls.length > 0) {
           messages.push({
@@ -307,7 +427,9 @@ async function executeLinkedAgentCall(
             let fnArgs: Record<string, unknown> = {}
             try { fnArgs = JSON.parse(tc.function.arguments) } catch { fnArgs = { raw: tc.function.arguments } }
 
+            if (isDev) console.log('[linked-agent] Executing tool:', fnName, fnArgs)
             const toolResultText = await executeToolCall(fnName, fnArgs, mcpTools, mcpStore)
+            if (isDev) console.log('[linked-agent] Tool result:', fnName, '→', toolResultText.slice(0, 300) + (toolResultText.length > 300 ? '...' : ''), `(${toolResultText.length} chars)`)
 
             messages.push({
               role: 'tool',
@@ -318,9 +440,12 @@ async function executeLinkedAgentCall(
           continue
         }
 
-        // Final text response
-        return result.content ?? ''
+        // Final text response (already streamed to UI via onChunk)
+        const finalResponse = result.content ?? streamedContent
+        if (isDev) console.log('[linked-agent] Final response:', finalResponse.slice(0, 300) + (finalResponse.length > 300 ? '...' : ''), `(${finalResponse.length} chars)`)
+        return finalResponse
       }
+      if (isDev) console.warn('[linked-agent] Hit MAX_TOOL_ROUNDS:', MAX_TOOL_ROUNDS)
       return i18n.t('chat.maxStepsReached')
     } else {
       // No tools, just a simple chat
@@ -328,11 +453,58 @@ async function executeLinkedAgentCall(
       await llmService.streamChat(messages, (chunk) => {
         response += chunk
       }, linkedOptions)
+      if (isDev) console.log('[linked-agent] Plain chat response:', response.slice(0, 300), `(${response.length} chars)`)
       return response
     }
   } catch (error) {
+    if (isDev) console.error('[linked-agent] Error:', error)
     return i18n.t('chat.agentResponseFailed', { message: error instanceof Error ? error.message : String(error) })
   }
+}
+
+/** Persist a usage record to IndexedDB for analytics */
+function persistUsageRecord(
+  usage: TokenUsage,
+  chatId: string,
+  agentId: string,
+  toolCallNames: string[],
+  providerId: string,
+  modelId: string,
+): void {
+
+  // Look up cost from provider registry
+  let costIn = 0
+  let costOut = 0
+  const provider = PROVIDERS.find(p => p.id === providerId)
+  if (provider) {
+    const model = provider.models.find(m => m.id === modelId)
+    if (model) {
+      costIn = model.costIn
+      costOut = model.costOut
+    }
+  }
+
+  const cost =
+    (usage.inputTokens / 1_000_000) * costIn +
+    (usage.outputTokens / 1_000_000) * costOut
+
+  const record: UsageRecord = {
+    id: crypto.randomUUID(),
+    chatId,
+    agentId,
+    modelId,
+    providerId,
+    inputTokens: usage.inputTokens,
+    outputTokens: usage.outputTokens,
+    cost,
+    toolCalls: toolCallNames,
+    timestamp: Date.now(),
+  }
+
+  // Fire-and-forget: don't block the chat flow
+  storageService.createUsageRecord(record).catch((err) => {
+    if (import.meta.env?.DEV) console.warn('[analytics] Failed to persist usage record:', err)
+  })
 }
 
 /**
@@ -347,12 +519,43 @@ export const useChatStore = create<ChatState>((set, get) => ({
   isGenerating: false,
   isLoadingChats: false,
   isLoadingMessages: false,
+  sessionTokens: { input: 0, output: 0 },
+  backgroundTasks: {},
+  longTaskDetectedChats: {},
+
+  addTokenUsage: (usage: TokenUsage) => {
+    set(state => ({
+      sessionTokens: {
+        input: state.sessionTokens.input + usage.inputTokens,
+        output: state.sessionTokens.output + usage.outputTokens,
+      },
+    }))
+  },
+
+  resetSessionTokens: () => {
+    set({ sessionTokens: { input: 0, output: 0 } })
+  },
 
   loadChats: async (agentId: string) => {
     set({ isLoadingChats: true })
     try {
       const chats = await storageService.getChats(agentId)
-      set({ chats, isLoadingChats: false })
+      // Recovery: mark any 'running' tasks as 'failed' (promise was lost on page reload)
+      const recoveredTasks: Record<string, BackgroundTask> = {}
+      for (const chat of chats) {
+        if (chat.taskStatus === 'running') {
+          chat.taskStatus = 'failed'
+          recoveredTasks[chat.id] = { status: 'failed', currentStep: chat.taskCurrentStep ?? 0, totalSteps: chat.taskTotalSteps ?? 0, agentId: chat.agentId }
+          storageService.updateChat(chat.id, { taskStatus: 'failed' } as Partial<Chat>).catch(() => {})
+        } else if (chat.taskStatus === 'completed' || chat.taskStatus === 'failed') {
+          recoveredTasks[chat.id] = { status: chat.taskStatus, currentStep: chat.taskCurrentStep ?? 0, totalSteps: chat.taskTotalSteps ?? 0, agentId: chat.agentId }
+        }
+      }
+      set(state => ({
+        chats,
+        isLoadingChats: false,
+        backgroundTasks: { ...state.backgroundTasks, ...recoveredTasks },
+      }))
     } catch (error) {
       console.error('Failed to load chats:', error)
       set({ chats: [], isLoadingChats: false })
@@ -369,13 +572,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
       currentChatId: chat.id,
       currentChat: chat,
       messages: [],
+      sessionTokens: { input: 0, output: 0 },
     }))
     await storageService.updatePreferences({ lastChatId: chat.id })
     return chat
   },
 
   selectChat: async (chatId: string) => {
-    set({ isLoadingMessages: true, currentChatId: chatId })
+    set({ isLoadingMessages: true, currentChatId: chatId, sessionTokens: { input: 0, output: 0 } })
     try {
       const [chat, messages] = await Promise.all([
         storageService.getChatById(chatId),
@@ -419,7 +623,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
       throw new Error(i18n.t('chat.llmNotConfigured'))
     }
 
-    currentAbortController?.abort()
+    // Only abort if the current task is NOT running in background
+    if (currentAbortController && !backgroundChatIds.has(currentChatId ?? '')) {
+      currentAbortController.abort()
+    }
     const abortController = new AbortController()
     currentAbortController = abortController
 
@@ -490,7 +697,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
       // Build system prompt (append instruction to respond in user's language)
       const basePrompt = agent?.basePrompt || 'You are a helpful AI assistant.'
-      const systemContent = basePrompt + '\n\nRespond in the same language the user writes in.'
+      let systemContent = basePrompt + '\n\nRespond in the same language the user writes in.'
+      if (hasTools) {
+        systemContent += '\n\nWhen a task requires multiple operations, keep making tool calls until the task is fully complete. Do not stop partway and ask the user if you should continue — just keep going until done. Never present fabricated or unverified results — always use the available tools to obtain real data.'
+      }
 
       // Build message history
       const allMessages = [...messages, userMessage]
@@ -518,6 +728,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
       const isAborted = () => abortController.signal.aborted
 
       const updateAssistantMsg = (newContent: string) => {
+        if (backgroundChatIds.has(activeChatId!)) {
+          // Background mode: just persist to DB, skip UI update
+          storageService.updateMessage(assistantMessage.id, newContent).catch(() => {})
+          return
+        }
         flushSync(() => {
           set(state => ({
             messages: state.messages.map(m =>
@@ -532,7 +747,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
       const llmOptions = getAgentGenerationOptions(agent)
 
+      // Capture provider/model now so background tasks don't use stale values if user switches models
+      const capturedProviderId = llmService.getProvider() || 'unknown'
+      const capturedModelId = llmService.getModel() || 'unknown'
+
+      const { addTokenUsage } = get()
+
       // Execute
+      const isBackground = () => backgroundChatIds.has(activeChatId!)
       if (hasTools) {
         try {
           await runToolCallingLoop(
@@ -544,16 +766,52 @@ export const useChatStore = create<ChatState>((set, get) => ({
             persistMessage,
             isAborted,
             llmOptions,
+            (usage, toolCallNames) => {
+              addTokenUsage(usage)
+              persistUsageRecord(usage, activeChatId!, agentId, toolCallNames, capturedProviderId, capturedModelId)
+            },
+            () => isBackground() ? MAX_TOOL_ROUNDS_BACKGROUND : MAX_TOOL_ROUNDS,
+            (current, total) => {
+              // Auto-detect long task after threshold rounds
+              if (current >= LONG_TASK_THRESHOLD && !get().longTaskDetectedChats[activeChatId!]) {
+                set(state => ({
+                  longTaskDetectedChats: { ...state.longTaskDetectedChats, [activeChatId!]: true },
+                }))
+                // Auto-enable notification for long tasks
+                notifyOnCompletionChatIds.add(activeChatId!)
+                if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+                  Notification.requestPermission().catch(() => {})
+                }
+              }
+              if (isBackground()) {
+                // Update background task progress
+                set(state => ({
+                  backgroundTasks: {
+                    ...state.backgroundTasks,
+                    [activeChatId!]: { ...state.backgroundTasks[activeChatId!], currentStep: current, totalSteps: total },
+                  },
+                }))
+                storageService.updateChat(activeChatId!, { taskCurrentStep: current, taskTotalSteps: total } as Partial<Chat>).catch(() => {})
+              }
+            },
           )
         } catch (toolLoopError) {
           if (isAborted()) return
           if (import.meta.env?.DEV) {
             console.warn('[chat] Tool-calling loop failed, falling back to plain chat:', toolLoopError)
           }
-          await streamPlainChat(chatMessages, updateAssistantMsg, persistMessage, isAborted, llmOptions)
+          const usage = await streamPlainChat(chatMessages, updateAssistantMsg, persistMessage, isAborted, llmOptions)
+          if (usage) {
+            addTokenUsage(usage)
+            persistUsageRecord(usage, activeChatId!, agentId, [], capturedProviderId, capturedModelId)
+          }
         }
       } else {
-        await streamPlainChat(chatMessages, updateAssistantMsg, persistMessage, isAborted, llmOptions)
+        const usage = await streamPlainChat(chatMessages, updateAssistantMsg, persistMessage, isAborted, llmOptions)
+        if (usage) {
+          addTokenUsage(usage)
+          persistUsageRecord(usage, activeChatId!, agentId, [], capturedProviderId, capturedModelId)
+        }
       }
     } catch (error) {
       if (abortController.signal.aborted) {
@@ -593,7 +851,102 @@ export const useChatStore = create<ChatState>((set, get) => ({
       if (currentAbortController === abortController) {
         currentAbortController = null
       }
+
+      if (activeChatId) {
+
+      const wasBackground = backgroundChatIds.has(activeChatId)
+      const wantsNotify = notifyOnCompletionChatIds.has(activeChatId)
+      if (wasBackground) {
+        backgroundChatIds.delete(activeChatId)
+        const failed = abortController.signal.aborted
+        const finalStatus: TaskStatus = failed ? 'failed' : 'completed'
+        set(state => ({
+          backgroundTasks: {
+            ...state.backgroundTasks,
+            [activeChatId]: { ...state.backgroundTasks[activeChatId], status: finalStatus },
+          },
+        }))
+        storageService.updateChat(activeChatId, { taskStatus: finalStatus } as Partial<Chat>).catch(() => {})
+      }
+
+      // Fire notification for long tasks or background tasks — only if THIS run was long
+      const isLongTask = !!(get().longTaskDetectedChats[activeChatId])
+      if (wasBackground || wantsNotify || isLongTask) {
+        notifyOnCompletionChatIds.delete(activeChatId)
+        // Clear long task flag so future short messages in this chat don't re-trigger
+        if (isLongTask) {
+          set(state => {
+            const { [activeChatId]: _, ...rest } = state.longTaskDetectedChats
+            return { longTaskDetectedChats: rest }
+          })
+        }
+        const failed = abortController.signal.aborted
+        const chatTitle = get().chats.find(c => c.id === activeChatId)?.title ?? ''
+        const notifKey = failed ? 'longTask.notificationFailed' : 'longTask.notificationDone'
+        const notifText = i18n.t(notifKey, { title: chatTitle })
+
+        // Browser notification (has its own sound)
+        if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+          new Notification(notifText)
+        }
+
+        // Title flash as fallback (always works, no permission needed)
+        const originalTitle = document.title
+        const flashTitle = failed ? `❌ ${chatTitle}` : `✅ ${chatTitle}`
+        let flashing = true
+        const flashInterval = setInterval(() => {
+          document.title = document.title === originalTitle ? flashTitle : originalTitle
+        }, 1000)
+        // Stop flashing when user focuses the tab or after 30s
+        const stopFlash = () => {
+          if (!flashing) return
+          flashing = false
+          clearInterval(flashInterval)
+          document.title = originalTitle
+          window.removeEventListener('focus', stopFlash)
+        }
+        window.addEventListener('focus', stopFlash)
+        setTimeout(stopFlash, 30000)
+      }
+
+      } // end if (activeChatId)
+
       set({ isGenerating: false })
+    }
+  },
+
+  moveToBackground: (chatId: string) => {
+    backgroundChatIds.add(chatId)
+    const agentId = get().currentChat?.agentId ?? ''
+    // Mark as running in DB
+    storageService.updateChat(chatId, { taskStatus: 'running', taskCurrentStep: 0, taskTotalSteps: MAX_TOOL_ROUNDS_BACKGROUND } as Partial<Chat>).catch(() => {})
+    set(state => ({
+      // The async sendMessage promise continues running uninterrupted
+      isGenerating: false,
+      backgroundTasks: {
+        ...state.backgroundTasks,
+        [chatId]: { status: 'running', currentStep: 0, totalSteps: MAX_TOOL_ROUNDS_BACKGROUND, agentId },
+      },
+    }))
+    // Request notification permission proactively
+    if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+      Notification.requestPermission().catch(() => {})
+    }
+  },
+
+  clearTaskStatus: (chatId: string) => {
+    set(state => {
+      const { [chatId]: _, ...rest } = state.backgroundTasks
+      return { backgroundTasks: rest }
+    })
+    storageService.updateChat(chatId, { taskStatus: undefined, taskCurrentStep: undefined, taskTotalSteps: undefined } as Partial<Chat>).catch(() => {})
+  },
+
+  enableNotifyOnCompletion: (chatId: string) => {
+    notifyOnCompletionChatIds.add(chatId)
+    // Request notification permission if needed
+    if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+      Notification.requestPermission().catch(() => {})
     }
   },
 

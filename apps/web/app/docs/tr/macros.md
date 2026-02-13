@@ -130,6 +130,12 @@ Arac cubugunda cikarma icin iki ayri buton bulunur:
 
 Erisebilirlik yontemi her zaman eslesen tum elemanlarin bir listesini uretir. Calisma zamaninda, A11y yontemiyle olusturulan cikarma adimlari **gercek erisebilirlik agacini** Chrome DevTools Protokolu uzerinden kullanir; bu sayede dinamik sinif adlarina veya karmasik HTML yapisina sahip sitelerde bile guvenilir calisir.
 
+#### Komsular (Neighbors)
+
+**Komsular** sekmesi, erisebilirlik agacindaki belirli bir elemanin cevresindeki baglami cikarir. Bir **hedef adi** girin (ornegin "Price"), istege bagli olarak **rol** ile filtreleyin, kac **kardes** dahil edilecegini ayarlayin (1--20, varsayilan 3) ve **yon** secin (her iki yon/yukari/asagi). Hedef dugum ciktida `← TARGET` ile isaretlenir.
+
+Role dayali cikarma cok duz bir sonuc dondurdugunde ve cevre yapisina ihtiyac duydugunuzda kullanislidir -- ornegin bir "Price" basligini bulup altindaki 3 kardesi gormek icin.
+
 #### Erisebilirlik Goruntusu (Snapshot)
 
 A11y panelinde ayrica bir **Goruntu** bolumu bulunur. **Snapshot** butonuna tiklayarak mevcut sayfanin **tam erisebilirlik agacini** alin. Bu, sayfa yapisini roller, isimler ve ozelliklerle gosteren kompakt bir metin temsili dondurur -- hangi rolleri cikaracaginiza karar vermeden once sayfa yapisini anlamak icin kullanislidir.
@@ -180,6 +186,19 @@ Her alan, cikarmadan sonra uygulanan istege bagli bir **donusum** destekler:
 - **lowercase** -- kucuk harfe donustur
 - **uppercase** -- buyuk harfe donustur
 - **number** -- metni sayi olarak ayristir
+
+### Limitler
+
+| Limit | Deger | Kapsam |
+|-------|-------|--------|
+| AX agac satirlari | 2.000 | cikarma basina |
+| Rol ogeleri | 100 | cikarma basina |
+| Metin degerleri | 500 karakter | cikarma basina |
+| Tablo hucreleri | 200 karakter | cikarma basina |
+| Tablo satirlari | 200 | cikarma basina |
+| Toplam yanit | 50.000 karakter | tum arac yaniti |
+
+Cikarma basina limitler **serit basina** uygulanir -- 4 paralel serit snapshot cikarirsa toplam 4 × 2.000 AX agac satiri olusabilir. Toplam yanit limiti tum seritlerin birlesik ciktisina en son uygulanir. Verileriniz kesiliyorsa daha spesifik selektorler veya rol adi filtreleri ile kapsamini daraltin.
 
 ## Paralel Seritler
 

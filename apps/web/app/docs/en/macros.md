@@ -128,6 +128,12 @@ Click the **A11y** button to open the accessibility extraction panel. This appro
 
 The accessibility method always produces a list of all matching elements. At runtime, extraction steps created with the A11y method use the **real accessibility tree** via Chrome DevTools Protocol, making them reliable even on sites with dynamic class names or obfuscated markup.
 
+#### Neighbors
+
+The **Neighbors** tab extracts context around a specific element in the accessibility tree. Enter a **target name** (e.g., "Price") to find the element, optionally filter by **role**, set how many **siblings** to include (1--20, default 3), and choose a **direction** (both/above/below). The target node is marked with `← TARGET` in the output.
+
+Useful when role-based extraction is too flat and you need the surrounding structure -- for example, finding a "Price" heading and seeing the 3 siblings below it.
+
 #### Accessibility Snapshot
 
 The A11y panel also includes a **Snapshot** section. Click **Snapshot** to retrieve the **full accessibility tree** of the current page. This returns a compact text representation showing the page structure with roles, names, and properties -- useful for understanding page layout before deciding which roles to extract.
@@ -178,6 +184,19 @@ Each field supports an optional **transform** applied after extraction:
 - **lowercase** -- convert to lowercase
 - **uppercase** -- convert to uppercase
 - **number** -- parse the text as a number
+
+### Limits
+
+| Limit | Value | Scope |
+|-------|-------|-------|
+| AX tree lines | 2,000 | per extraction |
+| Role items | 100 | per extraction |
+| String values | 500 chars | per extraction |
+| Table cells | 200 chars | per extraction |
+| Table rows | 200 | per extraction |
+| Total response | 50,000 chars | entire tool response |
+
+Per-extraction limits apply **per lane** -- 4 parallel lanes each extracting a snapshot yield up to 4 × 2,000 AX tree lines. The total response cap is applied last to the combined output of all lanes. If data is being cut off, narrow your scope with more specific selectors or role name filters.
 
 ## Parallel Lanes
 

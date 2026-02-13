@@ -19,6 +19,9 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronDown,
+  Loader2,
+  CheckCircle,
+  AlertCircle,
 } from 'lucide-react'
 import { Button } from '~/components/ui/button'
 import {
@@ -54,12 +57,28 @@ const agentIcons: Record<string, typeof Bot> = {
   'lightbulb': Lightbulb,
 }
 
-function ChatItem({ chat, isSelected, onSelect, onDelete }: {
+/** Get icon and style for a task status */
+function getTaskStatusIcon(status?: string): { Icon: typeof MessageSquare; iconClass: string } {
+  if (status === 'running') return { Icon: Loader2, iconClass: 'text-amber-500 animate-spin' }
+  if (status === 'completed') return { Icon: CheckCircle, iconClass: 'text-green-500' }
+  if (status === 'failed') return { Icon: AlertCircle, iconClass: 'text-red-500' }
+  return { Icon: MessageSquare, iconClass: 'text-muted-foreground' }
+}
+
+function ChatItem({ chat, isSelected, onSelect, onDelete, taskStatus }: {
   chat: Chat
   isSelected: boolean
   onSelect: () => void
   onDelete: () => void
+  taskStatus?: { status: string; currentStep: number; totalSteps: number }
 }) {
+  const { t } = useTranslation('common')
+
+  const { Icon: StatusIcon, iconClass } = getTaskStatusIcon(taskStatus?.status)
+  const stepLabel = taskStatus?.status === 'running'
+    ? t('longTask.stepProgress', { current: taskStatus.currentStep, total: taskStatus.totalSteps })
+    : null
+
   return (
     <div
       className={cn(
@@ -68,8 +87,13 @@ function ChatItem({ chat, isSelected, onSelect, onDelete }: {
       )}
       onClick={onSelect}
     >
-      <MessageSquare className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
-      <span className="flex-1 text-sm truncate">{chat.title}</span>
+      <StatusIcon className={cn('h-4 w-4 flex-shrink-0', iconClass)} />
+      <div className="flex-1 min-w-0">
+        <span className="text-sm truncate block">{chat.title}</span>
+        {stepLabel && (
+          <span className="text-[10px] text-amber-600 dark:text-amber-400">{stepLabel}</span>
+        )}
+      </div>
       <Button
         variant="ghost"
         size="icon"
@@ -88,7 +112,7 @@ function ChatItem({ chat, isSelected, onSelect, onDelete }: {
 export function AgentSidebar() {
   const { t } = useTranslation('common')
   const { currentAgentId, currentAgent, initialize: initAgent } = useAgentStore()
-  const { chats, currentChatId, loadChats, createChat, selectChat, deleteChat } = useChatStore()
+  const { chats, currentChatId, loadChats, createChat, selectChat, deleteChat, backgroundTasks, clearTaskStatus } = useChatStore()
   const {
     isSidebarCollapsed,
     setSidebarCollapsed,
@@ -123,6 +147,11 @@ export function AgentSidebar() {
   }
 
   const handleChatSelect = async (chatId: string) => {
+    // Clear completed/failed task status when user clicks to view
+    const task = backgroundTasks[chatId]
+    if (task && (task.status === 'completed' || task.status === 'failed')) {
+      clearTaskStatus(chatId)
+    }
     await selectChat(chatId)
     closeMobileSidebar()
   }
@@ -254,6 +283,7 @@ export function AgentSidebar() {
                 isSelected={currentChatId === chat.id}
                 onSelect={() => handleChatSelect(chat.id)}
                 onDelete={() => handleChatDelete(chat.id)}
+                taskStatus={backgroundTasks[chat.id]}
               />
             ))
           )}
@@ -273,19 +303,22 @@ export function AgentSidebar() {
             <Plus className="h-5 w-5" />
           </Button>
           {/* Show chat icons in collapsed mode */}
-            {chats.slice(0, 8).map(chat => (
-              <button
-                key={chat.id}
-                onClick={() => handleChatSelect(chat.id)}
-                className={cn(
-                  'w-10 h-10 rounded-lg flex items-center justify-center transition-colors cursor-pointer',
-                currentChatId === chat.id ? 'bg-muted' : 'hover:bg-muted/50'
-              )}
-              title={chat.title}
-            >
-              <MessageSquare className="h-4 w-4 text-muted-foreground" />
-            </button>
-          ))}
+            {chats.slice(0, 8).map(chat => {
+              const { Icon: CollapsedIcon, iconClass: collapsedIconClass } = getTaskStatusIcon(backgroundTasks[chat.id]?.status)
+              return (
+                <button
+                  key={chat.id}
+                  onClick={() => handleChatSelect(chat.id)}
+                  className={cn(
+                    'w-10 h-10 rounded-lg flex items-center justify-center transition-colors cursor-pointer',
+                    currentChatId === chat.id ? 'bg-muted' : 'hover:bg-muted/50'
+                  )}
+                  title={chat.title}
+                >
+                  <CollapsedIcon className={cn('h-4 w-4', collapsedIconClass)} />
+                </button>
+              )
+            })}
         </div>
       )}
     </>

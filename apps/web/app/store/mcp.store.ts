@@ -95,6 +95,13 @@ interface MCPState {
    */
   activateAgentMCPs: (agent: Agent) => Promise<void>
 
+  /**
+   * Ensure MCPs for a specific agent are connected (additive only).
+   * Connects needed servers without disconnecting existing ones.
+   * Used by linked agent calls to avoid disrupting the parent agent's MCPs.
+   */
+  ensureAgentMCPsConnected: (agent: Agent) => Promise<void>
+
   // Low-level registry wrappers
   addServer: (config: MCPServerConfig) => Promise<MCPServerState>
   removeServer: (serverId: string) => Promise<void>
@@ -429,6 +436,96 @@ export const useMCPStore = create<MCPState>((set, get) => ({
         ? failedServers.map(s => `${s.config.name}: ${s.error}`).join(', ')
         : null,
     })
+  },
+
+  /**
+   * Additive MCP activation for linked agent calls.
+   * Only ensures needed servers are connected — never disconnects or shuts down existing ones.
+   */
+  ensureAgentMCPsConnected: async (agent: Agent) => {
+    const { registry, userServers, disabledBuiltinMCPIds } = get()
+    if (!registry) return
+
+    const effectiveImplicitIds = resolveImplicitMCPIds(agent, disabledBuiltinMCPIds)
+
+    const neededIds = new Set<string>()
+    for (const mcpId of effectiveImplicitIds) neededIds.add(mcpId)
+    for (const mcpId of agent.customMCPIds) neededIds.add(mcpId)
+
+    const { extensionServers: extServersForFilter, isExtensionInstalled: extInstalled } = get()
+    const announcedExtIds = new Set(extServersForFilter.map(es => es.id))
+    for (const mcpId of agent.extensionMCPIds ?? []) {
+      if (mcpId.startsWith('ext-') && extInstalled && !announcedExtIds.has(mcpId)) continue
+      neededIds.add(mcpId)
+    }
+    const automationServerIds = (agent as { automationServerIds?: string[] }).automationServerIds ?? []
+    if (automationServerIds.length > 0) neededIds.add('ext-dynamic')
+
+    // Start browser servers if needed (never shut down)
+    const browserServerOps: Promise<void>[] = []
+    if (neededIds.has('general')) browserServerOps.push(ensureGeneralServer())
+    if (neededIds.has('domain-check-client')) browserServerOps.push(ensureDomainCheckServer())
+    await Promise.all(browserServerOps)
+
+    // Connect servers that are needed but not yet connected (never remove)
+    const { extensionServers: extServers } = get()
+    const connectOps: Promise<void>[] = []
+
+    for (const sid of neededIds) {
+      const existing = registry.getServer(sid)
+      if (existing?.status === 'connected') continue
+
+      const builtinConfig = DEFAULT_MCP_SERVERS.find(s => s.id === sid)
+      if (builtinConfig) {
+        connectOps.push(registry.addServer(builtinConfig).then(() => {}))
+        continue
+      }
+
+      const userServer = userServers.find(us => us.id === sid)
+      if (userServer) {
+        connectOps.push(
+          registry.addServer(buildUserMcpConfigDirect(userServer)).then(async (state) => {
+            if (state.status === 'error') {
+              await registry.removeServer(sid)
+              await registry.addServer(buildUserMcpConfigProxy(userServer))
+            }
+          })
+        )
+        continue
+      }
+
+      const extServer = extServers.find(es => es.id === sid)
+      if (extServer) {
+        connectOps.push(
+          registry.addServer({
+            id: extServer.id,
+            name: extServer.name,
+            description: extServer.description,
+            url: extensionServerUrl(extServer.channelId),
+            category: extServer.category as MCPServerConfig['category'],
+            source: 'extension' as MCPServerConfig['source'],
+          }).then(() => {})
+        )
+        continue
+      }
+    }
+
+    await Promise.all(connectOps)
+
+    // Sync automation tools if needed
+    if (neededIds.has('ext-dynamic') && get().isExtensionInstalled) {
+      try {
+        const { useAutomationStore } = await import('~/store/automation.store')
+        const autoStore = useAutomationStore.getState()
+        if (!autoStore.initialized) await autoStore.initialize()
+        autoStore.syncToExtension()
+      } catch {
+        // ignore
+      }
+    }
+
+    // Update servers snapshot (don't touch activeServerIds — parent's state stays intact)
+    set({ servers: registry.getServers() })
   },
 
   reconnect: async () => {

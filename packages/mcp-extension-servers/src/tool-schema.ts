@@ -191,14 +191,26 @@ export const extractStepSchema = baseStepSchema.extend({
   fields: z.array(extractionFieldSchema).default([]),
   /** Number of items detected at recording time (informational, list mode only) */
   itemCount: z.number().optional(),
-  /** Extraction method: 'css' (default) uses containerSelector, 'role' uses accessibility tree, 'snapshot' returns full AX tree */
-  extractionMethod: z.enum(['css', 'role', 'snapshot']).optional(),
+  /** Extraction method: 'css' (default) uses containerSelector, 'role' uses accessibility tree, 'snapshot' returns full AX tree, 'neighbors' returns siblings around a target AX node */
+  extractionMethod: z.enum(['css', 'role', 'snapshot', 'neighbors']).optional(),
   /** ARIA roles to query (when extractionMethod='role') */
   roles: z.array(z.string()).optional(),
   /** Accessible name filter (when extractionMethod='role') */
   roleName: z.string().optional(),
   /** Whether to include children content in role extraction (default true) */
   roleIncludeChildren: z.boolean().optional(),
+  /** Target accessible name to find (when extractionMethod='neighbors') */
+  neighborTargetName: z.string().optional(),
+  /** Target role filter (when extractionMethod='neighbors') */
+  neighborTargetRole: z.string().optional(),
+  /** Number of siblings to include in each direction (default 3) */
+  neighborCount: z.number().min(1).max(20).optional(),
+  /** Direction to look for siblings: 'both', 'above', 'below' (default 'both') */
+  neighborDirection: z.enum(['both', 'above', 'below']).optional(),
+  /** Whether to include children of neighbor nodes (default true) */
+  neighborIncludeChildren: z.boolean().optional(),
+  /** Match mode for neighbor target name: 'contains' (default) or 'equals' */
+  neighborMatchMode: z.enum(['contains', 'equals']).optional(),
 })
 
 /** Union of simple (non-recursive) step types - used inside forEachItem.detailSteps */

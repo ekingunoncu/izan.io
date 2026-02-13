@@ -3,7 +3,8 @@
     "agents": "Agents",
     "startChat": "Start Chat",
     "settings": "Settings",
-    "docs": "Docs"
+    "docs": "Docs",
+    "analytics": "Analytics"
   },
   "github": {
     "feedbackAria": "Report bug or request feature",
@@ -156,12 +157,14 @@
     "roadmapDesc": "We're building the future of accessible AI agents. Here's what's on our roadmap.",
     "roadmapItem1Title": "Macro & Agent Marketplace",
     "roadmapItem1Desc": "Share, discover, and install community-built macros and agent configurations with one click.",
-    "roadmapItem2Title": "Browser-Side LLMs",
-    "roadmapItem2Desc": "Run AI models directly in your browser - no API key needed.",
-    "roadmapItem3Title": "Visual Generation",
-    "roadmapItem3Desc": "Image and design generation models coming to the platform.",
-    "roadmapItem4Title": "Client-Side AI Models",
-    "roadmapItem4Desc": "Specialized models running locally for specific tasks, integrated directly into agents.",
+    "roadmapItem2Title": "Long Running Tasks",
+    "roadmapItem2Desc": "Let agents work in the background on complex research and multi-step workflows. Get notified when results are ready.",
+    "roadmapItem3Title": "Scheduled Automations",
+    "roadmapItem3Desc": "Run macros on a schedule or with triggers - price tracking, data collection, and recurring workflows on autopilot.",
+    "roadmapItem4Title": "Agent Memory & Knowledge Base",
+    "roadmapItem4Desc": "Agents that remember past conversations and learn from your documents for smarter, context-aware responses.",
+    "roadmapItem5Title": "Browser-Side LLMs",
+    "roadmapItem5Desc": "Run lightweight AI models directly in your browser - fully private, no API key required for basic tasks.",
 
     "providersTitle": "Use Any AI Model You Want",
     "providersDesc": "17+ AI providers, one platform. Bring your own API key - no vendor lock-in, no middleman fees. Your keys never leave your browser.",
@@ -196,6 +199,7 @@
     "rateLimitError": "Rate limit exceeded. Please wait a moment and try again, or check your plan limits.",
     "serverError": "The API provider is experiencing issues. Please try again later.",
     "maxStepsReached": "Maximum number of steps reached.",
+    "continuationCheck": "Checking if task is complete...",
     "modelResponding": "Model is responding...",
     "toolRunning": "Running tool...",
     "agentResponding": "Waiting for agent response...",
@@ -217,6 +221,9 @@
     "viewRendered": "View formatted",
     "copy": "Copy",
     "copied": "Copied",
+    "showMore": "Show more",
+    "showLess": "Show less",
+    "yesterday": "yesterday",
     "toolNames": {
       "check_domains_availability": "Domain availability",
       "get_domain_price": "Domain price",
@@ -376,11 +383,47 @@
     "titleMacros": "Macros",
     "titleChromeExtension": "Chrome Extension",
     "titleApiKeysPrivacy": "API Keys & Privacy",
-    "titleProviders": "Providers"
+    "titleProviders": "Providers",
+    "titleAnalytics": "Analytics"
   },
   "errors": {
     "notConfigured": "LLM not configured. Select a provider and model from settings.",
     "providerNotFound": "Provider not found: {{provider}}",
     "toolNotFound": "Tool not found: {{tool}}"
+  },
+  "analytics": {
+    "title": "Analytics",
+    "description": "Track your token usage and costs across models and agents.",
+    "totalTokens": "Total Tokens",
+    "totalCost": "Total Cost",
+    "totalCalls": "API Calls",
+    "timeRange7d": "7 days",
+    "timeRange30d": "30 days",
+    "timeRange90d": "90 days",
+    "timeRangeAll": "All",
+    "usageOverTime": "Usage Over Time",
+    "perAgent": "By Agent",
+    "perModel": "By Model",
+    "toolUsage": "Tool Usage",
+    "noData": "No usage data yet. Start a chat to see analytics.",
+    "clearData": "Clear Analytics Data",
+    "clearDataConfirm": "This will permanently delete all analytics data. This action cannot be undone.",
+    "inputTokens": "Input",
+    "outputTokens": "Output",
+    "cost": "Cost",
+    "tokens": "Tokens",
+    "calls": "calls",
+    "avgPerCall": "Avg / call",
+    "viewAnalytics": "View usage analytics and cost tracking",
+    "trendVsPrev": "vs prev {{range}}"
+  },
+  "longTask": {
+    "bannerMessage": "This task may take a while.",
+    "runInBackground": "Run in background",
+    "notifyWhenDone": "Notify when done",
+    "notifyEnabled": "Will notify",
+    "notificationDone": "Task completed: {{title}}",
+    "notificationFailed": "Task failed: {{title}}",
+    "stepProgress": "Step {{current}}/{{total}}"
   }
 }

@@ -211,15 +211,23 @@ export function applyParamMap(
     const meta = paramMap.get(i)
     if (!meta) return s
 
-    // --- Query params (navigate steps) ---
+    // --- Navigate steps ---
     if (s.action === 'navigate') {
+      // Full URL parameterization (replaces entire URL)
+      const urlMeta = meta.get('__url')
+      if (urlMeta?.enabled) {
+        const name = toSnakeCase(urlMeta.paramName || 'url')
+        return { ...s, url: `{{${name}}}`, urlParams: {} }
+      }
+
+      // Individual query params + path segments
       const newParams: Record<string, string> = { ...(s.urlParams ?? {}) }
       let newUrl = s.url ?? ''
 
       for (const [k, m] of meta) {
         if (!m.enabled) continue
 
-        if (k === '__input') continue // shouldn't happen on navigate, but guard
+        if (k === '__input' || k === '__url') continue
 
         if (k.startsWith('__path:')) {
           // Path segment parameterization
@@ -248,7 +256,7 @@ export function applyParamMap(
 
       // Revert disabled query params to original values
       for (const [k, m] of meta) {
-        if (!m.enabled && !k.startsWith('__path:') && k !== '__input') {
+        if (!m.enabled && !k.startsWith('__path:') && k !== '__input' && k !== '__url') {
           newParams[k] = m.originalValue
         }
       }
@@ -274,7 +282,12 @@ export function applyParamMap(
     for (const [k, m] of meta) {
       if (!m.enabled) continue
 
-      if (k.startsWith('__path:')) {
+      if (k === '__url') {
+        const name = toSnakeCase(m.paramName || 'url')
+        if (seen.has(name)) continue
+        seen.add(name)
+        parameters.push({ name, type: 'string', description: m.description || 'The full URL to navigate to', required: true, source: 'input', sourceKey: k })
+      } else if (k.startsWith('__path:')) {
         const name = toSnakeCase(m.paramName || `path_${k.slice(7)}`)
         if (seen.has(name)) continue
         seen.add(name)
@@ -289,6 +302,33 @@ export function applyParamMap(
         if (seen.has(name)) continue
         seen.add(name)
         parameters.push({ name, type: 'string', description: m.description || k, required: true, source: 'urlParam', sourceKey: k })
+      }
+    }
+  }
+
+  // Auto-detect {{param}} placeholders in forEachItem filter fields and generate parameters
+  const placeholderRe = /\{\{(\w+)\}\}/g
+  for (const step of finalSteps) {
+    if (step.action !== 'forEachItem') continue
+    const filters = step.filters as Array<{ field: string; op: string; value: string }> | undefined
+    if (!filters?.length) continue
+    for (const f of filters) {
+      // Scan field name
+      for (const m of f.field.matchAll(placeholderRe)) {
+        const name = toSnakeCase(m[1])
+        if (seen.has(name)) continue
+        seen.add(name)
+        parameters.push({ name, type: 'string', description: `Field name to filter by (${f.op})`, required: true, source: 'input', sourceKey: `filter:field` })
+      }
+      // Scan value
+      for (const m of f.value.matchAll(placeholderRe)) {
+        const name = toSnakeCase(m[1])
+        if (seen.has(name)) continue
+        seen.add(name)
+        const desc = f.field && !f.field.includes('{{')
+          ? `Filter value for "${f.field}" (${f.op})`
+          : `Filter value (${f.op})`
+        parameters.push({ name, type: 'string', description: desc, required: true, source: 'input', sourceKey: `filter:value` })
       }
     }
   }

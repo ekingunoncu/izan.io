@@ -131,6 +131,18 @@ export class BrowserWindow {
   async accessibilitySnapshot(selector?: string): Promise<string> {
     return (await this.send('accessibilitySnapshot', { selector })) as string
   }
+  async accessibilityNeighbors(
+    targetName: string,
+    targetRole?: string,
+    count?: number,
+    direction?: 'both' | 'above' | 'below',
+    includeChildren?: boolean,
+    matchMode?: 'contains' | 'equals',
+  ): Promise<string> {
+    return (await this.send('accessibilityNeighbors', {
+      targetName, targetRole, count, direction, includeChildren, matchMode,
+    })) as string
+  }
 
   // ─── Waiting ────────────────────────────────────────────────────
 

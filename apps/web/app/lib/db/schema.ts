@@ -1,5 +1,8 @@
 // Database schema types for izan.io
 
+/** Status of a long-running background task */
+export type TaskStatus = 'running' | 'completed' | 'failed'
+
 /** Where the agent originates from */
 export type AgentSource = 'builtin' | 'user'
 
@@ -58,6 +61,12 @@ export interface Chat {
   id: string
   agentId: string
   title: string
+  /** Background task status (undefined = normal chat) */
+  taskStatus?: TaskStatus
+  /** Current tool-calling round for background task progress */
+  taskCurrentStep?: number
+  /** Estimated total rounds (based on MAX_TOOL_ROUNDS_BACKGROUND) */
+  taskTotalSteps?: number
   createdAt: number
   updatedAt: number
 }
@@ -123,6 +132,26 @@ export interface UserPreferences {
   chatMessageLimit?: number
   /** Max chats per agent. 0 = unlimited (default) */
   chatHistoryLimit?: number
+}
+
+// ─── Usage Analytics Types ────────────────────────────────────────────────────
+
+/** A single LLM API call record for analytics tracking */
+export interface UsageRecord {
+  id: string
+  chatId: string
+  agentId: string
+  /** Full model id, e.g. "gpt-4.1" */
+  modelId: string
+  /** Provider id, e.g. "openai" */
+  providerId: string
+  inputTokens: number
+  outputTokens: number
+  /** Estimated USD cost calculated at record time */
+  cost: number
+  /** Tool names invoked in this round */
+  toolCalls: string[]
+  timestamp: number
 }
 
 // ─── Automation Tool Types ────────────────────────────────────────────────────
