@@ -261,7 +261,7 @@ function MarkdownMessage({
           <button
             type="button"
             onClick={handleCopy}
-            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors py-0.5 -mb-0.5"
+            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors py-0.5 -mb-0.5 cursor-pointer"
             aria-label={t('chat.copy')}
           >
             {copied ? t('chat.copied') : t('chat.copy')}
@@ -269,7 +269,7 @@ function MarkdownMessage({
           <button
             type="button"
             onClick={() => onToggleRaw(messageId)}
-            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors py-0.5 -mb-0.5"
+            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors py-0.5 -mb-0.5 cursor-pointer"
             aria-label={isRaw ? t('chat.viewRendered') : t('chat.viewRaw')}
           >
             {isRaw ? t('chat.viewRendered') : t('chat.viewRaw')}

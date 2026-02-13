@@ -18,7 +18,7 @@ export default function DocsLayout() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="lg:hidden p-2 -ml-2 rounded-lg hover:bg-muted transition-colors"
+              className="lg:hidden p-2 -ml-2 rounded-lg hover:bg-muted transition-colors cursor-pointer"
             >
               {sidebarOpen ? (
                 <X className="h-5 w-5" />

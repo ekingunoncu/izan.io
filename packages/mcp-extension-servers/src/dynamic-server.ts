@@ -93,9 +93,15 @@ function registerTool(server: McpServer, tool: ToolDefinition): void {
       inputSchema,
     },
     async (args: Record<string, unknown>) => {
+      console.log(`[izan-ext] MCP tool call: "${tool.name}" args=${JSON.stringify(args).slice(0, 200)}`)
+      console.log(`[izan-ext] MCP tool "${tool.name}": ${tool.steps.length} steps, extractionMethods=[${tool.steps.filter(s => s.action === 'extract').map(s => (s as Record<string, unknown>).extractionMethod ?? 'css').join(',')}]`)
+      const t0 = Date.now()
       const result = await runner.execute(tool, args)
+      const dt = Date.now() - t0
 
       if (!result.success) {
+        console.error(`[izan-ext] MCP tool "${tool.name}": FAILED in ${dt}ms — ${result.error}`)
+        console.error(`[izan-ext] MCP tool "${tool.name}": log=${JSON.stringify(result.log).slice(0, 500)}`)
         return {
           content: [{
             type: 'text' as const,
@@ -108,8 +114,19 @@ function registerTool(server: McpServer, tool: ToolDefinition): void {
         }
       }
 
+      const dataKeys = Object.keys(result.data)
+      console.log(`[izan-ext] MCP tool "${tool.name}": OK in ${dt}ms, data keys=[${dataKeys.join(',')}]`)
+      for (const k of dataKeys) {
+        const v = result.data[k]
+        const preview = Array.isArray(v) ? `array(${v.length})` : typeof v === 'object' && v ? `object(${Object.keys(v).length})` : String(v).slice(0, 100)
+        console.log(`[izan-ext] MCP tool "${tool.name}": data["${k}"] = ${preview}`)
+      }
+
+      const formatted = formatResultForLLM(result)
+      console.log(`[izan-ext] MCP tool "${tool.name}": formatted response length=${formatted.length}`)
+
       return {
-        content: [{ type: 'text' as const, text: formatResultForLLM(result) }],
+        content: [{ type: 'text' as const, text: formatted }],
       }
     },
   )
@@ -168,7 +185,32 @@ function toKeyValue(obj: Record<string, unknown>): string {
     .join('\n')
 }
 
-/** Clean extraction data: remove null/empty values, filter empty items from arrays. */
+/** Recursively clean object: remove null/empty, flatten nested objects, truncate long strings. */
+function cleanObj(obj: Record<string, unknown>, prefix = ''): Record<string, unknown> {
+  const result: Record<string, unknown> = {}
+  for (const [k, v] of Object.entries(obj)) {
+    if (v == null || v === '') continue
+    if (typeof v === 'string') {
+      // Truncate very long text values (e.g. full app descriptions)
+      result[prefix + k] = v.length > 500 ? v.slice(0, 497) + '...' : v
+    } else if (Array.isArray(v)) {
+      // Keep arrays but clean each item
+      const cleaned = v.filter(item => item != null && item !== '')
+      if (cleaned.length > 0) result[prefix + k] = cleaned
+    } else if (typeof v === 'object') {
+      // Flatten nested objects into parent with prefix
+      const nested = cleanObj(v as Record<string, unknown>)
+      for (const [nk, nv] of Object.entries(nested)) {
+        result[prefix + k + '.' + nk] = nv
+      }
+    } else {
+      result[prefix + k] = v
+    }
+  }
+  return result
+}
+
+/** Clean extraction data: remove null/empty values, flatten nested objects, filter empty items from arrays. */
 function cleanData(data: Record<string, unknown>): Record<string, unknown> {
   const cleaned: Record<string, unknown> = {}
   for (const [key, value] of Object.entries(data)) {
@@ -176,18 +218,18 @@ function cleanData(data: Record<string, unknown>): Record<string, unknown> {
       const filtered = (value as Record<string, unknown>[])
         .map(item => {
           if (item && typeof item === 'object' && !Array.isArray(item)) {
-            const obj: Record<string, unknown> = {}
-            for (const [k, v] of Object.entries(item)) {
-              if (v != null && v !== '') obj[k] = v
-            }
-            return Object.keys(obj).length > 0 ? obj : null
+            return cleanObj(item)
           }
           return item
         })
-        .filter((item): item is Record<string, unknown> => item != null)
+        .filter((item): item is Record<string, unknown> => item != null && (typeof item !== 'object' || Object.keys(item).length > 0))
       if (filtered.length > 0) cleaned[key] = filtered
     } else if (value != null && value !== '') {
-      cleaned[key] = value
+      if (typeof value === 'object' && !Array.isArray(value)) {
+        Object.assign(cleaned, cleanObj(value as Record<string, unknown>, key + '.'))
+      } else {
+        cleaned[key] = value
+      }
     }
   }
   return cleaned
@@ -253,12 +295,26 @@ function formatCleanedData(data: Record<string, unknown>, parts: string[]): void
 
 function formatResultForLLM(result: RunnerResult): string {
   const hasData = Object.keys(result.data).length > 0
+  console.log(`[izan-ext] formatResultForLLM: hasData=${hasData} dataKeys=[${Object.keys(result.data).join(',')}] hasLaneSummaries=${!!result.laneSummaries}`)
 
   // Single-lane execution (no laneSummaries)
   if (!result.laneSummaries) {
-    if (!hasData) return 'Action completed successfully.'
+    if (!hasData) {
+      console.log('[izan-ext] formatResultForLLM: no data keys → "Action completed successfully."')
+      return 'Action completed successfully.'
+    }
     const cleaned = cleanData(result.data)
-    if (Object.keys(cleaned).length === 0) return 'Action completed but no meaningful data was extracted.'
+    console.log(`[izan-ext] formatResultForLLM: after cleanData → ${Object.keys(cleaned).length} keys: [${Object.keys(cleaned).join(',')}]`)
+    for (const [k, v] of Object.entries(result.data)) {
+      const raw = Array.isArray(v) ? `array(${v.length})` : typeof v === 'object' && v ? `object(${Object.keys(v).length})` : String(v).slice(0, 80)
+      const cleanedVal = cleaned[k]
+      const cleanedStr = cleanedVal === undefined ? 'REMOVED' : Array.isArray(cleanedVal) ? `array(${cleanedVal.length})` : typeof cleanedVal
+      console.log(`[izan-ext] formatResultForLLM: data["${k}"] raw=${raw} → cleaned=${cleanedStr}`)
+    }
+    if (Object.keys(cleaned).length === 0) {
+      console.warn('[izan-ext] formatResultForLLM: all data cleaned away → "no meaningful data"')
+      return 'Action completed but no meaningful data was extracted.'
+    }
     const parts: string[] = []
     const hostname = tryHostname(result.sourceUrl)
     if (hostname) parts.push(`Source: ${hostname}`)
@@ -404,10 +460,12 @@ export async function startDynamicServer(): Promise<boolean> {
   server.registerTool(
     'accessibility_snapshot',
     {
-      description: 'Get the accessibility tree of the current page. Returns a compact text representation with roles, names, and properties. Use to understand page structure.',
-      inputSchema: {},
+      description: 'Get the accessibility tree of the current page or a specific element. Returns a compact text representation with roles, names, and properties. Use to understand page structure. Pass a CSS selector or XPath to scope to a specific element subtree.',
+      inputSchema: {
+        selector: z.string().optional().describe('Optional CSS selector or XPath to scope the snapshot to a specific element subtree'),
+      },
     },
-    async () => {
+    async (args: { selector?: string }) => {
       const bw = BrowserWindow.getInstance()
       if (!bw.isOpen()) {
         return {
@@ -415,7 +473,7 @@ export async function startDynamicServer(): Promise<boolean> {
           isError: true,
         }
       }
-      const tree = await bw.accessibilitySnapshot()
+      const tree = await bw.accessibilitySnapshot(args.selector)
       return { content: [{ type: 'text' as const, text: tree as string }] }
     },
   )

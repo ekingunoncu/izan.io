@@ -49,24 +49,43 @@ export class BrowserWindow {
     return new Promise((resolve, reject) => {
       let settled = false
       const done = (fn: () => void) => { if (!settled) { settled = true; fn() } }
+      console.log(`[izan-ext] BrowserWindow.send: action="${action}" tabId=${this.tabId} laneId=${this.laneId}`)
       chrome.runtime.sendMessage(
         { type: 'bw-command', action, payload: { ...payload, tabId: this.tabId, laneId: this.laneId } },
         (res: { success?: boolean; data?: unknown; error?: string }) => {
           done(() => {
-            if (chrome.runtime.lastError) return reject(new Error(chrome.runtime.lastError.message))
-            if (res?.success === false) return reject(new Error(res.error ?? 'BrowserWindow error'))
+            if (chrome.runtime.lastError) {
+              console.error(`[izan-ext] BrowserWindow.send: action="${action}" chrome.runtime error: ${chrome.runtime.lastError.message}`)
+              return reject(new Error(chrome.runtime.lastError.message))
+            }
+            if (res?.success === false) {
+              console.error(`[izan-ext] BrowserWindow.send: action="${action}" failed: ${res.error}`)
+              return reject(new Error(res.error ?? 'BrowserWindow error'))
+            }
+            const preview = res?.data == null ? 'null' : Array.isArray(res.data) ? `array(${res.data.length})` : typeof res.data === 'object' ? `object(${Object.keys(res.data as Record<string, unknown>).length})` : String(res.data).slice(0, 80)
+            console.log(`[izan-ext] BrowserWindow.send: action="${action}" OK → ${preview}`)
             resolve(res?.data)
           })
         },
       )
-      setTimeout(() => done(() => reject(new Error(`BrowserWindow.${action} timed out (30s)`))), 30_000)
+      setTimeout(() => done(() => {
+        console.error(`[izan-ext] BrowserWindow.send: action="${action}" TIMEOUT (30s)`)
+        reject(new Error(`BrowserWindow.${action} timed out (30s)`))
+      }), 30_000)
     })
   }
 
   // ─── Lifecycle ──────────────────────────────────────────────────
 
-  async open(url: string, opts: { background?: boolean } = {}): Promise<number> {
-    const r = await this.send('open', { url, background: opts.background ?? true }) as { tabId: number }
+  async open(url: string, opts: { background?: boolean; viewport?: { width: number; height: number } } = {}): Promise<number> {
+    const r = await this.send('open', { url, background: opts.background ?? true, viewport: opts.viewport }) as { tabId: number }
+    this.tabId = r.tabId
+    return this.tabId
+  }
+
+  /** Attach CDP to the currently active tab without creating a new window/tab. */
+  async attachActiveTab(): Promise<number> {
+    const r = await this.send('attachActiveTab', {}) as { tabId: number }
     this.tabId = r.tabId
     return this.tabId
   }
@@ -109,8 +128,8 @@ export class BrowserWindow {
   async extractByRole(roles: string[], name: string, includeChildren: boolean, fields: Array<Record<string, unknown>>): Promise<Record<string, unknown>[]> {
     return (await this.send('extractByRole', { roles, name, includeChildren, fields })) as Record<string, unknown>[]
   }
-  async accessibilitySnapshot(): Promise<string> {
-    return (await this.send('accessibilitySnapshot', {})) as string
+  async accessibilitySnapshot(selector?: string): Promise<string> {
+    return (await this.send('accessibilitySnapshot', { selector })) as string
   }
 
   // ─── Waiting ────────────────────────────────────────────────────

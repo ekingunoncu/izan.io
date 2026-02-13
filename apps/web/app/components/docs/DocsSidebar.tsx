@@ -26,7 +26,7 @@ export function DocsSidebar({ onNavigate }: DocsSidebarProps) {
           <div key={cat.id}>
             <button
               onClick={() => toggle(cat.id)}
-              className="flex w-full items-center justify-between px-3 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors"
+              className="flex w-full items-center justify-between px-3 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
             >
               {t(cat.titleKey)}
               <ChevronDown

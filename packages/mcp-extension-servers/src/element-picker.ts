@@ -103,6 +103,7 @@ export class ElementPicker {
   private listCandidates: ListCandidate[] = []
 
   private highlightBox: HTMLDivElement | null = null
+  private infoPanelHost: HTMLDivElement | null = null
   private infoPanel: HTMLDivElement | null = null
 
   private boundMouseMove: (e: MouseEvent) => void
@@ -499,23 +500,34 @@ export class ElementPicker {
   }
 
   private createInfoPanel(): void {
-    this.infoPanel = document.createElement('div')
-    this.infoPanel.setAttribute('data-izan-recorder', 'true')
-    Object.assign(this.infoPanel.style, {
+    // Use Shadow DOM to isolate from page CSS
+    this.infoPanelHost = document.createElement('div')
+    this.infoPanelHost.setAttribute('data-izan-recorder', 'true')
+    Object.assign(this.infoPanelHost.style, {
       position: 'fixed', bottom: '16px', left: '50%', transform: 'translateX(-50%)',
-      backgroundColor: 'hsl(240 10% 3.9%)', color: 'hsl(0 0% 98%)',
-      padding: '10px 18px', borderRadius: '10px', fontSize: '13px',
-      fontFamily: 'system-ui, -apple-system, sans-serif', zIndex: '2147483647',
-      boxShadow: '0 4px 24px rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center',
-      gap: '10px', maxWidth: '600px', border: '1px solid hsl(240 3.7% 15.9%)',
+      zIndex: '2147483647', pointerEvents: 'auto',
     })
-    document.body.appendChild(this.infoPanel)
+    const shadow = this.infoPanelHost.attachShadow({ mode: 'open' })
+    shadow.innerHTML = `<style>
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+      :host { font-family: system-ui, -apple-system, sans-serif; font-size: 13px; line-height: 1.4; color: #1a1a1a; }
+      .panel { background: #fff; padding: 7px 14px; border-radius: 10px; display: flex; align-items: center; gap: 8px;
+        box-shadow: 0 2px 16px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.06); max-width: 520px; }
+      .msg { flex: 1; }
+      .msg b { font-weight: 600; }
+      .done { background: hsl(220 90% 56%); color: #fff; border: none; padding: 3px 10px; border-radius: 5px;
+        cursor: pointer; font-size: 12px; font-weight: 600; white-space: nowrap; line-height: 1.4; font-family: inherit; }
+      .done:hover { background: hsl(220 90% 48%); }
+      .esc { opacity: 0.35; font-size: 11px; white-space: nowrap; }
+    </style><div class="panel"></div>`
+    this.infoPanel = shadow.querySelector('.panel')!
+    document.body.appendChild(this.infoPanelHost)
   }
 
   private cleanup(): void {
     this.cleanupCandidates()
     this.highlightBox?.remove(); this.highlightBox = null
-    this.infoPanel?.remove(); this.infoPanel = null
+    this.infoPanelHost?.remove(); this.infoPanelHost = null; this.infoPanel = null
     removeStyles()
     this.listCandidates = []
   }
@@ -533,14 +545,14 @@ export class ElementPicker {
     if (this.mode === 'container') {
       const n = this.listCandidates.length
       const msg = this.extractionMode === 'list'
-        ? n > 0 ? `${n} list(s) detected - click "Select" on an item` : `Click on a repeating element`
-        : `Click on the element you want to extract data from`
-      this.infoPanel.innerHTML = `<span>${msg}</span><span style="opacity:0.4;font-size:11px">ESC to cancel</span>`
+        ? n > 0 ? `${n} list${n !== 1 ? 's' : ''} detected — click <b>Select</b> on an item` : `Click on a repeating element`
+        : `Click on the element to extract`
+      this.infoPanel.innerHTML = `<span class="msg">${msg}</span><span class="esc">ESC cancel</span>`
     } else {
       this.infoPanel.innerHTML = `
-        <span>Click fields to extract (${this.fields.length} selected)</span>
-        <button data-izan-recorder="true" style="background:hsl(220 90% 56%);color:#fff;border:none;padding:5px 10px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:500">Done</button>
-        <span style="opacity:0.4;font-size:11px">ESC to cancel</span>`
+        <span class="msg">${this.fields.length} field${this.fields.length !== 1 ? 's' : ''} selected</span>
+        <button class="done">Done</button>
+        <span class="esc">ESC</span>`
       this.infoPanel.querySelector('button')?.addEventListener('click', () => this.finalize())
     }
   }

@@ -76,7 +76,7 @@ function ModelQuickSelect({ onClose }: ModelQuickSelectProps) {
                 key={p.id}
                 onClick={() => handleSelectProvider(p.id)}
                 className={cn(
-                  'text-xs px-2 py-1 rounded-md transition-colors',
+                  'text-xs px-2 py-1 rounded-md transition-colors cursor-pointer',
                   selectedProvider === p.id ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'
                 )}
               >

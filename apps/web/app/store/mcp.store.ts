@@ -182,8 +182,16 @@ export const useMCPStore = create<MCPState>((set, get) => ({
           extensionServers: payload.servers,
           extensionRequired: false,
         })
-        // Re-activate the current agent to pick up extension servers
-        const { lastActivatedAgent } = get()
+        // Force reconnect extension servers (dynamic server may have restarted with new tools)
+        const { registry, lastActivatedAgent } = get()
+        if (registry) {
+          for (const s of payload.servers) {
+            const existing = registry.getServer(s.id)
+            if (existing?.status === 'connected') {
+              void registry.removeServer(s.id).catch(() => {})
+            }
+          }
+        }
         if (lastActivatedAgent) {
           void get().activateAgentMCPs(lastActivatedAgent)
         }

@@ -53,6 +53,13 @@
 
 * { border-color: var(--color-border); }
 
+/* Ensure all interactive elements show pointer cursor */
+button, [role="button"], a, label[for], select,
+input[type="checkbox"], input[type="radio"],
+summary, [tabindex]:not([tabindex="-1"]) {
+  cursor: pointer;
+}
+
 body {
   background-color: var(--color-background);
   color: var(--color-foreground);

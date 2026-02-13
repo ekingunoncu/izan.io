@@ -94,8 +94,15 @@ chrome.runtime.onConnect.addListener((port) => {
             return new Promise<void>((r) => setTimeout(r, 150))
           })
           .then(() => chrome.tabs.sendMessage(tab.id!, { type: 'recorder-start' }))
-          .then(() => {
-            sidePanelPort?.postMessage({ type: 'recording-started' })
+          .then(() =>
+            chrome.scripting.executeScript({
+              target: { tabId: tab.id! },
+              func: () => ({ width: window.innerWidth, height: window.innerHeight }),
+            }),
+          )
+          .then((results) => {
+            const viewport = results?.[0]?.result as { width: number; height: number } | undefined
+            sidePanelPort?.postMessage({ type: 'recording-started', viewport })
           })
           .catch((err) => {
             console.error('[izan-ext] Inject or start failed:', err)
@@ -106,6 +113,31 @@ chrome.runtime.onConnect.addListener((port) => {
     } else if (msg.type === 'stopRecording' && recordingTabId != null) {
       chrome.tabs.sendMessage(recordingTabId, { type: 'recorder-stop' }).catch(() => {})
       recordingTabId = null
+    } else if (msg.type === 'navigateRecordingTab') {
+      const rawUrl = (msg as Record<string, unknown>).url as string
+      const resolveAndNavigate = (tabId: number) => {
+        chrome.tabs.get(tabId, (tab) => {
+          let finalUrl = rawUrl
+          // Resolve relative URLs against the tab's current page origin
+          if (!/^https?:\/\//.test(rawUrl) && tab?.url) {
+            try { finalUrl = new URL(rawUrl, tab.url).href } catch { /* keep raw */ }
+          }
+          // Only navigate to http(s) URLs
+          if (/^https?:\/\//.test(finalUrl)) {
+            chrome.tabs.update(tabId, { url: finalUrl }).catch(() => {})
+          }
+        })
+      }
+      if (recordingTabId != null) {
+        resolveAndNavigate(recordingTabId)
+      } else {
+        chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
+          if (tab?.id) {
+            recordingTabId = tab.id
+            resolveAndNavigate(tab.id)
+          }
+        })
+      }
     } else if (msg.type === 'extract' && recordingTabId != null) {
       chrome.tabs.sendMessage(recordingTabId, { type: 'recorder-extract', mode: msg.mode ?? 'list' }).catch(() => {})
     } else if (msg.type === 'extract' && recordingTabId == null) {
@@ -163,6 +195,7 @@ chrome.runtime.onConnect.addListener((port) => {
         parameters: m.parameters as [],
         steps: m.steps as [],
         lanes: m.lanes as [] | undefined,
+        viewport: m.viewport as { width: number; height: number } | undefined,
         version: m.version as string,
       })
         .then((tool) => {
@@ -217,7 +250,13 @@ chrome.runtime.onConnect.addListener((port) => {
     } else if (msg.type === 'exportAutomationServer') {
       const m = msg as Record<string, unknown>
       automationStorage.getServerExport(m.serverId as string)
-        .then((data) => sidePanelPort?.postMessage({ type: 'exportAutomationServerDone', data }))
+        .then((data) => {
+          if (!data) {
+            sidePanelPort?.postMessage({ type: 'exportAutomationServerDone', error: 'Server not found' })
+            return
+          }
+          sidePanelPort?.postMessage({ type: 'exportAutomationServerDone', data })
+        })
         .catch((err) => sidePanelPort?.postMessage({ type: 'exportAutomationServerDone', error: String(err) }))
     } else if (msg.type === 'importAutomationServer') {
       const m = msg as Record<string, unknown>
@@ -239,11 +278,15 @@ chrome.runtime.onConnect.addListener((port) => {
       const m = msg as Record<string, unknown>
       const selector = m.selector as string
       const mode = (m.mode as 'list' | 'single') || 'list'
+      const isXPath = selector.startsWith('/') || selector.startsWith('(') || selector.includes('//')
+      console.log(`[izan-ext] selectorExtract: "${selector}" mode=${mode} isXPath=${isXPath}`)
       chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
         if (!tab?.id) {
+          console.warn('[izan-ext] selectorExtract: no active tab')
           sidePanelPort?.postMessage({ type: 'selector-extract-error', error: 'No active tab' })
           return
         }
+        console.log(`[izan-ext] selectorExtract: tab=${tab.id} url=${tab.url?.slice(0, 80)}`)
         handleSelectorExtract(tab.id, selector, mode)
       })
     } else if (msg.type === 'roleExtract') {
@@ -312,6 +355,9 @@ let automationWindowId: number | null = null
 /** Map of laneId → tabId within the shared automation window */
 const laneTabs = new Map<string, number>()
 
+/** Tabs we attached to (not created) — should only detach CDP, never close */
+const attachedOnlyTabs = new Set<number>()
+
 /**
  * Promise-based mutex for window creation.
  * When the first lane starts creating a window, concurrent lanes
@@ -348,6 +394,7 @@ chrome.tabs.onRemoved.addListener((tabId) => {
   if (lid) {
     cdpDetach(tabId).catch(() => {})
     laneTabs.delete(lid)
+    attachedOnlyTabs.delete(tabId)
   }
 })
 
@@ -356,6 +403,16 @@ chrome.tabs.onRemoved.addListener((tabId) => {
 async function cdpAttach(tid: number): Promise<void> {
   await chrome.debugger.attach({ tabId: tid }, '1.3')
   await chrome.debugger.sendCommand({ tabId: tid }, 'Runtime.enable')
+}
+
+/** Override the tab's viewport to emulate a specific resolution via CDP */
+async function cdpSetViewport(tid: number, width: number, height: number): Promise<void> {
+  await chrome.debugger.sendCommand({ tabId: tid }, 'Emulation.setDeviceMetricsOverride', {
+    width,
+    height,
+    deviceScaleFactor: 1,
+    mobile: false,
+  })
 }
 
 async function cdpDetach(tid: number): Promise<void> {
@@ -418,7 +475,9 @@ type P = Record<string, unknown>
 
 async function handleOpen(p: P): Promise<R> {
   const url = p.url as string
-  const opts = { width: (p.width as number) || 800, height: (p.height as number) || 600 }
+  const viewport = p.viewport as { width: number; height: number } | undefined
+  // Use a small physical window; actual viewport is emulated via CDP
+  const opts = { width: 400, height: 300 }
   const laneId = getLaneId(p)
 
   // Check if the automation window still exists
@@ -441,6 +500,9 @@ async function handleOpen(p: P): Promise<R> {
       await chrome.tabs.update(existingTab, { url })
       await waitForTab(existingTab, 15_000)
       await cdpAttach(existingTab)
+      if (viewport) {
+        await cdpSetViewport(existingTab, viewport.width, viewport.height)
+      }
       return { success: true, data: { tabId: existingTab } }
     } catch {
       laneTabs.delete(laneId)
@@ -478,7 +540,7 @@ async function handleOpen(p: P): Promise<R> {
         type: 'normal',
         width: opts.width,
         height: opts.height,
-        focused: true,
+        focused: false,
       })
       if (!win) return { success: false, error: 'Failed to create window' }
       tid = win.tabs?.[0]?.id ?? null
@@ -492,9 +554,34 @@ async function handleOpen(p: P): Promise<R> {
 
   await waitForTab(tid, 15_000)
   await cdpAttach(tid)
+  if (viewport) {
+    await cdpSetViewport(tid, viewport.width, viewport.height)
+  }
   laneTabs.set(laneId, tid)
 
   return { success: true, data: { tabId: tid } }
+}
+
+/**
+ * Attach CDP to the currently active tab (no new window/tab created).
+ * Used when a macro starts without a navigate step.
+ */
+async function handleAttachActiveTab(p: P): Promise<R> {
+  const laneId = getLaneId(p)
+  const existingTab = laneTabs.get(laneId)
+  if (existingTab != null) {
+    return { success: true, data: { tabId: existingTab } }
+  }
+  const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true })
+  if (!tab?.id) return { success: false, error: 'No active tab found' }
+  try {
+    await cdpAttach(tab.id)
+  } catch {
+    // CDP may already be attached (e.g. from a previous run)
+  }
+  laneTabs.set(laneId, tab.id)
+  attachedOnlyTabs.add(tab.id)
+  return { success: true, data: { tabId: tab.id } }
 }
 
 async function handleClose(p: P): Promise<R> {
@@ -502,7 +589,11 @@ async function handleClose(p: P): Promise<R> {
   const tid = laneTabs.get(laneId)
   if (tid != null) {
     await cdpDetach(tid)
-    try { await chrome.tabs.remove(tid) } catch { /* tab already closed */ }
+    // Only close tabs we created — don't close tabs we merely attached to
+    if (!attachedOnlyTabs.has(tid)) {
+      try { await chrome.tabs.remove(tid) } catch { /* tab already closed */ }
+    }
+    attachedOnlyTabs.delete(tid)
     laneTabs.delete(laneId)
   }
   return { success: true }
@@ -511,9 +602,12 @@ async function handleClose(p: P): Promise<R> {
 async function handleCloseAll(_p: P): Promise<R> {
   for (const [, tid] of laneTabs) {
     await cdpDetach(tid)
-    try { await chrome.tabs.remove(tid) } catch { /* tab already closed */ }
+    if (!attachedOnlyTabs.has(tid)) {
+      try { await chrome.tabs.remove(tid) } catch { /* tab already closed */ }
+    }
   }
   laneTabs.clear()
+  attachedOnlyTabs.clear()
   return { success: true }
 }
 
@@ -546,12 +640,21 @@ async function handleEvaluate(p: P): Promise<R> {
   const tid = p.tabId as number
   // Verify this tab belongs to a known lane
   const knownLane = laneIdForTab(tid)
-  if (!knownLane) return { success: false, error: 'CDP not attached' }
+  if (!knownLane) {
+    console.warn(`[izan-ext] handleEvaluate: tab ${tid} not attached (no known lane)`)
+    return { success: false, error: 'CDP not attached' }
+  }
   try {
+    const exprPreview = (p.expression as string).slice(0, 120).replace(/\n/g, ' ')
+    console.log(`[izan-ext] handleEvaluate: tab=${tid} lane=${knownLane} expr="${exprPreview}..."`)
     const data = await cdpEval(tid, p.expression as string)
+    const preview = data == null ? 'null' : Array.isArray(data) ? `array(${data.length})` : typeof data === 'object' ? `object(${Object.keys(data as Record<string, unknown>).length})` : String(data).slice(0, 100)
+    console.log(`[izan-ext] handleEvaluate: result=${preview}`)
     return { success: true, data }
   } catch (e) {
-    return { success: false, error: e instanceof Error ? e.message : String(e) }
+    const errMsg = e instanceof Error ? e.message : String(e)
+    console.error(`[izan-ext] handleEvaluate: ERROR tab=${tid}: ${errMsg}`)
+    return { success: false, error: errMsg }
   }
 }
 
@@ -622,6 +725,26 @@ async function handleScroll(p: P): Promise<R> {
 }
 
 /**
+ * Shared JS helper to resolve a selector (CSS or XPath) relative to a context node.
+ * XPath detected by leading '/' or '(' or containing '//'.
+ */
+const RESOLVE_SEL_JS = `function _qsel(ctx,sel){
+  if(!sel)return null;
+  if(sel.startsWith('/')||sel.startsWith('(')||sel.includes('//')){
+    return document.evaluate(sel,ctx,null,XPathResult.FIRST_ORDERED_NODE_TYPE,null).singleNodeValue;
+  }
+  return ctx.querySelector(sel);
+}
+function _qselAll(ctx,sel){
+  if(!sel)return[];
+  if(sel.startsWith('/')||sel.startsWith('(')||sel.includes('//')){
+    var r=document.evaluate(sel,ctx,null,XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,null);
+    var n=[];for(var i=0;i<r.snapshotLength;i++)n.push(r.snapshotItem(i));return n;
+  }
+  return ctx.querySelectorAll(sel);
+}`
+
+/**
  * Shared JS helper injected via CDP to recursively extract a field value.
  * Supports: text, html, value, attribute, regex, nested, nested_list + transform + default.
  */
@@ -629,21 +752,21 @@ const EXTRACT_FIELD_JS = `function extractField(el,f){
   if(!el)return f.default!=null?f.default:null;
   var t=f.type||'text';
   if(t==='nested'){
-    var nested=el.querySelector(f.selector);
+    var nested=_qsel(el,f.selector);
     if(!nested)return f.default!=null?f.default:{};
     var obj={};
     (f.fields||[]).forEach(function(sf){obj[sf.key]=extractField(nested,sf)});
     return obj;
   }
   if(t==='nested_list'){
-    var items=el.querySelectorAll(f.selector);
+    var items=_qselAll(el,f.selector);
     return Array.from(items).map(function(item){
       var obj={};
       (f.fields||[]).forEach(function(sf){obj[sf.key]=extractField(item,sf)});
       return obj;
     });
   }
-  var target=f.selector?el.querySelector(f.selector):el;
+  var target=(f.selector&&f.selector!=='*')?_qsel(el,f.selector):el;
   if(!target)return f.default!=null?f.default:null;
   var val;
   if(t==='text')val=(target.textContent||'').trim();
@@ -674,30 +797,36 @@ const EXTRACT_FIELD_JS = `function extractField(el,f){
 async function handleExtractList(p: P): Promise<R> {
   const container = p.containerSelector as string
   const fields = p.fields as Array<Record<string, unknown>>
+  const isXP = container.startsWith('/') || container.startsWith('(') || container.includes('//')
+  console.log(`[izan-ext] extractList: container="${container}" fields=${fields.length} isXPath=${isXP}`)
   const fieldStr = JSON.stringify(fields)
   const containerStr = JSON.stringify(container)
   // Poll until elements appear (dynamic sites load content after 'load' event)
   const expr = `new Promise(function(resolve){
+    ${RESOLVE_SEL_JS}
     ${EXTRACT_FIELD_JS}
     var sel=${containerStr};
     var fields=${fieldStr};
     function isVisible(el){var r=el.getBoundingClientRect();return r.width>0&&r.height>0&&getComputedStyle(el).visibility!=='hidden'}
     function isEmptyRow(row){for(var k in row){var v=row[k];if(v!=null&&v!=='')return false}return true}
     function extract(){
-      var items=document.querySelectorAll(sel);
+      var items=_qselAll(document,sel);
+      console.log('[izan-ext] extractList/page: qselAll("'+sel.slice(0,60)+'") → '+items.length+' items');
       if(items.length===0)return null;
       var result=[];
-      items.forEach(function(item){
-        if(!isVisible(item))return;
+      items.forEach(function(item,idx){
+        if(!isVisible(item)){console.log('[izan-ext] extractList/page: item['+idx+'] not visible, skip');return}
         var row={};
         fields.forEach(function(f){
-          try{row[f.key]=extractField(item,f)}catch(e){row[f.key]=null}
+          try{row[f.key]=extractField(item,f)}catch(e){console.warn('[izan-ext] extractList/page: field "'+f.key+'" error: '+e.message);row[f.key]=null}
         });
         if(!isEmptyRow(row))result.push(row);
       });
+      console.log('[izan-ext] extractList/page: '+result.length+' non-empty rows');
       return result.length>0?result:null;
     }
-    var r=extract();if(r){resolve(r);return}
+    var r=extract();if(r){console.log('[izan-ext] extractList/page: resolved immediately with '+r.length+' rows');resolve(r);return}
+    console.log('[izan-ext] extractList/page: no results yet, polling...');
     var tries=0;var maxTries=20;
     var iv=setInterval(function(){
       tries++;r=extract();
@@ -711,17 +840,20 @@ async function handleExtractSingle(p: P): Promise<R> {
   const container = p.containerSelector as string
   const fields = p.fields as Array<Record<string, unknown>>
   const continueOnError = p.continueOnError as boolean | undefined
+  const isXP = container.startsWith('/') || container.startsWith('(') || container.includes('//')
+  console.log(`[izan-ext] extractSingle: container="${container}" fields=${fields.length} isXPath=${isXP}`)
   const fieldStr = JSON.stringify(fields)
   const containerStr = JSON.stringify(container)
   const coStr = continueOnError ? 'true' : 'false'
   // Poll until container appears (dynamic sites load content after 'load' event)
   const expr = `new Promise(function(resolve,reject){
+    ${RESOLVE_SEL_JS}
     ${EXTRACT_FIELD_JS}
     var sel=${containerStr};
     var fields=${fieldStr};
     var continueOnError=${coStr};
     function extract(){
-      var container=document.querySelector(sel);
+      var container=_qsel(document,sel);
       if(!container)return null;
       var result={};
       fields.forEach(function(f){
@@ -866,6 +998,7 @@ async function handleWaitForNetworkIdle(p: P): Promise<R> {
  * the page context — no debugger banner, works on CSP-restricted sites.
  */
 async function handleSelectorExtract(tabId: number, selector: string, mode: 'list' | 'single'): Promise<void> {
+  console.log(`[izan-ext] handleSelectorExtract: tab=${tabId} selector="${selector}" mode=${mode}`)
   try {
     const results = await chrome.scripting.executeScript({
       target: { tabId },
@@ -883,6 +1016,8 @@ async function handleSelectorExtract(tabId: number, selector: string, mode: 'lis
       mode: string
       error?: string
     } | null
+
+    console.log('[izan-ext] handleSelectorExtract result:', data?.error ? `ERROR: ${data.error}` : `fields=${data?.fields?.length} items=${data?.itemCount ?? '?'} mode=${data?.mode}`)
 
     if (data?.error) {
       sidePanelPort?.postMessage({ type: 'selector-extract-error', error: data.error })
@@ -1124,9 +1259,22 @@ function selectorExtractInPage(selector: string, mode: string) {
       return clone.outerHTML
     }
 
+    // ── XPath / CSS helpers ──
+    var isXP = selector.indexOf('//') >= 0 || selector.charAt(0) === '/' || selector.charAt(0) === '('
+    console.log('[izan-ext] selectorExtractInPage: selector="' + selector + '" mode=' + mode + ' isXPath=' + isXP)
+    function qsel(ctx: Node, s: string): Element | null {
+      if (isXP) { var r = document.evaluate(s, ctx, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null); return r.singleNodeValue as Element | null }
+      return (ctx as Element).querySelector(s)
+    }
+    function qselAll(ctx: Node, s: string): Element[] {
+      if (isXP) { var r = document.evaluate(s, ctx, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null); var n: Element[] = []; for (var i = 0; i < r.snapshotLength; i++) n.push(r.snapshotItem(i) as Element); return n }
+      return Array.from((ctx as Element).querySelectorAll(s))
+    }
+
     // ── Main logic ──
     if (mode === 'list') {
-      var items = document.querySelectorAll(selector)
+      var items = qselAll(document, selector)
+      console.log('[izan-ext] selectorExtractInPage: list mode, found ' + items.length + ' items')
       if (items.length === 0) return { error: 'No elements match "' + selector + '"' }
       var firstItem = items[0]
       var fields = firstItem.tagName === 'TR' ? autoDetectTableFields(firstItem) : autoDetectFields(firstItem, true)
@@ -1153,7 +1301,8 @@ function selectorExtractInPage(selector: string, mode: string) {
         mode: 'list',
       }
     } else {
-      var el = document.querySelector(selector)
+      var el = qsel(document, selector)
+      console.log('[izan-ext] selectorExtractInPage: single mode, found=' + !!el + (el ? ' tag=' + el.tagName : ''))
       if (!el) return { error: 'No element matches "' + selector + '"' }
       var fields = el.tagName === 'TR' ? autoDetectTableFields(el) : autoDetectFields(el, false)
       if (!fields || fields.length === 0) fields = [{ key: 'text', selector: '*', type: 'text' }]
@@ -1188,7 +1337,7 @@ async function cleanupRoleExtract(tabId: number): Promise<void> {
   await cdpDetach(tabId)
 }
 
-function processRoleResult(value: unknown, mode: 'list' | 'single'): void {
+function processRoleResult(value: unknown, mode: 'list' | 'single', roles?: string[], roleName?: string, roleIncludeChildren?: boolean): void {
   const v = value as { containerSelector?: string; fields?: unknown[]; preview?: unknown; previewHtml?: string[]; itemCount?: number; name?: string; error?: string } | null
   if (!v || v.error) {
     sidePanelPort?.postMessage({ type: 'selector-extract-error', error: v?.error || 'Extraction failed' })
@@ -1205,10 +1354,16 @@ function processRoleResult(value: unknown, mode: 'list' | 'single'): void {
     containerSelector: v.containerSelector,
     fields: v.fields,
     itemCount: v.itemCount,
+    // Always mark role extraction steps so runtime uses accessibility, not CSS
+    extractionMethod: 'role' as const,
+    roles,
+    roleName: roleName || undefined,
+    roleIncludeChildren: roleIncludeChildren ?? true,
     label: mode === 'list'
       ? `${v.itemCount ?? '?'} items · ${(v.fields as unknown[]).length} fields (list)`
       : `${(v.fields as unknown[]).length} fields (single)`,
   }
+  console.log(`[izan-ext] processRoleResult: mode=${mode} fields=${(v.fields as unknown[]).length} roles=[${roles?.join(',') ?? ''}] extractionMethod=role`)
   sidePanelPort?.postMessage({
     type: 'selector-extract-result',
     step,
@@ -1619,7 +1774,7 @@ async function handleRoleExtract(tabId: number, roles: string[], name: string, i
     }) as { result: { value: unknown } }
 
     await cleanupRoleExtract(tabId)
-    processRoleResult(result.result.value, 'list')
+    processRoleResult(result.result.value, 'list', roles, name, includeChildren)
   } catch (err: unknown) {
     try { await cleanupRoleExtract(tabId) } catch {}
     const message = err instanceof Error ? err.message : String(err)
@@ -1637,6 +1792,7 @@ async function handleRoleExtract(tabId: number, roles: string[], name: string, i
 function buildRuntimeRoleExtractExpression(): string {
   return `function(roles, name, includeChildren, fields) {
     try {
+      ${RESOLVE_SEL_JS}
       ${EXTRACT_FIELD_JS}
       var IMPLICIT_ROLES = {
         button: 'button', link: 'a', heading: 'h1,h2,h3,h4,h5,h6',
@@ -1685,9 +1841,11 @@ function buildRuntimeRoleExtractExpression(): string {
         return items;
       }
       if (typeof roles === 'string') roles = [roles];
+      console.log('[izan-ext] runtimeRoleExtract: finding elements for roles=[' + roles.join(',') + '] name="' + name + '"');
       var items = findByRoles(roles, name);
+      console.log('[izan-ext] runtimeRoleExtract: found ' + items.length + ' elements');
       if (items.length === 0) return [];
-      if (items.length > 100) items = items.slice(0, 100);
+      if (items.length > 100) { console.log('[izan-ext] runtimeRoleExtract: truncating to 100'); items = items.slice(0, 100); }
       function isEmptyRow(row) { for (var k in row) { var v = row[k]; if (v != null && v !== '') return false; } return true; }
       var result = [];
       for (var ii = 0; ii < items.length; ii++) {
@@ -1695,12 +1853,15 @@ function buildRuntimeRoleExtractExpression(): string {
         var row = {};
         for (var fi = 0; fi < fields.length; fi++) {
           var f = fields[fi];
-          try { row[f.key] = extractField(item, f); } catch(e) { row[f.key] = null; }
+          try { row[f.key] = extractField(item, f); } catch(e) { console.warn('[izan-ext] runtimeRoleExtract: field "' + f.key + '" error: ' + e.message); row[f.key] = null; }
         }
         if (!isEmptyRow(row)) result.push(row);
       }
+      console.log('[izan-ext] runtimeRoleExtract: returning ' + result.length + ' rows (from ' + items.length + ' elements)');
+      if (result.length > 0) console.log('[izan-ext] runtimeRoleExtract: first row=' + JSON.stringify(result[0]).slice(0, 300));
       return result;
     } catch(e) {
+      console.error('[izan-ext] runtimeRoleExtract: FATAL error: ' + e.message);
       return [];
     }
   }`
@@ -1716,13 +1877,17 @@ async function handleExtractByRole(p: P): Promise<R> {
   const name = (p.name as string) || ''
   const includeChildren = p.includeChildren !== false
   const fields = p.fields as Array<Record<string, unknown>>
+  console.log(`[izan-ext] handleExtractByRole: tab=${tid} roles=[${roles.join(',')}] name="${name}" includeChildren=${includeChildren} fields=${fields.length}`)
+  console.log(`[izan-ext] handleExtractByRole: fields=${JSON.stringify(fields).slice(0, 500)}`)
 
   try {
     // Enable additional CDP domains (Runtime already enabled by cdpAttach)
+    console.log(`[izan-ext] handleExtractByRole: enabling DOM + Accessibility domains`)
     await chrome.debugger.sendCommand({ tabId: tid }, 'DOM.enable')
     await chrome.debugger.sendCommand({ tabId: tid }, 'Accessibility.enable')
 
     const { root } = await chrome.debugger.sendCommand({ tabId: tid }, 'DOM.getDocument', { depth: 0 }) as { root: { nodeId: number } }
+    console.log(`[izan-ext] handleExtractByRole: document root nodeId=${root.nodeId}`)
 
     // Query AX tree for all roles
     const allBackendNodeIds: number[] = []
@@ -1731,41 +1896,64 @@ async function handleExtractByRole(p: P): Promise<R> {
       if (name) params.name = name
       try {
         const { nodes } = await chrome.debugger.sendCommand({ tabId: tid }, 'Accessibility.queryAXTree', params) as { nodes: Array<{ backendDOMNodeId?: number }> }
+        console.log(`[izan-ext] handleExtractByRole: AX queryAXTree role="${role}" → ${nodes?.length ?? 0} nodes`)
         if (nodes) {
           for (const n of nodes) {
             if (n.backendDOMNodeId != null && !allBackendNodeIds.includes(n.backendDOMNodeId))
               allBackendNodeIds.push(n.backendDOMNodeId)
           }
         }
-      } catch { /* skip failed role queries */ }
+      } catch (roleErr) {
+        console.warn(`[izan-ext] handleExtractByRole: AX queryAXTree role="${role}" FAILED: ${roleErr instanceof Error ? roleErr.message : String(roleErr)}`)
+      }
     }
 
+    console.log(`[izan-ext] handleExtractByRole: total ${allBackendNodeIds.length} unique backendNodeIds`)
+
     if (allBackendNodeIds.length === 0) {
+      console.log(`[izan-ext] handleExtractByRole: no elements found, returning empty array`)
       await chrome.debugger.sendCommand({ tabId: tid }, 'Accessibility.disable').catch(() => {})
       await chrome.debugger.sendCommand({ tabId: tid }, 'DOM.disable').catch(() => {})
       return { success: true, data: [] }
     }
 
     // Resolve first node to get an objectId for Runtime.callFunctionOn
+    console.log(`[izan-ext] handleExtractByRole: resolving backendNodeId=${allBackendNodeIds[0]}`)
     const { object } = await chrome.debugger.sendCommand({ tabId: tid }, 'DOM.resolveNode', {
       backendNodeId: allBackendNodeIds[0],
     }) as { object: { objectId: string } }
+    console.log(`[izan-ext] handleExtractByRole: resolved objectId=${object.objectId?.slice(0, 40)}`)
 
+    console.log(`[izan-ext] handleExtractByRole: calling Runtime.callFunctionOn with buildRuntimeRoleExtractExpression`)
     const result = await chrome.debugger.sendCommand({ tabId: tid }, 'Runtime.callFunctionOn', {
       objectId: object.objectId,
       functionDeclaration: buildRuntimeRoleExtractExpression(),
       arguments: [{ value: roles }, { value: name }, { value: includeChildren }, { value: fields }],
       returnByValue: true,
-    }) as { result: { value: unknown } }
+    }) as { result: { value: unknown; exceptionDetails?: unknown } }
+
+    // Check for JS exceptions in the evaluated code
+    if ((result.result as Record<string, unknown>).exceptionDetails) {
+      console.error(`[izan-ext] handleExtractByRole: JS exception in page:`, JSON.stringify((result.result as Record<string, unknown>).exceptionDetails).slice(0, 500))
+    }
+
+    const items = Array.isArray(result.result.value) ? result.result.value.length : '?'
+    console.log(`[izan-ext] handleExtractByRole: runtime extraction returned ${items} items`)
+    if (Array.isArray(result.result.value) && result.result.value.length > 0) {
+      console.log(`[izan-ext] handleExtractByRole: first item=${JSON.stringify(result.result.value[0]).slice(0, 300)}`)
+    }
 
     await chrome.debugger.sendCommand({ tabId: tid }, 'Accessibility.disable').catch(() => {})
     await chrome.debugger.sendCommand({ tabId: tid }, 'DOM.disable').catch(() => {})
 
     return { success: true, data: result.result.value }
   } catch (e) {
+    const errMsg = e instanceof Error ? e.message : String(e)
+    console.error(`[izan-ext] handleExtractByRole: FAILED: ${errMsg}`)
+    console.error(`[izan-ext] handleExtractByRole: stack:`, e instanceof Error ? e.stack : '')
     await chrome.debugger.sendCommand({ tabId: tid }, 'Accessibility.disable').catch(() => {})
     await chrome.debugger.sendCommand({ tabId: tid }, 'DOM.disable').catch(() => {})
-    return { success: false, error: e instanceof Error ? e.message : String(e) }
+    return { success: false, error: errMsg }
   }
 }
 
@@ -1872,15 +2060,50 @@ function formatAXTree(nodes: AXNode[]): string {
 }
 
 /**
- * Runtime handler: get full accessibility tree snapshot of the page.
+ * Runtime handler: get accessibility tree snapshot.
+ * Supports optional `selector` param (CSS or XPath) to scope to a specific element's subtree.
  */
 async function handleAccessibilitySnapshot(p: P): Promise<R> {
   const tid = p.tabId as number
+  const selector = p.selector as string | undefined
+  console.log(`[izan-ext] accessibilitySnapshot: tab=${tid} selector=${selector ?? '(full page)'}`)
   try {
     await chrome.debugger.sendCommand({ tabId: tid }, 'DOM.enable')
     await chrome.debugger.sendCommand({ tabId: tid }, 'Accessibility.enable')
 
-    const result = await chrome.debugger.sendCommand({ tabId: tid }, 'Accessibility.getFullAXTree', { depth: -1 }) as { nodes: AXNode[] }
+    let result: { nodes: AXNode[] }
+
+    if (selector) {
+      // Scoped: find element via selector, get its partial AX tree
+      const doc = await chrome.debugger.sendCommand({ tabId: tid }, 'DOM.getDocument', { depth: 0 }) as { root: { nodeId: number } }
+      let nodeId: number
+
+      const isXPath = selector.startsWith('/') || selector.startsWith('(') || selector.includes('//')
+      if (isXPath) {
+        const search = await chrome.debugger.sendCommand({ tabId: tid }, 'DOM.performSearch', { query: selector }) as { searchId: string; resultCount: number }
+        if (search.resultCount === 0) {
+          await chrome.debugger.sendCommand({ tabId: tid }, 'DOM.discardSearchResults', { searchId: search.searchId }).catch(() => {})
+          return { success: false, error: `No element found for XPath: ${selector}` }
+        }
+        const results = await chrome.debugger.sendCommand({ tabId: tid }, 'DOM.getSearchResults', { searchId: search.searchId, fromIndex: 0, toIndex: 1 }) as { nodeIds: number[] }
+        nodeId = results.nodeIds[0]
+        await chrome.debugger.sendCommand({ tabId: tid }, 'DOM.discardSearchResults', { searchId: search.searchId }).catch(() => {})
+      } else {
+        const found = await chrome.debugger.sendCommand({ tabId: tid }, 'DOM.querySelector', { nodeId: doc.root.nodeId, selector }) as { nodeId: number }
+        if (!found.nodeId) return { success: false, error: `No element found for selector: ${selector}` }
+        nodeId = found.nodeId
+      }
+
+      // Resolve to backend node for accessibility query
+      const resolved = await chrome.debugger.sendCommand({ tabId: tid }, 'DOM.resolveNode', { nodeId }) as { object: { objectId: string } }
+      result = await chrome.debugger.sendCommand({ tabId: tid }, 'Accessibility.getPartialAXTree', {
+        objectId: resolved.object.objectId,
+        fetchRelatives: false,
+      }) as { nodes: AXNode[] }
+    } else {
+      // Full page tree
+      result = await chrome.debugger.sendCommand({ tabId: tid }, 'Accessibility.getFullAXTree', { depth: -1 }) as { nodes: AXNode[] }
+    }
 
     const formatted = formatAXTree(result.nodes)
 
@@ -1922,16 +2145,34 @@ const HANDLERS: Record<string, (p: P) => Promise<R>> = {
   waitForLoad: handleWaitForLoad,
   waitForDOMContentLoaded: handleWaitForDOMContentLoaded,
   waitForNetworkIdle: handleWaitForNetworkIdle,
+  attachActiveTab: handleAttachActiveTab,
 }
 
 chrome.runtime.onMessage.addListener(
   (msg: { type: string; action: string; payload: P }, _sender, sendResponse) => {
     if (msg.type !== 'bw-command') return false
     const handler = HANDLERS[msg.action]
-    if (!handler) { sendResponse({ success: false, error: `Unknown: ${msg.action}` }); return false }
+    if (!handler) {
+      console.warn(`[izan-ext] bw-command: unknown action "${msg.action}"`)
+      sendResponse({ success: false, error: `Unknown: ${msg.action}` })
+      return false
+    }
+    const payloadPreview = msg.payload ? `tabId=${msg.payload.tabId} laneId=${msg.payload.laneId}` : 'no-payload'
+    console.log(`[izan-ext] bw-command: action="${msg.action}" ${payloadPreview}`)
+    const t0 = Date.now()
     handler(msg.payload)
-      .then(sendResponse)
-      .catch((e) => sendResponse({ success: false, error: e instanceof Error ? e.message : String(e) }))
+      .then((result) => {
+        const dt = Date.now() - t0
+        const ok = (result as Record<string, unknown>).success !== false
+        console.log(`[izan-ext] bw-command: action="${msg.action}" ${ok ? 'OK' : 'FAIL'} ${dt}ms`)
+        sendResponse(result)
+      })
+      .catch((e) => {
+        const dt = Date.now() - t0
+        const errMsg = e instanceof Error ? e.message : String(e)
+        console.error(`[izan-ext] bw-command: action="${msg.action}" EXCEPTION ${dt}ms: ${errMsg}`)
+        sendResponse({ success: false, error: errMsg })
+      })
     return true
   },
 )

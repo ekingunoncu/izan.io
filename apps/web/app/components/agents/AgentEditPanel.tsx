@@ -286,7 +286,7 @@ export function AgentEditPanel() {
                       type="button"
                       onClick={() => setSelectedIcon(id)}
                       className={cn(
-                        'w-9 h-9 rounded-lg flex items-center justify-center transition-colors border',
+                        'w-9 h-9 rounded-lg flex items-center justify-center transition-colors border cursor-pointer',
                         selectedIcon === id
                           ? 'bg-primary text-primary-foreground border-primary'
                           : 'hover:bg-muted border-transparent'
@@ -418,7 +418,7 @@ export function AgentEditPanel() {
                     <button
                       key={config.id}
                       onClick={() => setImplicitMCPIds(prev => [...prev, config.id])}
-                      className="w-full flex items-center gap-2 rounded-lg border border-dashed p-2.5 text-sm text-muted-foreground hover:bg-muted transition-colors"
+                      className="w-full flex items-center gap-2 rounded-lg border border-dashed p-2.5 text-sm text-muted-foreground hover:bg-muted transition-colors cursor-pointer"
                     >
                       <Plus className="h-3.5 w-3.5" />
                       <span>{config.name}</span>
@@ -488,7 +488,7 @@ export function AgentEditPanel() {
                     <button
                       key={us.id}
                       onClick={() => setCustomMCPIds(prev => [...prev, us.id])}
-                      className="w-full flex items-center gap-2 rounded-lg border border-dashed p-2.5 text-sm text-muted-foreground hover:bg-muted transition-colors"
+                      className="w-full flex items-center gap-2 rounded-lg border border-dashed p-2.5 text-sm text-muted-foreground hover:bg-muted transition-colors cursor-pointer"
                     >
                       <Plus className="h-3.5 w-3.5" />
                       <span>{us.name}</span>
@@ -548,7 +548,7 @@ export function AgentEditPanel() {
                     <button
                       key={macro.id}
                       onClick={() => setAutomationServerIds(prev => [...prev, macro.id])}
-                      className="w-full flex items-center gap-2 rounded-lg border border-dashed p-2.5 text-sm text-muted-foreground hover:bg-muted transition-colors"
+                      className="w-full flex items-center gap-2 rounded-lg border border-dashed p-2.5 text-sm text-muted-foreground hover:bg-muted transition-colors cursor-pointer"
                     >
                       <Plus className="h-3.5 w-3.5" />
                       <span>{macro.name}</span>
@@ -605,7 +605,7 @@ export function AgentEditPanel() {
                       <button
                         key={agent.id}
                         onClick={() => setLinkedAgentIds(prev => [...prev, agent.id])}
-                        className="w-full flex items-center gap-2 rounded-lg border border-dashed p-2.5 text-sm text-muted-foreground hover:bg-muted transition-colors"
+                        className="w-full flex items-center gap-2 rounded-lg border border-dashed p-2.5 text-sm text-muted-foreground hover:bg-muted transition-colors cursor-pointer"
                       >
                         <Link2 className="h-3.5 w-3.5 flex-shrink-0" />
                         <Icon className="h-4 w-4 flex-shrink-0" />
@@ -656,7 +656,7 @@ function CollapsibleSection({
       <button
         type="button"
         onClick={onToggle}
-        className="w-full flex items-center gap-2 px-4 py-3 text-left hover:bg-muted/30 transition-colors"
+        className="w-full flex items-center gap-2 px-4 py-3 text-left hover:bg-muted/30 transition-colors cursor-pointer"
       >
         {isOpen ? (
           <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />

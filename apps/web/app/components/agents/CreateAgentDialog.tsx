@@ -117,7 +117,7 @@ export function CreateAgentDialog() {
                   type="button"
                   onClick={() => setSelectedIcon(id)}
                   className={cn(
-                    'w-11 h-11 min-h-[44px] min-w-[44px] sm:w-10 sm:h-10 sm:min-h-0 sm:min-w-0 rounded-lg flex items-center justify-center transition-colors border',
+                    'w-11 h-11 min-h-[44px] min-w-[44px] sm:w-10 sm:h-10 sm:min-h-0 sm:min-w-0 rounded-lg flex items-center justify-center transition-colors border cursor-pointer',
                     selectedIcon === id
                       ? 'bg-primary text-primary-foreground border-primary'
                       : 'hover:bg-muted border-transparent'

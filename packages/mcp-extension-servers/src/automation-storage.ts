@@ -39,6 +39,8 @@ export interface AutomationTool {
   parameters: AutomationToolParameter[]
   steps: AutomationActionStep[]
   lanes?: AutomationLane[]
+  /** Viewport dimensions captured at recording time — used to emulate the same resolution during replay */
+  viewport?: { width: number; height: number }
   serverId: string
   createdAt: number
   updatedAt: number
@@ -131,6 +133,7 @@ export async function createTool(input: {
   parameters?: AutomationToolParameter[]
   steps?: AutomationActionStep[]
   lanes?: AutomationLane[]
+  viewport?: { width: number; height: number }
   version?: string
 }): Promise<AutomationTool> {
   const data = await getData()
@@ -144,6 +147,7 @@ export async function createTool(input: {
     parameters: input.parameters || [],
     steps: input.steps || [],
     ...(input.lanes && input.lanes.length > 1 ? { lanes: input.lanes } : {}),
+    ...(input.viewport ? { viewport: input.viewport } : {}),
     serverId: input.serverId,
     createdAt: now,
     updatedAt: now,
@@ -186,6 +190,7 @@ export async function updateTool(
     steps?: AutomationActionStep[]
     lanes?: AutomationLane[]
     parameters?: AutomationToolParameter[]
+    viewport?: { width: number; height: number }
   },
 ): Promise<AutomationTool | null> {
   const data = await getData()
@@ -200,6 +205,7 @@ export async function updateTool(
     else delete tool.lanes
   }
   if (updates.parameters !== undefined) tool.parameters = updates.parameters
+  if (updates.viewport !== undefined) tool.viewport = updates.viewport
   tool.updatedAt = Date.now()
   data.version++
   await setData(data)

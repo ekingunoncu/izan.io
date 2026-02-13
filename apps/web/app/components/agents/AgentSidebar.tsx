@@ -131,7 +131,7 @@ export function AgentSidebar() {
           <div className="relative" ref={selectorRef}>
             <button
               onClick={() => isAgentSelectorOpen ? closeAgentSelector() : openAgentSelector()}
-              className="w-full flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-muted transition-colors text-left"
+              className="w-full flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-muted transition-colors text-left cursor-pointer"
             >
               <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
                 <AgentIcon className="h-4 w-4 text-primary" />
@@ -160,7 +160,7 @@ export function AgentSidebar() {
           <div className="flex flex-col items-center gap-2">
             <button
               onClick={() => isAgentSelectorOpen ? closeAgentSelector() : openAgentSelector()}
-              className="relative w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors"
+              className="relative w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors cursor-pointer"
               title={getAgentDisplayName(currentAgent, t)}
             >
               <AgentIcon className="h-5 w-5 text-primary" />
@@ -260,7 +260,7 @@ export function AgentSidebar() {
                 key={chat.id}
                 onClick={() => handleChatSelect(chat.id)}
                 className={cn(
-                  'w-10 h-10 rounded-lg flex items-center justify-center transition-colors',
+                  'w-10 h-10 rounded-lg flex items-center justify-center transition-colors cursor-pointer',
                 currentChatId === chat.id ? 'bg-muted' : 'hover:bg-muted/50'
               )}
               title={chat.title}

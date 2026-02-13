@@ -5,7 +5,7 @@ import {
   Keyboard, ArrowDownUp, ListFilter, Timer, Hourglass,
   Link, Database, Save, Wrench, Loader2, AlertTriangle, RefreshCw,
   GripVertical, ChevronUp, ChevronDown, Pencil, Columns,
-  Download, Upload, Code, ScanEye,
+  Download, Upload, Code, ScanEye, Layers,
 } from 'lucide-react'
 import { Button } from '~ui/button'
 import { Input } from '~ui/input'
@@ -14,7 +14,7 @@ import { cn } from '~lib/utils'
 import {
   addStepToLane, deleteStepAt, moveStepAt,
   toggleParamAt, updateParamDescAt, updateParamNameAt, updateStepWaitUntilAt,
-  updateStepFieldsAt, applyParamMap,
+  updateStepFieldsAt, updateStepPropsAt, applyParamMap,
 } from './step-utils'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -65,6 +65,7 @@ const STEP_ICONS: Record<string, typeof Globe> = {
   navigate: Globe, click: MousePointerClick, type: Keyboard, scroll: ArrowDownUp,
   select: ListFilter, wait: Timer, waitForSelector: Hourglass,
   waitForUrl: Link, waitForLoad: Hourglass, extract: Database,
+  forEachItem: Layers,
 }
 
 function slugify(str: string): string {
@@ -95,6 +96,7 @@ export function App() {
   const [isRecording, setIsRecording] = useState(false)
   const [recordError, setRecordError] = useState<string | null>(null)
   const [paramMap, setParamMap] = useState<Map<number, Map<string, ParamMeta>>>(new Map())
+  const [recordingViewport, setRecordingViewport] = useState<{ width: number; height: number } | null>(null)
 
   // Parallel lanes (record/edit)
   const [lanes, setLanes] = useState<Lane[]>([{ name: 'Lane 1', steps: [] }])
@@ -152,6 +154,22 @@ export function App() {
   const [axSnapshot, setAxSnapshot] = useState<string | null>(null)
   const [axSnapshotLoading, setAxSnapshotLoading] = useState(false)
 
+  // ForEachItem sub-action recording flow
+  const [subActionFlow, setSubActionFlow] = useState<{
+    sourceExtractName: string
+    sourceStep: Step
+    phase: 'config' | 'recording'
+    openMethod: 'url' | 'click'
+    urlField: string
+    clickSelector: string
+    detailSteps: Step[]
+    concurrency: number
+    maxItems: number
+    filters: Array<{ field: string; op: string; value: string }>
+  } | null>(null)
+  const subActionFlowRef = useRef(subActionFlow)
+  useEffect(() => { subActionFlowRef.current = subActionFlow }, [subActionFlow])
+
   // Auto-scroll & drag state
   const stepsEndRef = useRef<HTMLDivElement>(null)
   const dragIdxRef = useRef<number | null>(null)
@@ -186,7 +204,8 @@ export function App() {
           refreshServers(port)
         }
       } else if (type === 'updateAutomationServerDone') {
-        if (!msg.error) refreshServers(port)
+        // Optimistic update already applied in saveEditServer — just silently refresh without loading state
+        if (!msg.error) port.postMessage({ type: 'getAutomationServers' })
       } else if (type === 'updateAutomationToolDone') {
         setEditSaving(false)
         if (!msg.error) {
@@ -330,8 +349,26 @@ export function App() {
           setView('list')
           refreshServers(port)
         }
+      } else if (type === 'recording-started') {
+        if (msg.viewport) setRecordingViewport(msg.viewport as { width: number; height: number })
       } else if (type === 'recording-step' && msg.step != null) {
         const newStep = msg.step as Step
+        console.log(`[izan-ext] recording-step: action=${newStep.action} subRecording=${subActionFlowRef.current?.phase === 'recording'}`)
+        if (subActionFlowRef.current?.phase === 'recording') {
+          // Sub-recording: capture click as clickSelector for click method
+          if (subActionFlowRef.current.openMethod === 'click'
+              && !subActionFlowRef.current.clickSelector
+              && newStep.action === 'click') {
+            console.log('[izan-ext] sub-recording: captured clickSelector')
+            setSubActionFlow(prev => prev ? { ...prev, clickSelector: newStep.selector ?? '' } : prev)
+            return
+          }
+          // Skip navigate steps during sub-recording (auto-navigation)
+          if (newStep.action === 'navigate') { console.log('[izan-ext] sub-recording: skip navigate'); return }
+          console.log(`[izan-ext] sub-recording: added ${newStep.action} to detailSteps`)
+          setSubActionFlow(prev => prev ? { ...prev, detailSteps: [...prev.detailSteps, newStep] } : prev)
+          return
+        }
         if (viewRef.current === 'edit') {
           addStepToLane(setEditSteps, setEditLanes, activeLaneRef.current, newStep)
         } else {
@@ -346,6 +383,12 @@ export function App() {
         if (msg.error) setRecordError(msg.error as string)
       } else if (type === 'extract-result' && msg.step != null && (msg.step as Step).action === 'extract') {
         const newStep = { ...(msg.step as Step), _preview: (msg as Record<string, unknown>).preview, _previewHtml: (msg as Record<string, unknown>).previewHtml as string[] | undefined }
+        console.log(`[izan-ext] extract-result: mode=${newStep.mode} subRecording=${subActionFlowRef.current?.phase === 'recording'}`)
+        if (subActionFlowRef.current?.phase === 'recording') {
+          console.log('[izan-ext] sub-recording: added extract to detailSteps')
+          setSubActionFlow(prev => prev ? { ...prev, detailSteps: [...prev.detailSteps, newStep] } : prev)
+          return
+        }
         if (viewRef.current === 'edit') {
           addStepToLane(setEditSteps, setEditLanes, activeLaneRef.current, newStep)
         } else {
@@ -355,8 +398,27 @@ export function App() {
         if (msg.error) {
           setImportError(msg.error as string)
         } else if (msg.data) {
-          const data = msg.data as { server: { name: string }; tools: unknown[] }
-          downloadJson(data, `${slugify(data.server.name)}-server.json`)
+          const raw = msg.data as {
+            server: { name: string; description: string; category: string }
+            tools: {
+              name: string; displayName: string; description: string
+              version?: string; parameters?: unknown[]; steps?: unknown[]
+              lanes?: { name: string; steps: unknown[] }[]
+            }[]
+          }
+          const exportData = {
+            server: { name: raw.server.name, description: raw.server.description, category: raw.server.category },
+            tools: raw.tools.map(t => ({
+              name: t.name,
+              displayName: t.displayName,
+              description: t.description,
+              version: t.version || '1.0.0',
+              parameters: t.parameters ?? [],
+              steps: t.steps ?? [],
+              ...(t.lanes && t.lanes.length > 1 ? { lanes: t.lanes.map(l => ({ name: l.name, steps: l.steps })) } : {}),
+            })),
+          }
+          downloadJson(exportData, `${slugify(raw.server.name)}-server.json`)
         }
       } else if (type === 'importAutomationServerDone' || type === 'importAutomationToolDone') {
         if (msg.error) {
@@ -373,7 +435,8 @@ export function App() {
         setSelectorValue('')
         const newStep = { ...(msg.step as Step), _preview: (msg as Record<string, unknown>).preview, _previewHtml: (msg as Record<string, unknown>).previewHtml as string[] | undefined }
         // Add role metadata when extracted via accessibility
-        if (showA11yRef.current) {
+        // Background now sends extractionMethod:'role' directly, but also check ref as fallback
+        if (newStep.extractionMethod !== 'role' && newStep.extractionMethod !== 'snapshot' && showA11yRef.current) {
           newStep.extractionMethod = 'role'
           newStep.roles = roleValuesRef.current
           newStep.roleName = roleNameRef.current.trim()
@@ -381,7 +444,11 @@ export function App() {
         }
         setRoleValues([])
         setRoleNameValue('')
-        if (viewRef.current === 'edit') {
+        console.log(`[izan-ext] selector-extract-result: mode=${newStep.mode} method=${newStep.extractionMethod ?? 'css'} subRecording=${subActionFlowRef.current?.phase === 'recording'}`)
+        if (subActionFlowRef.current?.phase === 'recording') {
+          console.log('[izan-ext] sub-recording: added selector-extract to detailSteps')
+          setSubActionFlow(prev => prev ? { ...prev, detailSteps: [...prev.detailSteps, newStep] } : prev)
+        } else if (viewRef.current === 'edit') {
           addStepToLane(setEditSteps, setEditLanes, activeLaneRef.current, newStep)
         } else {
           addStepToLane(setSteps, setLanes, activeLaneRef.current, newStep)
@@ -439,12 +506,87 @@ export function App() {
     prevEditStepsLenRef.current = editSteps.length
   }, [steps.length, editSteps.length])
 
+  // ─── ForEachItem sub-action flow ─────────────────────────────────
+
+  /** Apply filter rows to a list of preview items (AND logic) */
+  function applyPreviewFilters(items: unknown[], filters: Array<{ field: string; op: string; value: string }>): unknown[] {
+    if (!filters.length) return items
+    return items.filter(raw => {
+      const obj = raw as Record<string, unknown>
+      return filters.every(f => {
+        const val = String(obj[f.field] ?? '')
+        switch (f.op) {
+          case 'contains': return val.includes(f.value)
+          case 'not_contains': return !val.includes(f.value)
+          case 'equals': return val === f.value
+          case 'not_equals': return val !== f.value
+          case 'starts_with': return val.startsWith(f.value)
+          case 'ends_with': return val.endsWith(f.value)
+          case 'regex': try { return new RegExp(f.value).test(val) } catch { return false }
+          default: return true
+        }
+      })
+    })
+  }
+
+  function startSubActionRecording() {
+    if (!subActionFlow || subActionFlow.phase !== 'config') return
+    // Use functional update to capture the LATEST state (handles blur→click timing)
+    setSubActionFlow(prev => {
+      if (!prev || prev.phase !== 'config') return prev
+      // Navigate after state update is committed
+      if (prev.openMethod === 'url') {
+        const sourceStep = prev.sourceStep
+        const rawPreview = sourceStep._preview as unknown[]
+        if (Array.isArray(rawPreview) && rawPreview.length > 0) {
+          const filtered = applyPreviewFilters(rawPreview, prev.filters)
+          const target = filtered.length > 0 ? filtered[0] : null
+          if (target) {
+            const url = (target as Record<string, unknown>)[prev.urlField] as string | undefined
+            if (url && portRef.current) {
+              // Delay navigation slightly to let React commit the phase change
+              setTimeout(() => portRef.current?.postMessage({ type: 'navigateRecordingTab', url }), 50)
+            }
+          }
+        }
+      }
+      return { ...prev, phase: 'recording' }
+    })
+  }
+
+  function finishSubActionFlow() {
+    if (!subActionFlow || subActionFlow.detailSteps.length === 0) return
+    const forEachStep: Step = {
+      action: 'forEachItem',
+      label: `For each item in ${subActionFlow.sourceExtractName}`,
+      sourceExtract: subActionFlow.sourceExtractName,
+      openMethod: subActionFlow.openMethod,
+      ...(subActionFlow.openMethod === 'url' && { urlField: subActionFlow.urlField }),
+      ...(subActionFlow.openMethod === 'click' && {
+        clickSelector: subActionFlow.clickSelector,
+        containerSelector: subActionFlow.sourceStep.containerSelector as string,
+      }),
+      detailSteps: subActionFlow.detailSteps,
+      concurrency: subActionFlow.concurrency,
+      maxItems: subActionFlow.maxItems,
+      waitUntil: 'load',
+      ...(subActionFlow.filters.length > 0 && { filters: subActionFlow.filters }),
+    }
+    if (viewRef.current === 'edit') {
+      addStepToLane(setEditSteps, setEditLanes, activeLaneRef.current, forEachStep)
+    } else {
+      addStepToLane(setSteps, setLanes, activeLaneRef.current, forEachStep)
+    }
+    setSubActionFlow(null)
+  }
+
   // ─── Handlers ───────────────────────────────────────────────────
 
   const handleRecord = () => {
     setSteps([])
     setParamMap(new Map())
     setRecordError(null)
+    setRecordingViewport(null)
     setIsRecording(true)
     // Reset only the active lane's steps (keep other lanes intact)
     setLanes(prev => prev.map((l, i) => i === activeLane ? { ...l, steps: [] } : l))
@@ -513,7 +655,9 @@ export function App() {
     }
     setShowAccessibilityInput(false)
     setAxSnapshot(null)
-    if (viewRef.current === 'edit') {
+    if (subActionFlowRef.current?.phase === 'recording') {
+      setSubActionFlow(prev => prev ? { ...prev, detailSteps: [...prev.detailSteps, newStep] } : prev)
+    } else if (viewRef.current === 'edit') {
       addStepToLane(setEditSteps, setEditLanes, activeLaneRef.current, newStep)
     } else {
       addStepToLane(setSteps, setLanes, activeLaneRef.current, newStep)
@@ -561,6 +705,7 @@ export function App() {
       parameters,
       steps: finalSteps,
       ...(finalLanes ? { lanes: finalLanes } : {}),
+      ...(recordingViewport ? { viewport: recordingViewport } : {}),
       version: '1.0.0',
     })
   }
@@ -665,7 +810,9 @@ export function App() {
     if (isNaN(seconds) || seconds <= 0 || seconds > 30) return
     const waitStep: Step = { action: 'wait', ms: Math.round(seconds * 1000) }
 
-    if (isEditMode) {
+    if (subActionFlowRef.current?.phase === 'recording') {
+      setSubActionFlow(prev => prev ? { ...prev, detailSteps: [...prev.detailSteps, waitStep] } : prev)
+    } else if (isEditMode) {
       addStepToLane(setEditSteps, setEditLanes, activeLane, waitStep)
     } else {
       addStepToLane(setSteps, setLanes, activeLane, waitStep)
@@ -1034,9 +1181,47 @@ export function App() {
                 onUpdateFields={step.action === 'extract'
                   ? (fields) => updateStepFieldsAt(setEditSteps, setEditLanes, activeLane, i, fields)
                   : undefined}
+                onSubActions={(name, sourceStep) => {
+                  setSubActionFlow({
+                    sourceExtractName: name,
+                    sourceStep,
+                    phase: 'config',
+                    openMethod: 'url',
+                    urlField: '',
+                    clickSelector: '',
+                    detailSteps: [],
+                    concurrency: 3,
+                    maxItems: 0,
+                    filters: [],
+                  })
+                }}
+                onUpdateStepProps={(props) => updateStepPropsAt(setEditSteps, setEditLanes, activeLane, i, props)}
+                sourceFieldKeys={step.action === 'forEachItem' ? (() => {
+                  const src = editSteps.find(s => s.action === 'extract' && s.name === step.sourceExtract)
+                  return (src?.fields as Array<{ key: string }> | undefined)?.map(f => f.key) ?? []
+                })() : undefined}
               />
             ))}
             <div ref={stepsEndRef} />
+
+            {/* Sub-action recording indicator (edit mode) */}
+            {subActionFlow?.phase === 'recording' && (
+              <SubActionRecordingPanel
+                subActionFlow={subActionFlow}
+                setSubActionFlow={setSubActionFlow}
+                onFinish={finishSubActionFlow}
+              />
+            )}
+
+            {/* Sub-action config panel (edit mode) */}
+            {subActionFlow?.phase === 'config' && (
+              <SubActionConfigPanel
+                subActionFlow={subActionFlow}
+                setSubActionFlow={setSubActionFlow}
+                onStart={startSubActionRecording}
+                onCancel={() => setSubActionFlow(null)}
+              />
+            )}
           </div>
         </div>
 
@@ -1107,7 +1292,7 @@ export function App() {
               return (
                 <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-md bg-secondary/50 text-sm">
                   <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
-                  <span className="font-medium text-foreground">{step.action}</span>
+                  <span className="font-medium text-foreground">{step.action === 'forEachItem' ? 'For each item' : step.action}</span>
                   <span className="text-muted-foreground truncate">{stepDetail(step)}</span>
                 </div>
               )
@@ -1451,9 +1636,47 @@ export function App() {
                 onUpdateFields={step.action === 'extract'
                   ? (fields) => updateStepFieldsAt(setSteps, setLanes, activeLane, i, fields)
                   : undefined}
+                onSubActions={(name, sourceStep) => {
+                  setSubActionFlow({
+                    sourceExtractName: name,
+                    sourceStep,
+                    phase: 'config',
+                    openMethod: 'url',
+                    urlField: '',
+                    clickSelector: '',
+                    detailSteps: [],
+                    concurrency: 3,
+                    maxItems: 0,
+                    filters: [],
+                  })
+                }}
+                onUpdateStepProps={(props) => updateStepPropsAt(setSteps, setLanes, activeLane, i, props)}
+                sourceFieldKeys={step.action === 'forEachItem' ? (() => {
+                  const src = steps.find(s => s.action === 'extract' && s.name === step.sourceExtract)
+                  return (src?.fields as Array<{ key: string }> | undefined)?.map(f => f.key) ?? []
+                })() : undefined}
               />
             ))}
             <div ref={stepsEndRef} />
+
+            {/* Sub-action recording indicator */}
+            {subActionFlow?.phase === 'recording' && (
+              <SubActionRecordingPanel
+                subActionFlow={subActionFlow}
+                setSubActionFlow={setSubActionFlow}
+                onFinish={finishSubActionFlow}
+              />
+            )}
+
+            {/* Sub-action config panel */}
+            {subActionFlow?.phase === 'config' && (
+              <SubActionConfigPanel
+                subActionFlow={subActionFlow}
+                setSubActionFlow={setSubActionFlow}
+                onStart={startSubActionRecording}
+                onCancel={() => setSubActionFlow(null)}
+              />
+            )}
           </div>
         )}
       </div>
@@ -1946,7 +2169,8 @@ function getFieldAttributes(htmlStrings: string[], selector: string): string[] {
 function StepCard({
   step, index, total, paramMeta, onDelete, onMoveUp, onMoveDown,
   onDragStart, onDragOver, onDrop, onToggleParam, onDescriptionChange,
-  onParamNameChange, onWaitUntilChange, onUpdateFields,
+  onParamNameChange, onWaitUntilChange, onUpdateFields, onSubActions,
+  onUpdateStepProps, sourceFieldKeys,
 }: {
   step: Step
   index: number
@@ -1963,6 +2187,10 @@ function StepCard({
   onParamNameChange?: (key: string, name: string) => void
   onWaitUntilChange?: (value: Step['waitUntil']) => void
   onUpdateFields?: (fields: ExtractField[]) => void
+  onSubActions?: (sourceExtractName: string, sourceStep: Step) => void
+  onUpdateStepProps?: (props: Partial<Step>) => void
+  /** Field keys from the source extract step (for forEachItem filter dropdowns) */
+  sourceFieldKeys?: string[]
 }) {
   const Icon = STEP_ICONS[step.action] ?? Wrench
   const detail = stepDetail(step)
@@ -1974,7 +2202,8 @@ function StepCard({
   const hasDetails = (step.action === 'navigate' && (params.length > 0 || pathSegments.length > 0 || onWaitUntilChange))
     || (step.action === 'type' && !!typeText)
     || (step.action === 'extract' && Array.isArray(step.fields))
-  const [expanded, setExpanded] = useState(false)
+    || (step.action === 'forEachItem')
+  const [expanded, setExpanded] = useState(step.action === 'forEachItem')
 
   return (
     <div
@@ -1998,7 +2227,7 @@ function StepCard({
       </div>
       <Icon className="h-4 w-4 mt-0.5 shrink-0 text-muted-foreground" />
       <div className="flex-1 min-w-0">
-        <span className="font-medium text-foreground">{step.action}</span>
+        <span className="font-medium text-foreground">{step.action === 'forEachItem' ? 'For each item' : step.action}</span>
         {detail && <p className="text-muted-foreground truncate mt-0.5">{detail}</p>}
         {hasDetails && (
           <button
@@ -2011,6 +2240,7 @@ function StepCard({
               : step.action === 'extract' ? 'Edit fields'
               : step.action === 'navigate' ? 'Parameterize'
               : step.action === 'type' ? 'Parameterize'
+              : step.action === 'forEachItem' ? 'Show details'
               : 'Edit'}
           </button>
         )}
@@ -2327,7 +2557,87 @@ function StepCard({
             previewHtml={step._previewHtml as string[] | undefined}
             fields={step.fields as ExtractField[] | undefined}
             mode={(step.mode as string) ?? 'single'}
+            step={step}
+            onSubActions={onSubActions}
           />
+        )}
+
+        {/* ForEachItem expanded details */}
+        {step.action === 'forEachItem' && expanded && (
+          <div className="mt-2 space-y-2.5 text-xs">
+            {/* Info tags */}
+            <div className="flex flex-wrap gap-1.5">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-muted text-muted-foreground text-[11px]">
+                {step.openMethod === 'click' ? 'Click' : (step.urlField as string ?? 'url')}
+              </span>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-muted text-muted-foreground text-[11px]">
+                {(step.concurrency as number) ?? 3}x parallel
+              </span>
+              {(step.maxItems as number) > 0 && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-muted text-muted-foreground text-[11px]">
+                  max {step.maxItems as number}
+                </span>
+              )}
+            </div>
+            {onUpdateStepProps && (
+              <div className="grid grid-cols-2 gap-2">
+                <label className="flex items-center gap-1.5 text-muted-foreground">
+                  <span className="shrink-0">Parallel</span>
+                  <Input type="number" min={1} className="h-6 w-full text-xs px-1.5 text-center"
+                    defaultValue={(step.concurrency as number) ?? 3}
+                    onBlur={e => {
+                      const v = Math.max(1, Math.min(10, Number(e.target.value) || 1))
+                      e.target.value = String(v)
+                      onUpdateStepProps({ concurrency: v })
+                    }} />
+                </label>
+                <label className="flex items-center gap-1.5 text-muted-foreground">
+                  <span className="shrink-0">Limit</span>
+                  <Input type="number" min={0} className="h-6 w-full text-xs px-1.5 text-center"
+                    defaultValue={(step.maxItems as number) || ''}
+                    placeholder="all"
+                    onBlur={e => onUpdateStepProps({ maxItems: Number(e.target.value) || 0 })} />
+                </label>
+              </div>
+            )}
+            {/* Filters */}
+            {onUpdateStepProps && (
+              <ForEachFilterEditor
+                filters={(step.filters as Array<{ field: string; op: string; value: string }>) ?? []}
+                fieldKeys={sourceFieldKeys ?? []}
+
+                onChange={filters => onUpdateStepProps({ filters })}
+              />
+            )}
+            {Array.isArray(step.detailSteps) && (step.detailSteps as Step[]).length > 0 && (
+              <div className="border-l-2 border-primary/30 pl-2.5 space-y-0.5">
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Detail steps ({(step.detailSteps as Step[]).length})</span>
+                {(step.detailSteps as Step[]).map((ds, di) => {
+                  const DsIcon = STEP_ICONS[ds.action] ?? Wrench
+                  return (
+                    <div key={di} className="flex items-center gap-1.5 text-xs py-0.5 rounded hover:bg-muted/50 pr-1 min-w-0">
+                      <DsIcon className="h-3 w-3 text-muted-foreground shrink-0" />
+                      <span className="font-medium shrink-0">{ds.action}</span>
+                      <span className="text-muted-foreground truncate">{stepDetail(ds)}</span>
+                      {onUpdateStepProps && (
+                        <button type="button" className="ml-auto h-5 w-5 flex items-center justify-center rounded text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-colors shrink-0"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            const updated = (step.detailSteps as Step[]).filter((_, j) => j !== di)
+                            onUpdateStepProps({ detailSteps: updated })
+                          }}>
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+            {(!step.detailSteps || (step.detailSteps as Step[]).length === 0) && (
+              <p className="text-xs text-muted-foreground/60 italic">No detail steps</p>
+            )}
+          </div>
         )}
       </div>
 
@@ -2340,13 +2650,351 @@ function StepCard({
   )
 }
 
+// ─── SubActionRecordingPanel ──────────────────────────────────────────────────
+
+function SubActionRecordingPanel({ subActionFlow, setSubActionFlow, onFinish }: {
+  subActionFlow: NonNullable<Parameters<typeof SubActionRecordingPanel>[0]['subActionFlow']>
+  setSubActionFlow: (fn: (prev: typeof subActionFlow | null) => typeof subActionFlow | null) => void
+  onFinish: () => void
+}) {
+  const hint = subActionFlow.openMethod === 'click' && !subActionFlow.clickSelector
+    ? 'Click on the element that opens the detail page'
+    : 'Extract the fields you want from the detail page'
+
+  const detailSteps = subActionFlow.detailSteps
+  const noop = () => {}
+  const noopParam = (_k: string, _v: string) => {}
+
+  return (
+    <div className="mx-0.5 mt-2 rounded-lg border border-primary/25 overflow-hidden">
+      {/* Header */}
+      <div className="px-3 py-2 bg-primary/8 flex items-center gap-2">
+        <div className="h-2 w-2 rounded-full bg-destructive animate-pulse-dot" />
+        <span className="text-sm font-medium text-primary flex-1">Recording for each item</span>
+      </div>
+
+      {/* Hint */}
+      <p className="text-xs text-muted-foreground px-3 py-1.5 border-b">{hint}</p>
+
+      {/* Detail steps — rendered as full StepCards */}
+      {detailSteps.length > 0 && (
+        <div className="px-1 py-1.5 space-y-1.5">
+          {detailSteps.map((ds, di) => (
+            <StepCard
+              key={di}
+              index={di}
+              total={detailSteps.length}
+              step={ds}
+              paramMeta={new Map()}
+              onDelete={() => setSubActionFlow(prev => prev ? {
+                ...prev,
+                detailSteps: prev.detailSteps.filter((_, j) => j !== di),
+              } : prev)}
+              onMoveUp={() => {
+                if (di === 0) return
+                setSubActionFlow(prev => {
+                  if (!prev) return prev
+                  const arr = [...prev.detailSteps]
+                  ;[arr[di - 1], arr[di]] = [arr[di], arr[di - 1]]
+                  return { ...prev, detailSteps: arr }
+                })
+              }}
+              onMoveDown={() => {
+                if (di === detailSteps.length - 1) return
+                setSubActionFlow(prev => {
+                  if (!prev) return prev
+                  const arr = [...prev.detailSteps]
+                  ;[arr[di], arr[di + 1]] = [arr[di + 1], arr[di]]
+                  return { ...prev, detailSteps: arr }
+                })
+              }}
+              onDragStart={noop}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={noop}
+              onToggleParam={noopParam}
+              onDescriptionChange={noopParam}
+              onUpdateFields={ds.action === 'extract'
+                ? (fields) => setSubActionFlow(prev => prev ? {
+                    ...prev,
+                    detailSteps: prev.detailSteps.map((s, j) => j === di ? { ...s, fields } : s),
+                  } : prev)
+                : undefined}
+            />
+          ))}
+        </div>
+      )}
+
+      {detailSteps.length === 0 && (
+        <p className="text-xs text-muted-foreground/50 italic text-center py-3">No steps recorded yet</p>
+      )}
+
+      {/* Actions */}
+      <div className="flex gap-2 px-3 py-2 border-t">
+        <Button size="sm" variant="default" className="h-7 text-xs"
+          disabled={detailSteps.length === 0}
+          onClick={onFinish}>
+          Done ({detailSteps.length})
+        </Button>
+        <Button size="sm" variant="ghost" className="h-7 text-xs"
+          onClick={() => setSubActionFlow(() => null)}>
+          Cancel
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+// ─── ForEachFilterEditor ─────────────────────────────────────────────────────
+
+const FILTER_OPS = [
+  { value: 'contains', label: 'contains' },
+  { value: 'not_contains', label: '!contains' },
+  { value: 'equals', label: '=' },
+  { value: 'not_equals', label: '!=' },
+  { value: 'starts_with', label: 'starts' },
+  { value: 'ends_with', label: 'ends' },
+  { value: 'regex', label: 'regex' },
+] as const
+
+type FilterRow = { field: string; op: string; value: string }
+
+/** Text input with local state — only calls onCommit on blur/Enter (avoids parent re-renders per keystroke) */
+function LocalTextInput({ value, onCommit, className, placeholder }: {
+  value: string; onCommit: (v: string) => void; className?: string; placeholder?: string
+}) {
+  const [local, setLocal] = useState(value)
+  const committedRef = useRef(value)
+  // Sync from parent when value changes externally (e.g. filter removed, index shifted)
+  useEffect(() => { if (value !== committedRef.current) { setLocal(value); committedRef.current = value } }, [value])
+  const commit = () => { if (local !== committedRef.current) { committedRef.current = local; onCommit(local) } }
+  return (
+    <input type="text" className={className} placeholder={placeholder}
+      value={local} onChange={e => setLocal(e.target.value)}
+      onBlur={commit}
+      onKeyDown={e => { if (e.key === 'Enter') { commit(); (e.target as HTMLInputElement).blur() } }} />
+  )
+}
+
+function ForEachFilterEditor({ filters, fieldKeys, onChange }: {
+  filters: FilterRow[]
+  fieldKeys: string[]
+  onChange: (filters: FilterRow[]) => void
+}) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const filtersRef = useRef(filters)
+  filtersRef.current = filters
+  const onChangeRef = useRef(onChange)
+  onChangeRef.current = onChange
+
+  const addFilter = useCallback(() => {
+    const cur = filtersRef.current
+    const next = [...cur, { field: fieldKeys[0] ?? '', op: 'contains', value: '' }]
+    onChangeRef.current(next)
+    // Scroll the new filter row into view after render
+    requestAnimationFrame(() => {
+      const el = containerRef.current
+      if (el) {
+        const last = el.querySelector('[data-filter-row]:last-child') as HTMLElement | null
+        last?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+        const input = last?.querySelector('input[type="text"]:last-of-type') as HTMLInputElement | null
+        input?.focus()
+      }
+    })
+  }, [fieldKeys])
+
+  const removeFilter = useCallback((i: number) => {
+    onChangeRef.current(filtersRef.current.filter((_, j) => j !== i))
+  }, [])
+
+  const updateFilter = useCallback((i: number, patch: Partial<FilterRow>) => {
+    onChangeRef.current(filtersRef.current.map((f, j) => j === i ? { ...f, ...patch } : f))
+  }, [])
+
+  return (
+    <div ref={containerRef} className="space-y-1">
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
+          Filters{filters.length > 0 ? ` (${filters.length})` : ''}
+        </span>
+        <button type="button" onClick={addFilter}
+          className="text-[10px] text-primary/70 hover:text-primary transition-colors cursor-pointer flex items-center gap-0.5">
+          <Plus className="h-3 w-3" /> Add
+        </button>
+      </div>
+      {filters.map((f, i) => (
+        <div key={i} data-filter-row className="flex items-center gap-1">
+          {fieldKeys.length > 0 ? (
+            <select className="h-6 text-[11px] border rounded px-1 bg-background min-w-0 w-[72px] shrink-0"
+              value={f.field} onChange={e => updateFilter(i, { field: e.target.value })}>
+              {fieldKeys.map(k => <option key={k} value={k}>{k}</option>)}
+            </select>
+          ) : (
+            <LocalTextInput className="h-6 text-[11px] border rounded px-1.5 bg-background w-[72px] shrink-0 outline-none focus:ring-1 focus:ring-primary/50" placeholder="field"
+              value={f.field} onCommit={v => updateFilter(i, { field: v })} />
+          )}
+          <select className="h-6 text-[11px] border rounded px-0.5 bg-background shrink-0 w-[68px]"
+            value={f.op} onChange={e => updateFilter(i, { op: e.target.value })}>
+            {FILTER_OPS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+          <LocalTextInput className="h-6 text-[11px] border rounded px-1.5 bg-background flex-1 min-w-0 outline-none focus:ring-1 focus:ring-primary/50" placeholder="value"
+            value={f.value} onCommit={v => updateFilter(i, { value: v })} />
+          <button type="button" onClick={() => removeFilter(i)}
+            className="h-5 w-5 flex items-center justify-center rounded text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 shrink-0 cursor-pointer transition-colors">
+            <X className="h-3 w-3" />
+          </button>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ─── SubActionConfigPanel ────────────────────────────────────────────────────
+
+function SubActionConfigPanel({ subActionFlow, setSubActionFlow, onStart, onCancel }: {
+  subActionFlow: NonNullable<Parameters<typeof SubActionConfigPanel>[0]['subActionFlow']>
+  setSubActionFlow: (fn: (prev: typeof subActionFlow | null) => typeof subActionFlow | null) => void
+  onStart: () => void
+  onCancel: () => void
+}) {
+  // Detect URL fields from the source step's preview data
+  const urlFields = useMemo(() => {
+    const sourceStep = subActionFlow.sourceStep
+    const fields = sourceStep.fields as Array<{ key: string; type?: string; attribute?: string }> | undefined
+    const result: string[] = []
+    if (fields) {
+      for (const f of fields) {
+        if (f.type === 'attribute' && f.attribute === 'href') {
+          result.push(f.key)
+        }
+      }
+    }
+    // Also check preview data for URL-like values
+    const preview = sourceStep._preview as unknown[]
+    if (Array.isArray(preview) && preview.length > 0 && fields) {
+      const first = preview[0] as Record<string, unknown>
+      for (const f of fields) {
+        if (result.includes(f.key)) continue
+        const val = first[f.key]
+        if (typeof val === 'string' && (val.startsWith('http://') || val.startsWith('https://') || val.startsWith('/'))) {
+          result.push(f.key)
+        }
+      }
+    }
+    return result
+  }, [subActionFlow.sourceStep])
+
+  // All field keys from source extract step (for filter dropdowns)
+  const allFieldKeys = useMemo(() => {
+    const fields = subActionFlow.sourceStep.fields as Array<{ key: string }> | undefined
+    return fields?.map(f => f.key) ?? []
+  }, [subActionFlow.sourceStep])
+
+  // Auto-select first URL field
+  useEffect(() => {
+    if (subActionFlow.openMethod === 'url' && !subActionFlow.urlField && urlFields.length > 0) {
+      setSubActionFlow(prev => prev ? { ...prev, urlField: urlFields[0] } : prev)
+    }
+  }, [urlFields, subActionFlow.openMethod, subActionFlow.urlField, setSubActionFlow])
+
+  return (
+    <div className="mx-0.5 mt-2 rounded-lg border bg-card overflow-hidden">
+      <div className="px-3 py-2.5 border-b bg-muted/30">
+        <p className="text-sm font-medium flex items-center gap-1.5">
+          <Layers className="h-3.5 w-3.5 text-primary" />
+          For each item
+        </p>
+        <p className="text-xs text-muted-foreground mt-0.5">Visit each item's detail page and extract additional data</p>
+      </div>
+
+      <div className="px-3 py-2.5 space-y-3">
+        {/* Open method */}
+        <div className="space-y-1.5">
+          <p className="text-xs font-medium">Open item via</p>
+          <div className="space-y-1">
+            <label className={cn(
+              'flex items-start gap-2 text-xs cursor-pointer rounded-md border px-2.5 py-2 transition-colors',
+              subActionFlow.openMethod === 'url' ? 'border-primary/40 bg-primary/5' : 'border-transparent hover:bg-muted/50',
+            )}>
+              <input type="radio" name="openMethod" className="accent-primary mt-0.5" checked={subActionFlow.openMethod === 'url'}
+                onChange={() => setSubActionFlow(prev => prev ? { ...prev, openMethod: 'url' } : prev)} />
+              <div className="flex-1 min-w-0">
+                <span className="font-medium">Follow URL field</span>
+                {subActionFlow.openMethod === 'url' && urlFields.length > 0 && (
+                  <select className="mt-1 block w-full text-xs border rounded px-1.5 py-1 bg-background"
+                    value={subActionFlow.urlField}
+                    onChange={e => setSubActionFlow(prev => prev ? { ...prev, urlField: e.target.value } : prev)}>
+                    {urlFields.map(f => <option key={f} value={f}>{f}</option>)}
+                  </select>
+                )}
+                {subActionFlow.openMethod === 'url' && urlFields.length === 0 && (
+                  <p className="text-muted-foreground/70 italic mt-0.5">no URL fields found</p>
+                )}
+              </div>
+            </label>
+            <label className={cn(
+              'flex items-center gap-2 text-xs cursor-pointer rounded-md border px-2.5 py-2 transition-colors',
+              subActionFlow.openMethod === 'click' ? 'border-primary/40 bg-primary/5' : 'border-transparent hover:bg-muted/50',
+            )}>
+              <input type="radio" name="openMethod" className="accent-primary" checked={subActionFlow.openMethod === 'click'}
+                onChange={() => setSubActionFlow(prev => prev ? { ...prev, openMethod: 'click' } : prev)} />
+              <span className="font-medium">Click to navigate</span>
+            </label>
+          </div>
+        </div>
+
+        {/* Settings */}
+        <div className="grid grid-cols-2 gap-2 text-xs">
+          <label className="flex items-center gap-1.5 text-muted-foreground">
+            <span className="shrink-0">Parallel</span>
+            <Input type="number" min={1} className="h-6 w-full text-xs px-1.5 text-center"
+              defaultValue={subActionFlow.concurrency}
+              onBlur={e => {
+                const v = Math.max(1, Math.min(10, Number(e.target.value) || 1))
+                e.target.value = String(v)
+                setSubActionFlow(prev => prev ? { ...prev, concurrency: v } : prev)
+              }} />
+          </label>
+          <label className="flex items-center gap-1.5 text-muted-foreground">
+            <span className="shrink-0">Limit</span>
+            <Input type="number" min={0} className="h-6 w-full text-xs px-1.5 text-center"
+              defaultValue={subActionFlow.maxItems || ''}
+              placeholder="all"
+              onBlur={e => setSubActionFlow(prev => prev ? { ...prev, maxItems: Number(e.target.value) || 0 } : prev)} />
+          </label>
+        </div>
+
+        {/* Filters */}
+        <ForEachFilterEditor
+          filters={subActionFlow.filters}
+          fieldKeys={allFieldKeys}
+
+          onChange={filters => setSubActionFlow(prev => prev ? { ...prev, filters } : prev)}
+        />
+
+        <div className="flex gap-2 pt-0.5">
+          <Button size="sm" variant="default" className="h-8 text-xs px-4"
+            disabled={subActionFlow.openMethod === 'url' && !subActionFlow.urlField}
+            onClick={onStart}>
+            Start Recording
+          </Button>
+          <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={onCancel}>
+            Cancel
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── ExtractPreview ──────────────────────────────────────────────────────────
 
-function ExtractPreview({ preview, previewHtml, fields, mode }: {
+function ExtractPreview({ preview, previewHtml, fields, mode, step, onSubActions }: {
   preview?: unknown
   previewHtml?: string[]
   fields?: ExtractField[]
   mode: string
+  step?: Step
+  onSubActions?: (sourceExtractName: string, sourceStep: Step) => void
 }) {
   const [expanded, setExpanded] = useState(true)
 
@@ -2367,19 +3015,19 @@ function ExtractPreview({ preview, previewHtml, fields, mode }: {
     ? `Preview (${items.length} item${items.length !== 1 ? 's' : ''})`
     : 'Preview'
 
-  const renderItem = (item: Record<string, unknown>, idx: number, total: number) => {
+  const isList = mode === 'list'
+
+  const renderItem = (item: Record<string, unknown>, idx: number) => {
     const entries = Object.entries(item)
     return (
       <div key={idx} className={cn(
         'space-y-0.5 px-2.5 py-1.5',
         idx > 0 && 'border-t',
-        idx % 2 === 0 ? 'bg-muted/20' : 'bg-muted/40',
+        isList && idx % 2 !== 0 && 'bg-muted/20',
       )}>
-        <div className="flex items-center gap-1.5 mb-0.5">
-          <span className="text-[10px] font-semibold text-muted-foreground bg-muted rounded px-1 py-0 leading-relaxed">
-            #{idx + 1}/{total}
-          </span>
-        </div>
+        {isList && (
+          <span className="text-[10px] text-muted-foreground/70 tabular-nums">{idx + 1}.</span>
+        )}
         {entries.slice(0, expanded ? entries.length : 4).map(([k, v]) => (
           <div key={k} className="flex gap-1.5 text-xs leading-tight">
             <span className="text-muted-foreground shrink-0 font-medium">{k}:</span>
@@ -2408,11 +3056,21 @@ function ExtractPreview({ preview, previewHtml, fields, mode }: {
       </button>
       {expanded && (
         <div className="rounded-md border overflow-hidden max-h-64 overflow-y-auto">
-          {visibleItems.map((item, i) => renderItem(item as Record<string, unknown>, i, items.length))}
+          {visibleItems.map((item, i) => renderItem(item as Record<string, unknown>, i))}
           {hiddenCount > 0 && (
             <p className="text-xs text-muted-foreground text-center py-1.5 bg-muted/30">+{hiddenCount} more items</p>
           )}
         </div>
+      )}
+      {mode === 'list' && onSubActions && step?.name && items.length > 0 && (
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onSubActions(step.name as string, step) }}
+          className="w-full mt-1.5 py-2 text-xs font-medium text-primary/80 hover:text-primary border border-dashed border-primary/30 hover:border-primary/50 rounded-lg flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+        >
+          <Layers className="h-3.5 w-3.5" />
+          Extract details for each item
+        </button>
       )}
     </div>
   )
@@ -2431,7 +3089,11 @@ function formatPreviewValue(v: unknown): string {
 
 function stepDetail(step: Step): string {
   switch (step.action) {
-    case 'navigate': try { return new URL(step.url ?? '', 'https://x').hostname } catch { return step.url?.slice(0, 40) ?? '' }
+    case 'navigate': {
+      const u = step.url ?? ''
+      try { const parsed = new URL(u); return parsed.hostname } catch { /* relative or invalid */ }
+      return u.slice(0, 40)
+    }
     case 'click': return step.selector?.slice(0, 50) ?? ''
     case 'type': return `"${step.text?.slice(0, 25)}" → ${step.selector?.slice(0, 20)}`
     case 'scroll': return `${step.direction ?? 'down'} ${step.amount ?? 0}px`
@@ -2445,6 +3107,11 @@ function stepDetail(step: Step): string {
       return step.mode === 'list' && step.itemCount
         ? `${step.itemCount} items · ${props} props`
         : `${step.mode ?? 'single'} · ${props} props`
+    }
+    case 'forEachItem': {
+      const n = Array.isArray(step.detailSteps) ? (step.detailSteps as unknown[]).length : 0
+      const filters = Array.isArray(step.filters) ? (step.filters as unknown[]).length : 0
+      return `${step.sourceExtract as string} · ${n} steps${filters ? ` · ${filters} filter${filters > 1 ? 's' : ''}` : ''}`
     }
     default: return ''
   }

@@ -172,10 +172,12 @@ export const extractStepSchema = baseStepSchema.extend({
   name: z.string(),
   /** Whether to extract a single element or a list of elements */
   mode: z.enum(['single', 'list']),
-  /** CSS or XPath selector for each item (list mode) or the container (single mode) */
-  containerSelector: z.string(),
-  /** Fields to extract from each matched element */
-  fields: z.array(extractionFieldSchema).min(1),
+  /** CSS or XPath selector for each item (list mode) or the container (single mode).
+   *  Not required for snapshot/role extraction methods. */
+  containerSelector: z.string().default(''),
+  /** Fields to extract from each matched element.
+   *  Can be empty for snapshot extraction (returns full AX tree). */
+  fields: z.array(extractionFieldSchema).default([]),
   /** Number of items detected at recording time (informational, list mode only) */
   itemCount: z.number().optional(),
   /** Extraction method: 'css' (default) uses containerSelector, 'role' uses accessibility tree, 'snapshot' returns full AX tree */
@@ -187,6 +189,56 @@ export const extractStepSchema = baseStepSchema.extend({
   /** Whether to include children content in role extraction (default true) */
   roleIncludeChildren: z.boolean().optional(),
 })
+
+/** Union of simple (non-recursive) step types — used inside forEachItem.detailSteps */
+export const simpleActionStepSchema = z.discriminatedUnion('action', [
+  navigateStepSchema,
+  clickStepSchema,
+  typeStepSchema,
+  scrollStepSchema,
+  selectStepSchema,
+  waitStepSchema,
+  waitForSelectorStepSchema,
+  waitForUrlStepSchema,
+  waitForLoadStepSchema,
+  extractStepSchema,
+])
+
+export type SimpleActionStep = z.infer<typeof simpleActionStepSchema>
+
+/** Filter for forEachItem: skip items that don't match all conditions */
+export const forEachFilterSchema = z.object({
+  field: z.string(),
+  op: z.enum(['contains', 'not_contains', 'equals', 'not_equals', 'starts_with', 'ends_with', 'regex']),
+  value: z.string().default(''),
+})
+export type ForEachFilter = z.infer<typeof forEachFilterSchema>
+
+export const forEachItemStepSchema = baseStepSchema.extend({
+  action: z.literal('forEachItem'),
+  /** Name of the source extract step whose data is iterated */
+  sourceExtract: z.string(),
+  /** How to open each item's detail page */
+  openMethod: z.enum(['url', 'click']),
+  /** Field key containing the URL (openMethod='url') */
+  urlField: z.string().optional(),
+  /** CSS selector or XPath for clickable element within item (openMethod='click') */
+  clickSelector: z.string().optional(),
+  /** Container selector from the source extract (openMethod='click', used to locate items) */
+  containerSelector: z.string().optional(),
+  /** Steps to execute on each item's detail page */
+  detailSteps: z.array(simpleActionStepSchema).min(1),
+  /** Number of parallel tabs (1=sequential, 2-5=parallel) */
+  concurrency: z.number().min(1).default(3),
+  /** Max items to process (0=all) */
+  maxItems: z.number().min(0).default(0),
+  /** Wait strategy after navigating to detail page */
+  waitUntil: waitUntilSchema.default('load').optional(),
+  /** Item filters — all must pass (AND logic), items that fail are skipped */
+  filters: z.array(forEachFilterSchema).default([]).optional(),
+})
+
+export type ForEachItemStep = z.infer<typeof forEachItemStepSchema>
 
 /** Union of all step types */
 export const actionStepSchema = z.discriminatedUnion('action', [
@@ -200,6 +252,7 @@ export const actionStepSchema = z.discriminatedUnion('action', [
   waitForUrlStepSchema,
   waitForLoadStepSchema,
   extractStepSchema,
+  forEachItemStepSchema,
 ])
 
 export type ActionStep = z.infer<typeof actionStepSchema>
@@ -223,7 +276,7 @@ export const toolDefinitionSchema = z.object({
   /** Tool function name (snake_case, used by LLM) */
   name: z.string().regex(/^[a-z][a-z0-9_]*$/, 'Must be snake_case'),
   /** Human-readable description of what the tool does */
-  description: z.string().min(1),
+  description: z.preprocess((v) => (typeof v === 'string' && v.trim() === '' ? 'No description' : v), z.string().min(1)),
   /** Schema version for forward compatibility */
   version: z.string().default('1.0.0'),
   /** Input parameters the LLM provides */
@@ -234,6 +287,8 @@ export const toolDefinitionSchema = z.object({
    *  When present with length > 1, all lanes run in parallel (each in its own tab within a shared window).
    *  When absent or length <= 1, falls back to `steps` for backward compatibility.
    *  Legacy format (ActionStep[][]) is auto-wrapped on load. */
+  /** Viewport dimensions captured at recording time — used to emulate the same resolution during replay */
+  viewport: z.object({ width: z.number(), height: z.number() }).optional(),
   lanes: z.preprocess(
     (val) => {
       if (!Array.isArray(val)) return val

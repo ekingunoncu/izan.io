@@ -45,7 +45,7 @@ export function AgentChatBanner({ agent, className }: { agent: Agent | null; cla
       <button
         type="button"
         onClick={handleDismiss}
-        className={`flex-shrink-0 p-1 rounded-md hover:bg-black/10 dark:hover:bg-white/10 transition-colors ${
+        className={`flex-shrink-0 p-1 rounded-md hover:bg-black/10 dark:hover:bg-white/10 transition-colors cursor-pointer ${
           isWarning ? 'text-amber-700 dark:text-amber-300' : 'text-blue-700 dark:text-blue-300'
         }`}
         aria-label={t('chat.dismissBanner')}

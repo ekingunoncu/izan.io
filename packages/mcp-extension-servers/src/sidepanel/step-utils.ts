@@ -177,6 +177,20 @@ export function updateStepFieldsAt(
   setLanes(prev => prev.map((l, i) => i === activeLane ? { ...l, steps: update(l.steps) } : l))
 }
 
+// ─── Generic Step Update ─────────────────────────────────────────────────
+
+export function updateStepPropsAt(
+  setSteps: SetState<Step[]>,
+  setLanes: SetState<Lane[]>,
+  activeLane: number,
+  idx: number,
+  props: Partial<Step>,
+): void {
+  const update = (arr: Step[]) => arr.map((s, i) => i === idx ? { ...s, ...props } : s)
+  setSteps(update)
+  setLanes(prev => prev.map((l, i) => i === activeLane ? { ...l, steps: update(l.steps) } : l))
+}
+
 // ─── Build Final Data ───────────────────────────────────────────────────────
 
 interface ToolParameter {

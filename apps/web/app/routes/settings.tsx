@@ -130,7 +130,7 @@ function ProviderKeyRow({
       <button
         type="button"
         onClick={onToggle}
-        className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-muted/50 transition-colors rounded-t-lg"
+        className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-muted/50 transition-colors rounded-t-lg cursor-pointer"
       >
         {isExpanded ? (
           <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />
@@ -176,7 +176,7 @@ function ProviderKeyRow({
               <button
                 type="button"
                 onClick={() => setShowKey(!showKey)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
               >
                 {showKey ? (
                   <EyeOff className="h-4 w-4" />
@@ -642,7 +642,7 @@ export default function Settings() {
               <button
                 type="button"
                 onClick={() => setBuiltinMcpExpanded((v) => !v)}
-                className="flex w-full items-center gap-2 rounded-lg border p-3 text-left hover:bg-muted/50 transition-colors"
+                className="flex w-full items-center gap-2 rounded-lg border p-3 text-left hover:bg-muted/50 transition-colors cursor-pointer"
               >
                 {builtinMcpExpanded ? (
                   <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />
@@ -938,7 +938,7 @@ export default function Settings() {
                       <button
                         type="button"
                         onClick={() => setShowAdvanced((v) => !v)}
-                        className="flex items-center gap-2 text-xs font-medium text-muted-foreground hover:text-foreground"
+                        className="flex items-center gap-2 text-xs font-medium text-muted-foreground hover:text-foreground cursor-pointer"
                       >
                         {showAdvanced ? (
                           <ChevronDown className="h-4 w-4" />
