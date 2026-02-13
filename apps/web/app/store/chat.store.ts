@@ -494,7 +494,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
       // Build message history
       const allMessages = [...messages, userMessage]
-      
+
       // Normalize role values and filter out system messages (already sent separately)
       const normalizeRole = (role: string): 'user' | 'assistant' => {
         const normalized = role.toLowerCase()
@@ -504,11 +504,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
         // Default to 'user' for 'user', 'human', 'system', or any other value
         return 'user'
       }
-      
+
       const chatMessages: ChatCompletionMessageParam[] = [
         { role: 'system', content: systemContent },
         ...allMessages
-          .filter(msg => msg.role !== 'system') // Remove system messages (already sent)
+          .filter(msg => msg.role !== 'system')
           .map(msg => ({
             role: normalizeRole(msg.role),
             content: msg.content,

@@ -141,7 +141,7 @@ chrome.runtime.onConnect.addListener((port) => {
     } else if (msg.type === 'extract' && recordingTabId != null) {
       chrome.tabs.sendMessage(recordingTabId, { type: 'recorder-extract', mode: msg.mode ?? 'list' }).catch(() => {})
     } else if (msg.type === 'extract' && recordingTabId == null) {
-      // Not recording — inject picker on-demand into the active tab
+      // Not recording - inject picker on-demand into the active tab
       chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
         if (!tab?.id) return
         const tabId = tab.id
@@ -355,7 +355,7 @@ let automationWindowId: number | null = null
 /** Map of laneId → tabId within the shared automation window */
 const laneTabs = new Map<string, number>()
 
-/** Tabs we attached to (not created) — should only detach CDP, never close */
+/** Tabs we attached to (not created) - should only detach CDP, never close */
 const attachedOnlyTabs = new Set<number>()
 
 /**
@@ -589,7 +589,7 @@ async function handleClose(p: P): Promise<R> {
   const tid = laneTabs.get(laneId)
   if (tid != null) {
     await cdpDetach(tid)
-    // Only close tabs we created — don't close tabs we merely attached to
+    // Only close tabs we created - don't close tabs we merely attached to
     if (!attachedOnlyTabs.has(tid)) {
       try { await chrome.tabs.remove(tid) } catch { /* tab already closed */ }
     }
@@ -995,7 +995,7 @@ async function handleWaitForNetworkIdle(p: P): Promise<R> {
 /**
  * Evaluate a user-provided CSS selector on the active tab to auto-detect fields
  * and generate an extract step. Uses chrome.scripting.executeScript to run in
- * the page context — no debugger banner, works on CSP-restricted sites.
+ * the page context - no debugger banner, works on CSP-restricted sites.
  */
 async function handleSelectorExtract(tabId: number, selector: string, mode: 'list' | 'single'): Promise<void> {
   console.log(`[izan-ext] handleSelectorExtract: tab=${tabId} selector="${selector}" mode=${mode}`)
@@ -1587,7 +1587,7 @@ function buildRoleExtractExpression(): string {
       var s = getComputedStyle(el);
       return s.visibility !== 'hidden' && s.display !== 'none' && s.opacity !== '0';
     }
-    /** Find all elements matching a single role — merges explicit [role] attr AND implicit HTML tags */
+    /** Find all elements matching a single role - merges explicit [role] attr AND implicit HTML tags */
     function findByRole(role, name) {
       var seen = new Set();
       var items = [];
@@ -1787,7 +1787,7 @@ async function handleRoleExtract(tabId: number, roles: string[], name: string, i
 /**
  * Build a self-contained function string for Runtime.callFunctionOn that extracts
  * data from role-matched elements using provided field definitions.
- * Used at runtime (macro execution) — unlike buildRoleExtractExpression which is for recording preview.
+ * Used at runtime (macro execution) - unlike buildRoleExtractExpression which is for recording preview.
  */
 function buildRuntimeRoleExtractExpression(): string {
   return `function(roles, name, includeChildren, fields) {

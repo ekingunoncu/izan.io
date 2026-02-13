@@ -201,7 +201,7 @@ export const extractStepSchema = baseStepSchema.extend({
   roleIncludeChildren: z.boolean().optional(),
 })
 
-/** Union of simple (non-recursive) step types — used inside forEachItem.detailSteps */
+/** Union of simple (non-recursive) step types - used inside forEachItem.detailSteps */
 export const simpleActionStepSchema = z.discriminatedUnion('action', [
   navigateStepSchema,
   clickStepSchema,
@@ -245,7 +245,7 @@ export const forEachItemStepSchema = baseStepSchema.extend({
   maxItems: z.number().min(0).default(0),
   /** Wait strategy after navigating to detail page */
   waitUntil: waitUntilSchema.default('load').optional(),
-  /** Item filters — all must pass (AND logic), items that fail are skipped */
+  /** Item filters - all must pass (AND logic), items that fail are skipped */
   filters: z.array(forEachFilterSchema).default([]).optional(),
 })
 
@@ -298,7 +298,7 @@ export const toolDefinitionSchema = z.object({
    *  When present with length > 1, all lanes run in parallel (each in its own tab within a shared window).
    *  When absent or length <= 1, falls back to `steps` for backward compatibility.
    *  Legacy format (ActionStep[][]) is auto-wrapped on load. */
-  /** Viewport dimensions captured at recording time — used to emulate the same resolution during replay */
+  /** Viewport dimensions captured at recording time - used to emulate the same resolution during replay */
   viewport: z.object({ width: z.number(), height: z.number() }).optional(),
   lanes: z.preprocess(
     (val) => {

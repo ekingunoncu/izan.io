@@ -20,6 +20,7 @@ import {
   Star,
 } from "lucide-react";
 import { Button } from "~/components/ui/button";
+import { IzanLogo } from "~/components/ui/izan-logo";
 import {
   Card,
   CardContent,
@@ -208,7 +209,7 @@ export default function Agents() {
             to={`/${lang}`}
             className="flex items-center gap-2 flex-1 min-w-0 hover:opacity-80 transition-opacity"
           >
-            <Bot className="h-5 w-5 sm:h-6 sm:w-6 text-primary flex-shrink-0" />
+            <IzanLogo className="h-6 w-6 sm:h-7 sm:w-7 text-primary flex-shrink-0" />
             <span className="text-lg sm:text-xl font-semibold truncate">
               izan.io
             </span>

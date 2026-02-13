@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { ArrowLeft, Bot, Settings } from "lucide-react";
 import { isSupportedLanguage } from "~/i18n";
 import { Button } from "~/components/ui/button";
+import { IzanLogo } from "~/components/ui/izan-logo";
 import { AgentSidebar } from "~/components/agents/AgentSidebar";
 import { AgentEditPanel } from "~/components/agents/AgentEditPanel";
 import { CreateAgentDialog } from "~/components/agents/CreateAgentDialog";
@@ -142,7 +143,7 @@ export default function Chat() {
               to={lang ? `/${lang}` : "/"}
               className="flex items-center gap-2 min-w-0 flex-1 hover:opacity-80 transition-opacity"
             >
-              <Bot className="h-5 w-5 sm:h-6 sm:w-6 text-primary flex-shrink-0" />
+              <IzanLogo className="h-6 w-6 sm:h-7 sm:w-7 text-primary flex-shrink-0" />
               <span className="text-lg sm:text-xl font-semibold truncate">
                 izan.io
               </span>

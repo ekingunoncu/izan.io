@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   Bot,
@@ -21,6 +21,16 @@ import {
   ChevronDown,
 } from 'lucide-react'
 import { Button } from '~/components/ui/button'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '~/components/ui/alert-dialog'
 import { useAgentStore, useChatStore, useUIStore, useMCPStore } from '~/store'
 import type { Chat } from '~/store'
 import { cn } from '~/lib/utils'
@@ -117,8 +127,16 @@ export function AgentSidebar() {
     closeMobileSidebar()
   }
 
-  const handleChatDelete = async (chatId: string) => {
-    await deleteChat(chatId)
+  const [deleteChatId, setDeleteChatId] = useState<string | null>(null)
+
+  const handleChatDelete = (chatId: string) => {
+    setDeleteChatId(chatId)
+  }
+
+  const handleChatDeleteConfirm = async () => {
+    if (!deleteChatId) return
+    await deleteChat(deleteChatId)
+    setDeleteChatId(null)
   }
 
   const AgentIcon = currentAgent ? (agentIcons[currentAgent.icon] || Bot) : Bot
@@ -294,6 +312,24 @@ export function AgentSidebar() {
           </aside>
         </>
       )}
+
+      <AlertDialog open={deleteChatId !== null} onOpenChange={(open) => { if (!open) setDeleteChatId(null) }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('chat.deleteChatTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('chat.deleteChatConfirm')}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('agents.cancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleChatDeleteConfirm}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {t('chat.deleteChatAction')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   )
 }

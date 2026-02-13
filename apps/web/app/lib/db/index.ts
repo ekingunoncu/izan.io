@@ -58,6 +58,16 @@ export class IzanDB extends Dexie {
       automationTools: 'id, name, serverId, updatedAt',
       automationServers: 'id, updatedAt',
     })
+
+    this.version(5).stores({
+      chats: 'id, agentId, updatedAt, [agentId+updatedAt]',
+      messages: 'id, chatId, timestamp, [chatId+timestamp]',
+      preferences: 'id',
+      mcpServers: 'id',
+      agents: 'id, source, category, enabled',
+      automationTools: 'id, name, serverId, updatedAt',
+      automationServers: 'id, updatedAt',
+    })
   }
 }
 

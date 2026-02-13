@@ -1,6 +1,17 @@
+import { useState } from 'react'
 import { MessageSquare, Plus, Trash2, Clock } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '~/components/ui/button'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '~/components/ui/alert-dialog'
 import { useChatStore, useAgentStore } from '~/store'
 import type { Chat } from '~/store'
 import { cn } from '~/lib/utils'
@@ -90,10 +101,16 @@ export function ChatList({ className }: ChatListProps) {
     await selectChat(chatId)
   }
 
-  const handleDeleteChat = async (chatId: string) => {
-    {
-      await deleteChat(chatId)
-    }
+  const [deleteChatId, setDeleteChatId] = useState<string | null>(null)
+
+  const handleDeleteChat = (chatId: string) => {
+    setDeleteChatId(chatId)
+  }
+
+  const handleDeleteChatConfirm = async () => {
+    if (!deleteChatId) return
+    await deleteChat(deleteChatId)
+    setDeleteChatId(null)
   }
 
   if (isLoadingChats) {
@@ -105,49 +122,69 @@ export function ChatList({ className }: ChatListProps) {
   }
 
   return (
-    <div className={cn('flex flex-col', className)}>
-      {/* Header */}
-      <div className="flex items-center justify-between px-1 mb-3">
-        <h3 className="text-sm font-medium text-muted-foreground">Sohbet Geçmişi</h3>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleNewChat}
-          className="h-7 gap-1.5"
-        >
-          <Plus className="h-3.5 w-3.5" />
-          Yeni
-        </Button>
-      </div>
-
-      {/* Chat List */}
-      {chats.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-          <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-4">
-            <MessageSquare className="h-6 w-6 text-muted-foreground" />
-          </div>
-          <h4 className="font-medium text-sm mb-1">Henüz sohbet yok</h4>
-          <p className="text-muted-foreground text-xs mb-4">
-            Bu agent ile ilk sohbetinizi başlatın
-          </p>
-          <Button size="sm" onClick={handleNewChat} className="gap-1.5">
+    <>
+      <div className={cn('flex flex-col', className)}>
+        {/* Header */}
+        <div className="flex items-center justify-between px-1 mb-3">
+          <h3 className="text-sm font-medium text-muted-foreground">Sohbet Geçmişi</h3>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleNewChat}
+            className="h-7 gap-1.5"
+          >
             <Plus className="h-3.5 w-3.5" />
-            {t('chat.newChat')}
+            Yeni
           </Button>
         </div>
-      ) : (
-        <div className="space-y-1.5">
-          {chats.map(chat => (
-            <ChatListItem
-              key={chat.id}
-              chat={chat}
-              isSelected={currentChatId === chat.id}
-              onSelect={() => handleSelectChat(chat.id)}
-              onDelete={() => handleDeleteChat(chat.id)}
-            />
-          ))}
-        </div>
-      )}
-    </div>
+
+        {/* Chat List */}
+        {chats.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+            <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-4">
+              <MessageSquare className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <h4 className="font-medium text-sm mb-1">Henüz sohbet yok</h4>
+            <p className="text-muted-foreground text-xs mb-4">
+              Bu agent ile ilk sohbetinizi başlatın
+            </p>
+            <Button size="sm" onClick={handleNewChat} className="gap-1.5">
+              <Plus className="h-3.5 w-3.5" />
+              {t('chat.newChat')}
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-1.5">
+            {chats.map(chat => (
+              <ChatListItem
+                key={chat.id}
+                chat={chat}
+                isSelected={currentChatId === chat.id}
+                onSelect={() => handleSelectChat(chat.id)}
+                onDelete={() => handleDeleteChat(chat.id)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      <AlertDialog open={deleteChatId !== null} onOpenChange={(open) => { if (!open) setDeleteChatId(null) }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('chat.deleteChatTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('chat.deleteChatConfirm')}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('agents.cancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteChatConfirm}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {t('chat.deleteChatAction')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   )
 }

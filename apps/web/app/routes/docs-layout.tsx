@@ -1,6 +1,7 @@
 import { Outlet, Link, useParams } from "react-router";
 import { useTranslation } from "react-i18next";
-import { Bot, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
+import { IzanLogo } from "~/components/ui/izan-logo";
 import { useState } from "react";
 import { DocsSidebar } from "~/components/docs/DocsSidebar";
 import { Button } from "~/components/ui/button";
@@ -30,9 +31,7 @@ export default function DocsLayout() {
               to={`/${lang}`}
               className="flex items-center gap-2 hover:opacity-80 transition-opacity"
             >
-              <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-primary-foreground">
-                <Bot className="h-4 w-4" />
-              </div>
+              <IzanLogo className="h-7 w-7 text-primary" />
               <span className="text-base font-semibold tracking-tight">
                 izan.io
               </span>

@@ -446,7 +446,7 @@ export class AutomationRunner {
     const method = step.extractionMethod ?? 'css'
     console.log(`[izan-ext] stepExtract: name="${step.name}" mode=${step.mode} method=${method} container="${step.containerSelector?.slice(0, 60)}"`)
 
-    // Full accessibility snapshot — returns compact AX tree text
+    // Full accessibility snapshot - returns compact AX tree text
     if (method === 'snapshot') {
       console.log('[izan-ext] stepExtract: returning full accessibility snapshot')
       return bw.accessibilitySnapshot()
@@ -513,7 +513,7 @@ export class AutomationRunner {
     let items = step.maxItems > 0 ? source.slice(0, step.maxItems) : [...source]
     console.log(`[izan-ext] forEachItem: ${items.length} items after maxItems=${step.maxItems}`)
 
-    // Apply filters (AND logic — all must match)
+    // Apply filters (AND logic - all must match)
     if (step.filters && step.filters.length > 0) {
       const beforeCount = items.length
       items = items.filter(raw => {
@@ -603,12 +603,12 @@ export class AutomationRunner {
         const raw = item[step.urlField ?? '']
         console.log(`[izan-ext] processForEachItem[${itemIndex}]: urlField="${step.urlField}" raw="${String(raw).slice(0, 150)}"`)
         if (typeof raw !== 'string' || !raw) {
-          console.warn(`[izan-ext] processForEachItem[${itemIndex}]: SKIP — no URL value in field "${step.urlField}"`)
+          console.warn(`[izan-ext] processForEachItem[${itemIndex}]: SKIP - no URL value in field "${step.urlField}"`)
           return item
         }
         url = this.resolveUrl(raw, baseUrl)
         if (!url || !/^https?:\/\//.test(url)) {
-          console.warn(`[izan-ext] processForEachItem[${itemIndex}]: SKIP — invalid URL "${url}" (raw="${raw}")`)
+          console.warn(`[izan-ext] processForEachItem[${itemIndex}]: SKIP - invalid URL "${url}" (raw="${raw}")`)
           return item
         }
       } else {
@@ -618,7 +618,7 @@ export class AutomationRunner {
         console.log(`[izan-ext] processForEachItem[${itemIndex}]: click method, container="${containerSel}" clickSel="${clickSel}"`)
 
         if (!containerSel || !clickSel) {
-          console.warn(`[izan-ext] processForEachItem[${itemIndex}]: SKIP — click method missing containerSelector or clickSelector`)
+          console.warn(`[izan-ext] processForEachItem[${itemIndex}]: SKIP - click method missing containerSelector or clickSelector`)
           return item
         }
 
@@ -642,7 +642,7 @@ export class AutomationRunner {
         }
 
         if (!url || !/^https?:\/\//.test(url)) {
-          console.warn(`[izan-ext] processForEachItem[${itemIndex}]: SKIP — could not resolve click target URL`)
+          console.warn(`[izan-ext] processForEachItem[${itemIndex}]: SKIP - could not resolve click target URL`)
           return item
         }
       }

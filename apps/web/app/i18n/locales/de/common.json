@@ -83,7 +83,14 @@
     "macrosNoTools": "Noch keine Makros in diesem Server.",
     "macrosTools": "Makro(s)",
     "macrosSteps": "Schritt(e)",
-    "macrosParams": "Parameter"
+    "macrosParams": "Parameter",
+    "chatStorageTitle": "Chat-Speicher",
+    "chatStorageDesc": "Ihre Chats werden lokal auf Ihrem Gerät gespeichert. Legen Sie Limits fest, um den Speicher unter Kontrolle zu halten.",
+    "chatMessageLimit": "Nachrichten pro Chat",
+    "chatMessageLimitHint": "Bei Überschreitung werden die ältesten Nachrichten entfernt. 0 = kein Limit.",
+    "chatHistoryLimit": "Chats pro Agent",
+    "chatHistoryLimitHint": "Bei Überschreitung werden die ältesten Chats mit ihren Nachrichten entfernt. 0 = kein Limit.",
+    "chatStorageNoLimit": "Kein Limit"
   },
   "extension": {
     "requiredBanner": "Dieser Agent verwendet Browser-Automatisierungstools. Installieren Sie die Chrome-Erweiterung, um sie zu nutzen.",
@@ -202,6 +209,9 @@
     "agentResponseFailed": "Fehler: Agent konnte nicht antworten: {{message}}",
     "newChatTitle": "Neuer Chat",
     "llmNotConfigured": "LLM nicht konfiguriert. Wählen Sie einen Provider und ein Modell in den Einstellungen.",
+    "deleteChatTitle": "Chat löschen?",
+    "deleteChatConfirm": "Dieser Chat und alle seine Nachrichten werden dauerhaft gelöscht.",
+    "deleteChatAction": "Löschen",
     "noTools": "keine",
     "viewRaw": "Quelltext anzeigen",
     "viewRendered": "Vorschau anzeigen",

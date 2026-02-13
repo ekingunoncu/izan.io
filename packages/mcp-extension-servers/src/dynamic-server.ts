@@ -100,7 +100,7 @@ function registerTool(server: McpServer, tool: ToolDefinition): void {
       const dt = Date.now() - t0
 
       if (!result.success) {
-        console.error(`[izan-ext] MCP tool "${tool.name}": FAILED in ${dt}ms — ${result.error}`)
+        console.error(`[izan-ext] MCP tool "${tool.name}": FAILED in ${dt}ms - ${result.error}`)
         console.error(`[izan-ext] MCP tool "${tool.name}": log=${JSON.stringify(result.log).slice(0, 500)}`)
         return {
           content: [{
@@ -152,7 +152,7 @@ function escapeCell(v: unknown): string {
 
 /**
  * Format a flat array of objects as a markdown table.
- * Most token-efficient format for tabular data — LLMs parse it natively.
+ * Most token-efficient format for tabular data - LLMs parse it natively.
  */
 function toMarkdownTable(items: Record<string, unknown>[]): string {
   if (items.length === 0) return ''
@@ -258,7 +258,7 @@ function formatExtraction(value: unknown): string {
       }
       return toMarkdownTable(items)
     }
-    // Nested objects fallback to JSON — truncate if massive
+    // Nested objects fallback to JSON - truncate if massive
     const json = JSON.stringify(value, null, 2)
     if (json.length > MAX_RESULT_CHARS) {
       const truncItems = items.slice(0, Math.max(10, Math.floor(items.length / 2)))
@@ -280,7 +280,7 @@ function formatExtraction(value: unknown): string {
 /** Apply final character cap to any formatted output */
 function capOutput(text: string): string {
   if (text.length <= MAX_RESULT_CHARS) return text
-  return text.slice(0, MAX_RESULT_CHARS) + '\n\n---\n*Output truncated — exceeded maximum response size.*'
+  return text.slice(0, MAX_RESULT_CHARS) + '\n\n---\n*Output truncated - exceeded maximum response size.*'
 }
 
 /** Format cleaned extraction data into markdown sections */

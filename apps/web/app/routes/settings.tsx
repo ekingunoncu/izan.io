@@ -24,6 +24,9 @@ import {
   ChevronRight,
   Cog,
   FileJson,
+  HardDrive,
+  MessageSquare,
+  Archive,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip";
@@ -39,6 +42,7 @@ import {
 } from "~/components/ui/alert-dialog";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
+import { IzanLogo } from "~/components/ui/izan-logo";
 import {
   Card,
   CardContent,
@@ -48,6 +52,7 @@ import {
 } from "~/components/ui/card";
 import { useTheme, type Theme } from "~/lib/theme";
 import { useMCPStore, useModelStore } from "~/store";
+import { storageService } from "~/lib/services";
 import { useAutomationStore } from "~/store/automation.store";
 import { DEFAULT_MCP_SERVERS } from "~/lib/mcp/config";
 import { requestAutomationData } from "~/lib/mcp/extension-bridge";
@@ -341,6 +346,68 @@ function AutomationToolsSection() {
   );
 }
 
+function ChatStorageSection() {
+  const { t } = useTranslation("common");
+  const [chatMessageLimit, setChatMessageLimit] = useState(0);
+  const [chatHistoryLimit, setChatHistoryLimit] = useState(0);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    storageService.getPreferences().then((prefs) => {
+      setChatMessageLimit(prefs.chatMessageLimit ?? 0);
+      setChatHistoryLimit(prefs.chatHistoryLimit ?? 0);
+      setLoaded(true);
+    });
+  }, []);
+
+  if (!loaded) return null;
+
+  const handleChange = (field: "chatMessageLimit" | "chatHistoryLimit", raw: string) => {
+    const v = Math.max(0, Math.floor(parseInt(raw, 10)) || 0);
+    if (field === "chatMessageLimit") setChatMessageLimit(v);
+    else setChatHistoryLimit(v);
+    storageService.updatePreferences({ [field]: v });
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <HardDrive className="h-5 w-5" />
+          {t("settings.chatStorageTitle")}
+        </CardTitle>
+        <CardDescription>{t("settings.chatStorageDesc")}</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {([
+            { field: "chatMessageLimit" as const, value: chatMessageLimit, icon: MessageSquare },
+            { field: "chatHistoryLimit" as const, value: chatHistoryLimit, icon: Archive },
+          ]).map(({ field, value, icon: Icon }) => (
+            <div key={field} className="rounded-lg border p-3 space-y-2">
+              <div className="flex items-center gap-2">
+                <Icon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                <span className="text-sm font-medium">{t(`settings.${field}`)}</span>
+              </div>
+              <Input
+                type="number"
+                min={0}
+                value={value || ""}
+                placeholder={t("settings.chatStorageNoLimit")}
+                onChange={(e) => handleChange(field, e.target.value)}
+                className="h-8 text-sm"
+              />
+              <p className="text-[11px] leading-relaxed text-muted-foreground">
+                {t(`settings.${field}Hint`)}
+              </p>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function Settings() {
   const { t } = useTranslation("common");
   const { lang } = useParams();
@@ -543,7 +610,7 @@ export default function Settings() {
             to={backTo}
             className="flex items-center gap-2 flex-1 min-w-0 hover:opacity-80 transition-opacity"
           >
-            <Bot className="h-5 w-5 sm:h-6 sm:w-6 text-primary flex-shrink-0" />
+            <IzanLogo className="h-6 w-6 sm:h-7 sm:w-7 text-primary flex-shrink-0" />
             <span className="text-lg sm:text-xl font-semibold truncate">
               izan.io
             </span>
@@ -1012,6 +1079,9 @@ export default function Settings() {
               )}
             </CardContent>
           </Card>
+
+          {/* Chat Storage */}
+          <ChatStorageSection />
 
           {/* Language */}
           <Card>

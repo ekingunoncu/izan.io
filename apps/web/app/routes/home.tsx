@@ -28,6 +28,7 @@ import { PROVIDERS } from "~/lib/providers";
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip";
 import { GitHubStarButton } from "~/components/GitHubStarButton";
 import { Button } from "~/components/ui/button";
+import { IzanLogo } from "~/components/ui/izan-logo";
 import type { Route } from "./+types/home";
 
 export function meta({ params }: Route.MetaArgs) {
@@ -166,9 +167,7 @@ export default function Home() {
             to={`/${lang}`}
             className="flex items-center gap-2 min-w-0 hover:opacity-80 transition-opacity"
           >
-            <div className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <Bot className="h-4 w-4 sm:h-5 sm:w-5" />
-            </div>
+            <IzanLogo className="h-8 w-8 sm:h-9 sm:w-9 text-primary" />
             <span className="text-lg sm:text-xl font-semibold tracking-tight truncate">
               izan.io
             </span>
@@ -730,9 +729,7 @@ export default function Home() {
                 to={`/${lang}`}
                 className="flex items-center gap-2 mb-4 hover:opacity-80 transition-opacity"
               >
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                  <Bot className="h-4 w-4" />
-                </div>
+                <IzanLogo className="h-8 w-8 text-primary" />
                 <span className="text-lg font-semibold tracking-tight">
                   izan.io
                 </span>

@@ -83,7 +83,14 @@
     "macrosNoTools": "No macros in this server yet.",
     "macrosTools": "macro(s)",
     "macrosSteps": "step(s)",
-    "macrosParams": "param(s)"
+    "macrosParams": "param(s)",
+    "chatStorageTitle": "Chat Storage",
+    "chatStorageDesc": "Your chats are stored locally on your device. Set limits to keep storage in check.",
+    "chatMessageLimit": "Messages per chat",
+    "chatMessageLimitHint": "When exceeded, oldest messages are removed. 0 = no limit.",
+    "chatHistoryLimit": "Chats per agent",
+    "chatHistoryLimitHint": "When exceeded, oldest chats and their messages are removed. 0 = no limit.",
+    "chatStorageNoLimit": "No limit"
   },
   "extension": {
     "requiredBanner": "This agent uses browser automation tools. Install the Chrome extension to use them.",
@@ -202,6 +209,9 @@
     "agentResponseFailed": "Error: Agent failed to respond: {{message}}",
     "newChatTitle": "New Chat",
     "llmNotConfigured": "LLM not configured. Select a provider and model from Settings.",
+    "deleteChatTitle": "Delete chat?",
+    "deleteChatConfirm": "This chat and all its messages will be permanently deleted.",
+    "deleteChatAction": "Delete",
     "noTools": "none",
     "viewRaw": "View source",
     "viewRendered": "View formatted",

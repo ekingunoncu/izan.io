@@ -545,7 +545,7 @@ export class ElementPicker {
     if (this.mode === 'container') {
       const n = this.listCandidates.length
       const msg = this.extractionMode === 'list'
-        ? n > 0 ? `${n} list${n !== 1 ? 's' : ''} detected — click <b>Select</b> on an item` : `Click on a repeating element`
+        ? n > 0 ? `${n} list${n !== 1 ? 's' : ''} detected - click <b>Select</b> on an item` : `Click on a repeating element`
         : `Click on the element to extract`
       this.infoPanel.innerHTML = `<span class="msg">${msg}</span><span class="esc">ESC cancel</span>`
     } else {

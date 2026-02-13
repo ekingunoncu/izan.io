@@ -83,7 +83,14 @@
     "macrosNoTools": "Bu sunucuda henüz makro yok.",
     "macrosTools": "makro",
     "macrosSteps": "adım",
-    "macrosParams": "parametre"
+    "macrosParams": "parametre",
+    "chatStorageTitle": "Sohbet Depolama",
+    "chatStorageDesc": "Sohbetleriniz cihazınızda yerel olarak saklanır. Depolamayı kontrol altında tutmak için limit belirleyin.",
+    "chatMessageLimit": "Chat başına mesaj sayısı",
+    "chatMessageLimitHint": "Aşıldığında en eski mesajlar silinir. 0 = limit yok.",
+    "chatHistoryLimit": "Agent başına chat sayısı",
+    "chatHistoryLimitHint": "Aşıldığında en eski chatler mesajlarıyla birlikte silinir. 0 = limit yok.",
+    "chatStorageNoLimit": "Limit yok"
   },
   "extension": {
     "requiredBanner": "Bu agent tarayıcı otomasyon araçları kullanıyor. Kullanmak için Chrome eklentisini yükleyin.",
@@ -202,6 +209,9 @@
     "agentResponseFailed": "Hata: Agent yanıt veremedi: {{message}}",
     "newChatTitle": "Yeni Sohbet",
     "llmNotConfigured": "LLM yapılandırılmadı. Ayarlardan bir provider ve model seçin.",
+    "deleteChatTitle": "Sohbet silinsin mi?",
+    "deleteChatConfirm": "Bu sohbet ve tüm mesajları kalıcı olarak silinecek.",
+    "deleteChatAction": "Sil",
     "noTools": "yok",
     "viewRaw": "Kaynağı göster",
     "viewRendered": "Önizleme",

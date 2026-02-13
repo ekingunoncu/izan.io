@@ -39,7 +39,7 @@ export interface AutomationTool {
   parameters: AutomationToolParameter[]
   steps: AutomationActionStep[]
   lanes?: AutomationLane[]
-  /** Viewport dimensions captured at recording time — used to emulate the same resolution during replay */
+  /** Viewport dimensions captured at recording time - used to emulate the same resolution during replay */
   viewport?: { width: number; height: number }
   serverId: string
   createdAt: number

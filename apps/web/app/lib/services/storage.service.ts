@@ -30,6 +30,14 @@ export class StorageService implements IStorageService {
       updatedAt: now,
     }
     await db.chats.add(newChat)
+
+    // Prune old chats if limit is set
+    const prefs = await this.getPreferences()
+    const limit = prefs.chatHistoryLimit ?? 0
+    if (limit > 0) {
+      await this.pruneChats(chat.agentId, limit)
+    }
+
     return newChat
   }
 
@@ -65,12 +73,19 @@ export class StorageService implements IStorageService {
       timestamp: Date.now(),
     }
     await db.messages.add(newMessage)
-    
+
     // Update chat's updatedAt timestamp
     await db.chats.update(message.chatId, {
       updatedAt: Date.now(),
     })
-    
+
+    // Prune old messages if limit is set
+    const prefs = await this.getPreferences()
+    const limit = prefs.chatMessageLimit ?? 0
+    if (limit > 0) {
+      await this.pruneMessages(message.chatId, limit)
+    }
+
     return newMessage
   }
 
@@ -84,6 +99,52 @@ export class StorageService implements IStorageService {
 
   async deleteMessagesByChatId(chatId: string): Promise<void> {
     await db.messages.where('chatId').equals(chatId).delete()
+  }
+
+  // ============ Pruning Operations ============
+
+  /** Delete oldest non-system messages in a chat when count exceeds limit */
+  private async pruneMessages(chatId: string, limit: number): Promise<void> {
+    if (limit <= 0) return
+    const total = await db.messages.where('chatId').equals(chatId).count()
+    if (total <= limit) return
+
+    // Get all messages sorted by timestamp, keep system messages
+    const messages = await db.messages
+      .where('[chatId+timestamp]')
+      .between([chatId, 0], [chatId, Infinity])
+      .sortBy('timestamp')
+
+    const nonSystem = messages.filter(m => m.role !== 'system')
+    const excess = nonSystem.length - limit
+    if (excess <= 0) return
+
+    const idsToDelete = nonSystem.slice(0, excess).map(m => m.id)
+    await db.messages.bulkDelete(idsToDelete)
+  }
+
+  /** Delete oldest chats (and their messages) for an agent when count exceeds limit */
+  private async pruneChats(agentId: string, limit: number): Promise<void> {
+    if (limit <= 0) return
+    const total = await db.chats.where('agentId').equals(agentId).count()
+    if (total <= limit) return
+
+    // Get chats sorted by updatedAt ascending (oldest first)
+    const chats = await db.chats
+      .where('[agentId+updatedAt]')
+      .between([agentId, 0], [agentId, Infinity])
+      .sortBy('updatedAt')
+
+    const excess = chats.length - limit
+    if (excess <= 0) return
+
+    const chatsToDelete = chats.slice(0, excess)
+    await db.transaction('rw', [db.chats, db.messages], async () => {
+      for (const chat of chatsToDelete) {
+        await db.messages.where('chatId').equals(chat.id).delete()
+        await db.chats.delete(chat.id)
+      }
+    })
   }
 
   // ============ Preferences Operations ============

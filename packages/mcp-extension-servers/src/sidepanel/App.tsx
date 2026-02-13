@@ -204,7 +204,7 @@ export function App() {
           refreshServers(port)
         }
       } else if (type === 'updateAutomationServerDone') {
-        // Optimistic update already applied in saveEditServer — just silently refresh without loading state
+        // Optimistic update already applied in saveEditServer - just silently refresh without loading state
         if (!msg.error) port.postMessage({ type: 'getAutomationServers' })
       } else if (type === 'updateAutomationToolDone') {
         setEditSaving(false)
@@ -2054,7 +2054,7 @@ function AccessibilityInputForm({ roleValues, onRoleValuesChange, roleNameValue,
       {a11yTab === 'fullpage' && (
         <div className="space-y-2">
           <p className="text-xs text-muted-foreground">
-            Extract the complete accessibility tree of the current page. Works reliably on any site — no selectors or class names needed.
+            Extract the complete accessibility tree of the current page. Works reliably on any site - no selectors or class names needed.
           </p>
           <Button
             variant="default" size="sm" className="w-full h-8"
@@ -2676,7 +2676,7 @@ function SubActionRecordingPanel({ subActionFlow, setSubActionFlow, onFinish }: 
       {/* Hint */}
       <p className="text-xs text-muted-foreground px-3 py-1.5 border-b">{hint}</p>
 
-      {/* Detail steps — rendered as full StepCards */}
+      {/* Detail steps - rendered as full StepCards */}
       {detailSteps.length > 0 && (
         <div className="px-1 py-1.5 space-y-1.5">
           {detailSteps.map((ds, di) => (
@@ -2758,7 +2758,7 @@ const FILTER_OPS = [
 
 type FilterRow = { field: string; op: string; value: string }
 
-/** Text input with local state — only calls onCommit on blur/Enter (avoids parent re-renders per keystroke) */
+/** Text input with local state - only calls onCommit on blur/Enter (avoids parent re-renders per keystroke) */
 function LocalTextInput({ value, onCommit, className, placeholder }: {
   value: string; onCommit: (v: string) => void; className?: string; placeholder?: string
 }) {

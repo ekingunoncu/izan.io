@@ -241,8 +241,8 @@ export function applyParamMap(
             }
           } catch { /* invalid URL, skip */ }
         } else {
-          // Query param
-          newParams[k] = `{{${k}}}`
+          // Query param - use snake_case to match the parameter name
+          newParams[k] = `{{${toSnakeCase(k)}}}`
         }
       }
 
@@ -260,7 +260,7 @@ export function applyParamMap(
     if (s.action === 'type') {
       const inputMeta = meta.get('__input')
       if (inputMeta?.enabled) {
-        const name = inputMeta.paramName || 'input_text'
+        const name = toSnakeCase(inputMeta.paramName || 'input_text')
         return { ...s, text: `{{${name}}}` }
       }
     }

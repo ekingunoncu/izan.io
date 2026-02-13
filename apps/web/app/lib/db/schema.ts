@@ -119,6 +119,10 @@ export interface UserPreferences {
   externalApiKeys: Record<string, string>
   /** Agent IDs whose chat banner the user has dismissed (don't show again). Record for O(1) lookup. */
   dismissedChatBannerAgentIds: Record<string, boolean>
+  /** Max messages per chat. 0 = unlimited (default) */
+  chatMessageLimit?: number
+  /** Max chats per agent. 0 = unlimited (default) */
+  chatHistoryLimit?: number
 }
 
 // ─── Automation Tool Types ────────────────────────────────────────────────────
@@ -174,7 +178,7 @@ export interface AutomationTool {
    *  When present with length > 1, all lanes run in parallel in separate browser windows.
    *  Legacy format (AutomationActionStep[][]) is auto-wrapped on load. */
   lanes?: Array<{ name: string; steps: AutomationActionStep[] }>
-  /** Viewport dimensions captured at recording time — used to emulate the same resolution during replay */
+  /** Viewport dimensions captured at recording time - used to emulate the same resolution during replay */
   viewport?: { width: number; height: number }
   /** Which automation server this tool belongs to */
   serverId: string
@@ -258,4 +262,6 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   favoriteAgentIds: [],
   externalApiKeys: {},
   dismissedChatBannerAgentIds: {},
+  chatMessageLimit: 0,
+  chatHistoryLimit: 0,
 }

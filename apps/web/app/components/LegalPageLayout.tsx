@@ -1,5 +1,6 @@
 import { Link, useParams } from "react-router";
-import { Bot, ChevronDown } from "lucide-react";
+import { ChevronDown } from "lucide-react";
+import { IzanLogo } from "~/components/ui/izan-logo";
 import { Button } from "~/components/ui/button";
 import type { SupportedLanguage } from "~/i18n";
 import { cn } from "~/lib/utils";
@@ -80,9 +81,7 @@ export function LegalPageLayout({
             to={basePath}
             className="flex items-center gap-2 min-w-0 hover:opacity-80 transition-opacity"
           >
-            <div className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <Bot className="h-4 w-4 sm:h-5 sm:w-5" />
-            </div>
+            <IzanLogo className="h-8 w-8 sm:h-9 sm:w-9 text-primary" />
             <span className="text-lg sm:text-xl font-semibold tracking-tight truncate">
               izan.io
             </span>
