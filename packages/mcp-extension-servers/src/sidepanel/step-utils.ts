@@ -224,7 +224,8 @@ export function applyParamMap(
         if (k.startsWith('__path:')) {
           // Path segment parameterization
           const segIdx = parseInt(k.slice(7), 10)
-          const name = m.paramName || `path_${segIdx}`
+          // Use snake_case name for the placeholder (must match parameter name)
+          const name = toSnakeCase(m.paramName || `path_${segIdx}`)
           try {
             const parsed = new URL(newUrl, 'https://x')
             const segments = parsed.pathname.split('/')
@@ -232,12 +233,11 @@ export function applyParamMap(
             const realIdx = segIdx + 1
             if (realIdx < segments.length) {
               segments[realIdx] = `{{${name}}}`
-              parsed.pathname = segments.join('/')
-              newUrl = parsed.toString().replace('https://x', '') // preserve relative if was relative
-              // If original url was absolute, use parsed.toString()
-              if (s.url && /^https?:\/\//.test(s.url)) {
-                newUrl = parsed.toString()
-              }
+              // Rebuild URL via string replacement instead of parsed.pathname setter
+              // to avoid URL-encoding the {{...}} placeholder
+              const newPath = segments.join('/')
+              const oldPath = parsed.pathname
+              newUrl = newUrl.replace(oldPath, newPath)
             }
           } catch { /* invalid URL, skip */ }
         } else {

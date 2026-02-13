@@ -394,9 +394,18 @@ export function parametersToJsonSchema(params: ToolParameter[]): {
 
 /**
  * Resolve {{placeholder}} values in a string using provided arguments.
+ * Also handles URL-encoded placeholders (%7B%7B...%7D%7D) for backward compatibility
+ * with tools saved before the URL-encoding fix.
  */
 export function resolveTemplate(template: string, args: Record<string, unknown>): string {
-  return template.replace(/\{\{(\w+)\}\}/g, (_match, key: string) => {
+  // First, decode any URL-encoded placeholders so they become {{...}}
+  const decoded = template.replace(/%7B%7B([^%]+(?:%20[^%]+)*)%7D%7D/gi, (_match, inner: string) => {
+    const key = toSnakeCase(decodeURIComponent(inner))
+    const value = args[key]
+    return value !== undefined ? String(value) : ''
+  })
+  // Then resolve normal {{...}} placeholders
+  return decoded.replace(/\{\{(\w+)\}\}/g, (_match, key: string) => {
     const value = args[key]
     return value !== undefined ? String(value) : ''
   })
