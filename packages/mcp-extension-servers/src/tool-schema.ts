@@ -12,6 +12,17 @@
 
 import { z } from 'zod'
 
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+/** Convert a string (camelCase, PascalCase, kebab-case, etc.) to snake_case */
+export function toSnakeCase(str: string): string {
+  return str
+    .replace(/([a-z0-9])([A-Z])/g, '$1_$2')  // camelCase → camel_Case
+    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1_$2') // HTMLParser → HTML_Parser
+    .replace(/[-\s]+/g, '_')                    // kebab-case / spaces → _
+    .toLowerCase()
+}
+
 // ─── Parameter Schema ────────────────────────────────────────────────────────
 
 /** Where the parameter value is injected during execution */
@@ -23,7 +34,7 @@ export const parameterSourceSchema = z.enum([
 
 export const toolParameterSchema = z.object({
   /** Parameter name used in {{placeholder}} interpolation */
-  name: z.string().regex(/^[a-z][a-z0-9_]*$/, 'Must be snake_case'),
+  name: z.preprocess((v) => (typeof v === 'string' ? toSnakeCase(v) : v), z.string().regex(/^[a-z][a-z0-9_]*$/, 'Must be snake_case')),
   /** JSON Schema type */
   type: z.enum(['string', 'number', 'boolean']),
   /** Human-readable description for LLM */

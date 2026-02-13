@@ -6,6 +6,7 @@
  */
 
 import type { Dispatch, SetStateAction } from 'react'
+import { toSnakeCase } from '../tool-schema.js'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -274,19 +275,20 @@ export function applyParamMap(
       if (!m.enabled) continue
 
       if (k.startsWith('__path:')) {
-        const name = m.paramName || `path_${k.slice(7)}`
+        const name = toSnakeCase(m.paramName || `path_${k.slice(7)}`)
         if (seen.has(name)) continue
         seen.add(name)
         parameters.push({ name, type: 'string', description: m.description || name, required: true, source: 'pathSegment', sourceKey: k })
       } else if (k === '__input') {
-        const name = m.paramName || 'input_text'
+        const name = toSnakeCase(m.paramName || 'input_text')
         if (seen.has(name)) continue
         seen.add(name)
         parameters.push({ name, type: 'string', description: m.description || name, required: true, source: 'input', sourceKey: k })
       } else {
-        if (seen.has(k)) continue
-        seen.add(k)
-        parameters.push({ name: k, type: 'string', description: m.description || k, required: true, source: 'urlParam', sourceKey: k })
+        const name = toSnakeCase(k)
+        if (seen.has(name)) continue
+        seen.add(name)
+        parameters.push({ name, type: 'string', description: m.description || k, required: true, source: 'urlParam', sourceKey: k })
       }
     }
   }
