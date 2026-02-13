@@ -34,7 +34,7 @@ export const parameterSourceSchema = z.enum([
 
 export const toolParameterSchema = z.object({
   /** Parameter name used in {{placeholder}} interpolation */
-  name: z.preprocess((v) => (typeof v === 'string' ? toSnakeCase(v) : v), z.string().regex(/^[a-z][a-z0-9_]*$/, 'Must be snake_case')),
+  name: z.string().regex(/^[a-z][a-z0-9_]*$/, 'Must be snake_case'),
   /** JSON Schema type */
   type: z.enum(['string', 'number', 'boolean']),
   /** Human-readable description for LLM */
