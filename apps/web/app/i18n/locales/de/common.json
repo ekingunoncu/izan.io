@@ -91,7 +91,19 @@
     "chatMessageLimitHint": "Bei Überschreitung werden die ältesten Nachrichten entfernt. 0 = kein Limit.",
     "chatHistoryLimit": "Chats pro Agent",
     "chatHistoryLimitHint": "Bei Überschreitung werden die ältesten Chats mit ihren Nachrichten entfernt. 0 = kein Limit.",
-    "chatStorageNoLimit": "Kein Limit"
+    "chatStorageNoLimit": "Kein Limit",
+    "clearAllChats": "Gesamten Chatverlauf löschen",
+    "clearAllChatsDesc": "Alle Unterhaltungen aller Agenten dauerhaft löschen.",
+    "clearAllChatsConfirm": "Ihr gesamter Chatverlauf wird dauerhaft gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.",
+    "clearAgentChats": "Agenten-Chatverlauf löschen",
+    "clearAgentChatsDesc": "Wählen Sie Agenten aus, deren Unterhaltungen dauerhaft gelöscht werden sollen.",
+    "clearAgentChatsConfirm": "Alle Chats der ausgewählten Agenten werden dauerhaft gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.",
+    "clearAgentChatsConfirmNames": "Alle Chats von {{agents}} werden dauerhaft gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.",
+    "clearSelected": "Ausgewählte löschen ({{count}})",
+    "selectedAgentsCount": "{{count}} Agent(en) ausgewählt",
+    "selectAgents": "Agenten auswählen...",
+    "searchAgents": "Agenten suchen...",
+    "cleared": "Gelöscht!"
   },
   "extension": {
     "requiredBanner": "Dieser Agent verwendet Browser-Automatisierungstools. Installieren Sie die Chrome-Erweiterung, um sie zu nutzen.",
@@ -223,6 +235,15 @@
     "copied": "Kopiert",
     "showMore": "Mehr anzeigen",
     "showLess": "Weniger anzeigen",
+    "deepTask": "Deep Task",
+    "deepTaskTooltip": "Agent arbeitet autonom. Sie werden benachrichtigt, wenn er fertig ist.",
+    "chatHistory": "Chatverlauf",
+    "new": "Neu",
+    "startFirstChat": "Starten Sie Ihr erstes Gespräch mit diesem Agenten",
+    "justNow": "Gerade eben",
+    "minutesAgo": "vor {{count}} Min.",
+    "hoursAgo": "vor {{count}} Std.",
+    "daysAgo": "vor {{count}} Tagen",
     "yesterday": "gestern",
     "toolNames": {
       "check_domains_availability": "Domain-Verfügbarkeit",
@@ -293,6 +314,8 @@
     "maxTokensDesc": "Maximale Länge der Antwort. Höhere Werte ermöglichen längere Antworten, kosten aber mehr. Leer für Provider-Standard.",
     "topP": "Top P",
     "topPDesc": "Nukleus-Sampling: berücksichtigt nur Tokens in der oberen P-Wahrscheinlichkeitsmasse. Niedriger = fokussierter. Bereich: 0–1.",
+    "maxIterations": "Max. Iterationen",
+    "maxIterationsDesc": "Maximale Tool-Aufrufrunden pro Nachricht. Höhere Werte ermöglichen längere autonome Aufgaben. Bereich: 1–100.",
     "useDefault": "Standard verwenden",
     "builtin": {
       "general": {
@@ -418,7 +441,7 @@
     "trendVsPrev": "ggü. letzten {{range}}"
   },
   "longTask": {
-    "bannerMessage": "Diese Aufgabe kann eine Weile dauern.",
+    "bannerMessage": "Agent arbeitet autonom...",
     "runInBackground": "Im Hintergrund ausführen",
     "notifyWhenDone": "Benachrichtigen wenn fertig",
     "notifyEnabled": "Benachrichtigung aktiv",

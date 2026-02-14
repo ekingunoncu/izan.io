@@ -101,6 +101,25 @@ export class StorageService implements IStorageService {
     await db.messages.where('chatId').equals(chatId).delete()
   }
 
+  // ============ Bulk Delete Operations ============
+
+  async clearAllChats(): Promise<void> {
+    await db.transaction('rw', [db.chats, db.messages], async () => {
+      await db.messages.clear()
+      await db.chats.clear()
+    })
+  }
+
+  async clearAgentChats(agentId: string): Promise<void> {
+    await db.transaction('rw', [db.chats, db.messages], async () => {
+      const chats = await db.chats.where('agentId').equals(agentId).toArray()
+      for (const chat of chats) {
+        await db.messages.where('chatId').equals(chat.id).delete()
+      }
+      await db.chats.where('agentId').equals(agentId).delete()
+    })
+  }
+
   // ============ Pruning Operations ============
 
   /** Delete oldest non-system messages in a chat when count exceeds limit */

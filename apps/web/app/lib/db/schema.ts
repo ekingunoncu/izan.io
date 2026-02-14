@@ -39,6 +39,8 @@ export interface Agent {
   maxTokens?: number
   /** Nucleus sampling top_p, 0–1, OpenAI default 1 */
   topP?: number
+  /** Max tool-calling iterations per message. Default 25 */
+  maxIterations?: number
   createdAt: number
   updatedAt: number
 }

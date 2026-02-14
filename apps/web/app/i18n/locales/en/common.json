@@ -91,7 +91,19 @@
     "chatMessageLimitHint": "When exceeded, oldest messages are removed. 0 = no limit.",
     "chatHistoryLimit": "Chats per agent",
     "chatHistoryLimitHint": "When exceeded, oldest chats and their messages are removed. 0 = no limit.",
-    "chatStorageNoLimit": "No limit"
+    "chatStorageNoLimit": "No limit",
+    "clearAllChats": "Clear All Chat History",
+    "clearAllChatsDesc": "Permanently delete all conversations across every agent.",
+    "clearAllChatsConfirm": "This will permanently delete all your chat history. This action cannot be undone.",
+    "clearAgentChats": "Clear Agent Chat History",
+    "clearAgentChatsDesc": "Select agents whose conversations you want to permanently delete.",
+    "clearAgentChatsConfirm": "All chats for the selected agents will be permanently deleted. This action cannot be undone.",
+    "clearAgentChatsConfirmNames": "All chats for {{agents}} will be permanently deleted. This action cannot be undone.",
+    "clearSelected": "Clear selected ({{count}})",
+    "selectedAgentsCount": "{{count}} agent(s) selected",
+    "selectAgents": "Select agents...",
+    "searchAgents": "Search agents...",
+    "cleared": "Cleared!"
   },
   "extension": {
     "requiredBanner": "This agent uses browser automation tools. Install the Chrome extension to use them.",
@@ -223,6 +235,15 @@
     "copied": "Copied",
     "showMore": "Show more",
     "showLess": "Show less",
+    "deepTask": "Deep task",
+    "deepTaskTooltip": "Agent works autonomously. You'll be notified when it's done.",
+    "chatHistory": "Chat History",
+    "new": "New",
+    "startFirstChat": "Start your first conversation with this agent",
+    "justNow": "Just now",
+    "minutesAgo": "{{count}}m ago",
+    "hoursAgo": "{{count}}h ago",
+    "daysAgo": "{{count}}d ago",
     "yesterday": "yesterday",
     "toolNames": {
       "check_domains_availability": "Domain availability",
@@ -293,6 +314,8 @@
     "maxTokensDesc": "Maximum length of the response. Higher values allow longer answers but cost more. Leave empty for provider default.",
     "topP": "Top P",
     "topPDesc": "Nucleus sampling: only considers tokens in the top P probability mass. Lower = more focused. Range: 0–1.",
+    "maxIterations": "Max iterations",
+    "maxIterationsDesc": "Maximum tool-calling rounds per message. Higher values allow longer autonomous tasks. Range: 1–100.",
     "useDefault": "Use default",
     "builtin": {
       "general": {
@@ -418,7 +441,7 @@
     "trendVsPrev": "vs prev {{range}}"
   },
   "longTask": {
-    "bannerMessage": "This task may take a while.",
+    "bannerMessage": "Agent is working autonomously...",
     "runInBackground": "Run in background",
     "notifyWhenDone": "Notify when done",
     "notifyEnabled": "Will notify",

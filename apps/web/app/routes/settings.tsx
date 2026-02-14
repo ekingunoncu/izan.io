@@ -27,8 +27,17 @@ import {
   HardDrive,
   MessageSquare,
   Archive,
+  Code,
+  Calendar,
+  Mail,
+  Database,
+  Globe,
+  FileText,
+  Puzzle,
+  Zap,
+  Lightbulb,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip";
 import {
   AlertDialog,
@@ -52,6 +61,8 @@ import {
 } from "~/components/ui/card";
 import { useTheme, type Theme } from "~/lib/theme";
 import { useMCPStore, useModelStore } from "~/store";
+import { useChatStore } from "~/store/chat.store";
+import { useAgentStore } from "~/store/agent.store";
 import { storageService } from "~/lib/services";
 import { useAutomationStore } from "~/store/automation.store";
 import { DEFAULT_MCP_SERVERS } from "~/lib/mcp/config";
@@ -346,11 +357,34 @@ function AutomationToolsSection() {
   );
 }
 
+const AGENT_ICON_MAP: Record<string, typeof Bot> = {
+  bot: Bot, search: Search, code: Code, calendar: Calendar, mail: Mail,
+  database: Database, globe: Globe, "file-text": FileText, puzzle: Puzzle,
+  zap: Zap, shield: Shield, "message-square": MessageSquare, lightbulb: Lightbulb,
+};
+
+function getAgentIcon(iconId: string) {
+  return AGENT_ICON_MAP[iconId] || Bot;
+}
+
 function ChatStorageSection() {
   const { t } = useTranslation("common");
   const [chatMessageLimit, setChatMessageLimit] = useState(0);
   const [chatHistoryLimit, setChatHistoryLimit] = useState(0);
   const [loaded, setLoaded] = useState(false);
+
+  const { clearAllChats, clearMultipleAgentChats } = useChatStore();
+  const { agents, initialize: initAgents, isInitialized: agentsReady } = useAgentStore();
+
+  const [clearAllOpen, setClearAllOpen] = useState(false);
+  const [clearAgentOpen, setClearAgentOpen] = useState(false);
+  const [selectedAgentIds, setSelectedAgentIds] = useState<Set<string>>(new Set());
+  const [clearAllSuccess, setClearAllSuccess] = useState(false);
+  const [clearAgentSuccess, setClearAgentSuccess] = useState(false);
+  const [comboboxOpen, setComboboxOpen] = useState(false);
+  const [agentSearch, setAgentSearch] = useState("");
+  const comboboxRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     storageService.getPreferences().then((prefs) => {
@@ -360,6 +394,27 @@ function ChatStorageSection() {
     });
   }, []);
 
+  useEffect(() => {
+    if (!agentsReady) initAgents();
+  }, [agentsReady, initAgents]);
+
+  // Close combobox on click outside
+  useEffect(() => {
+    if (!comboboxOpen) return;
+    const handleClick = (e: MouseEvent) => {
+      if (comboboxRef.current && !comboboxRef.current.contains(e.target as Node)) {
+        setComboboxOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [comboboxOpen]);
+
+  // Focus search input when combobox opens
+  useEffect(() => {
+    if (comboboxOpen) searchInputRef.current?.focus();
+  }, [comboboxOpen]);
+
   if (!loaded) return null;
 
   const handleChange = (field: "chatMessageLimit" | "chatHistoryLimit", raw: string) => {
@@ -368,6 +423,39 @@ function ChatStorageSection() {
     else setChatHistoryLimit(v);
     storageService.updatePreferences({ [field]: v });
   };
+
+  const toggleAgent = (agentId: string) => {
+    setSelectedAgentIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(agentId)) next.delete(agentId);
+      else next.add(agentId);
+      return next;
+    });
+  };
+
+  const handleClearAll = async () => {
+    setClearAllOpen(false);
+    await clearAllChats();
+    setClearAllSuccess(true);
+    setTimeout(() => setClearAllSuccess(false), 2000);
+  };
+
+  const handleClearAgents = async () => {
+    if (selectedAgentIds.size === 0) return;
+    setClearAgentOpen(false);
+    await clearMultipleAgentChats([...selectedAgentIds]);
+    setClearAgentSuccess(true);
+    setTimeout(() => setClearAgentSuccess(false), 2000);
+    setSelectedAgentIds(new Set());
+  };
+
+  const selectedNames = agents
+    .filter((a) => selectedAgentIds.has(a.id))
+    .map((a) => a.name);
+
+  const filteredAgents = agentSearch.trim()
+    ? agents.filter((a) => a.name.toLowerCase().includes(agentSearch.toLowerCase()))
+    : agents;
 
   return (
     <Card>
@@ -403,6 +491,237 @@ function ChatStorageSection() {
             </div>
           ))}
         </div>
+
+        {/* Data Management */}
+        <div className="border-t pt-3 space-y-2">
+          {/* Clear All — minimal row, matches analytics clear style */}
+          <div className="flex items-center justify-between gap-3 rounded-lg border p-2.5">
+            <div className="flex items-center gap-2 min-w-0">
+              <Trash2 className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+              <div className="min-w-0">
+                <p className="text-sm font-medium truncate">{t("settings.clearAllChats")}</p>
+                <p className="text-[11px] text-muted-foreground">{t("settings.clearAllChatsDesc")}</p>
+              </div>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className={cn(
+                "flex-shrink-0 gap-1.5 text-xs h-7",
+                clearAllSuccess
+                  ? "text-green-600 dark:text-green-400"
+                  : "text-muted-foreground hover:text-destructive"
+              )}
+              onClick={() => setClearAllOpen(true)}
+              disabled={clearAllSuccess}
+            >
+              {clearAllSuccess ? (
+                <>
+                  <CheckCircle className="h-3.5 w-3.5" />
+                  {t("settings.cleared")}
+                </>
+              ) : (
+                t("settings.clearAllChats")
+              )}
+            </Button>
+          </div>
+
+          {/* Clear per Agent */}
+          <div className="rounded-lg border p-2.5 space-y-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <Bot className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+              <div className="min-w-0">
+                <p className="text-sm font-medium truncate">{t("settings.clearAgentChats")}</p>
+                <p className="text-[11px] text-muted-foreground">{t("settings.clearAgentChatsDesc")}</p>
+              </div>
+            </div>
+
+            {/* Multi-select combobox */}
+            <div className="relative" ref={comboboxRef}>
+              {/* Trigger — matches provider search input style */}
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <button
+                  type="button"
+                  onClick={() => setComboboxOpen((v) => !v)}
+                  className={cn(
+                    "w-full flex items-center justify-between rounded-md border border-input bg-background pl-8 pr-3 h-8 text-xs transition-colors cursor-pointer",
+                    "hover:bg-muted/50",
+                    comboboxOpen && "ring-2 ring-ring"
+                  )}
+                >
+                  <span className={cn(
+                    "truncate",
+                    selectedAgentIds.size === 0 ? "text-muted-foreground" : "text-foreground font-medium"
+                  )}>
+                    {selectedAgentIds.size === 0
+                      ? t("settings.selectAgents")
+                      : t("settings.selectedAgentsCount", { count: selectedAgentIds.size })}
+                  </span>
+                  <ChevronDown className={cn(
+                    "h-3.5 w-3.5 text-muted-foreground flex-shrink-0 transition-transform duration-200",
+                    comboboxOpen && "rotate-180"
+                  )} />
+                </button>
+              </div>
+
+              {/* Selected agent tags — matches MCP builtin badge style */}
+              {selectedAgentIds.size > 0 && !comboboxOpen && (
+                <div className="flex flex-wrap gap-1 mt-1.5">
+                  {agents.filter((a) => selectedAgentIds.has(a.id)).map((agent) => (
+                    <span
+                      key={agent.id}
+                      className="inline-flex items-center gap-1 rounded bg-slate-300/80 text-slate-800 dark:bg-muted dark:text-muted-foreground px-1.5 py-0.5 text-[11px]"
+                    >
+                      {(() => { const I = getAgentIcon(agent.icon); return <I className="h-3 w-3" />; })()}
+                      <span className="truncate max-w-[100px]">{agent.name}</span>
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); toggleAgent(agent.id); }}
+                        className="hover:text-foreground cursor-pointer ml-0.5"
+                      >
+                        <X className="h-2.5 w-2.5" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Dropdown */}
+              {comboboxOpen && (
+                <div className="absolute z-50 mt-1 w-full rounded-lg border bg-popover shadow-lg">
+                  {/* Search input */}
+                  <div className="flex items-center gap-2 border-b px-2.5 py-2">
+                    <Search className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                    <input
+                      ref={searchInputRef}
+                      type="text"
+                      value={agentSearch}
+                      onChange={(e) => setAgentSearch(e.target.value)}
+                      placeholder={t("settings.searchAgents")}
+                      className="flex-1 bg-transparent text-xs outline-none placeholder:text-muted-foreground"
+                    />
+                    {agentSearch && (
+                      <button type="button" onClick={() => setAgentSearch("")} className="cursor-pointer">
+                        <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Agent list */}
+                  <div className="max-h-52 overflow-y-auto py-1">
+                    {filteredAgents.length === 0 ? (
+                      <p className="text-xs text-muted-foreground text-center py-4">
+                        {t("agents.searchNoResults")}
+                      </p>
+                    ) : (
+                      filteredAgents.map((agent) => {
+                        const isSelected = selectedAgentIds.has(agent.id);
+                        return (
+                          <button
+                            key={agent.id}
+                            type="button"
+                            onClick={() => toggleAgent(agent.id)}
+                            className={cn(
+                              "w-full flex items-center gap-2.5 px-2.5 py-2 text-left transition-colors cursor-pointer",
+                              "hover:bg-muted/50",
+                              isSelected && "bg-muted/30"
+                            )}
+                          >
+                            {/* Checkbox */}
+                            <span className={cn(
+                              "flex h-3.5 w-3.5 items-center justify-center rounded-sm border flex-shrink-0 transition-colors",
+                              isSelected
+                                ? "bg-primary border-primary text-primary-foreground"
+                                : "border-input"
+                            )}>
+                              {isSelected && (
+                                <svg width="10" height="10" viewBox="0 0 10 10" fill="none" className="stroke-current">
+                                  <path d="M2 5.5L4 7.5L8 3" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                              )}
+                            </span>
+                            {(() => { const I = getAgentIcon(agent.icon); return <I className="h-4 w-4 text-muted-foreground flex-shrink-0" />; })()}
+                            <div className="min-w-0">
+                              <p className="text-xs font-medium truncate">{agent.name}</p>
+                              {agent.description && (
+                                <p className="text-[11px] text-muted-foreground truncate">{agent.description}</p>
+                              )}
+                            </div>
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Action row */}
+            <div className="flex justify-end pt-0.5">
+              <Button
+                variant="ghost"
+                size="sm"
+                className={cn(
+                  "gap-1.5 text-xs h-7",
+                  clearAgentSuccess
+                    ? "text-green-600 dark:text-green-400"
+                    : "text-muted-foreground hover:text-destructive"
+                )}
+                onClick={() => setClearAgentOpen(true)}
+                disabled={selectedAgentIds.size === 0 || clearAgentSuccess}
+              >
+                {clearAgentSuccess ? (
+                  <>
+                    <CheckCircle className="h-3.5 w-3.5" />
+                    {t("settings.cleared")}
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="h-3.5 w-3.5" />
+                    {t("settings.clearSelected", { count: selectedAgentIds.size })}
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Clear All Confirmation */}
+        <AlertDialog open={clearAllOpen} onOpenChange={setClearAllOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{t("settings.clearAllChats")}</AlertDialogTitle>
+              <AlertDialogDescription>{t("settings.clearAllChatsConfirm")}</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>{t("agents.cancel")}</AlertDialogCancel>
+              <AlertDialogAction onClick={handleClearAll} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                {t("settings.clearAllChats")}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Clear Agents Confirmation */}
+        <AlertDialog open={clearAgentOpen} onOpenChange={setClearAgentOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{t("settings.clearAgentChats")}</AlertDialogTitle>
+              <AlertDialogDescription>
+                {selectedNames.length > 0
+                  ? t("settings.clearAgentChatsConfirmNames", { agents: selectedNames.join(", ") })
+                  : t("settings.clearAgentChatsConfirm")}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>{t("agents.cancel")}</AlertDialogCancel>
+              <AlertDialogAction onClick={handleClearAgents} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                {t("settings.clearSelected", { count: selectedAgentIds.size })}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </CardContent>
     </Card>
   );

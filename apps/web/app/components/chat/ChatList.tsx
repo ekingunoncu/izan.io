@@ -21,25 +21,27 @@ interface ChatListItemProps {
   isSelected: boolean
   onSelect: () => void
   onDelete: () => void
+  t: (key: string, opts?: Record<string, unknown>) => string
+  locale: string
 }
 
-function formatRelativeTime(timestamp: number): string {
+function formatRelativeTime(timestamp: number, t: (key: string, opts?: Record<string, unknown>) => string, locale: string): string {
   const now = Date.now()
   const diff = now - timestamp
-  
+
   const minutes = Math.floor(diff / (1000 * 60))
   const hours = Math.floor(diff / (1000 * 60 * 60))
   const days = Math.floor(diff / (1000 * 60 * 60 * 24))
-  
-  if (minutes < 1) return 'Az önce'
-  if (minutes < 60) return `${minutes} dk önce`
-  if (hours < 24) return `${hours} saat önce`
-  if (days < 7) return `${days} gün önce`
-  
-  return new Date(timestamp).toLocaleDateString('tr-TR')
+
+  if (minutes < 1) return t('chat.justNow')
+  if (minutes < 60) return t('chat.minutesAgo', { count: minutes })
+  if (hours < 24) return t('chat.hoursAgo', { count: hours })
+  if (days < 7) return t('chat.daysAgo', { count: days })
+
+  return new Date(timestamp).toLocaleDateString(locale)
 }
 
-function ChatListItem({ chat, isSelected, onSelect, onDelete }: ChatListItemProps) {
+function ChatListItem({ chat, isSelected, onSelect, onDelete, t, locale }: ChatListItemProps) {
   return (
     <div
       className={cn(
@@ -64,7 +66,7 @@ function ChatListItem({ chat, isSelected, onSelect, onDelete }: ChatListItemProp
         <div className="font-medium text-sm truncate">{chat.title}</div>
         <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
           <Clock className="h-3 w-3" />
-          <span>{formatRelativeTime(chat.updatedAt)}</span>
+          <span>{formatRelativeTime(chat.updatedAt, t, locale)}</span>
         </div>
       </div>
 
@@ -88,7 +90,8 @@ interface ChatListProps {
 }
 
 export function ChatList({ className }: ChatListProps) {
-  const { t } = useTranslation('common')
+  const { t, i18n } = useTranslation('common')
+  const locale = i18n.language || 'en'
   const { chats, currentChatId, isLoadingChats, createChat, selectChat, deleteChat } = useChatStore()
   const { currentAgentId } = useAgentStore()
 
@@ -126,7 +129,7 @@ export function ChatList({ className }: ChatListProps) {
       <div className={cn('flex flex-col', className)}>
         {/* Header */}
         <div className="flex items-center justify-between px-1 mb-3">
-          <h3 className="text-sm font-medium text-muted-foreground">Sohbet Geçmişi</h3>
+          <h3 className="text-sm font-medium text-muted-foreground">{t('chat.chatHistory')}</h3>
           <Button
             variant="outline"
             size="sm"
@@ -134,7 +137,7 @@ export function ChatList({ className }: ChatListProps) {
             className="h-7 gap-1.5"
           >
             <Plus className="h-3.5 w-3.5" />
-            Yeni
+            {t('chat.new')}
           </Button>
         </div>
 
@@ -144,9 +147,9 @@ export function ChatList({ className }: ChatListProps) {
             <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-4">
               <MessageSquare className="h-6 w-6 text-muted-foreground" />
             </div>
-            <h4 className="font-medium text-sm mb-1">Henüz sohbet yok</h4>
+            <h4 className="font-medium text-sm mb-1">{t('agents.noChats')}</h4>
             <p className="text-muted-foreground text-xs mb-4">
-              Bu agent ile ilk sohbetinizi başlatın
+              {t('chat.startFirstChat')}
             </p>
             <Button size="sm" onClick={handleNewChat} className="gap-1.5">
               <Plus className="h-3.5 w-3.5" />
@@ -162,6 +165,8 @@ export function ChatList({ className }: ChatListProps) {
                 isSelected={currentChatId === chat.id}
                 onSelect={() => handleSelectChat(chat.id)}
                 onDelete={() => handleDeleteChat(chat.id)}
+                t={t}
+                locale={locale}
               />
             ))}
           </div>

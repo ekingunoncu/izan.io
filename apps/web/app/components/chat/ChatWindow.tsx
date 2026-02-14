@@ -1,4 +1,4 @@
-import { useEffect, useReducer } from 'react'
+import { useState, useEffect, useReducer } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Bot, MessageSquare, Plus } from 'lucide-react'
 import { Button } from '~/components/ui/button'
@@ -89,9 +89,10 @@ export function ChatWindow({ initialPrompt }: ChatWindowProps = {}) {
     createChat,
     sendMessage,
     stopGenerating,
-    moveToBackground,
     enableNotifyOnCompletion,
     longTaskDetectedChats,
+    currentProgress,
+    longTaskStartedAt,
   } = useChatStore()
 
   const currentProvider = providers.find(p => p.id === selectedProvider)
@@ -123,7 +124,7 @@ export function ChatWindow({ initialPrompt }: ChatWindowProps = {}) {
   // Reset banner state when chat changes
   useEffect(() => { bannerDispatch({ type: 'reset', chatId: currentChatId }) }, [currentChatId])
 
-  // Show banner when store detects long task (3+ tool rounds)
+  // Show banner when deep task is active (set immediately on send)
   const longTaskDetected = !!(currentChatId && longTaskDetectedChats[currentChatId])
   const showLongTaskBanner = longTaskDetected && isGenerating && !banner.dismissed
 
@@ -132,10 +133,13 @@ export function ChatWindow({ initialPrompt }: ChatWindowProps = {}) {
     await createChat(currentAgentId)
   }
 
+  const [deepTask, setDeepTask] = useState(false)
+
   const handleSendMessage = async (content: string) => {
     if (!currentAgentId) return
     try {
-      await sendMessage(content, currentAgentId)
+      await sendMessage(content, currentAgentId, { deepTask })
+      setDeepTask(false)
     } catch (error) {
       console.error('Failed to send message:', error)
     }
@@ -181,24 +185,30 @@ export function ChatWindow({ initialPrompt }: ChatWindowProps = {}) {
       {showLongTaskBanner && (
         <LongTaskBanner
           className="mx-4 mt-2"
-          onRunInBackground={() => {
-            if (currentChatId) {
-              moveToBackground(currentChatId)
-            }
-          }}
+          currentStep={currentProgress?.current}
+          totalSteps={currentProgress?.total}
+          startedAt={currentChatId ? longTaskStartedAt[currentChatId] : undefined}
           onNotifyToggle={() => {
             if (currentChatId && !banner.notifyEnabled) {
               enableNotifyOnCompletion(currentChatId)
               bannerDispatch({ type: 'notify', chatId: currentChatId })
             }
           }}
-          notifyEnabled={banner.notifyEnabled}
+          notifyEnabled={banner.notifyEnabled || longTaskDetected}
           onDismiss={() => { if (currentChatId) bannerDispatch({ type: 'dismiss', chatId: currentChatId }) }}
         />
       )}
       <MessageList messages={chatMessages} isGenerating={isGenerating} />
       <RecordingControls />
 
+      {isGenerating && longTaskDetected && currentProgress && (
+        <div className="mx-4 h-1 rounded-full bg-amber-200 dark:bg-amber-900 overflow-hidden">
+          <div
+            className="h-full bg-amber-500 dark:bg-amber-400 transition-all duration-500 ease-out rounded-full"
+            style={{ width: `${Math.min((currentProgress.current / currentProgress.total) * 100, 100)}%` }}
+          />
+        </div>
+      )}
       <div className="border-t bg-background/80 backdrop-blur-sm p-4 sm:p-6 flex-shrink-0 pb-[env(safe-area-inset-bottom)]">
         <MessageInput
           initialPrompt={initialPrompt}
@@ -207,10 +217,12 @@ export function ChatWindow({ initialPrompt }: ChatWindowProps = {}) {
           isGenerating={isGenerating}
           disabled={!configured}
           placeholder={
-            !configured 
+            !configured
               ? t('chat.selectProviderFirst')
               : t('chat.chatWith', { model: modelInfo ? modelDisplayName(modelInfo.name, t('provider.reasoning')) : (selectedModel ?? '') })
           }
+          deepTask={deepTask}
+          onDeepTaskToggle={() => setDeepTask(prev => !prev)}
         />
         {!configured && (
           <p className="text-xs text-muted-foreground text-center mt-3">

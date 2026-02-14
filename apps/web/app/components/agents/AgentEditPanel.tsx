@@ -88,6 +88,7 @@ export function AgentEditPanel() {
   const [temperature, setTemperature] = useState<number>(1)
   const [maxTokens, setMaxTokens] = useState<number>(4096)
   const [topP, setTopP] = useState<number>(1)
+  const [maxIterations, setMaxIterations] = useState<number>(25)
   const [useDefaultParams, setUseDefaultParams] = useState(true)
   const [expandedSection, setExpandedSection] = useState<string | null>('info')
   const [resetDialogOpen, setResetDialogOpen] = useState(false)
@@ -105,11 +106,12 @@ export function AgentEditPanel() {
       setCustomMCPIds(currentAgent.customMCPIds);
       setAutomationServerIds(currentAgent.automationServerIds ?? []);
       setLinkedAgentIds(currentAgent.linkedAgentIds);
-      const hasCustomParams = currentAgent.temperature != null || currentAgent.maxTokens != null || currentAgent.topP != null;
+      const hasCustomParams = currentAgent.temperature != null || currentAgent.maxTokens != null || currentAgent.topP != null || currentAgent.maxIterations != null;
       setUseDefaultParams(!hasCustomParams);
       setTemperature(currentAgent.temperature ?? 1);
       setMaxTokens(currentAgent.maxTokens ?? 4096);
       setTopP(currentAgent.topP ?? 1);
+      setMaxIterations(currentAgent.maxIterations ?? 25);
     }, 0);
     return () => clearTimeout(t);
   }, [currentAgent]);
@@ -133,10 +135,12 @@ export function AgentEditPanel() {
       updates.temperature = temperature
       updates.maxTokens = maxTokens
       updates.topP = topP
+      updates.maxIterations = maxIterations
     } else {
       updates.temperature = undefined
       updates.maxTokens = undefined
       updates.topP = undefined
+      updates.maxIterations = undefined
     }
     await updateAgent(currentAgent.id, updates)
     closeAgentEdit()
@@ -376,6 +380,17 @@ export function AgentEditPanel() {
                       className="w-full accent-primary"
                     />
                     <p className="text-xs text-muted-foreground">{t('agents.topPDesc')}</p>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">{t('agents.maxIterations')}</label>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={100}
+                      value={maxIterations}
+                      onChange={(e) => setMaxIterations(Math.max(1, Math.min(100, Number(e.target.value) || 25)))}
+                    />
+                    <p className="text-xs text-muted-foreground">{t('agents.maxIterationsDesc')}</p>
                   </div>
                 </>
               )}

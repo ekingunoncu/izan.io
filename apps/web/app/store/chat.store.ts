@@ -39,15 +39,22 @@ interface ChatState {
   backgroundTasks: Record<string, BackgroundTask>
   /** Chat IDs where a long task has been auto-detected (3+ tool rounds) */
   longTaskDetectedChats: Record<string, boolean>
+  /** Foreground progress during tool-calling loop */
+  currentProgress: { current: number; total: number } | null
+  /** Timestamp when long task was first detected (for elapsed time display) */
+  longTaskStartedAt: Record<string, number>
 
   loadChats: (agentId: string) => Promise<void>
   createChat: (agentId: string, title?: string) => Promise<Chat>
   selectChat: (chatId: string) => Promise<void>
   deleteChat: (chatId: string) => Promise<void>
   updateChatTitle: (chatId: string, title: string) => Promise<void>
-  sendMessage: (content: string, agentId: string) => Promise<void>
+  sendMessage: (content: string, agentId: string, options?: { deepTask?: boolean }) => Promise<void>
   stopGenerating: () => void
   clearCurrentChat: () => void
+  clearAllChats: () => Promise<void>
+  clearAgentChats: (agentId: string) => Promise<void>
+  clearMultipleAgentChats: (agentIds: string[]) => Promise<void>
   addTokenUsage: (usage: TokenUsage) => void
   resetSessionTokens: () => void
   moveToBackground: (chatId: string) => void
@@ -104,20 +111,17 @@ function buildLinkedAgentTools(agent: Agent): ChatCompletionTool[] {
   return tools
 }
 
-/** Max tool-calling rounds to prevent runaway tool chains */
-const MAX_TOOL_ROUNDS = 25
-
-/** Extended limit for background tasks */
-const MAX_TOOL_ROUNDS_BACKGROUND = 50
-
-/** After this many tool-call rounds, auto-detect as long task and show banner */
-const LONG_TASK_THRESHOLD = 3
+/** Default max tool-calling rounds to prevent runaway tool chains */
+const DEFAULT_MAX_ITERATIONS = 25
 
 /** Chat IDs currently running in background (module-level so the running promise can check) */
 const backgroundChatIds = new Set<string>()
 
 /** Chat IDs that should fire a browser notification on completion (foreground or background) */
 const notifyOnCompletionChatIds = new Set<string>()
+
+/** Chat ID of the currently running foreground task (for auto-background on chat switch) */
+let currentRunningChatId: string | null = null
 
 /** LLM options - only send params user explicitly set. Omit for provider defaults to avoid API errors. */
 function getAgentGenerationOptions(agent: Agent | null | undefined): LLMGenerationOptions {
@@ -210,7 +214,7 @@ async function runToolCallingLoop(
   isAborted: () => boolean,
   options?: LLMGenerationOptions,
   onUsage?: (usage: TokenUsage, toolCallNames: string[]) => void,
-  getMaxRounds: () => number = () => MAX_TOOL_ROUNDS,
+  getMaxRounds: () => number = () => DEFAULT_MAX_ITERATIONS,
   onProgress?: (current: number, total: number) => void,
 ): Promise<void> {
   let rounds = 0
@@ -309,7 +313,7 @@ async function runToolCallingLoop(
 
     // Model gave a text response with no tool calls
     // Continuation check: if this is a long task (3+ rounds done), nudge the model to keep using tools
-    if (rounds >= LONG_TASK_THRESHOLD && consecutiveTextRounds < MAX_CONSECUTIVE_TEXT && totalNudgesSent < MAX_TOTAL_NUDGES && rounds < getMaxRounds()) {
+    if (rounds >= 3 && consecutiveTextRounds < MAX_CONSECUTIVE_TEXT && totalNudgesSent < MAX_TOTAL_NUDGES && rounds < getMaxRounds()) {
       consecutiveTextRounds++
       totalNudgesSent++
 
@@ -402,7 +406,7 @@ async function executeLinkedAgentCall(
     if (allTools.length > 0) {
       // Tool-calling loop for the linked agent (streaming)
       let rounds = 0
-      while (rounds < MAX_TOOL_ROUNDS) {
+      while (rounds < DEFAULT_MAX_ITERATIONS) {
         rounds++
         if (isDev) console.log('[linked-agent] Round', rounds, 'messages:', messages.length)
         const t0 = performance.now()
@@ -445,7 +449,7 @@ async function executeLinkedAgentCall(
         if (isDev) console.log('[linked-agent] Final response:', finalResponse.slice(0, 300) + (finalResponse.length > 300 ? '...' : ''), `(${finalResponse.length} chars)`)
         return finalResponse
       }
-      if (isDev) console.warn('[linked-agent] Hit MAX_TOOL_ROUNDS:', MAX_TOOL_ROUNDS)
+      if (isDev) console.warn('[linked-agent] Hit DEFAULT_MAX_ITERATIONS:', DEFAULT_MAX_ITERATIONS)
       return i18n.t('chat.maxStepsReached')
     } else {
       // No tools, just a simple chat
@@ -522,6 +526,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
   sessionTokens: { input: 0, output: 0 },
   backgroundTasks: {},
   longTaskDetectedChats: {},
+  currentProgress: null,
+  longTaskStartedAt: {},
 
   addTokenUsage: (usage: TokenUsage) => {
     set(state => ({
@@ -616,21 +622,28 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }))
   },
 
-  sendMessage: async (content: string, agentId: string) => {
+  sendMessage: async (content: string, agentId: string, options?: { deepTask?: boolean }) => {
     const { currentChatId, currentChat, messages } = get()
 
     if (!llmService.isConfigured()) {
       throw new Error(i18n.t('chat.llmNotConfigured'))
     }
 
-    // Only abort if the current task is NOT running in background
+    // Auto-background running task instead of aborting when sending from a different chat
     if (currentAbortController && !backgroundChatIds.has(currentChatId ?? '')) {
-      currentAbortController.abort()
+      if (currentRunningChatId && currentRunningChatId !== currentChatId) {
+        // Different chat — auto-background the running task
+        get().moveToBackground(currentRunningChatId)
+      } else {
+        // Same chat — abort (user is sending a new message in the same conversation)
+        currentAbortController.abort()
+      }
     }
     const abortController = new AbortController()
     currentAbortController = abortController
 
     let activeChatId = currentChatId
+    currentRunningChatId = currentChatId
     let isFirstMessage = false
 
     if (!activeChatId) {
@@ -650,6 +663,18 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
     if (isFirstMessage || currentChat?.title === i18n.t('chat.newChatTitle')) {
       await get().updateChatTitle(activeChatId, generateChatTitle(content))
+    }
+
+    // Deep task: immediately mark as long task, enable notification, show banner
+    if (options?.deepTask) {
+      set(state => ({
+        longTaskDetectedChats: { ...state.longTaskDetectedChats, [activeChatId!]: true },
+        longTaskStartedAt: { ...state.longTaskStartedAt, [activeChatId!]: Date.now() },
+      }))
+      notifyOnCompletionChatIds.add(activeChatId!)
+      if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+        Notification.requestPermission().catch(() => {})
+      }
     }
 
     const assistantMessage = await storageService.createMessage({
@@ -770,18 +795,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
               addTokenUsage(usage)
               persistUsageRecord(usage, activeChatId!, agentId, toolCallNames, capturedProviderId, capturedModelId)
             },
-            () => isBackground() ? MAX_TOOL_ROUNDS_BACKGROUND : MAX_TOOL_ROUNDS,
+            () => agent?.maxIterations ?? DEFAULT_MAX_ITERATIONS,
             (current, total) => {
-              // Auto-detect long task after threshold rounds
-              if (current >= LONG_TASK_THRESHOLD && !get().longTaskDetectedChats[activeChatId!]) {
-                set(state => ({
-                  longTaskDetectedChats: { ...state.longTaskDetectedChats, [activeChatId!]: true },
-                }))
-                // Auto-enable notification for long tasks
-                notifyOnCompletionChatIds.add(activeChatId!)
-                if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
-                  Notification.requestPermission().catch(() => {})
-                }
+              // Update foreground progress
+              if (!isBackground()) {
+                set({ currentProgress: { current, total } })
               }
               if (isBackground()) {
                 // Update background task progress
@@ -851,6 +869,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
       if (currentAbortController === abortController) {
         currentAbortController = null
       }
+      if (currentRunningChatId === activeChatId) {
+        currentRunningChatId = null
+      }
 
       if (activeChatId) {
 
@@ -876,8 +897,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
         // Clear long task flag so future short messages in this chat don't re-trigger
         if (isLongTask) {
           set(state => {
-            const { [activeChatId]: _, ...rest } = state.longTaskDetectedChats
-            return { longTaskDetectedChats: rest }
+            const { [activeChatId]: _, ...restDetected } = state.longTaskDetectedChats
+            const { [activeChatId]: __, ...restStarted } = state.longTaskStartedAt
+            return { longTaskDetectedChats: restDetected, longTaskStartedAt: restStarted }
           })
         }
         const failed = abortController.signal.aborted
@@ -885,47 +907,63 @@ export const useChatStore = create<ChatState>((set, get) => ({
         const notifKey = failed ? 'longTask.notificationFailed' : 'longTask.notificationDone'
         const notifText = i18n.t(notifKey, { title: chatTitle })
 
-        // Browser notification (has its own sound)
+        // Always fire browser notification for long/background task completion
+        console.log('[notification] permission:', typeof Notification !== 'undefined' ? Notification.permission : 'N/A', 'text:', notifText)
         if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-          new Notification(notifText)
+          const notification = new Notification('izan.io', {
+            body: notifText,
+            icon: '/notification-icon.png',
+            tag: `izan-task-${activeChatId}`,
+            silent: false,
+          })
+          notification.onclick = () => {
+            window.focus()
+            notification.close()
+          }
+          setTimeout(() => notification.close(), 10000)
         }
 
-        // Title flash as fallback (always works, no permission needed)
-        const originalTitle = document.title
-        const flashTitle = failed ? `❌ ${chatTitle}` : `✅ ${chatTitle}`
-        let flashing = true
-        const flashInterval = setInterval(() => {
-          document.title = document.title === originalTitle ? flashTitle : originalTitle
-        }, 1000)
-        // Stop flashing when user focuses the tab or after 30s
-        const stopFlash = () => {
-          if (!flashing) return
-          flashing = false
-          clearInterval(flashInterval)
-          document.title = originalTitle
-          window.removeEventListener('focus', stopFlash)
+        // Title flash when tab is hidden
+        if (document.hidden) {
+          const originalTitle = document.title
+          const flashTitle = failed ? `❌ ${chatTitle}` : `✅ ${chatTitle}`
+          let flashing = true
+          const flashInterval = setInterval(() => {
+            document.title = document.title === originalTitle ? flashTitle : originalTitle
+          }, 1000)
+          const stopFlash = () => {
+            if (!flashing) return
+            flashing = false
+            clearInterval(flashInterval)
+            document.title = originalTitle
+            window.removeEventListener('focus', stopFlash)
+          }
+          window.addEventListener('focus', stopFlash)
+          setTimeout(stopFlash, 30000)
         }
-        window.addEventListener('focus', stopFlash)
-        setTimeout(stopFlash, 30000)
       }
 
       } // end if (activeChatId)
 
-      set({ isGenerating: false })
+      set({ isGenerating: false, currentProgress: null })
     }
   },
 
   moveToBackground: (chatId: string) => {
     backgroundChatIds.add(chatId)
     const agentId = get().currentChat?.agentId ?? ''
+    const agentStore = useAgentStore.getState()
+    const agent = agentStore.getAgentById(agentId)
+    const maxIter = agent?.maxIterations ?? DEFAULT_MAX_ITERATIONS
     // Mark as running in DB
-    storageService.updateChat(chatId, { taskStatus: 'running', taskCurrentStep: 0, taskTotalSteps: MAX_TOOL_ROUNDS_BACKGROUND } as Partial<Chat>).catch(() => {})
+    storageService.updateChat(chatId, { taskStatus: 'running', taskCurrentStep: 0, taskTotalSteps: maxIter } as Partial<Chat>).catch(() => {})
     set(state => ({
       // The async sendMessage promise continues running uninterrupted
       isGenerating: false,
+      currentProgress: null,
       backgroundTasks: {
         ...state.backgroundTasks,
-        [chatId]: { status: 'running', currentStep: 0, totalSteps: MAX_TOOL_ROUNDS_BACKGROUND, agentId },
+        [chatId]: { status: 'running', currentStep: 0, totalSteps: maxIter, agentId },
       },
     }))
     // Request notification permission proactively
@@ -961,5 +999,42 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   clearCurrentChat: () => {
     set({ currentChatId: null, currentChat: null, messages: [] })
+  },
+
+  clearAllChats: async () => {
+    await storageService.clearAllChats()
+    set({ chats: [], currentChatId: null, currentChat: null, messages: [] })
+  },
+
+  clearAgentChats: async (agentId: string) => {
+    await storageService.clearAgentChats(agentId)
+    const { currentChat } = get()
+    if (currentChat?.agentId === agentId) {
+      set({ chats: [], currentChatId: null, currentChat: null, messages: [] })
+    } else {
+      set(state => ({
+        chats: state.chats.filter(c => c.agentId !== agentId),
+      }))
+    }
+  },
+
+  clearMultipleAgentChats: async (agentIds: string[]) => {
+    for (const agentId of agentIds) {
+      await storageService.clearAgentChats(agentId)
+    }
+    const { currentChat } = get()
+    const affectedSet = new Set(agentIds)
+    if (currentChat && affectedSet.has(currentChat.agentId)) {
+      set(state => ({
+        chats: state.chats.filter(c => !affectedSet.has(c.agentId)),
+        currentChatId: null,
+        currentChat: null,
+        messages: [],
+      }))
+    } else {
+      set(state => ({
+        chats: state.chats.filter(c => !affectedSet.has(c.agentId)),
+      }))
+    }
   },
 }))

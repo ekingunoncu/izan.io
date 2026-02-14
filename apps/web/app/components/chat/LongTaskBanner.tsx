@@ -1,16 +1,43 @@
+import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Clock, Bell, BellOff, X } from 'lucide-react'
 
 interface LongTaskBannerProps {
-  onRunInBackground: () => void
   onNotifyToggle: () => void
   notifyEnabled: boolean
   onDismiss: () => void
+  currentStep?: number
+  totalSteps?: number
+  startedAt?: number
   className?: string
 }
 
-export function LongTaskBanner({ onRunInBackground, onNotifyToggle, notifyEnabled, onDismiss, className }: LongTaskBannerProps) {
+function useElapsedSeconds(startedAt?: number) {
+  const [elapsed, setElapsed] = useState(() =>
+    startedAt ? Math.floor((Date.now() - startedAt) / 1000) : 0
+  )
+  useEffect(() => {
+    if (!startedAt) return
+    const interval = setInterval(() => {
+      setElapsed(Math.floor((Date.now() - startedAt) / 1000))
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [startedAt])
+  return elapsed
+}
+
+function formatElapsed(seconds: number): string {
+  if (seconds < 60) return `${seconds}s`
+  const mins = Math.floor(seconds / 60)
+  const secs = seconds % 60
+  return `${mins}m ${secs}s`
+}
+
+export function LongTaskBanner({ onNotifyToggle, notifyEnabled, onDismiss, currentStep, totalSteps, startedAt, className }: LongTaskBannerProps) {
   const { t } = useTranslation('common')
+  const elapsed = useElapsedSeconds(startedAt)
+
+  const hasProgress = currentStep != null && totalSteps != null
 
   return (
     <div
@@ -18,7 +45,10 @@ export function LongTaskBanner({ onRunInBackground, onNotifyToggle, notifyEnable
     >
       <Clock className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
       <p className="text-sm flex-1 min-w-0 text-amber-800 dark:text-amber-200">
-        {t('longTask.bannerMessage')}
+        {hasProgress
+          ? `${t('longTask.stepProgress', { current: currentStep, total: totalSteps })} · ${formatElapsed(elapsed)}`
+          : t('longTask.bannerMessage')
+        }
       </p>
       <button
         type="button"
@@ -32,13 +62,6 @@ export function LongTaskBanner({ onRunInBackground, onNotifyToggle, notifyEnable
       >
         {notifyEnabled ? <BellOff className="h-4 w-4" /> : <Bell className="h-4 w-4" />}
         {notifyEnabled ? t('longTask.notifyEnabled') : t('longTask.notifyWhenDone')}
-      </button>
-      <button
-        type="button"
-        onClick={onRunInBackground}
-        className="text-sm font-medium text-amber-700 dark:text-amber-300 hover:underline whitespace-nowrap cursor-pointer"
-      >
-        {t('longTask.runInBackground')}
       </button>
       <button
         type="button"

@@ -18,6 +18,10 @@ export interface IStorageService {
   deleteMessage(messageId: string): Promise<void>
   deleteMessagesByChatId(chatId: string): Promise<void>
   
+  // Bulk delete operations
+  clearAllChats(): Promise<void>
+  clearAgentChats(agentId: string): Promise<void>
+
   // Preferences operations
   getPreferences(): Promise<UserPreferences>
   updatePreferences(updates: Partial<UserPreferences>): Promise<void>

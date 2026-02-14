@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect, type KeyboardEvent } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Send, Square } from 'lucide-react'
+import { Send, Square, Zap } from 'lucide-react'
 import { Button } from '~/components/ui/button'
 import { Textarea } from '~/components/ui/textarea'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip'
 
 interface MessageInputProps {
   initialPrompt?: string
@@ -11,6 +12,8 @@ interface MessageInputProps {
   disabled?: boolean
   isGenerating?: boolean
   placeholder?: string
+  deepTask?: boolean
+  onDeepTaskToggle?: () => void
 }
 
 export function MessageInput({
@@ -20,6 +23,8 @@ export function MessageInput({
   disabled = false,
   isGenerating = false,
   placeholder: placeholderProp,
+  deepTask = false,
+  onDeepTaskToggle,
 }: MessageInputProps) {
   const { t } = useTranslation('common')
   const placeholder = placeholderProp ?? t('chat.placeholder')
@@ -85,6 +90,28 @@ export function MessageInput({
           className="min-h-[48px] max-h-[200px] resize-none border-0 bg-transparent shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 px-4 py-3 text-base placeholder:text-muted-foreground/70"
           rows={1}
         />
+        {onDeepTaskToggle && !isGenerating && (
+          <TooltipProvider delayDuration={300}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  onClick={onDeepTaskToggle}
+                  className={`flex-shrink-0 h-9 w-9 flex items-center justify-center rounded-lg transition-colors cursor-pointer mb-2.5 ${
+                    deepTask
+                      ? 'text-primary bg-primary/10'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                  }`}
+                >
+                  <Zap className={`h-4 w-4 ${deepTask ? 'fill-primary' : ''}`} />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top">
+                <p>{t('chat.deepTaskTooltip')}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
         <Button
           onClick={handleStopOrSend}
           disabled={!canSend && !isGenerating}

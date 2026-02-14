@@ -91,7 +91,19 @@
     "chatMessageLimitHint": "Aşıldığında en eski mesajlar silinir. 0 = limit yok.",
     "chatHistoryLimit": "Agent başına chat sayısı",
     "chatHistoryLimitHint": "Aşıldığında en eski chatler mesajlarıyla birlikte silinir. 0 = limit yok.",
-    "chatStorageNoLimit": "Limit yok"
+    "chatStorageNoLimit": "Limit yok",
+    "clearAllChats": "Tüm Sohbet Geçmişini Sil",
+    "clearAllChatsDesc": "Tüm agentlardaki sohbetleri kalıcı olarak sil.",
+    "clearAllChatsConfirm": "Tüm sohbet geçmişiniz kalıcı olarak silinecek. Bu işlem geri alınamaz.",
+    "clearAgentChats": "Agent Sohbet Geçmişini Sil",
+    "clearAgentChatsDesc": "Sohbetlerini silmek istediğiniz agentları seçin.",
+    "clearAgentChatsConfirm": "Seçili agentların tüm sohbetleri kalıcı olarak silinecek. Bu işlem geri alınamaz.",
+    "clearAgentChatsConfirmNames": "{{agents}} agentlarının tüm sohbetleri kalıcı olarak silinecek. Bu işlem geri alınamaz.",
+    "clearSelected": "Seçilenleri sil ({{count}})",
+    "selectedAgentsCount": "{{count}} agent seçili",
+    "selectAgents": "Agent seçin...",
+    "searchAgents": "Agent ara...",
+    "cleared": "Silindi!"
   },
   "extension": {
     "requiredBanner": "Bu agent tarayıcı otomasyon araçları kullanıyor. Kullanmak için Chrome eklentisini yükleyin.",
@@ -223,6 +235,15 @@
     "copied": "Kopyalandı",
     "showMore": "Devamını göster",
     "showLess": "Daralt",
+    "deepTask": "Derin görev",
+    "deepTaskTooltip": "Agent otonom çalışır, bitince bildirim alırsınız.",
+    "chatHistory": "Sohbet Geçmişi",
+    "new": "Yeni",
+    "startFirstChat": "Bu agent ile ilk sohbetinizi başlatın",
+    "justNow": "Az önce",
+    "minutesAgo": "{{count}} dk önce",
+    "hoursAgo": "{{count}} saat önce",
+    "daysAgo": "{{count}} gün önce",
     "yesterday": "dün",
     "toolNames": {
       "check_domains_availability": "Domain müsaitliği",
@@ -293,6 +314,8 @@
     "maxTokensDesc": "Yanıtın maksimum uzunluğu. Yüksek değerler daha uzun cevaplar sağlar ama maliyeti artırır. Provider varsayılanı için boş bırakın.",
     "topP": "Top P",
     "topPDesc": "Nükleus örnekleme: sadece üst P olasılık kütlesindeki tokenları dikkate alır. Düşük = daha odaklı. Aralık: 0–1.",
+    "maxIterations": "Maks. iterasyon",
+    "maxIterationsDesc": "Mesaj başına maksimum araç çağrısı turu. Yüksek değerler daha uzun otonom görevlere izin verir. Aralık: 1–100.",
     "useDefault": "Varsayılanı kullan",
     "builtin": {
       "general": {
@@ -418,7 +441,7 @@
     "trendVsPrev": "önceki {{range}} ile"
   },
   "longTask": {
-    "bannerMessage": "Bu görev uzun sürebilir.",
+    "bannerMessage": "Agent otonom çalışıyor...",
     "runInBackground": "Arka planda çalıştır",
     "notifyWhenDone": "Bitince bildir",
     "notifyEnabled": "Bildirim açık",
