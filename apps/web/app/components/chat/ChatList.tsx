@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { MessageSquare, Plus, Trash2, Clock } from 'lucide-react'
+import { MessageSquare, Plus, Trash2, Clock, Coins } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '~/components/ui/button'
 import {
@@ -16,6 +16,16 @@ import { useChatStore, useAgentStore } from '~/store'
 import type { Chat } from '~/store'
 import { cn } from '~/lib/utils'
 
+function formatTokens(n: number): string {
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M'
+  if (n >= 1_000) return (n / 1_000).toFixed(1) + 'K'
+  return String(n)
+}
+
+function formatCost(v: number): string {
+  return `$${v < 0.01 ? v.toFixed(4) : v.toFixed(2)}`
+}
+
 interface ChatListItemProps {
   chat: Chat
   isSelected: boolean
@@ -23,6 +33,7 @@ interface ChatListItemProps {
   onDelete: () => void
   t: (key: string, opts?: Record<string, unknown>) => string
   locale: string
+  usage?: { tokens: number; cost: number }
 }
 
 function formatRelativeTime(timestamp: number, t: (key: string, opts?: Record<string, unknown>) => string, locale: string): string {
@@ -41,13 +52,13 @@ function formatRelativeTime(timestamp: number, t: (key: string, opts?: Record<st
   return new Date(timestamp).toLocaleDateString(locale)
 }
 
-function ChatListItem({ chat, isSelected, onSelect, onDelete, t, locale }: ChatListItemProps) {
+function ChatListItem({ chat, isSelected, onSelect, onDelete, t, locale, usage }: ChatListItemProps) {
   return (
     <div
       className={cn(
         'group flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-colors border',
-        isSelected 
-          ? 'bg-primary/5 border-primary/20' 
+        isSelected
+          ? 'bg-primary/5 border-primary/20'
           : 'border-transparent hover:bg-muted/50 hover:border-muted'
       )}
       onClick={onSelect}
@@ -61,12 +72,20 @@ function ChatListItem({ chat, isSelected, onSelect, onDelete, t, locale }: ChatL
           isSelected ? 'text-primary' : 'text-muted-foreground'
         )} />
       </div>
-      
+
       <div className="flex-1 min-w-0">
         <div className="font-medium text-sm truncate">{chat.title}</div>
-        <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
-          <Clock className="h-3 w-3" />
-          <span>{formatRelativeTime(chat.updatedAt, t, locale)}</span>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+          <span className="flex items-center gap-1">
+            <Clock className="h-3 w-3" />
+            {formatRelativeTime(chat.updatedAt, t, locale)}
+          </span>
+          {usage && usage.tokens > 0 && (
+            <span className="flex items-center gap-1">
+              <Coins className="h-3 w-3" />
+              {formatTokens(usage.tokens)} tokens · {formatCost(usage.cost)}
+            </span>
+          )}
         </div>
       </div>
 
@@ -92,7 +111,7 @@ interface ChatListProps {
 export function ChatList({ className }: ChatListProps) {
   const { t, i18n } = useTranslation('common')
   const locale = i18n.language || 'en'
-  const { chats, currentChatId, isLoadingChats, createChat, selectChat, deleteChat } = useChatStore()
+  const { chats, currentChatId, isLoadingChats, createChat, selectChat, deleteChat, chatUsage } = useChatStore()
   const { currentAgentId } = useAgentStore()
 
   const handleNewChat = async () => {
@@ -167,6 +186,7 @@ export function ChatList({ className }: ChatListProps) {
                 onDelete={() => handleDeleteChat(chat.id)}
                 t={t}
                 locale={locale}
+                usage={chatUsage[chat.id]}
               />
             ))}
           </div>

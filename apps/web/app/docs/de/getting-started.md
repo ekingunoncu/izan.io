@@ -25,5 +25,7 @@ Sie benoetigen nicht zwingend ein kostenpflichtiges Abonnement. Mehrere Anbieter
 - **MCP-Server** -- erweiterbares Tool-System, das im Browser laeuft
 - **Makros** -- aufgezeichnete Browser-Automatisierungen, die Agenten als Tools ausfuehren koennen
 - **Benutzerdefinierte Agenten** -- erstellen Sie eigene Agenten mit individuellen Anweisungen und Tool-Zuweisungen
+- **Analytik** -- Token-Nutzung und Kosten nach Modell, Agent und Konversation verfolgen
+- **Agent Export/Import** -- Agenten-Konfigurationen als JSON-Dateien teilen
 
 Im naechsten Schritt erfahren Sie mehr ueber Agenten und wie Sie diese konfigurieren.

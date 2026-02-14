@@ -420,6 +420,24 @@ export const useMCPStore = create<MCPState>((set, get) => ({
           }
         }
       }
+
+      // Fetch pre-built automation tools for automationServerIds (e.g. play-store)
+      if (automationServerIds.length > 0) {
+        try {
+          const { fetchRemoteToolDefinitions } = await import('~/lib/mcp/remote-tools')
+          const tools = await fetchRemoteToolDefinitions(automationServerIds)
+          if (tools.length > 0) {
+            const { notifyToolAdded } = await import('~/lib/mcp/extension-bridge')
+            for (const tool of tools) {
+              notifyToolAdded(tool)
+            }
+          }
+        } catch (err) {
+          if (typeof window !== 'undefined' && import.meta.env?.DEV) {
+            console.warn('[mcp] Failed to fetch pre-built automation tools:', err)
+          }
+        }
+      }
     }
 
     // Update state
@@ -440,7 +458,7 @@ export const useMCPStore = create<MCPState>((set, get) => ({
 
   /**
    * Additive MCP activation for linked agent calls.
-   * Only ensures needed servers are connected — never disconnects or shuts down existing ones.
+   * Only ensures needed servers are connected - never disconnects or shuts down existing ones.
    */
   ensureAgentMCPsConnected: async (agent: Agent) => {
     const { registry, userServers, disabledBuiltinMCPIds } = get()
@@ -522,9 +540,25 @@ export const useMCPStore = create<MCPState>((set, get) => ({
       } catch {
         // ignore
       }
+
+      // Fetch pre-built automation tools for automationServerIds
+      if (automationServerIds.length > 0) {
+        try {
+          const { fetchRemoteToolDefinitions } = await import('~/lib/mcp/remote-tools')
+          const tools = await fetchRemoteToolDefinitions(automationServerIds)
+          if (tools.length > 0) {
+            const { notifyToolAdded } = await import('~/lib/mcp/extension-bridge')
+            for (const tool of tools) {
+              notifyToolAdded(tool)
+            }
+          }
+        } catch {
+          // ignore
+        }
+      }
     }
 
-    // Update servers snapshot (don't touch activeServerIds — parent's state stays intact)
+    // Update servers snapshot (don't touch activeServerIds - parent's state stays intact)
     set({ servers: registry.getServers() })
   },
 

@@ -85,6 +85,9 @@
     "macrosTools": "makro",
     "macrosSteps": "adım",
     "macrosParams": "parametre",
+    "automationBrowserTitle": "Otomasyon Tarayıcısı",
+    "automationBrowserForeground": "Otomasyon tarayıcısını ön plana getir",
+    "automationBrowserForegroundDesc": "Etkinleştirildiğinde otomasyon tarayıcı penceresi mevcut pencerenin arkasında değil, ön planda açılır.",
     "chatStorageTitle": "Sohbet Depolama",
     "chatStorageDesc": "Sohbetleriniz cihazınızda yerel olarak saklanır. Depolamayı kontrol altında tutmak için limit belirleyin.",
     "chatMessageLimit": "Chat başına mesaj sayısı",
@@ -141,6 +144,10 @@
     "agentComingSoon": "Yakında",
     "agentDomainTitle": "Domain Uzmanı",
     "agentDomainDesc": "Yaratıcı domain önerileri ve anlık uygunluk kontrolü. API anahtarı gerektirmez.",
+    "agentWebFetchTitle": "Web Fetch",
+    "agentWebFetchDesc": "Herhangi bir web sayfasını açıp içeriğini okuyun. Tarayıcı eklentisi gerektirir.",
+    "agentPlayStoreTitle": "Play Store",
+    "agentPlayStoreDesc": "Google Play Store'da uygulama arayın ve analiz edin. Tarayıcı eklentisi gerektirir.",
     "agentMoreTitle": "Ve Daha Fazlası Yolda...",
     "agentMoreDesc": "Borsa, spor, haber, alışveriş - yeni agentlar bizim ve topluluk tarafından sürekli geliştiriliyor.",
 
@@ -258,7 +265,8 @@
       "random_number": "Rastgele sayı",
       "uuid": "UUID oluştur",
       "calculate": "Hesaplama",
-      "generate_password": "Şifre oluştur"
+      "generate_password": "Şifre oluştur",
+      "web_search": "Web Arama"
     }
   },
   "provider": {
@@ -314,8 +322,8 @@
     "maxTokensDesc": "Yanıtın maksimum uzunluğu. Yüksek değerler daha uzun cevaplar sağlar ama maliyeti artırır. Provider varsayılanı için boş bırakın.",
     "topP": "Top P",
     "topPDesc": "Nükleus örnekleme: sadece üst P olasılık kütlesindeki tokenları dikkate alır. Düşük = daha odaklı. Aralık: 0–1.",
-    "maxIterations": "Maks. iterasyon",
-    "maxIterationsDesc": "Mesaj başına maksimum araç çağrısı turu. Yüksek değerler daha uzun otonom görevlere izin verir. Aralık: 1–100.",
+    "maxIterations": "Maks. tur",
+    "maxIterationsDesc": "Mesaj başına maksimum LLM turu. Her tur bir LLM çağrısıdır - araç çağrıları, metin yanıtları ve devam ettirme dürtmeleri dahil. Aralık: 1–100.",
     "useDefault": "Varsayılanı kullan",
     "builtin": {
       "general": {
@@ -335,6 +343,42 @@
         "usageExample3": "Semboller içeren 24 karakterlik güvenli bir şifre üret",
         "usageExample4": "Veritabanı kayıtlarım için 5 UUID oluştur",
         "usageExample5": "47,50 TL'lik hesabın %18 bahşişi ne kadar?"
+      },
+      "web-fetch": {
+        "name": "Web Fetch",
+        "description": "Web fetch asistanı. Herhangi bir web sayfasına gidin ve içeriğini okuyun.",
+        "detailedDescription": "Web sayfalarını okumak için başvuracağınız agent. Web Fetch agenti, Chrome eklentisi aracılığıyla gerçek bir tarayıcı sekmesi açar, herhangi bir URL'ye gider ve sayfanın tam erişilebilirlik ağacını döndürür. Makale okuma, dokümantasyon kontrolü veya herhangi bir web sitesinden bilgi çıkarma için idealdir.",
+        "whatItDoes": "Web Fetch agenti, Chrome eklentisini kullanarak bir tarayıcı sekmesi açar, herhangi bir URL'ye gider, sayfanın tamamen yüklenmesini bekler ve tam erişilebilirlik ağacını döndürür. Bu, CORS kısıtlaması olmadan herhangi bir web sayfasından yapılandırılmış, okunabilir içerik sağlar.",
+        "mcps": "Tarayıcı Eklentisi (web_fetch)",
+        "feature1": "Herhangi bir web sayfasını getirin - CORS kısıtlaması yok",
+        "feature2": "Semantik yapıyla tam erişilebilirlik ağacı",
+        "feature3": "Chrome eklentisi ile gerçek tarayıcı render'ı",
+        "feature4": "API anahtarı gerekmez - tarayıcınızı kullanır",
+        "howToUse": "Bir URL verin, agent tarayıcı sekmesinde açacak, yüklenmesini bekleyecek ve sayfa içeriğini yapılandırılmış erişilebilirlik ağacı olarak döndürecektir. İçerik hakkında sorular sorabilir veya belirli sayfalar isteyebilirsiniz.",
+        "proTip": "Agent gerçek tarayıcı sekmeleri açar - bu agentın çalışması için Chrome eklentisinin kurulu ve aktif olduğundan emin olun.",
+        "usageExample1": "https://en.wikipedia.org/wiki/TypeScript sayfasını getir",
+        "usageExample2": "React dokümantasyonu hook'lar hakkında ne diyor?",
+        "usageExample3": "Bu sayfanın içeriğini oku: https://news.ycombinator.com",
+        "usageExample4": "Bu URL'deki makaleyi özetle",
+        "usageExample5": "Bu sayfada hangi bilgiler var?"
+      },
+      "play-store": {
+        "name": "Play Store",
+        "description": "Tarayıcı otomasyonu ile Google Play Store'da uygulama arayın ve analiz edin.",
+        "detailedDescription": "Play Store araştırma asistanınız. Bu agent, Google Play Store'da uygulama aramak ve detaylı uygulama bilgisi getirmek icin tarayıcı otomasyon makrolarını kullanır. Uygulamaları ada, kategoriye veya açıklamaya gore bulabilir, indirme sayılarını, puanları ve uygulama detaylarını getirebilir.",
+        "whatItDoes": "Play Store agenti, Google Play Store sayfalarında gezinmek icin Chrome eklentisi aracılığıyla onceden oluşturulmuş tarayıcı otomasyon makrolarını kullanır. Uygulama arayabilir ve acıklamalar, indirme istatistikleri, puanlar ve daha fazlasını iceren detaylı bilgileri cekebilir.",
+        "mcps": "Tarayıcı Eklentisi (otomasyon makroları)",
+        "feature1": "Ada, kategoriye veya acıklamaya gore uygulama arama",
+        "feature2": "Puanlar ve indirmeler dahil detaylı uygulama bilgisi",
+        "feature3": "Chrome eklentisi makroları ile otomatik tarama",
+        "feature4": "API anahtarı gerekmez - tarayıcı otomasyonu kullanır",
+        "howToUse": "Herhangi bir uygulama hakkında sorun veya Play Store'da arama yapın. Agent, Google Play Store'a gitmek, uygulama aramak ve detaylı bilgi cıkarmak icin tarayıcı otomasyonunu kullanacaktır.",
+        "proTip": "Chrome eklentisinin kurulu olduğundan emin olun. Uygulama adıyla arayabilir veya kategoriye gore gezinebilirsiniz. Detaylı bilgi icin paket ID'si verin (orn. com.example.app).",
+        "usageExample1": "Play Store'da hava durumu uygulamalarını ara",
+        "usageExample2": "WhatsApp uygulamasının detaylarını getir",
+        "usageExample3": "En iyi verimlilik uygulamalarını bul",
+        "usageExample4": "En iyi not alma uygulamaları hangileri?",
+        "usageExample5": "Play Store'da com.spotify.music'i ara"
       }
     },
     "enabled": "Aktif",
@@ -451,6 +495,6 @@
     "notifyEnabled": "Bildirim açık",
     "notificationDone": "Görev tamamlandı: {{title}}",
     "notificationFailed": "Görev başarısız oldu: {{title}}",
-    "stepProgress": "Adım {{current}}/{{total}}"
+    "stepProgress": "Adım {{current}}"
   }
 }

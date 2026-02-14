@@ -183,7 +183,14 @@ async function bootstrap(): Promise<void> {
       const data = evt.data
       if (data?.source !== 'izan-page') return
 
-      if (data.channel === 'automation-sync') {
+      if (data.channel === 'set-preference') {
+        const key = data.key as string | undefined
+        const value = data.value
+        if (key) {
+          chrome.storage.local.set({ [`izan_pref_${key}`]: value }).catch(() => {})
+          console.log('[izan-ext][content] Stored preference:', key, value)
+        }
+      } else if (data.channel === 'automation-sync') {
         const servers = data.servers as unknown[] | undefined
         const tools = data.tools as unknown[] | undefined
         if (servers && tools) {

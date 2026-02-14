@@ -49,9 +49,22 @@ Agent kırılımıyla aynı düzende, model ID'sine göre gruplanmış (örn. `g
 
 **En çok çağrılan 10 aracı** çağrı sayısıyla listeler. Agentlarınızın hangi MCP araçlarına en çok bağımlı olduğunu belirlemeye yardımcı olur.
 
+## Sohbet Bazlı Kullanım
+
+Token sayıları ve maliyetler **sohbet bazında** da takip edilir. Kullanımı iki yerde görebilirsiniz:
+
+- **Agent kenar çubuğu** -- her sohbetin başlığının altında toplam token ve maliyet gösterilir (örn. `1.2K tokens · $0.0012`)
+- **Sohbet listesi** -- aynı kullanım özeti zaman damgasının yanında, bir para ikonu ile gösterilir
+
+Kullanım her mesajdan sonra gerçek zamanlı güncellenir, böylece bir konuşmanın güncel maliyetini her zaman görebilirsiniz.
+
+## Oturum Tokenları
+
+Sohbet sırasında, **sohbet penceresinin alt kısmında** mevcut oturumda kullanılan toplam token sayısı ve aktif modelin fiyatlandırmasına göre tahmini maliyet gösterilir.
+
 ## Verileri Temizleme
 
-Tüm analitik kayıtlarını silmek için başlıktaki **çöp kutusu ikonuna** tıklayın. Veri silinmeden önce bir onay penceresi görünür. Bu işlem geri alınamaz.
+Tüm analitik kayıtlarını silmek için Analitik sayfası başlığındaki **çöp kutusu ikonuna** tıklayın. Veri silinmeden önce bir onay penceresi görünür. Bu işlem geri alınamaz.
 
 ## Nasıl Çalışır
 
@@ -61,5 +74,6 @@ Her LLM çağrısı tamamlandığında (araç çağırma döngüsündeki her tur
 - Sağlayıcının fiyatlandırmasından hesaplanan maliyet
 - Agent ve model tanımlayıcıları
 - O turda çağrılan araç isimleri
+- Sohbet ID'si (sohbet bazlı toplama için kullanılır)
 
 Tüm hesaplamalar istemci tarafında yapılır. Hiçbir analitik verisi herhangi bir sunucuya gönderilmez.

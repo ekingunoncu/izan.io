@@ -102,7 +102,7 @@ export function ChatWindow({ initialPrompt }: ChatWindowProps = {}) {
   const configured = isConfigured()
   const hasActiveChat = currentChatId !== null
 
-  // Long task banner — dismiss/notify state per chatId, auto-resets on switch
+  // Long task banner - dismiss/notify state per chatId, auto-resets on switch
   type BannerState = { chatId: string | null; dismissed: boolean; notifyEnabled: boolean }
   type BannerAction =
     | { type: 'dismiss'; chatId: string }
@@ -186,7 +186,6 @@ export function ChatWindow({ initialPrompt }: ChatWindowProps = {}) {
         <LongTaskBanner
           className="mx-4 mt-2"
           currentStep={currentProgress?.current}
-          totalSteps={currentProgress?.total}
           startedAt={currentChatId ? longTaskStartedAt[currentChatId] : undefined}
           onNotifyToggle={() => {
             if (currentChatId && !banner.notifyEnabled) {
@@ -201,14 +200,6 @@ export function ChatWindow({ initialPrompt }: ChatWindowProps = {}) {
       <MessageList messages={chatMessages} isGenerating={isGenerating} />
       <RecordingControls />
 
-      {isGenerating && longTaskDetected && currentProgress && (
-        <div className="mx-4 h-1 rounded-full bg-amber-200 dark:bg-amber-900 overflow-hidden">
-          <div
-            className="h-full bg-amber-500 dark:bg-amber-400 transition-all duration-500 ease-out rounded-full"
-            style={{ width: `${Math.min((currentProgress.current / currentProgress.total) * 100, 100)}%` }}
-          />
-        </div>
-      )}
       <div className="border-t bg-background/80 backdrop-blur-sm p-4 sm:p-6 flex-shrink-0 pb-[env(safe-area-inset-bottom)]">
         <MessageInput
           initialPrompt={initialPrompt}

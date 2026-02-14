@@ -1,0 +1,46 @@
+{
+  "id": "builtin-play-store-fetch-app-details",
+  "name": "fetch_app_details",
+  "displayName": "fetch app details",
+  "description": "fetches app details by app id like com.packagename",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "description": "appId",
+      "name": "id",
+      "required": true,
+      "source": "urlParam",
+      "sourceKey": "id",
+      "type": "string"
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://play.google.com/store/apps/details",
+      "urlParams": {
+        "id": "{{id}}"
+      }
+    },
+    {
+      "action": "extract",
+      "containerSelector": "",
+      "extractionMethod": "neighbors",
+      "fields": [
+        {
+          "key": "tree",
+          "selector": "",
+          "type": "text"
+        }
+      ],
+      "label": "Extract neighbors of \"about this app\"",
+      "mode": "single",
+      "name": "neighbors_of_about_this_app",
+      "neighborCount": 3,
+      "neighborDirection": "both",
+      "neighborIncludeChildren": true,
+      "neighborMatchMode": "contains",
+      "neighborTargetName": "about this app, bu uygulama hakkında, über diese app, à propos de cette application, acerca de esta aplicación, sobre este app, informazioni su questa app, over deze app, informacje o aplikacji, о приложении, про додаток, لمحة عن هذا التطبيق, درباره این برنامه, इस ऐप के बारे में, এই অ্যাপ সম্পর্কে, 关于此应用, 關於此應用程式, このアプリについて, 앱 정보, เกี่ยวกับแอปนี้, giới thiệu về ứng dụng này, tentang aplikasi ini, perihal apl ini, tungkol sa app na ito, kuhusu programu hii"
+    }
+  ]
+}

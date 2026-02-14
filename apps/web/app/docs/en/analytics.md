@@ -49,9 +49,22 @@ Same layout as agent breakdown, but grouped by model ID (e.g., `gpt-4.1`, `claud
 
 Lists the **top 10 most-called tools** with their invocation count. This helps identify which MCP tools your agents rely on most.
 
+## Per-Chat Usage
+
+Token counts and costs are also tracked **per conversation**. You can see usage inline in two places:
+
+- **Agent sidebar** -- each chat shows its total tokens and cost below the title (e.g., `1.2K tokens · $0.0012`)
+- **Chat list** -- the same usage summary appears next to the timestamp, with a coin icon
+
+Usage updates in real time after each message, so you always see the current cost of a conversation.
+
+## Session Tokens
+
+While chatting, the **chat window footer** displays a running total of tokens used in the current session (since you opened the chat), along with an estimated cost based on the active model's pricing.
+
 ## Clearing Data
 
-Click the **trash icon** in the header to delete all analytics records. A confirmation dialog appears before any data is removed. This action is irreversible.
+Click the **trash icon** in the Analytics page header to delete all analytics records. A confirmation dialog appears before any data is removed. This action is irreversible.
 
 ## How It Works
 
@@ -61,5 +74,6 @@ Every time an LLM call completes (including each round in the tool-calling loop)
 - Cost calculated from the provider's pricing
 - Agent and model identifiers
 - Names of any tools called in that round
+- Chat ID (used for per-conversation aggregation)
 
 All calculations happen client-side. No analytics data is sent to any server.

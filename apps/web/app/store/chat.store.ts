@@ -43,8 +43,11 @@ interface ChatState {
   currentProgress: { current: number; total: number } | null
   /** Timestamp when long task was first detected (for elapsed time display) */
   longTaskStartedAt: Record<string, number>
+  /** Per-chat token/cost usage aggregates */
+  chatUsage: Record<string, { tokens: number; cost: number }>
 
   loadChats: (agentId: string) => Promise<void>
+  loadChatUsage: (chatIds: string[]) => Promise<void>
   createChat: (agentId: string, title?: string) => Promise<Chat>
   selectChat: (chatId: string) => Promise<void>
   deleteChat: (chatId: string) => Promise<void>
@@ -317,7 +320,7 @@ async function runToolCallingLoop(
       consecutiveTextRounds++
       totalNudgesSent++
 
-      // Do NOT put the model's text in chatMessages — when the model sees its own
+      // Do NOT put the model's text in chatMessages - when the model sees its own
       // "shall I continue?" text, it anchors to it and keeps generating text.
       // Instead, push a short continuation-oriented assistant message so the model's
       // last context is tool results + "continue" instruction → resumes tool calling.
@@ -332,7 +335,7 @@ async function runToolCallingLoop(
       nudgeMessageIndices.push(chatMessages.length)
       chatMessages.push({
         role: 'user',
-        content: `You stopped too early — you only made ${toolCallCount} tool calls. Keep making tool calls to complete the task. Do not list results without tool calls, do not ask whether to continue. Call the next tool now.`,
+        content: `You stopped too early - you only made ${toolCallCount} tool calls. Keep making tool calls to complete the task. Do not list results without tool calls, do not ask whether to continue. Call the next tool now.`,
       })
 
       // But DO show the model's text in UI so user sees it
@@ -381,7 +384,7 @@ async function executeLinkedAgentCall(
     return i18n.t('chat.agentNotFound', { id: targetAgentId })
   }
 
-  // Ensure target agent's MCPs are connected (additive — don't disconnect parent's MCPs)
+  // Ensure target agent's MCPs are connected (additive - don't disconnect parent's MCPs)
   await mcpStore.ensureAgentMCPsConnected(targetAgent)
 
   // Get target agent's tools (MCP + linked agents)
@@ -417,7 +420,7 @@ async function executeLinkedAgentCall(
           if (onChunk) onChunk(chunk)
         }, linkedOptions)
 
-        if (isDev) console.log('[linked-agent] Round', rounds, 'LLM responded in', Math.round(performance.now() - t0), 'ms — content:', result.content?.slice(0, 200), 'toolCalls:', result.toolCalls?.length ?? 0, 'finishReason:', result.finishReason)
+        if (isDev) console.log('[linked-agent] Round', rounds, 'LLM responded in', Math.round(performance.now() - t0), 'ms - content:', result.content?.slice(0, 200), 'toolCalls:', result.toolCalls?.length ?? 0, 'finishReason:', result.finishReason)
 
         if (result.toolCalls && result.toolCalls.length > 0) {
           messages.push({
@@ -528,6 +531,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   longTaskDetectedChats: {},
   currentProgress: null,
   longTaskStartedAt: {},
+  chatUsage: {},
 
   addTokenUsage: (usage: TokenUsage) => {
     set(state => ({
@@ -540,6 +544,16 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   resetSessionTokens: () => {
     set({ sessionTokens: { input: 0, output: 0 } })
+  },
+
+  loadChatUsage: async (chatIds: string[]) => {
+    if (chatIds.length === 0) return
+    try {
+      const usage = await storageService.getUsageByChatIds(chatIds)
+      set(state => ({ chatUsage: { ...state.chatUsage, ...usage } }))
+    } catch (error) {
+      if (import.meta.env?.DEV) console.warn('Failed to load chat usage:', error)
+    }
   },
 
   loadChats: async (agentId: string) => {
@@ -562,6 +576,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
         isLoadingChats: false,
         backgroundTasks: { ...state.backgroundTasks, ...recoveredTasks },
       }))
+      // Load usage data for all chats
+      get().loadChatUsage(chats.map(c => c.id))
     } catch (error) {
       console.error('Failed to load chats:', error)
       set({ chats: [], isLoadingChats: false })
@@ -632,10 +648,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
     // Auto-background running task instead of aborting when sending from a different chat
     if (currentAbortController && !backgroundChatIds.has(currentChatId ?? '')) {
       if (currentRunningChatId && currentRunningChatId !== currentChatId) {
-        // Different chat — auto-background the running task
+        // Different chat - auto-background the running task
         get().moveToBackground(currentRunningChatId)
       } else {
-        // Same chat — abort (user is sending a new message in the same conversation)
+        // Same chat - abort (user is sending a new message in the same conversation)
         currentAbortController.abort()
       }
     }
@@ -724,7 +740,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       const basePrompt = agent?.basePrompt || 'You are a helpful AI assistant.'
       let systemContent = basePrompt + '\n\nRespond in the same language the user writes in.'
       if (hasTools) {
-        systemContent += '\n\nWhen a task requires multiple operations, keep making tool calls until the task is fully complete. Do not stop partway and ask the user if you should continue — just keep going until done. Never present fabricated or unverified results — always use the available tools to obtain real data.'
+        systemContent += '\n\nWhen a task requires multiple operations, keep making tool calls until the task is fully complete. Do not stop partway and ask the user if you should continue - just keep going until done. Never present fabricated or unverified results - always use the available tools to obtain real data.'
       }
 
       // Build message history
@@ -890,7 +906,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         storageService.updateChat(activeChatId, { taskStatus: finalStatus } as Partial<Chat>).catch(() => {})
       }
 
-      // Fire notification for long tasks or background tasks — only if THIS run was long
+      // Fire notification for long tasks or background tasks - only if THIS run was long
       const isLongTask = !!(get().longTaskDetectedChats[activeChatId])
       if (wasBackground || wantsNotify || isLongTask) {
         notifyOnCompletionChatIds.delete(activeChatId)
@@ -908,19 +924,25 @@ export const useChatStore = create<ChatState>((set, get) => ({
         const notifText = i18n.t(notifKey, { title: chatTitle })
 
         // Always fire browser notification for long/background task completion
-        console.log('[notification] permission:', typeof Notification !== 'undefined' ? Notification.permission : 'N/A', 'text:', notifText)
-        if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-          const notification = new Notification('izan.io', {
-            body: notifText,
-            icon: '/notification-icon.png',
-            tag: `izan-task-${activeChatId}`,
-            silent: false,
-          })
-          notification.onclick = () => {
-            window.focus()
-            notification.close()
+        if (typeof Notification !== 'undefined') {
+          let perm = Notification.permission
+          if (perm === 'default') {
+            perm = await Notification.requestPermission()
           }
-          setTimeout(() => notification.close(), 10000)
+          console.log('[notification] permission:', perm, 'text:', notifText)
+          if (perm === 'granted') {
+            const notification = new Notification('izan.io', {
+              body: notifText,
+              icon: '/notification-icon.png',
+              tag: `izan-task-${activeChatId}`,
+              silent: false,
+            })
+            notification.onclick = () => {
+              window.focus()
+              notification.close()
+            }
+            setTimeout(() => notification.close(), 10000)
+          }
         }
 
         // Title flash when tab is hidden
@@ -942,6 +964,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
           setTimeout(stopFlash, 30000)
         }
       }
+
+      // Refresh usage for this chat so sidebar shows updated cost
+      get().loadChatUsage([activeChatId])
 
       } // end if (activeChatId)
 
@@ -1003,14 +1028,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   clearAllChats: async () => {
     await storageService.clearAllChats()
-    set({ chats: [], currentChatId: null, currentChat: null, messages: [] })
+    set({ chats: [], currentChatId: null, currentChat: null, messages: [], chatUsage: {} })
   },
 
   clearAgentChats: async (agentId: string) => {
     await storageService.clearAgentChats(agentId)
     const { currentChat } = get()
     if (currentChat?.agentId === agentId) {
-      set({ chats: [], currentChatId: null, currentChat: null, messages: [] })
+      set({ chats: [], currentChatId: null, currentChat: null, messages: [], chatUsage: {} })
     } else {
       set(state => ({
         chats: state.chats.filter(c => c.agentId !== agentId),

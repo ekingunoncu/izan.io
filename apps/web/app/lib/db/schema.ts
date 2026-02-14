@@ -134,6 +134,8 @@ export interface UserPreferences {
   chatMessageLimit?: number
   /** Max chats per agent. 0 = unlimited (default) */
   chatHistoryLimit?: number
+  /** Whether automation browser opens in foreground (default: false = background) */
+  automationBrowserForeground?: boolean
 }
 
 // ─── Usage Analytics Types ────────────────────────────────────────────────────

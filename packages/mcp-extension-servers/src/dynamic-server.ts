@@ -478,6 +478,29 @@ export async function startDynamicServer(): Promise<boolean> {
     },
   )
 
+  // Register built-in web_fetch tool
+  server.registerTool(
+    'web_fetch',
+    {
+      description: 'Fetch a web page and return its accessibility tree. Opens the URL in a browser tab, waits for full load, and returns a structured text representation of the page content including headings, links, text, forms, and other semantic elements.',
+      inputSchema: {
+        url: z.string().describe('Full URL to fetch (e.g. "https://en.wikipedia.org/wiki/TypeScript")'),
+      },
+    },
+    async (args: { url: string }) => {
+      const bw = BrowserWindow.getInstance()
+      if (bw.isOpen()) {
+        await bw.navigate(args.url)
+      } else {
+        await bw.open(args.url)
+      }
+      await bw.waitForLoad()
+      await bw.wait(1000)
+      const tree = await bw.accessibilitySnapshot()
+      return { content: [{ type: 'text' as const, text: tree as string }] }
+    },
+  )
+
   // Register all queued/pre-loaded tools
   for (const tool of loadedTools.values()) {
     registerTool(server, tool)

@@ -185,6 +185,7 @@ function ApiKeyInput({
             onChange={(e) => { setKey(e.target.value); setSaved(false) }}
             placeholder={`${provider.envHint}...`}
             className="pr-10"
+            autoComplete="off"
           />
           <button
             type="button"

@@ -49,17 +49,31 @@ Gleiches Layout wie die Agenten-Aufschlüsselung, aber nach Modell-ID gruppiert 
 
 Listet die **10 am häufigsten aufgerufenen Tools** mit ihrer Aufrufanzahl auf. Dies hilft zu erkennen, auf welche MCP-Tools Ihre Agenten am meisten angewiesen sind.
 
-## Daten löschen
+## Nutzung pro Chat
 
-Klicken Sie auf das **Papierkorb-Symbol** in der Kopfzeile, um alle Analytik-Datensätze zu löschen. Ein Bestätigungsdialog erscheint, bevor Daten entfernt werden. Diese Aktion ist nicht rückgängig zu machen.
+Token-Zahlen und Kosten werden auch **pro Konversation** erfasst. Sie koennen die Nutzung an zwei Stellen sehen:
+
+- **Agenten-Seitenleiste** -- jeder Chat zeigt seine Gesamt-Token und Kosten unter dem Titel an (z.B. `1.2K tokens · $0.0012`)
+- **Chat-Liste** -- dieselbe Nutzungszusammenfassung erscheint neben dem Zeitstempel mit einem Muenzsymbol
+
+Die Nutzung wird nach jeder Nachricht in Echtzeit aktualisiert, sodass Sie immer die aktuellen Kosten einer Konversation sehen.
+
+## Sitzungs-Token
+
+Waehrend des Chats zeigt die **Fusszeile des Chat-Fensters** eine laufende Summe der in der aktuellen Sitzung verwendeten Token sowie geschaetzte Kosten basierend auf der Preisgestaltung des aktiven Modells an.
+
+## Daten loeschen
+
+Klicken Sie auf das **Papierkorb-Symbol** in der Kopfzeile der Analytik-Seite, um alle Analytik-Datensaetze zu loeschen. Ein Bestaetigungsdialog erscheint, bevor Daten entfernt werden. Diese Aktion ist nicht rueckgaengig zu machen.
 
 ## Funktionsweise
 
-Jedes Mal, wenn ein LLM-Aufruf abgeschlossen wird (einschließlich jeder Runde in der Tool-Aufruf-Schleife), wird ein Nutzungsdatensatz mit folgenden Informationen in IndexedDB gespeichert:
+Jedes Mal, wenn ein LLM-Aufruf abgeschlossen wird (einschliesslich jeder Runde in der Tool-Aufruf-Schleife), wird ein Nutzungsdatensatz mit folgenden Informationen in IndexedDB gespeichert:
 
 - Anzahl der Eingabe- und Ausgabe-Token
 - Aus der Preisgestaltung des Anbieters berechnete Kosten
 - Agent- und Modell-Kennungen
 - Namen aller in dieser Runde aufgerufenen Tools
+- Chat-ID (fuer die Aggregation pro Konversation)
 
 Alle Berechnungen erfolgen clientseitig. Es werden keine Analytik-Daten an einen Server gesendet.

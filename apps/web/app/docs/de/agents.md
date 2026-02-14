@@ -48,10 +48,60 @@ Wenn Deep Task aktiv ist:
 
 Deep Task eignet sich ideal fuer rechercheintensive Aufgaben, mehrstufige Workflows und alle Aufgaben, bei denen der Agent viele aufeinanderfolgende Tool-Aufrufe durchfuehren muss.
 
+### Automatische Erkennung langer Aufgaben
+
+Auch ohne Deep Task Modus erkennt izan.io, wenn eine Aufgabe **3 oder mehr Tool-Aufrufrunden** durchlaeuft, und zeigt automatisch das Fortschritts-Banner an. Sie koennen vom Banner aus Browser-Benachrichtigungen aktivieren.
+
+### Hintergrundaufgaben
+
+Wenn Sie waehrend einer laufenden Aufgabe zu einem anderen Chat wechseln, wird die laufende Aufgabe **automatisch in den Hintergrund verschoben**. Hintergrundaufgaben laufen weiter und:
+
+- Zeigen einen **Statusindikator** (Drehsymbol) neben dem Chat in der Seitenleiste
+- Zeigen den **Schrittfortschritt** in der Chat-Liste
+- Senden eine **Browser-Benachrichtigung** bei Abschluss oder Fehler
+- Lassen den **Browser-Tab-Titel blinken**, wenn der Tab nicht fokussiert ist
+
 ## Maximale Iterationen
 
 Jeder Agent hat eine konfigurierbare Einstellung fuer **maximale Iterationen** (Standard: 25), die die maximale Anzahl von Tool-Aufrufrunden pro Nachricht steuert. Sie koennen dies im Abschnitt **Modellparameter** des Agenten-Bearbeitungspanels anpassen. Hoehere Werte ermoeglichen laengere autonome Aufgaben, waehrend niedrigere Werte Aufgaben fokussiert halten.
 
-## MCP-Server und Makros zuweisen
+## Tools Agenten zuweisen
 
-Jeder Agent -- ob integriert oder benutzerdefiniert -- kann mit beliebigen MCP-Servern und Makros ausgestattet werden. Die Zuweisung erfolgt in den Agenten-Einstellungen. Beim Wechsel zwischen Agenten werden nur die jeweils benoetigten Server aktiviert, um Ressourcen zu sparen.
+Vom **Agenten-Bearbeitungspanel** aus koennen Sie:
+
+- **MCP-Server zuweisen** -- dem Agenten Zugriff auf die Tools eines verbundenen MCP-Servers geben
+- **Makros zuweisen** -- aufgezeichnete Browser-Automatisierungen anhaengen, die der Agent waehrend eines Gespraechs ausloesen kann
+- **Andere Agenten verknuepfen** -- Multi-Agent-Orchestrierung ermoeglichen, indem Sie Agenten als aufrufbare Tools auswaehlen
+
+## Agenten exportieren & importieren
+
+Sie koennen Agenten-Konfigurationen mit anderen **teilen** oder sichern:
+
+### Export
+
+Klicken Sie im Agenten-Bearbeitungspanel auf den **Export-Button**, um den Agenten als JSON-Datei herunterzuladen. Der Export enthaelt:
+
+- Name, Beschreibung, System-Prompt, Symbol und Modellparameter des Agenten
+- Alle verknuepften Agenten (rekursiv)
+- Benutzerdefinierte MCP-Server-Konfigurationen
+- Dem Agenten zugewiesene Makro-Server und Tools
+
+### Import
+
+Klicken Sie im Agenten-Bearbeitungspanel auf den **Import-Button** und waehlen Sie eine JSON-Datei. izan.io wird:
+
+- Den Agenten mit allen Einstellungen erstellen
+- Verknuepfte Agenten rekursiv importieren
+- Benutzerdefinierte MCP-Server-Verbindungen wiederherstellen
+- Makro-Server und Tools wiederherstellen
+
+## Agenten-Profilseiten
+
+Jeder Agent hat eine **Profilseite**, die ueber die Agentenliste zugaenglich ist. Das Profil zeigt:
+
+- Agent-Symbol, Name und Beschreibung
+- System-Prompt
+- Zugewiesene Tools: integrierte MCPs, benutzerdefinierte MCPs, Makros und verknuepfte Agenten
+- Einen **Agent verwenden**-Button zum Starten eines Chats
+
+Fuer benutzerdefinierte Agenten zeigt das Profil zusaetzlich ein "Vom Benutzer erstellt"-Badge an.

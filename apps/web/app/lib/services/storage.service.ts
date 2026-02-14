@@ -168,6 +168,19 @@ export class StorageService implements IStorageService {
 
   // ============ Usage Analytics Operations ============
 
+  async getUsageByChatIds(chatIds: string[]): Promise<Record<string, { tokens: number; cost: number }>> {
+    const result: Record<string, { tokens: number; cost: number }> = {}
+    if (chatIds.length === 0) return result
+    const records = await db.usageRecords.where('chatId').anyOf(chatIds).toArray()
+    for (const r of records) {
+      const entry = result[r.chatId] ?? { tokens: 0, cost: 0 }
+      entry.tokens += r.inputTokens + r.outputTokens
+      entry.cost += r.cost
+      result[r.chatId] = entry
+    }
+    return result
+  }
+
   async createUsageRecord(record: UsageRecord): Promise<void> {
     await db.usageRecords.add(record)
   }

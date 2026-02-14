@@ -1,4 +1,12 @@
 {
   "version": "1.0.0",
-  "servers": []
+  "servers": [
+    {
+      "id": "play-store",
+      "name": "Google Play App Discovery",
+      "description": "Discover and analyze apps from Google Play Store",
+      "category": "web_search",
+      "tools": ["fetch_app_details", "search_play_store"]
+    }
+  ]
 }

@@ -66,7 +66,7 @@ import { useAgentStore } from "~/store/agent.store";
 import { storageService } from "~/lib/services";
 import { useAutomationStore } from "~/store/automation.store";
 import { DEFAULT_MCP_SERVERS } from "~/lib/mcp/config";
-import { requestAutomationData } from "~/lib/mcp/extension-bridge";
+import { requestAutomationData, sendPreferenceToExtension } from "~/lib/mcp/extension-bridge";
 import { cn } from "~/lib/utils";
 import { type SupportedLanguage, setStoredLanguagePreference } from "~/i18n";
 import { useProvidersWithModels } from "~/lib/use-providers-with-models";
@@ -188,6 +188,7 @@ function ProviderKeyRow({
                 onChange={(e) => setKey(e.target.value)}
                 placeholder={`${envHint}...`}
                 className="pr-10 h-9"
+                autoComplete="off"
               />
               <button
                 type="button"
@@ -357,6 +358,52 @@ function AutomationToolsSection() {
   );
 }
 
+function AutomationBrowserSection() {
+  const { t } = useTranslation("common");
+  const [foreground, setForeground] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    storageService.getPreferences().then((prefs) => {
+      setForeground(prefs.automationBrowserForeground ?? false);
+      setLoaded(true);
+    });
+  }, []);
+
+  if (!loaded) return null;
+
+  const handleToggle = (checked: boolean) => {
+    setForeground(checked);
+    storageService.updatePreferences({ automationBrowserForeground: checked });
+    sendPreferenceToExtension("automationBrowserForeground", checked);
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Cog className="h-5 w-5" />
+          {t("settings.automationBrowserTitle")}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <label className="flex items-start gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={foreground}
+            onChange={(e) => handleToggle(e.target.checked)}
+            className="rounded border-input accent-primary h-4 w-4 mt-0.5"
+          />
+          <div>
+            <p className="text-sm font-medium">{t("settings.automationBrowserForeground")}</p>
+            <p className="text-xs text-muted-foreground">{t("settings.automationBrowserForegroundDesc")}</p>
+          </div>
+        </label>
+      </CardContent>
+    </Card>
+  );
+}
+
 const AGENT_ICON_MAP: Record<string, typeof Bot> = {
   bot: Bot, search: Search, code: Code, calendar: Calendar, mail: Mail,
   database: Database, globe: Globe, "file-text": FileText, puzzle: Puzzle,
@@ -494,7 +541,7 @@ function ChatStorageSection() {
 
         {/* Data Management */}
         <div className="border-t pt-3 space-y-2">
-          {/* Clear All — minimal row, matches analytics clear style */}
+          {/* Clear All - minimal row, matches analytics clear style */}
           <div className="flex items-center justify-between gap-3 rounded-lg border p-2.5">
             <div className="flex items-center gap-2 min-w-0">
               <Trash2 className="h-4 w-4 text-muted-foreground flex-shrink-0" />
@@ -538,7 +585,7 @@ function ChatStorageSection() {
 
             {/* Multi-select combobox */}
             <div className="relative" ref={comboboxRef}>
-              {/* Trigger — matches provider search input style */}
+              {/* Trigger - matches provider search input style */}
               <div className="relative">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                 <button
@@ -565,7 +612,7 @@ function ChatStorageSection() {
                 </button>
               </div>
 
-              {/* Selected agent tags — matches MCP builtin badge style */}
+              {/* Selected agent tags - matches MCP builtin badge style */}
               {selectedAgentIds.size > 0 && !comboboxOpen && (
                 <div className="flex flex-wrap gap-1 mt-1.5">
                   {agents.filter((a) => selectedAgentIds.has(a.id)).map((agent) => (
@@ -1089,6 +1136,9 @@ export default function Settings() {
 
           {/* Macros */}
           <AutomationToolsSection />
+
+          {/* Automation Browser */}
+          <AutomationBrowserSection />
 
           {/* Custom MCP Servers */}
           <Card>

@@ -85,6 +85,9 @@
     "macrosTools": "Makro(s)",
     "macrosSteps": "Schritt(e)",
     "macrosParams": "Parameter",
+    "automationBrowserTitle": "Automatisierungs-Browser",
+    "automationBrowserForeground": "Automatisierungs-Browser in den Vordergrund bringen",
+    "automationBrowserForegroundDesc": "Wenn aktiviert, wird das Automatisierungs-Browserfenster im Vordergrund statt hinter dem aktuellen Fenster geöffnet.",
     "chatStorageTitle": "Chat-Speicher",
     "chatStorageDesc": "Ihre Chats werden lokal auf Ihrem Gerät gespeichert. Legen Sie Limits fest, um den Speicher unter Kontrolle zu halten.",
     "chatMessageLimit": "Nachrichten pro Chat",
@@ -141,6 +144,10 @@
     "agentComingSoon": "Demnächst",
     "agentDomainTitle": "Domain-Experte",
     "agentDomainDesc": "Kreative Domain-Vorschläge mit sofortiger Verfügbarkeitsprüfung. Kein API-Schlüssel erforderlich.",
+    "agentWebFetchTitle": "Web Fetch",
+    "agentWebFetchDesc": "Beliebige Webseiten abrufen und deren Inhalt lesen. Erfordert die Browser-Erweiterung.",
+    "agentPlayStoreTitle": "Play Store",
+    "agentPlayStoreDesc": "Apps im Google Play Store suchen und analysieren. Erfordert die Browser-Erweiterung.",
     "agentMoreTitle": "Und mehr unterwegs...",
     "agentMoreDesc": "Trading, Sport, Nachrichten, Shopping - neue Agenten werden von uns und der Community ständig entwickelt.",
 
@@ -258,7 +265,8 @@
       "random_number": "Zufallszahl",
       "uuid": "UUID",
       "calculate": "Berechnung",
-      "generate_password": "Passwort"
+      "generate_password": "Passwort",
+      "web_search": "Websuche"
     }
   },
   "provider": {
@@ -314,8 +322,8 @@
     "maxTokensDesc": "Maximale Länge der Antwort. Höhere Werte ermöglichen längere Antworten, kosten aber mehr. Leer für Provider-Standard.",
     "topP": "Top P",
     "topPDesc": "Nukleus-Sampling: berücksichtigt nur Tokens in der oberen P-Wahrscheinlichkeitsmasse. Niedriger = fokussierter. Bereich: 0–1.",
-    "maxIterations": "Max. Iterationen",
-    "maxIterationsDesc": "Maximale Tool-Aufrufrunden pro Nachricht. Höhere Werte ermöglichen längere autonome Aufgaben. Bereich: 1–100.",
+    "maxIterations": "Max. Runden",
+    "maxIterationsDesc": "Maximale LLM-Runden pro Nachricht. Jede Runde ist ein LLM-Aufruf - Tool-Aufrufe, Textantworten und Fortsetzungsimpulse zählen alle. Bereich: 1–100.",
     "useDefault": "Standard verwenden",
     "builtin": {
       "general": {
@@ -335,6 +343,42 @@
         "usageExample3": "Generiere ein sicheres 24-Zeichen-Passwort mit Sonderzeichen",
         "usageExample4": "Erstelle 5 UUIDs für meine Datenbankeinträge",
         "usageExample5": "Wie viel sind 18% Trinkgeld auf 47,50 €?"
+      },
+      "web-fetch": {
+        "name": "Web Fetch",
+        "description": "Web-Fetch-Assistent. Navigieren Sie zu einer beliebigen Webseite und lesen Sie deren Inhalt.",
+        "detailedDescription": "Ihr Agent zum Lesen von Webseiten. Der Web Fetch-Agent öffnet über die Chrome-Erweiterung einen echten Browser-Tab, navigiert zu jeder URL und gibt den vollständigen Accessibility-Baum der Seite zurück. Perfekt zum Lesen von Artikeln, Prüfen von Dokumentation oder Extrahieren von Informationen von jeder Website.",
+        "whatItDoes": "Der Web Fetch-Agent nutzt die Chrome-Erweiterung, um einen Browser-Tab zu öffnen, zu jeder URL zu navigieren, auf das vollständige Laden der Seite zu warten und den kompletten Accessibility-Baum zurückzugeben. Dies gibt Ihnen strukturierten, lesbaren Inhalt von jeder Webseite ohne CORS-Einschränkungen.",
+        "mcps": "Browser-Erweiterung (web_fetch)",
+        "feature1": "Beliebige Webseiten abrufen - keine CORS-Einschränkungen",
+        "feature2": "Vollständiger Accessibility-Baum mit semantischer Struktur",
+        "feature3": "Echtes Browser-Rendering über Chrome-Erweiterung",
+        "feature4": "Kein API-Schlüssel erforderlich - nutzt Ihren Browser",
+        "howToUse": "Geben Sie eine URL an und der Agent öffnet sie in einem Browser-Tab, wartet auf das Laden und gibt den Seiteninhalt als strukturierten Accessibility-Baum zurück. Sie können Fragen zum Inhalt stellen oder bestimmte Seiten anfordern.",
+        "proTip": "Der Agent öffnet echte Browser-Tabs - stellen Sie sicher, dass die Chrome-Erweiterung installiert und aktiv ist, damit dieser Agent funktioniert.",
+        "usageExample1": "Rufe https://en.wikipedia.org/wiki/TypeScript ab",
+        "usageExample2": "Was sagt die React-Dokumentation über Hooks?",
+        "usageExample3": "Lies den Inhalt dieser Seite: https://news.ycombinator.com",
+        "usageExample4": "Fasse den Artikel unter dieser URL zusammen",
+        "usageExample5": "Welche Informationen sind auf dieser Seite?"
+      },
+      "play-store": {
+        "name": "Play Store",
+        "description": "Apps im Google Play Store suchen und analysieren mit Browser-Automatisierung.",
+        "detailedDescription": "Ihr Play Store-Forschungsassistent. Dieser Agent verwendet Browser-Automatisierungsmakros, um den Google Play Store zu durchsuchen und detaillierte App-Informationen abzurufen. Er kann Apps nach Name, Kategorie oder Beschreibung finden und Download-Zahlen, Bewertungen und App-Details abrufen.",
+        "whatItDoes": "Der Play Store-Agent verwendet vorgefertigte Browser-Automatisierungsmakros uber die Chrome-Erweiterung, um Google Play Store-Seiten zu navigieren. Er kann nach Apps suchen und detaillierte Informationen einschliesslich Beschreibungen, Download-Statistiken, Bewertungen und mehr extrahieren.",
+        "mcps": "Browser-Erweiterung (Automatisierungsmakros)",
+        "feature1": "Apps nach Name, Kategorie oder Beschreibung suchen",
+        "feature2": "Detaillierte App-Info mit Bewertungen und Downloads",
+        "feature3": "Automatisiertes Browsen uber Chrome-Erweiterungsmakros",
+        "feature4": "Kein API-Schlussel erforderlich - nutzt Browser-Automatisierung",
+        "howToUse": "Fragen Sie nach einer App oder durchsuchen Sie den Play Store. Der Agent verwendet Browser-Automatisierung, um zum Google Play Store zu navigieren, nach Apps zu suchen und detaillierte Informationen zu extrahieren.",
+        "proTip": "Stellen Sie sicher, dass die Chrome-Erweiterung installiert ist. Sie konnen nach App-Namen suchen oder nach Kategorie durchsuchen. Fur detaillierte Infos geben Sie die Paket-ID an (z.B. com.example.app).",
+        "usageExample1": "Suche Wetter-Apps im Play Store",
+        "usageExample2": "Zeige Details zur WhatsApp-App",
+        "usageExample3": "Finde die besten Produktivitats-Apps",
+        "usageExample4": "Was sind die besten Notiz-Apps?",
+        "usageExample5": "Suche com.spotify.music im Play Store"
       }
     },
     "enabled": "Aktiviert",
@@ -451,6 +495,6 @@
     "notifyEnabled": "Benachrichtigung aktiv",
     "notificationDone": "Aufgabe abgeschlossen: {{title}}",
     "notificationFailed": "Aufgabe fehlgeschlagen: {{title}}",
-    "stepProgress": "Schritt {{current}}/{{total}}"
+    "stepProgress": "Schritt {{current}}"
   }
 }

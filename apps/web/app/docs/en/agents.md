@@ -46,6 +46,21 @@ When Deep Task is active:
 
 Deep Task is ideal for research-heavy tasks, multi-step workflows, and any task where the agent needs to make many consecutive tool calls.
 
+### Long Task Auto-Detection
+
+Even without Deep Task mode, izan.io detects when a task runs **3 or more tool-calling rounds** and automatically shows the progress banner. You can enable browser notifications from the banner so you're alerted when the task finishes.
+
+### Background Tasks
+
+If you switch to a different chat while a task is still running, the running task **automatically moves to the background**. Background tasks continue executing and:
+
+- Show a **status indicator** (spinner) next to the chat in the sidebar
+- Display **step progress** in the chat list
+- Fire a **browser notification** when they complete or fail
+- Flash the **browser tab title** if the tab is not focused
+
+You can also see completed/failed task status in the sidebar. Clicking a completed background task clears its status badge.
+
 ## Max Iterations
 
 Each agent has a configurable **max iterations** setting (default: 25) that controls the maximum number of tool-calling rounds per message. You can adjust this in the **Model Parameters** section of the agent edit panel. Higher values allow longer autonomous tasks, while lower values keep tasks focused.
@@ -57,3 +72,38 @@ From the **agent edit panel**, you can:
 - **Assign MCP servers** -- give the agent access to any connected MCP server's tools
 - **Assign macros** -- attach recorded browser automations that the agent can trigger during a conversation
 - **Link other agents** -- enable multi-agent orchestration by selecting agents as callable tools
+
+## Agent Export & Import
+
+You can **share agent configurations** with others or back them up:
+
+### Export
+
+From the agent edit panel, click the **export button** to download the agent as a JSON file. The export includes:
+
+- Agent name, description, system prompt, icon, and model parameters
+- All linked agents (recursively)
+- Custom MCP server configurations
+- Macro servers and tools assigned to the agent
+
+### Import
+
+From the agent edit panel, click the **import button** and select a JSON file. izan.io will:
+
+- Create the agent with all its settings
+- Recursively import linked agents
+- Restore custom MCP server connections
+- Restore macro servers and tools
+
+This makes it easy to distribute specialized agent setups across devices or teams.
+
+## Agent Profile Pages
+
+Each agent has a **profile page** accessible from the agents list. The profile shows:
+
+- Agent icon, name, and description
+- System prompt
+- Assigned tools: built-in MCPs, custom MCPs, macros, and linked agents
+- A **Use Agent** button to start chatting with it
+
+For custom agents, the profile also shows a "User Created" badge. Built-in agents display detailed descriptions, usage examples, and pro tips.

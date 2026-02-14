@@ -7,7 +7,6 @@ interface LongTaskBannerProps {
   notifyEnabled: boolean
   onDismiss: () => void
   currentStep?: number
-  totalSteps?: number
   startedAt?: number
   className?: string
 }
@@ -33,11 +32,11 @@ function formatElapsed(seconds: number): string {
   return `${mins}m ${secs}s`
 }
 
-export function LongTaskBanner({ onNotifyToggle, notifyEnabled, onDismiss, currentStep, totalSteps, startedAt, className }: LongTaskBannerProps) {
+export function LongTaskBanner({ onNotifyToggle, notifyEnabled, onDismiss, currentStep, startedAt, className }: LongTaskBannerProps) {
   const { t } = useTranslation('common')
   const elapsed = useElapsedSeconds(startedAt)
 
-  const hasProgress = currentStep != null && totalSteps != null
+  const hasProgress = currentStep != null
 
   return (
     <div
@@ -46,7 +45,7 @@ export function LongTaskBanner({ onNotifyToggle, notifyEnabled, onDismiss, curre
       <Clock className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
       <p className="text-sm flex-1 min-w-0 text-amber-800 dark:text-amber-200">
         {hasProgress
-          ? `${t('longTask.stepProgress', { current: currentStep, total: totalSteps })} · ${formatElapsed(elapsed)}`
+          ? `${t('longTask.stepProgress', { current: currentStep })} · ${formatElapsed(elapsed)}`
           : t('longTask.bannerMessage')
         }
       </p>

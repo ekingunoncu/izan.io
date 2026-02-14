@@ -44,10 +44,60 @@ Derin Gorev aktifken:
 
 Derin Gorev; arastirma agirlikli gorevler, cok adimli is akislari ve agentin art arda birden fazla arac cagrisi yapmasi gereken durumlar icin idealdir.
 
-## Maksimum Iterasyon
+### Uzun Gorev Otomatik Tespiti
+
+Derin Gorev modu olmadan bile, izan.io bir gorevin **3 veya daha fazla arac cagirma turu** yaptigini tespit ettiginde otomatik olarak ilerleme banner'ini gosterir. Banner uzerinden tarayici bildirimlerini etkinlestirebilirsiniz.
+
+### Arka Plan Gorevleri
+
+Bir gorev hala calisirken farkli bir sohbete gecerseniz, calisan gorev **otomatik olarak arka plana tasinir**. Arka plan gorevleri calismaya devam eder ve:
+
+- Kenar cubugundaki sohbetin yaninda bir **durum gostergesi** (donme animasyonu) gosterir
+- Sohbet listesinde **adim ilerlemesini** gosterir
+- Tamamlandiginda veya basarisiz oldugunda **tarayici bildirimi** gonderir
+- Sekme odakta degilse **tarayici sekmesi basligini** yanip sondurur
+
+### Maksimum Iterasyon
 
 Her agentin yapilandirabilir bir **maksimum iterasyon** ayari vardir (varsayilan: 25). Bu, mesaj basina maksimum arac cagirma turu sayisini kontrol eder. Bunu agent duzenleme panelindeki **Model Parametreleri** bolumunden ayarlayabilirsiniz. Yuksek degerler daha uzun otonom gorevlere izin verirken, dusuk degerler gorevleri odakli tutar.
 
-## MCP Sunuculari ve Makro Atama
+## Araclari Agentlara Atama
 
-Her agente farkli MCP sunuculari ve makrolar atanabilir. Bu sayede her agent yalnizca ihtiyac duydugu araclara erisir. Atama islemini agent duzenleme ekranindan veya Ayarlar sayfasindan gerceklestirebilirsiniz. Agentlar arasi gecis yaptiginizda, kullanilmayan MCP sunuculari otomatik olarak devre disi birakilir ve yalnizca aktif agentin ihtiyac duydugu sunucular baglanir.
+Agent duzenleme panelinden:
+
+- **MCP sunucusu atama** -- agente bagli MCP sunucusunun araclarini kullandirma
+- **Makro atama** -- agentin sohbet sirasinda calistirabilecegi tarayici otomasyonlarini ekleme
+- **Diger agentlari baglama** -- coklu agent orkestrasyonu icin arac olarak cagrilabilecek agentlari secme
+
+## Agent Dis/Ic Aktarim
+
+Agent yapilandirmalarini baskalarıyla **paylasabilir** veya yedekleyebilirsiniz:
+
+### Dis Aktarim (Export)
+
+Agent duzenleme panelinden **dis aktarim butonuna** tiklayarak agenti JSON dosyasi olarak indirin. Dis aktarim su bilgileri icerir:
+
+- Agent ismi, aciklamasi, sistem prompt'u, ikonu ve model parametreleri
+- Tum bagli agentlar (ozyinelemeli olarak)
+- Ozel MCP sunucu yapilandirmalari
+- Agente atanmis makro sunuculari ve araclari
+
+### Ic Aktarim (Import)
+
+Agent duzenleme panelinden **ic aktarim butonuna** tiklayip bir JSON dosyasi secin. izan.io:
+
+- Tum ayarlariyla birlikte agenti olusturur
+- Bagli agentlari ozyinelemeli olarak ic aktarir
+- Ozel MCP sunucu baglantilarini geri yukler
+- Makro sunucularini ve araclarini geri yukler
+
+## Agent Profil Sayfalari
+
+Her agentin, agent listesinden erisilebilen bir **profil sayfasi** vardir. Profilde sunlar gosterilir:
+
+- Agent ikonu, ismi ve aciklamasi
+- Sistem prompt'u
+- Atanmis araclar: yerlesik MCP'ler, ozel MCP'ler, makrolar ve bagli agentlar
+- Agentle sohbet baslatmak icin bir **Agent'i Kullan** butonu
+
+Ozel agentlar icin profilde ayrica "Kullanici Tarafindan Olusturuldu" etiketi gosterilir.

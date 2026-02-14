@@ -27,6 +27,4 @@ export default [
     route(":agentSlug", "routes/chat.tsx", { id: "routes/chat-agent" }),
   ]),
 
-  // Custom agent profile: client-only (custom agents live in IndexedDB, can't be prerendered)
-  route("agent/:agentSlug", "routes/custom-agent-profile.tsx"),
 ] satisfies RouteConfig;

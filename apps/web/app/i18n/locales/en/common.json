@@ -85,6 +85,9 @@
     "macrosTools": "macro(s)",
     "macrosSteps": "step(s)",
     "macrosParams": "param(s)",
+    "automationBrowserTitle": "Automation Browser",
+    "automationBrowserForeground": "Bring automation browser to front",
+    "automationBrowserForegroundDesc": "When enabled, the automation browser window will appear in the foreground instead of opening behind the current window.",
     "chatStorageTitle": "Chat Storage",
     "chatStorageDesc": "Your chats are stored locally on your device. Set limits to keep storage in check.",
     "chatMessageLimit": "Messages per chat",
@@ -141,6 +144,10 @@
     "agentComingSoon": "Coming Soon",
     "agentDomainTitle": "Domain Expert",
     "agentDomainDesc": "Creative domain name suggestions with instant availability checking. No API key required.",
+    "agentWebFetchTitle": "Web Fetch",
+    "agentWebFetchDesc": "Fetch any web page and read its content. Requires the browser extension.",
+    "agentPlayStoreTitle": "Play Store",
+    "agentPlayStoreDesc": "Search and analyze apps on Google Play Store. Requires the browser extension.",
     "agentMoreTitle": "And More on the Way...",
     "agentMoreDesc": "Trading, sports, news, shopping - new agents are always being built by us and the community.",
 
@@ -258,7 +265,8 @@
       "random_number": "Random number",
       "uuid": "UUID",
       "calculate": "Calculate",
-      "generate_password": "Password"
+      "generate_password": "Password",
+      "web_search": "Web Search"
     }
   },
   "provider": {
@@ -314,8 +322,8 @@
     "maxTokensDesc": "Maximum length of the response. Higher values allow longer answers but cost more. Leave empty for provider default.",
     "topP": "Top P",
     "topPDesc": "Nucleus sampling: only considers tokens in the top P probability mass. Lower = more focused. Range: 0–1.",
-    "maxIterations": "Max iterations",
-    "maxIterationsDesc": "Maximum tool-calling rounds per message. Higher values allow longer autonomous tasks. Range: 1–100.",
+    "maxIterations": "Max rounds",
+    "maxIterationsDesc": "Maximum LLM rounds per message. Each round is one LLM call - tool calls, text responses, and continuation nudges all count. Range: 1–100.",
     "useDefault": "Use default",
     "builtin": {
       "general": {
@@ -335,6 +343,42 @@
         "usageExample3": "Generate a secure 24-character password with symbols",
         "usageExample4": "Create 5 UUIDs for my database records",
         "usageExample5": "What's 18% tip on a $47.50 bill?"
+      },
+      "web-fetch": {
+        "name": "Web Fetch",
+        "description": "Web fetch assistant. Navigate to any web page and read its content.",
+        "detailedDescription": "Your go-to agent for reading web pages. The Web Fetch agent opens a real browser tab via the Chrome extension, navigates to any URL, and returns the full accessibility tree of the page. Perfect for reading articles, checking documentation, or extracting information from any website.",
+        "whatItDoes": "The Web Fetch agent uses the Chrome extension to open a browser tab, navigate to any URL, wait for the page to fully load, and return the complete accessibility tree. This gives you structured, readable content from any web page without CORS restrictions.",
+        "mcps": "Browser Extension (web_fetch)",
+        "feature1": "Fetch any web page - no CORS restrictions",
+        "feature2": "Full accessibility tree with semantic structure",
+        "feature3": "Real browser rendering via Chrome extension",
+        "feature4": "No API key required - uses your browser",
+        "howToUse": "Provide a URL and the agent will open it in a browser tab, wait for it to load, and return the page content as a structured accessibility tree. You can ask questions about the content or request specific pages.",
+        "proTip": "The agent opens real browser tabs - make sure the Chrome extension is installed and active for this agent to work.",
+        "usageExample1": "Fetch https://en.wikipedia.org/wiki/TypeScript",
+        "usageExample2": "What does the React documentation say about hooks?",
+        "usageExample3": "Read the content of this page: https://news.ycombinator.com",
+        "usageExample4": "Summarize the article at this URL",
+        "usageExample5": "What information is on this page?"
+      },
+      "play-store": {
+        "name": "Play Store",
+        "description": "Search and analyze apps on Google Play Store using browser automation.",
+        "detailedDescription": "Your Play Store research assistant. This agent uses browser automation macros to search the Google Play Store and fetch detailed app information. It can find apps by name, category, or description and retrieve download counts, ratings, and app details.",
+        "whatItDoes": "The Play Store agent uses pre-built browser automation macros via the Chrome extension to navigate Google Play Store pages. It can search for apps and scrape detailed information including descriptions, download stats, ratings, and more.",
+        "mcps": "Browser Extension (automation macros)",
+        "feature1": "Search apps by name, category, or description",
+        "feature2": "Fetch detailed app info including ratings and downloads",
+        "feature3": "Automated browsing via Chrome extension macros",
+        "feature4": "No API key required - uses browser automation",
+        "howToUse": "Ask about any app or search the Play Store. The agent will use browser automation to navigate to Google Play Store, search for apps, and extract detailed information. Results include app names, descriptions, download counts, and ratings.",
+        "proTip": "Make sure the Chrome extension is installed. You can search by app name or browse by category. For detailed info, provide the app package ID (e.g. com.example.app).",
+        "usageExample1": "Search for weather apps on Play Store",
+        "usageExample2": "Get details about the WhatsApp app",
+        "usageExample3": "Find the top productivity apps",
+        "usageExample4": "What are the best note-taking apps?",
+        "usageExample5": "Look up com.spotify.music on Play Store"
       }
     },
     "enabled": "Enabled",
@@ -451,6 +495,6 @@
     "notifyEnabled": "Will notify",
     "notificationDone": "Task completed: {{title}}",
     "notificationFailed": "Task failed: {{title}}",
-    "stepProgress": "Step {{current}}/{{total}}"
+    "stepProgress": "Step {{current}}"
   }
 }

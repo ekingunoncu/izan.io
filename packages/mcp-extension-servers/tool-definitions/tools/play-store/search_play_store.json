@@ -1,0 +1,112 @@
+{
+  "id": "builtin-play-store-search",
+  "name": "search_play_store",
+  "displayName": "search play store",
+  "description": "searches app on play store with app name or description or category",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "description": "the key to search (app name or description or category)",
+      "name": "q",
+      "required": true,
+      "source": "urlParam",
+      "sourceKey": "q",
+      "type": "string"
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://play.google.com/store/search",
+      "urlParams": {
+        "c": "apps",
+        "q": "{{q}}"
+      }
+    },
+    {
+      "action": "extract",
+      "containerSelector": "[role=\"link\"], a",
+      "extractionMethod": "role",
+      "fields": [
+        {
+          "key": "text",
+          "selector": "*",
+          "type": "text"
+        },
+        {
+          "attribute": "href",
+          "key": "href",
+          "selector": "*",
+          "type": "attribute"
+        },
+        {
+          "key": "link_text",
+          "selector": "*",
+          "type": "text"
+        },
+        {
+          "attribute": "href",
+          "key": "link",
+          "selector": "*",
+          "type": "attribute"
+        },
+        {
+          "key": "google_logo_play",
+          "selector": "span",
+          "type": "text"
+        }
+      ],
+      "itemCount": 45,
+      "label": "45 items - 5 fields (list)",
+      "mode": "list",
+      "name": "link",
+      "roleIncludeChildren": true,
+      "roles": [
+        "link"
+      ]
+    },
+    {
+      "action": "forEachItem",
+      "concurrency": 5,
+      "detailSteps": [
+        {
+          "action": "wait",
+          "ms": 500
+        },
+        {
+          "action": "extract",
+          "containerSelector": "",
+          "extractionMethod": "neighbors",
+          "fields": [
+            {
+              "key": "tree",
+              "selector": "",
+              "type": "text"
+            }
+          ],
+          "label": "Extract neighbors of \"Downloads\"",
+          "mode": "single",
+          "name": "neighbors_of_downloads",
+          "neighborCount": 5,
+          "neighborDirection": "both",
+          "neighborIncludeChildren": true,
+          "neighborMatchMode": "contains",
+          "neighborTargetName": "\"Downloads\", \"İndirme\", \"Herunterladen\", \"Téléchargements\", \"Descargas\", \"Downloads\", \"Download\", \"Downloads\", \"Pobrane\", \"Загрузки\", \"Завантаження\", \"التنزيلات\", \"دانلودها\", \"डाउनलोड\", \"ডাউনলোড\", \"下载\", \"下載\", \"ダウンロード\", \"다운로드\", \"ดาวน์โหลด\", \"Tải xuống\", \"Unduhan\", \"Muat turun\", \"Mga Download\", \"Vipakuliwa\""
+        }
+      ],
+      "filters": [
+        {
+          "field": "href",
+          "op": "contains",
+          "value": "/store/apps/details"
+        }
+      ],
+      "label": "For each item in link",
+      "maxItems": 0,
+      "openMethod": "url",
+      "sourceExtract": "link",
+      "urlField": "href",
+      "waitUntil": "load"
+    }
+  ]
+}

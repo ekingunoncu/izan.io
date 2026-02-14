@@ -162,6 +162,20 @@ export function requestAutomationData(): void {
   )
 }
 
+// ─── Preference Sync ─────────────────────────────────────────────────────────
+
+/**
+ * Send a preference value to the extension via postMessage.
+ * The content script (ISOLATED world) listens and stores in chrome.storage.local.
+ */
+export function sendPreferenceToExtension(key: string, value: unknown): void {
+  if (globalThis.window === undefined) return
+  window.postMessage(
+    { source: 'izan-page', channel: 'set-preference', key, value },
+    '*',
+  )
+}
+
 // ─── Recording ───────────────────────────────────────────────────────────────
 
 /**

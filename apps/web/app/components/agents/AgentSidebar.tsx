@@ -65,12 +65,23 @@ function getTaskStatusIcon(status?: string): { Icon: typeof MessageSquare; iconC
   return { Icon: MessageSquare, iconClass: 'text-muted-foreground' }
 }
 
-function ChatItem({ chat, isSelected, onSelect, onDelete, taskStatus }: {
+function formatTokens(n: number): string {
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M'
+  if (n >= 1_000) return (n / 1_000).toFixed(1) + 'K'
+  return String(n)
+}
+
+function formatCost(v: number): string {
+  return `$${v < 0.01 ? v.toFixed(4) : v.toFixed(2)}`
+}
+
+function ChatItem({ chat, isSelected, onSelect, onDelete, taskStatus, usage }: {
   chat: Chat
   isSelected: boolean
   onSelect: () => void
   onDelete: () => void
   taskStatus?: { status: string; currentStep: number; totalSteps: number }
+  usage?: { tokens: number; cost: number }
 }) {
   const { t } = useTranslation('common')
 
@@ -93,6 +104,11 @@ function ChatItem({ chat, isSelected, onSelect, onDelete, taskStatus }: {
         {stepLabel && (
           <span className="text-[10px] text-amber-600 dark:text-amber-400">{stepLabel}</span>
         )}
+        {usage && usage.tokens > 0 && (
+          <span className="text-[10px] text-muted-foreground">
+            {formatTokens(usage.tokens)} tokens · {formatCost(usage.cost)}
+          </span>
+        )}
       </div>
       <Button
         variant="ghost"
@@ -112,7 +128,7 @@ function ChatItem({ chat, isSelected, onSelect, onDelete, taskStatus }: {
 export function AgentSidebar() {
   const { t } = useTranslation('common')
   const { currentAgentId, currentAgent, initialize: initAgent } = useAgentStore()
-  const { chats, currentChatId, loadChats, createChat, selectChat, deleteChat, backgroundTasks, clearTaskStatus } = useChatStore()
+  const { chats, currentChatId, loadChats, createChat, selectChat, deleteChat, backgroundTasks, clearTaskStatus, chatUsage } = useChatStore()
   const {
     isSidebarCollapsed,
     setSidebarCollapsed,
@@ -284,6 +300,7 @@ export function AgentSidebar() {
                 onSelect={() => handleChatSelect(chat.id)}
                 onDelete={() => handleChatDelete(chat.id)}
                 taskStatus={backgroundTasks[chat.id]}
+                usage={chatUsage[chat.id]}
               />
             ))
           )}

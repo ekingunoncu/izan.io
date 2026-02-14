@@ -213,6 +213,66 @@
   </url>
 
   <url>
+    <loc>https://izan.io/tr/agents/play-store</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/agents/play-store" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/agents/play-store" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/agents/play-store" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/agents/play-store" />
+    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://izan.io/en/agents/play-store</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/agents/play-store" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/agents/play-store" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/agents/play-store" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/agents/play-store" />
+    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://izan.io/de/agents/play-store</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/agents/play-store" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/agents/play-store" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/agents/play-store" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/agents/play-store" />
+    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://izan.io/tr/agents/web-fetch</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/agents/web-fetch" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/agents/web-fetch" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/agents/web-fetch" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/agents/web-fetch" />
+    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://izan.io/en/agents/web-fetch</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/agents/web-fetch" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/agents/web-fetch" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/agents/web-fetch" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/agents/web-fetch" />
+    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://izan.io/de/agents/web-fetch</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/agents/web-fetch" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/agents/web-fetch" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/agents/web-fetch" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/agents/web-fetch" />
+    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
     <loc>https://izan.io/tr/docs/getting-started</loc>
     <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/docs/getting-started" />
     <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/docs/getting-started" />

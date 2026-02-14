@@ -6,7 +6,11 @@ import {
   Bot,
   Search,
   Code,
+  Calendar,
+  Mail,
+  Database,
   Globe,
+  FileText,
   MessageSquare,
   Settings,
   Zap,
@@ -17,6 +21,10 @@ import {
   Sparkles,
   TrendingUp,
   Puzzle,
+  Shield,
+  Server,
+  Cog,
+  Link2,
 } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { IzanLogo } from "~/components/ui/izan-logo";
@@ -41,15 +49,23 @@ import {
 } from "~/lib/agent-display";
 import { BUILTIN_AGENT_DEFINITIONS } from "@izan/agents";
 import { DEFAULT_MCP_SERVERS } from "~/lib/mcp/config";
+import { useAutomationStore } from "~/store/automation.store";
 import type { Route } from "./+types/agent-detail";
 
 const AGENT_ICONS: Record<string, typeof Bot> = {
   bot: Bot,
   search: Search,
   code: Code,
+  calendar: Calendar,
+  mail: Mail,
+  database: Database,
   globe: Globe,
+  "file-text": FileText,
   "message-square": MessageSquare,
   zap: Zap,
+  shield: Shield,
+  lightbulb: Lightbulb,
+  puzzle: Puzzle,
   "trending-up": TrendingUp,
 };
 
@@ -70,6 +86,23 @@ export function loader({ params }: Route.LoaderArgs) {
   return { agent };
 }
 
+/** clientLoader: falls back to IndexedDB for custom agents */
+export async function clientLoader({ params, serverLoader }: Route.ClientLoaderArgs) {
+  const serverData = await serverLoader();
+  if (serverData.agent) return serverData; // Builtin: use prerendered data
+
+  // Custom agent: query IndexedDB
+  await initializeDatabase();
+  const { useAgentStore } = await import("~/store");
+  await useAgentStore.getState().initialize();
+  const agents = useAgentStore.getState().agents;
+  const agent = params.agentSlug
+    ? agents.find((a) => a.slug === params.agentSlug || a.id === params.agentSlug) ?? null
+    : null;
+  return { agent };
+}
+clientLoader.hydrate = true as const;
+
 export function meta({ params }: Route.MetaArgs) {
   return [
     { title: `${params.agentSlug || "Agent"} - izan.io` },
@@ -88,14 +121,17 @@ export default function AgentDetail() {
     getAgentSlug,
     isInitialized,
   } = useAgentStore();
-  // Direct selector — ensures re-render when agents array changes (custom agents from IndexedDB)
+  // Direct selector - ensures re-render when agents array changes (custom agents from IndexedDB)
   const storeAgent = useAgentStore((s) =>
     agentSlug
       ? s.agents.find((a) => a.slug === agentSlug || a.id === agentSlug) ?? null
       : null
   );
+  const allAgents = useAgentStore((s) => s.agents);
   const { initialize: initMCP } = useMCPStore();
   const isExtensionInstalled = useMCPStore((s) => s.isExtensionInstalled);
+  const { userServers } = useMCPStore();
+  const automationServers = useAutomationStore((s) => s.servers);
 
   useEffect(() => {
     const init = async () => {
@@ -149,6 +185,7 @@ export default function AgentDetail() {
     );
   }
 
+  const isCustomAgent = agent.source === "user";
   const Icon = AGENT_ICONS[agent.icon] || Bot;
   const iconColor = AGENT_COLORS[agent.id] || "bg-primary/10 text-primary";
   const detailedDescription = getAgentDetailedDescription(agent, t);
@@ -165,6 +202,20 @@ export default function AgentDetail() {
   const mcpServers = mcpIds
     .map((id) => DEFAULT_MCP_SERVERS.find((s) => s.id === id))
     .filter(Boolean);
+
+  // Custom agent specific data
+  const builtinMcps = isCustomAgent
+    ? agent.implicitMCPIds.map((id) => DEFAULT_MCP_SERVERS.find((s) => s.id === id)).filter(Boolean)
+    : [];
+  const customMcps = isCustomAgent
+    ? agent.customMCPIds.map((id) => userServers.find((s) => s.id === id)).filter(Boolean)
+    : [];
+  const macros = isCustomAgent
+    ? (agent.automationServerIds ?? []).map((id) => automationServers.find((s) => s.id === id)).filter(Boolean)
+    : [];
+  const linkedAgents = isCustomAgent
+    ? agent.linkedAgentIds.map((id) => allAgents.find((a) => a.id === id)).filter(Boolean)
+    : [];
 
   return (
     <div className="min-h-screen bg-background">
@@ -220,9 +271,16 @@ export default function AgentDetail() {
                 <Icon className="h-10 w-10 sm:h-12 sm:w-12" />
               </div>
               <div className="flex-1 min-w-0 pt-1">
-                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight mb-2">
-                  {getAgentDisplayName(agent, t)}
-                </h1>
+                <div className="flex items-center gap-2 mb-2">
+                  <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight">
+                    {getAgentDisplayName(agent, t)}
+                  </h1>
+                  {isCustomAgent && (
+                    <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full">
+                      {t("agents.userCreated")}
+                    </span>
+                  )}
+                </div>
                 <p className="text-base sm:text-lg text-muted-foreground">
                   {getAgentDisplayDescription(agent, t)}
                 </p>
@@ -255,7 +313,7 @@ export default function AgentDetail() {
             </section>
           )}
 
-          {/* About This Agent */}
+          {/* About This Agent (builtin) */}
           {detailedDescription && (
             <section className="mb-8">
               <Card className="border-2">
@@ -268,6 +326,25 @@ export default function AgentDetail() {
                 <CardContent>
                   <p className="text-muted-foreground leading-relaxed">
                     {detailedDescription}
+                  </p>
+                </CardContent>
+              </Card>
+            </section>
+          )}
+
+          {/* System Prompt (custom agents) */}
+          {isCustomAgent && agent.basePrompt && (
+            <section className="mb-8">
+              <Card className="border-2">
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Bot className="h-5 w-5 text-primary" />
+                    {t("agents.basePrompt")}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap line-clamp-6">
+                    {agent.basePrompt}
                   </p>
                 </CardContent>
               </Card>
@@ -384,8 +461,43 @@ export default function AgentDetail() {
             </section>
           )}
 
-          {/* Powered By (MCPs) */}
-          {(mcps || mcpServers.length > 0) && (
+          {/* MCPs & Tools (custom agents: enhanced view) */}
+          {isCustomAgent && (builtinMcps.length > 0 || customMcps.length > 0 || macros.length > 0) && (
+            <section className="mb-8">
+              <Card className="border-2">
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Zap className="h-5 w-5 text-primary" />
+                    {t("agents.detail.mcpsUsed")}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {builtinMcps.map((s) => (
+                    <div key={s!.id} className="flex items-center gap-2 text-sm">
+                      <Server className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span>{s!.name}</span>
+                    </div>
+                  ))}
+                  {customMcps.map((s) => (
+                    <div key={s!.id} className="flex items-center gap-2 text-sm">
+                      <Server className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span>{s!.name}</span>
+                      <span className="text-xs text-muted-foreground">({s!.url})</span>
+                    </div>
+                  ))}
+                  {macros.map((s) => (
+                    <div key={s!.id} className="flex items-center gap-2 text-sm">
+                      <Cog className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span>{s!.name}</span>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            </section>
+          )}
+
+          {/* Powered By (builtin agents) */}
+          {!isCustomAgent && (mcps || mcpServers.length > 0) && (
             <section className="mb-8">
               <Card className="border-2">
                 <CardHeader className="pb-2">
@@ -399,6 +511,73 @@ export default function AgentDetail() {
                     {mcps ||
                       mcpServers.map((s) => s?.name).filter(Boolean).join(", ")}
                   </p>
+                </CardContent>
+              </Card>
+            </section>
+          )}
+
+          {/* Linked Agents (custom agents) */}
+          {isCustomAgent && linkedAgents.length > 0 && (
+            <section className="mb-8">
+              <Card className="border-2">
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Link2 className="h-5 w-5 text-primary" />
+                    {t("agents.linkedAgents")}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {linkedAgents.map((la) => {
+                    const LAIcon = AGENT_ICONS[la!.icon] || Bot;
+                    return (
+                      <div key={la!.id} className="flex items-center gap-2 text-sm">
+                        <LAIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span>{getAgentDisplayName(la!, t)}</span>
+                      </div>
+                    );
+                  })}
+                </CardContent>
+              </Card>
+            </section>
+          )}
+
+          {/* Model Parameters (custom agents) */}
+          {isCustomAgent && (agent.temperature != null || agent.maxTokens != null || agent.topP != null || agent.maxIterations != null) && (
+            <section className="mb-8">
+              <Card className="border-2">
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Settings className="h-5 w-5 text-primary" />
+                    {t("agents.modelParams")}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+                    {agent.temperature != null && (
+                      <div>
+                        <p className="text-muted-foreground">{t("agents.temperature")}</p>
+                        <p className="font-medium">{agent.temperature}</p>
+                      </div>
+                    )}
+                    {agent.maxTokens != null && (
+                      <div>
+                        <p className="text-muted-foreground">{t("agents.maxTokens")}</p>
+                        <p className="font-medium">{agent.maxTokens.toLocaleString()}</p>
+                      </div>
+                    )}
+                    {agent.topP != null && (
+                      <div>
+                        <p className="text-muted-foreground">{t("agents.topP")}</p>
+                        <p className="font-medium">{agent.topP}</p>
+                      </div>
+                    )}
+                    {agent.maxIterations != null && (
+                      <div>
+                        <p className="text-muted-foreground">{t("agents.maxIterations")}</p>
+                        <p className="font-medium">{agent.maxIterations}</p>
+                      </div>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             </section>

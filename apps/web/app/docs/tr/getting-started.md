@@ -25,3 +25,5 @@ Hemen denemek icin ucretli bir API anahtarina ihtiyaciniz yok. Su saglayicilar u
 - **Makrolar**: Chrome eklentisi ile kaydedilen tarayici otomasyon makrolari
 - **Ozel Agentlar**: Kendi sistem prompt'unuz, model parametreleriniz ve arac atamalarinizla ozellestirilmis agentlar
 - **Coklu Agent Orkestrasyonu**: Agentlari birbirine baglayarak karmasik gorevleri cozme
+- **Analitik**: Model, agent ve sohbet bazinda token kullanimi ve maliyet takibi
+- **Agent Dis/Ic Aktarim**: Agent yapilandirmalarini JSON dosyasi olarak paylasma

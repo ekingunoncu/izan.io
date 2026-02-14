@@ -29,3 +29,5 @@ You can get started without spending anything. Several providers offer generous 
 - **MCP Servers** -- connect any MCP-compatible tool server to expand agent capabilities
 - **Macros** -- record browser automations and let agents execute them
 - **Custom Agents** -- create your own agents with tailored instructions, model settings, and tool assignments
+- **Analytics** -- track token usage and costs per model, agent, and conversation
+- **Agent Export/Import** -- share agent configurations as JSON files

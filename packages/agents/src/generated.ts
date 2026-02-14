@@ -2,8 +2,10 @@
 
 import { definition as general } from '../general/definition.js'
 import { definition as domain_expert } from '../domain-expert/definition.js'
+import { definition as play_store } from '../play-store/definition.js'
+import { definition as web_fetch } from '../web-fetch/definition.js'
 
-export const BUILTIN_AGENT_DEFINITIONS = [general, domain_expert]
+export const BUILTIN_AGENT_DEFINITIONS = [general, domain_expert, play_store, web_fetch]
 
 export const IMPLICIT_AGENT_SERVERS: Record<string, string[]> = Object.fromEntries(
   BUILTIN_AGENT_DEFINITIONS.map((a) => [a.id, a.implicitMCPIds])

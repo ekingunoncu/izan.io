@@ -22,6 +22,9 @@ export interface IStorageService {
   clearAllChats(): Promise<void>
   clearAgentChats(agentId: string): Promise<void>
 
+  // Usage analytics
+  getUsageByChatIds(chatIds: string[]): Promise<Record<string, { tokens: number; cost: number }>>
+
   // Preferences operations
   getPreferences(): Promise<UserPreferences>
   updatePreferences(updates: Partial<UserPreferences>): Promise<void>

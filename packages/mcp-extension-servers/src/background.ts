@@ -534,7 +534,19 @@ type P = Record<string, unknown>
 async function handleOpen(p: P): Promise<R> {
   const url = p.url as string
   const viewport = p.viewport as { width: number; height: number } | undefined
-  const background = p.background !== false // default true for backward compat
+  // Read user preference for foreground/background from chrome.storage
+  let background: boolean
+  if (p.background !== undefined) {
+    background = p.background !== false
+  } else {
+    // No explicit param — check user preference
+    try {
+      const result = await chrome.storage.local.get('izan_pref_automationBrowserForeground')
+      background = !result.izan_pref_automationBrowserForeground
+    } catch {
+      background = true // default: background
+    }
+  }
   // Use a small physical window; actual viewport is emulated via CDP
   const opts = { width: 400, height: 300 }
   const laneId = getLaneId(p)
