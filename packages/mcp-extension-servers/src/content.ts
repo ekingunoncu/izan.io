@@ -58,6 +58,20 @@ function announceDisconnect(): void {
   console.log('[izan-ext] Disconnected from web app')
 }
 
+// ─── Debounced dynamic-server restart ─────────────────────────────────────────
+
+let restartTimer: ReturnType<typeof setTimeout> | null = null
+const RESTART_DEBOUNCE_MS = 300
+
+function debouncedRestartDynamic(): void {
+  if (restartTimer) clearTimeout(restartTimer)
+  restartTimer = setTimeout(async () => {
+    restartTimer = null
+    await stopDynamicServer()
+    await startDynamicServer()
+  }, RESTART_DEBOUNCE_MS)
+}
+
 // ─── Lifecycle ────────────────────────────────────────────────────────────────
 
 async function bootstrap(): Promise<void> {
@@ -83,12 +97,9 @@ async function bootstrap(): Promise<void> {
         const needsRestart = loadToolDefinitions(tools as ToolDefinition[])
         console.log(`[izan-ext] Synced ${tools.length} tool definition(s), needsRestart=${needsRestart}`)
         if (needsRestart) {
-          // Restart dynamic server to register new tools, then re-announce
-          void (async () => {
-            await stopDynamicServer()
-            await startDynamicServer()
-            announceServers()
-          })()
+          // Debounced restart: multiple sync/add events within 300ms are coalesced
+          // into a single restart. Do NOT announce - the web app will reconnect ext-dynamic itself.
+          debouncedRestartDynamic()
         }
       } catch (err) {
         console.error('[izan-ext] Failed to sync tool definitions:', err)
@@ -103,11 +114,8 @@ async function bootstrap(): Promise<void> {
         const needsRestart = addToolDefinition(tool as ToolDefinition)
         console.log(`[izan-ext] Added tool: ${tool.name}, needsRestart=${needsRestart}`)
         if (needsRestart) {
-          void (async () => {
-            await stopDynamicServer()
-            await startDynamicServer()
-            announceServers()
-          })()
+          // Debounced restart: coalesced with other sync/add events within 300ms.
+          debouncedRestartDynamic()
         }
       } catch (err) {
         console.error('[izan-ext] Failed to add tool:', err)

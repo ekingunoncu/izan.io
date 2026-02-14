@@ -46,7 +46,7 @@ interface AutomationState {
 
 interface AutomationActions {
   // ─── Initialization ───────────────────────────────────────────
-  initialize: () => Promise<void>
+  initialize: (opts?: { skipExtensionSync?: boolean }) => Promise<void>
 
   // ─── Server CRUD ──────────────────────────────────────────────
   createServer: (name: string, description: string, category?: string) => Promise<AutomationServer>
@@ -161,7 +161,7 @@ export const useAutomationStore = create<AutomationStore>((set, get) => ({
 
   // ─── Initialization ────────────────────────────────────────────
 
-  initialize: async () => {
+  initialize: async (opts?: { skipExtensionSync?: boolean }) => {
     if (get().initialized) return
 
     try {
@@ -204,8 +204,8 @@ export const useAutomationStore = create<AutomationStore>((set, get) => ({
         unsubComplete?.()
       })
 
-      // Sync existing tools to extension if available
-      if (isExtensionAvailable() && tools.length > 0) {
+      // Sync existing tools to extension if available (unless caller will do its own sync)
+      if (!opts?.skipExtensionSync && isExtensionAvailable() && tools.length > 0) {
         get().syncToExtension()
       }
     } catch (err) {

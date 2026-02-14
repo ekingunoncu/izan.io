@@ -324,11 +324,47 @@ export const useMCPStore = create<MCPState>((set, get) => ({
     // Wait for browser servers and removals together
     await Promise.all([...browserServerOps, ...removeOps])
 
-    // Connect servers that are needed but not yet connected - in parallel
     if (typeof window !== 'undefined' && import.meta.env?.DEV) {
       console.log('[mcp] activateAgentMCPs:', agent.id, 'neededIds:', [...neededIds])
     }
     const { extensionServers: extServers, isExtensionInstalled } = get()
+
+    // Sync automation tool definitions BEFORE connecting ext-dynamic.
+    // This gives the extension time to restart the dynamic server with the new tools,
+    // so when the MCP client connects it gets the correct tool list immediately.
+    // (The extension does NOT announce after tool-sync restarts to avoid infinite loops.)
+    if (neededIds.has('ext-dynamic') && isExtensionInstalled) {
+      try {
+        const { useAutomationStore } = await import('~/store/automation.store')
+        const autoStore = useAutomationStore.getState()
+        if (!autoStore.initialized) await autoStore.initialize({ skipExtensionSync: true })
+
+        const userToolDefs = autoStore.getToolDefinitionsForExtension()
+
+        let prebuiltToolDefs: unknown[] = []
+        if (automationServerIds.length > 0) {
+          try {
+            const { fetchRemoteToolDefinitions } = await import('~/lib/mcp/remote-tools')
+            prebuiltToolDefs = await fetchRemoteToolDefinitions(automationServerIds)
+          } catch {
+            // ignore - pre-built tools are optional
+          }
+        }
+
+        const { syncToolDefinitions, syncAutomationToExtension } = await import('~/lib/mcp/extension-bridge')
+        syncToolDefinitions([...userToolDefs, ...prebuiltToolDefs])
+        syncAutomationToExtension(autoStore.servers, autoStore.tools)
+
+        // Brief wait for the extension to (debounced) restart the dynamic server with new tools
+        await new Promise(resolve => setTimeout(resolve, 400))
+      } catch (err) {
+        if (typeof window !== 'undefined' && import.meta.env?.DEV) {
+          console.warn('[mcp] Failed to sync automation tools to extension:', err)
+        }
+      }
+    }
+
+    // Connect servers that are needed but not yet connected - in parallel
     const connectOps: Promise<void>[] = []
 
     for (const sid of neededIds) {
@@ -386,22 +422,7 @@ export const useMCPStore = create<MCPState>((set, get) => ({
 
     await Promise.all(connectOps)
 
-    // If ext-dynamic is connected and extension is available, sync automation tool definitions
-    if (neededIds.has('ext-dynamic') && get().isExtensionInstalled) {
-      try {
-        const { useAutomationStore } = await import('~/store/automation.store')
-        const autoStore = useAutomationStore.getState()
-        if (!autoStore.initialized) await autoStore.initialize()
-        autoStore.syncToExtension()
-      } catch (err) {
-        if (typeof window !== 'undefined' && import.meta.env?.DEV) {
-          console.warn('[mcp] Failed to sync automation tools to extension:', err)
-        }
-      }
-    }
-
     // Fetch remote tool definitions for pre-built extension servers from S3.
-    // User-created automation tools (ext-user-*) are already synced via syncToExtension() above.
     if (get().isExtensionInstalled) {
       const remoteServerIds = [...neededIds].filter(id =>
         id.startsWith('ext-') && id !== 'ext-dynamic' && !id.startsWith('ext-user-') && !registry.getServer(id)
@@ -417,24 +438,6 @@ export const useMCPStore = create<MCPState>((set, get) => ({
         } catch (err) {
           if (typeof window !== 'undefined' && import.meta.env?.DEV) {
             console.warn('[mcp] Failed to fetch remote tool definitions:', err)
-          }
-        }
-      }
-
-      // Fetch pre-built automation tools for automationServerIds (e.g. play-store)
-      if (automationServerIds.length > 0) {
-        try {
-          const { fetchRemoteToolDefinitions } = await import('~/lib/mcp/remote-tools')
-          const tools = await fetchRemoteToolDefinitions(automationServerIds)
-          if (tools.length > 0) {
-            const { notifyToolAdded } = await import('~/lib/mcp/extension-bridge')
-            for (const tool of tools) {
-              notifyToolAdded(tool)
-            }
-          }
-        } catch (err) {
-          if (typeof window !== 'undefined' && import.meta.env?.DEV) {
-            console.warn('[mcp] Failed to fetch pre-built automation tools:', err)
           }
         }
       }
@@ -485,8 +488,37 @@ export const useMCPStore = create<MCPState>((set, get) => ({
     if (neededIds.has('domain-check-client')) browserServerOps.push(ensureDomainCheckServer())
     await Promise.all(browserServerOps)
 
-    // Connect servers that are needed but not yet connected (never remove)
+    // Sync automation tools BEFORE connecting ext-dynamic (same as activateAgentMCPs)
     const { extensionServers: extServers } = get()
+    if (neededIds.has('ext-dynamic') && get().isExtensionInstalled) {
+      try {
+        const { useAutomationStore } = await import('~/store/automation.store')
+        const autoStore = useAutomationStore.getState()
+        if (!autoStore.initialized) await autoStore.initialize({ skipExtensionSync: true })
+
+        const userToolDefs = autoStore.getToolDefinitionsForExtension()
+
+        let prebuiltToolDefs: unknown[] = []
+        if (automationServerIds.length > 0) {
+          try {
+            const { fetchRemoteToolDefinitions } = await import('~/lib/mcp/remote-tools')
+            prebuiltToolDefs = await fetchRemoteToolDefinitions(automationServerIds)
+          } catch {
+            // ignore
+          }
+        }
+
+        const { syncToolDefinitions, syncAutomationToExtension } = await import('~/lib/mcp/extension-bridge')
+        syncToolDefinitions([...userToolDefs, ...prebuiltToolDefs])
+        syncAutomationToExtension(autoStore.servers, autoStore.tools)
+
+        await new Promise(resolve => setTimeout(resolve, 400))
+      } catch {
+        // ignore
+      }
+    }
+
+    // Connect servers that are needed but not yet connected (never remove)
     const connectOps: Promise<void>[] = []
 
     for (const sid of neededIds) {
@@ -529,34 +561,6 @@ export const useMCPStore = create<MCPState>((set, get) => ({
     }
 
     await Promise.all(connectOps)
-
-    // Sync automation tools if needed
-    if (neededIds.has('ext-dynamic') && get().isExtensionInstalled) {
-      try {
-        const { useAutomationStore } = await import('~/store/automation.store')
-        const autoStore = useAutomationStore.getState()
-        if (!autoStore.initialized) await autoStore.initialize()
-        autoStore.syncToExtension()
-      } catch {
-        // ignore
-      }
-
-      // Fetch pre-built automation tools for automationServerIds
-      if (automationServerIds.length > 0) {
-        try {
-          const { fetchRemoteToolDefinitions } = await import('~/lib/mcp/remote-tools')
-          const tools = await fetchRemoteToolDefinitions(automationServerIds)
-          if (tools.length > 0) {
-            const { notifyToolAdded } = await import('~/lib/mcp/extension-bridge')
-            for (const tool of tools) {
-              notifyToolAdded(tool)
-            }
-          }
-        } catch {
-          // ignore
-        }
-      }
-    }
 
     // Update servers snapshot (don't touch activeServerIds - parent's state stays intact)
     set({ servers: registry.getServers() })

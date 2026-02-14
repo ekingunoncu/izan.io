@@ -84,6 +84,9 @@ export class IzanMCPClient {
     }
 
     this.client.onerror = (error) => {
+      // Suppress benign "unknown message ID" errors from transport changes
+      const msg = error instanceof Error ? error.message : String(error)
+      if (msg.includes('unknown message ID')) return
       console.error(`[izan-mcp] Client error (${this._serverId}):`, error)
     }
 
