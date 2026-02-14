@@ -55,6 +55,8 @@ export function meta({ params }: Route.MetaArgs) {
     { property: "og:description", content: descriptions[lang] || descriptions.tr },
     { property: "og:type", content: "website" },
     { property: "og:url", content: `${SITE_URL}/${lang}/terms` },
+    { name: "twitter:title", content: `izan.io - ${titles[lang] || titles.tr}` },
+    { name: "twitter:description", content: descriptions[lang] || descriptions.tr },
     { tagName: "link" as const, rel: "canonical", href: `${SITE_URL}/${lang}/terms` },
     ...alternates,
     {

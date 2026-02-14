@@ -66,6 +66,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
         />
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <link rel="apple-touch-icon" href="/favicon.svg" />
+        <meta property="og:site_name" content="izan.io" />
+        <meta property="og:image" content="https://izan.io/og-image.png" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:image" content="https://izan.io/og-image.png" />
         <Meta />
         <Links />
         <script

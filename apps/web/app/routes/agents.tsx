@@ -72,6 +72,8 @@ export function meta({ params }: Route.MetaArgs) {
     { property: "og:title", content: titles[lang] || titles.tr },
     { property: "og:description", content: descriptions[lang] || descriptions.tr },
     { property: "og:url", content: `https://izan.io/${lang}/agents` },
+    { name: "twitter:title", content: titles[lang] || titles.tr },
+    { name: "twitter:description", content: descriptions[lang] || descriptions.tr },
   ];
 }
 
