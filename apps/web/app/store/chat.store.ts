@@ -269,6 +269,9 @@ async function runToolCallingLoop(
         tool_calls: result.toolCalls,
       })
 
+      // Deduplicate: if the same tool+args appear multiple times, execute once and reuse result
+      const dedupeCache = new Map<string, string>()
+
       for (const tc of result.toolCalls) {
         if (isAborted()) break
 
@@ -288,6 +291,14 @@ async function runToolCallingLoop(
           statusParts.join('\n') + '\n\n⏳ ' + (isLinkedAgent ? i18n.t('chat.agentResponding') : i18n.t('chat.toolRunning')),
         )
 
+        // Check dedupe cache: skip re-execution for identical tool+args
+        const dedupeKey = `${fnName}::${JSON.stringify(fnArgs)}`
+        const cached = dedupeCache.get(dedupeKey)
+        if (cached !== undefined) {
+          chatMessages.push({ role: 'tool', content: cached, tool_call_id: tc.id })
+          continue
+        }
+
         // For linked agents, stream their response to the UI in real-time (with markers for collapsible UI)
         const statusPrefix = statusParts.join('\n') + '\n'
         let linkedAgentStreamed = ''
@@ -297,6 +308,7 @@ async function runToolCallingLoop(
         } : undefined
 
         const toolResultText = await executeToolCall(fnName, fnArgs, mcpTools, mcpStore, onLinkedAgentChunk)
+        dedupeCache.set(dedupeKey, toolResultText)
 
         // Keep linked agent's response visible in the message (wrapped in markers for collapsible UI)
         if (isLinkedAgent && toolResultText) {
@@ -316,7 +328,9 @@ async function runToolCallingLoop(
 
     // Model gave a text response with no tool calls
     // Continuation check: if this is a long task (3+ rounds done), nudge the model to keep using tools
-    if (rounds >= 3 && consecutiveTextRounds < MAX_CONSECUTIVE_TEXT && totalNudgesSent < MAX_TOTAL_NUDGES && rounds < getMaxRounds()) {
+    // Skip nudging when extension/automation tools are involved - they open browser tabs and are expensive
+    const hasExtensionTools = mcpTools.some(t => t.serverId.startsWith('ext-'))
+    if (!hasExtensionTools && rounds >= 3 && consecutiveTextRounds < MAX_CONSECUTIVE_TEXT && totalNudgesSent < MAX_TOTAL_NUDGES && rounds < getMaxRounds()) {
       consecutiveTextRounds++
       totalNudgesSent++
 

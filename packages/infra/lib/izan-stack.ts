@@ -133,6 +133,26 @@ export class IzanStack extends cdk.Stack {
       originRequestPolicy:
         cloudfront.OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER,
     }
+    // Extension downloads: always serve fresh (no content hash in filename)
+    mcpBehaviors['/downloads/*'] = {
+      origin: s3Origin,
+      viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+      cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
+      allowedMethods: cloudfront.AllowedMethods.ALLOW_GET_HEAD,
+    }
+    // MCP tool definitions: always serve fresh (manifest.json has no content hash)
+    mcpBehaviors['/mcp-tools/*'] = {
+      origin: s3Origin,
+      viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+      cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
+      allowedMethods: cloudfront.AllowedMethods.ALLOW_GET_HEAD,
+    }
+    mcpBehaviors['/mcp-extension-servers/*'] = {
+      origin: s3Origin,
+      viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+      cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
+      allowedMethods: cloudfront.AllowedMethods.ALLOW_GET_HEAD,
+    }
     // GitHub stars: no cache (fresh count on every page load)
     mcpBehaviors['/api/github-stars'] = {
       origin: apiOrigin,
@@ -215,6 +235,7 @@ function handler(event) {
     // DNS (izan.io, www.izan.io) is managed manually - not by this stack
 
     // ─── S3 Deployment (Web App) ───────────────────────────────────────
+    // Main deployment: web app assets (Vite hashes filenames → safe to cache long)
     new s3deploy.BucketDeployment(this, 'WebsiteDeployment', {
       sources: [
         s3deploy.Source.asset(
@@ -224,6 +245,24 @@ function handler(event) {
       destinationBucket: websiteBucket,
       distribution,
       distributionPaths: ['/*'],
+      exclude: ['downloads/*'],
+    })
+
+    // Downloads deployment: extension ZIP (no content hash in filename → must revalidate)
+    new s3deploy.BucketDeployment(this, 'DownloadsDeployment', {
+      sources: [
+        s3deploy.Source.asset(
+          path.join(MONOREPO_ROOT, 'apps', 'web', 'build', 'client', 'downloads'),
+        ),
+      ],
+      destinationBucket: websiteBucket,
+      destinationKeyPrefix: 'downloads',
+      distribution,
+      distributionPaths: ['/downloads/*'],
+      cacheControl: [
+        s3deploy.CacheControl.noCache(),
+        s3deploy.CacheControl.mustRevalidate(),
+      ],
     })
 
     // ─── Outputs ────────────────────────────────────────────────────────

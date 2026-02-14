@@ -150,6 +150,11 @@ function syncServersFromRegistry(
   }))
 }
 
+/** Guard: true while activateAgentMCPs is running (prevents re-entrant calls) */
+let activatingMCPs = false
+/** Debounce timer for extension-ready → activateAgentMCPs */
+let extReadyActivateTimer: ReturnType<typeof setTimeout> | null = null
+
 export const useMCPStore = create<MCPState>((set, get) => ({
   registry: null,
   servers: [],
@@ -184,30 +189,60 @@ export const useMCPStore = create<MCPState>((set, get) => ({
     // Listen for the izan.io Chrome extension
     listenForExtension(
       (payload: ExtensionReadyPayload) => {
+        const wasAlreadyInstalled = get().isExtensionInstalled
         set({
           isExtensionInstalled: true,
           extensionServers: payload.servers,
           extensionRequired: false,
         })
-        // Force reconnect extension servers (dynamic server may have restarted with new tools)
-        const { registry, lastActivatedAgent } = get()
-        if (registry) {
-          for (const s of payload.servers) {
-            const existing = registry.getServer(s.id)
-            if (existing?.status === 'connected') {
-              void registry.removeServer(s.id).catch(() => {})
+
+        if (!wasAlreadyInstalled) {
+          // First detection: activate agent MCPs and request automation data
+          const { lastActivatedAgent } = get()
+          if (lastActivatedAgent) {
+            // Debounce: multiple rapid announces (e.g. race conditions) get coalesced
+            if (extReadyActivateTimer) clearTimeout(extReadyActivateTimer)
+            extReadyActivateTimer = setTimeout(() => {
+              extReadyActivateTimer = null
+              void get().activateAgentMCPs(lastActivatedAgent)
+            }, 300)
+          }
+          // Ensure automation store is initialized so it can receive "Tamamla" steps from side panel
+          import('~/store/automation.store').then(({ useAutomationStore }) => {
+            void useAutomationStore.getState().initialize()
+            // Request automation data from extension (covers IndexedDB cleared or bootstrap sync missed)
+            requestAutomationData()
+          })
+        } else {
+          // Re-announce (e.g. dynamic server restarted with new tools):
+          // Just reconnect extension servers without full re-activation to avoid loops.
+          const { registry } = get()
+          if (registry) {
+            for (const s of payload.servers) {
+              const existing = registry.getServer(s.id)
+              if (existing?.status === 'connected') {
+                void registry.removeServer(s.id).catch(() => {})
+              }
+            }
+          }
+          // Reconnect only extension servers that are currently needed
+          const { activeServerIds } = get()
+          const extServers = payload.servers
+          for (const es of extServers) {
+            if (activeServerIds.has(es.id)) {
+              void registry?.addServer({
+                id: es.id,
+                name: es.name,
+                description: es.description,
+                url: extensionServerUrl(es.channelId),
+                category: es.category as MCPServerConfig['category'],
+                source: 'extension' as MCPServerConfig['source'],
+              }).then(() => {
+                set({ servers: registry!.getServers() })
+              }).catch(() => {})
             }
           }
         }
-        if (lastActivatedAgent) {
-          void get().activateAgentMCPs(lastActivatedAgent)
-        }
-        // Ensure automation store is initialized so it can receive "Tamamla" steps from side panel
-        import('~/store/automation.store').then(({ useAutomationStore }) => {
-          void useAutomationStore.getState().initialize()
-          // Request automation data from extension (covers IndexedDB cleared or bootstrap sync missed)
-          requestAutomationData()
-        })
       },
       () => {
         // Extension disconnected - clean up extension servers from registry
@@ -261,10 +296,13 @@ export const useMCPStore = create<MCPState>((set, get) => ({
    * Respects globally disabled built-in MCPs.
    */
   activateAgentMCPs: async (agent: Agent) => {
+    if (activatingMCPs) return // prevent re-entrant calls
     const { registry, userServers, activeServerIds, disabledBuiltinMCPIds } = get()
     if (!registry) {
       return
     }
+    activatingMCPs = true
+    try {
 
     set({ lastActivatedAgent: agent })
 
@@ -457,6 +495,10 @@ export const useMCPStore = create<MCPState>((set, get) => ({
         ? failedServers.map(s => `${s.config.name}: ${s.error}`).join(', ')
         : null,
     })
+
+    } finally {
+      activatingMCPs = false
+    }
   },
 
   /**

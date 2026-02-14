@@ -5,7 +5,6 @@
   "type": "module",
   "scripts": {
     "dev": "react-router dev",
-    "prebuild": "npm run generate:registry -w @izan/mcp-extension-servers",
     "build": "npm run generate:seo && react-router build",
     "generate:seo": "tsx scripts/generate-seo.ts",
     "start": "react-router-serve ./build/server/index.js",

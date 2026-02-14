@@ -452,7 +452,8 @@ export const useAutomationStore = create<AutomationStore>((set, get) => ({
         db.automationTools.toArray(),
       ])
       set({ servers, tools })
-      get().syncToExtension()
+      // Don't call syncToExtension() here - data came FROM the extension,
+      // syncing it back creates an infinite loop: merge → sync → restart → announce → merge
     }
   },
 
