@@ -38,14 +38,14 @@
           "type": "text"
         }
       ],
-      "label": "Extract neighbors of \"about this app\"",
+      "label": "Extract neighbors of \"about this\"",
       "mode": "single",
       "name": "neighbors_of_about_this_app",
       "neighborCount": 3,
       "neighborDirection": "both",
       "neighborIncludeChildren": true,
       "neighborMatchMode": "contains",
-      "neighborTargetName": "about this app, bu uygulama hakkında, über diese app, à propos de cette application, acerca de esta aplicación, sobre este app, informazioni su questa app, over deze app, informacje o aplikacji, о приложении, про додаток, لمحة عن هذا التطبيق, درباره این برنامه, इस ऐप के बारे में, এই অ্যাপ সম্পর্কে, 关于此应用, 關於此應用程式, このアプリについて, 앱 정보, เกี่ยวกับแอปนี้, giới thiệu về ứng dụng này, tentang aplikasi ini, perihal apl ini, tungkol sa app na ito, kuhusu programu hii"
+      "neighborTargetName": "about this, hakkında, über diese, à propos de, acerca de, sobre este, informazioni su, over deze, informacje o, о приложении, об игре, про додаток, про гру, لمحة عن, درباره, के बारे में, সম্পর্কে, 关于, 關於, について, 정보, เกี่ยวกับ, giới thiệu về, tentang, perihal, tungkol sa, kuhusu"
     }
   ]
 }
