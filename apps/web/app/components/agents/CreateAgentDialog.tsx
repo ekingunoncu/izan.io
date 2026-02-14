@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import {
@@ -16,6 +16,7 @@ import {
   Shield,
   MessageSquare,
   Lightbulb,
+  Upload,
 } from 'lucide-react'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
@@ -41,7 +42,7 @@ const AVAILABLE_ICONS = [
 export function CreateAgentDialog() {
   const { t } = useTranslation('common')
   const navigate = useNavigate()
-  const { createAgent, selectAgent, getAgentSlug } = useAgentStore()
+  const { createAgent, selectAgent, getAgentSlug, importAgent } = useAgentStore()
   const { closeCreateAgent } = useUIStore()
 
   const [name, setName] = useState('')
@@ -49,6 +50,8 @@ export function CreateAgentDialog() {
   const [selectedIcon, setSelectedIcon] = useState('bot')
   const [basePrompt, setBasePrompt] = useState('')
   const [isCreating, setIsCreating] = useState(false)
+  const [importError, setImportError] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleCreate = async () => {
     if (!name.trim()) return
@@ -71,6 +74,28 @@ export function CreateAgentDialog() {
     }
   }
 
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setImportError(null)
+    setIsCreating(true)
+    try {
+      const text = await file.text()
+      const json = JSON.parse(text)
+      const agent = await importAgent(json)
+      await selectAgent(agent.id)
+      navigate(`/chat/${getAgentSlug(agent)}`, { replace: true })
+      closeCreateAgent()
+      useMCPStore.getState().activateAgentMCPs(agent)
+    } catch (error) {
+      console.error('Failed to import agent:', error)
+      setImportError(t('agents.importError'))
+    } finally {
+      setIsCreating(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
   return (
     <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4">
       <div className="bg-background border rounded-xl shadow-xl w-full max-w-lg max-h-[85vh] sm:max-h-[90vh] overflow-y-auto">
@@ -84,6 +109,35 @@ export function CreateAgentDialog() {
 
         {/* Form */}
         <div className="p-4 space-y-5">
+          {/* Import from file */}
+          <div className="space-y-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".json"
+              className="hidden"
+              onChange={handleImport}
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isCreating}
+              className="w-full flex items-center justify-center gap-2 rounded-lg border border-dashed p-3 text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Upload className="h-4 w-4" />
+              {t('agents.importFromFile')}
+            </button>
+            {importError && (
+              <p className="text-xs text-destructive">{importError}</p>
+            )}
+          </div>
+
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <div className="flex-1 h-px bg-border" />
+            <span>{t('agents.orCreateNew')}</span>
+            <div className="flex-1 h-px bg-border" />
+          </div>
+
           <p className="text-sm text-muted-foreground">{t('agents.createPlain')}</p>
 
           {/* Name */}

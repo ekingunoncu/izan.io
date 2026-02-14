@@ -376,6 +376,10 @@
     "noMacrosAssigned": "No macros assigned yet.",
     "noAvailableMCPs": "No MCP servers to add. Add new MCPs from settings.",
     "noAvailableAgents": "No other agents available to link.",
+    "exportAgent": "Export agent",
+    "importFromFile": "Import agent from file",
+    "importError": "Failed to import agent. Please check the file format.",
+    "orCreateNew": "or create new",
     "detail": {
       "title": "Agent Profile",
       "detailBtn": "Details",

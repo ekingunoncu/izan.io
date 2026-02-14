@@ -376,6 +376,10 @@
     "noMacrosAssigned": "Henüz makro atanmadı.",
     "noAvailableMCPs": "Eklenebilecek MCP sunucusu yok. Ayarlardan yeni MCP ekleyin.",
     "noAvailableAgents": "Bağlanabilecek başka agent yok.",
+    "exportAgent": "Agenti dışa aktar",
+    "importFromFile": "Dosyadan agent içe aktar",
+    "importError": "Agent içe aktarılamadı. Lütfen dosya formatını kontrol edin.",
+    "orCreateNew": "veya yeni oluştur",
     "detail": {
       "title": "Agent Künyesi",
       "detailBtn": "Detay",

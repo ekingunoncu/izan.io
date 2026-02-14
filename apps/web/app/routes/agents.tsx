@@ -182,7 +182,7 @@ export default function Agents() {
         </CardHeader>
         {agent.enabled && (
           <CardContent className="p-4 sm:p-6 pt-0 flex gap-2">
-            <Link to={`/${lang}/agents/${getAgentSlug(agent)}`} className="flex-1">
+            <Link to={agent.source === 'user' ? `/agent/${getAgentSlug(agent)}` : `/${lang}/agents/${getAgentSlug(agent)}`} className="flex-1">
               <Button variant="outline" className="w-full">
                 {t("agents.detail.detailBtn")}
               </Button>

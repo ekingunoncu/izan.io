@@ -25,6 +25,7 @@ import {
   ChevronDown,
   ChevronRight,
   Cog,
+  Download,
 } from 'lucide-react'
 import {
   AlertDialog,
@@ -165,6 +166,18 @@ export function AgentEditPanel() {
     closeAgentEdit()
   }
 
+  const handleExport = () => {
+    const data = useAgentStore.getState().exportAgent(currentAgent.id)
+    if (!data) return
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${currentAgent.slug || currentAgent.name}.agent.json`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   const toggleSection = (section: string) => {
     setExpandedSection(prev => prev === section ? null : section)
   }
@@ -249,6 +262,9 @@ export function AgentEditPanel() {
                 </AlertDialog>
               </>
             )}
+            <Button variant="ghost" size="icon" className="h-11 w-11 min-h-[44px] min-w-[44px] sm:h-8 sm:w-8 sm:min-h-0 sm:min-w-0" onClick={handleExport} title={t('agents.exportAgent')}>
+              <Download className="h-4 w-4" />
+            </Button>
             <Button variant="ghost" size="icon" className="h-11 w-11 min-h-[44px] min-w-[44px] sm:h-8 sm:w-8 sm:min-h-0 sm:min-w-0" onClick={closeAgentEdit}>
               <X className="h-4 w-4" />
             </Button>

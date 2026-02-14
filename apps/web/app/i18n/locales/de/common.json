@@ -376,6 +376,10 @@
     "noMacrosAssigned": "Noch keine Makros zugewiesen.",
     "noAvailableMCPs": "Keine MCP-Server zum Hinzufügen. Fügen Sie neue MCPs in den Einstellungen hinzu.",
     "noAvailableAgents": "Keine anderen Agenten zum Verknüpfen verfügbar.",
+    "exportAgent": "Agent exportieren",
+    "importFromFile": "Agent aus Datei importieren",
+    "importError": "Agent konnte nicht importiert werden. Bitte überprüfen Sie das Dateiformat.",
+    "orCreateNew": "oder neu erstellen",
     "detail": {
       "title": "Agenten-Profil",
       "detailBtn": "Details",

@@ -84,11 +84,16 @@ export default function AgentDetail() {
   const { agent: loaderAgent } = useLoaderData<typeof loader>();
   const {
     initialize: initAgent,
-    getAgentBySlug,
     selectAgent,
     getAgentSlug,
     isInitialized,
   } = useAgentStore();
+  // Direct selector — ensures re-render when agents array changes (custom agents from IndexedDB)
+  const storeAgent = useAgentStore((s) =>
+    agentSlug
+      ? s.agents.find((a) => a.slug === agentSlug || a.id === agentSlug) ?? null
+      : null
+  );
   const { initialize: initMCP } = useMCPStore();
   const isExtensionInstalled = useMCPStore((s) => s.isExtensionInstalled);
 
@@ -101,7 +106,7 @@ export default function AgentDetail() {
   }, [initAgent, initMCP]);
 
   // Prefer loaderData (prerender + initial load) - avoids IndexedDB wait for builtin agents
-  const agent = loaderAgent ?? (agentSlug ? getAgentBySlug(agentSlug) : null);
+  const agent = loaderAgent ?? storeAgent;
 
   const handleUseAgent = async () => {
     if (!agent) return;
@@ -121,8 +126,8 @@ export default function AgentDetail() {
     useMCPStore.getState().activateAgentMCPs(agent);
   };
 
-  // Show loading only when we have no loaderData and store isn't ready (custom agent nav)
-  if (!agent && !loaderAgent && !isInitialized) {
+  // Show loading when we have no loaderData and store isn't ready yet (custom agent visit)
+  if (!agent && !isInitialized) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
