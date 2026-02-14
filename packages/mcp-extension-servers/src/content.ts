@@ -69,6 +69,10 @@ function debouncedRestartDynamic(): void {
     restartTimer = null
     await stopDynamicServer()
     await startDynamicServer()
+    // Re-announce so the web app can reconnect ext-dynamic with the new channelId.
+    // The web app's re-announce handler (wasAlreadyInstalled=true) only reconnects
+    // active servers without triggering full re-activation, so this is loop-safe.
+    announceServers()
   }, RESTART_DEBOUNCE_MS)
 }
 

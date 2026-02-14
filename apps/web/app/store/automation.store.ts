@@ -452,8 +452,12 @@ export const useAutomationStore = create<AutomationStore>((set, get) => ({
         db.automationTools.toArray(),
       ])
       set({ servers, tools })
-      // Don't call syncToExtension() here - data came FROM the extension,
-      // syncing it back creates an infinite loop: merge → sync → restart → announce → merge
+      // Only sync tool definitions to extension (updates dynamic server tool list).
+      // Don't call full syncToExtension() which also writes to chrome.storage,
+      // causing a merge → sync → restart → announce loop.
+      const disabledIds = new Set(servers.filter((s) => s.disabled).map((s) => s.id))
+      const enabledTools = tools.filter((t) => !disabledIds.has(t.serverId))
+      syncToolDefinitions(enabledTools.map(toToolDefinition))
     }
   },
 

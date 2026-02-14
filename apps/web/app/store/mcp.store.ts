@@ -215,33 +215,35 @@ export const useMCPStore = create<MCPState>((set, get) => ({
           })
         } else {
           // Re-announce (e.g. dynamic server restarted with new tools):
-          // Just reconnect extension servers without full re-activation to avoid loops.
-          const { registry } = get()
-          if (registry) {
-            for (const s of payload.servers) {
+          // Reconnect only active extension servers. Sequential remove→add to avoid races.
+          // Skip if activateAgentMCPs is running — it handles connection itself.
+          if (activatingMCPs) return
+          const { registry, activeServerIds } = get()
+          if (!registry) return
+          const extServers = payload.servers
+          void (async () => {
+            for (const s of extServers) {
               const existing = registry.getServer(s.id)
               if (existing?.status === 'connected') {
-                void registry.removeServer(s.id).catch(() => {})
+                try { await registry.removeServer(s.id) } catch { /* ignore */ }
               }
             }
-          }
-          // Reconnect only extension servers that are currently needed
-          const { activeServerIds } = get()
-          const extServers = payload.servers
-          for (const es of extServers) {
-            if (activeServerIds.has(es.id)) {
-              void registry?.addServer({
-                id: es.id,
-                name: es.name,
-                description: es.description,
-                url: extensionServerUrl(es.channelId),
-                category: es.category as MCPServerConfig['category'],
-                source: 'extension' as MCPServerConfig['source'],
-              }).then(() => {
-                set({ servers: registry!.getServers() })
-              }).catch(() => {})
+            for (const es of extServers) {
+              if (activeServerIds.has(es.id)) {
+                try {
+                  await registry.addServer({
+                    id: es.id,
+                    name: es.name,
+                    description: es.description,
+                    url: extensionServerUrl(es.channelId),
+                    category: es.category as MCPServerConfig['category'],
+                    source: 'extension' as MCPServerConfig['source'],
+                  })
+                  set({ servers: registry.getServers() })
+                } catch { /* ignore */ }
+              }
             }
-          }
+          })()
         }
       },
       () => {

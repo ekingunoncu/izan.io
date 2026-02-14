@@ -20,7 +20,12 @@
       "url": "https://play.google.com/store/apps/details",
       "urlParams": {
         "id": "{{id}}"
-      }
+      },
+      "waitUntil": "networkidle"
+    },
+    {
+      "action": "wait",
+      "ms": 1000
     },
     {
       "action": "extract",
