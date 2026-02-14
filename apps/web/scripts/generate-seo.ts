@@ -29,6 +29,7 @@ const DOC_SLUGS = [
   "api-keys-privacy",
   "providers",
   "analytics",
+  "scheduled-plans",
 ];
 
 /** Routes to include in sitemap (under :lang). Excludes chat (client-only), settings (private). */

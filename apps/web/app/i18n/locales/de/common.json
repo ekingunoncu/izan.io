@@ -4,7 +4,8 @@
     "startChat": "Chat starten",
     "settings": "Einstellungen",
     "docs": "Dokumentation",
-    "analytics": "Analytik"
+    "analytics": "Analytik",
+    "plans": "Pläne"
   },
   "github": {
     "feedbackAria": "Bug melden oder Feature anfragen",
@@ -455,7 +456,8 @@
     "titleChromeExtension": "Chrome-Erweiterung",
     "titleApiKeysPrivacy": "API-Schlüssel & Datenschutz",
     "titleProviders": "Anbieter",
-    "titleAnalytics": "Analytik"
+    "titleAnalytics": "Analytik",
+    "titleScheduledPlans": "Geplante Pläne"
   },
   "errors": {
     "notConfigured": "LLM nicht konfiguriert. Wählen Sie einen Provider und ein Modell in den Einstellungen.",
@@ -496,5 +498,50 @@
     "notificationDone": "Aufgabe abgeschlossen: {{title}}",
     "notificationFailed": "Aufgabe fehlgeschlagen: {{title}}",
     "stepProgress": "Schritt {{current}}"
+  },
+  "plans": {
+    "title": "Geplante Pläne",
+    "description": "Planen Sie Agenten, die automatisch mit einem bestimmten Prompt ausgeführt werden.",
+    "create": "Plan erstellen",
+    "edit": "Plan bearbeiten",
+    "delete": "Löschen",
+    "deleteConfirm": "Dieser Plan und seine Ausführungshistorie werden dauerhaft gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.",
+    "name": "Name",
+    "namePlaceholder": "z.B. Täglicher Marktbericht",
+    "descriptionLabel": "Beschreibung",
+    "descriptionPlaceholder": "Optionale Beschreibung des Plans",
+    "agent": "Agent",
+    "selectAgent": "Agent auswählen",
+    "prompt": "Prompt",
+    "promptPlaceholder": "Die Nachricht, die an den Agenten gesendet wird",
+    "scheduleType": "Zeitplantyp",
+    "once": "Einmalig",
+    "recurring": "Wiederkehrend",
+    "scheduledAt": "Ausführungszeitpunkt",
+    "cronExpression": "Cron-Ausdruck",
+    "cronPlaceholder": "z.B. 0 9 * * *",
+    "cronInvalid": "Ungültiger Cron-Ausdruck",
+    "presetHourly": "Stündlich",
+    "presetDaily9am": "Täglich um 9 Uhr",
+    "presetWeeklyMonday": "Wöchentlich (Montag)",
+    "presetMonthly1st": "Monatlich (1.)",
+    "nextRun": "Nächste Ausführung",
+    "lastRun": "Letzte Ausführung",
+    "status": "Status",
+    "statusActive": "Aktiv",
+    "statusPaused": "Pausiert",
+    "statusCompleted": "Abgeschlossen",
+    "statusError": "Fehler",
+    "runNow": "Jetzt ausführen",
+    "running": "Läuft...",
+    "noPlans": "Noch keine geplanten Pläne. Erstellen Sie einen, um Ihre Agenten zu automatisieren.",
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "executionHistory": "Ausführungshistorie",
+    "noExecutions": "Noch keine Ausführungen",
+    "viewChat": "Chat anzeigen",
+    "errorLastRun": "Letzter Fehler: {{error}}",
+    "browserWarning": "Installieren Sie die izan.io Chrome-Erweiterung, um geplante Pläne zu aktivieren. Die Erweiterung führt Pläne im Hintergrund aus, solange Chrome geöffnet ist - dieser Tab muss nicht offen bleiben.",
+    "browserWarningExtension": "Geplante Pläne laufen über die Chrome-Erweiterung im Hintergrund. Chrome muss nur geöffnet sein - Sie können diesen Tab schließen."
   }
 }

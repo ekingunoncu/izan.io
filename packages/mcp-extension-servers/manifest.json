@@ -3,7 +3,7 @@
   "name": "izan.io Macros - Browser Automation for AI",
   "version": "0.1.0",
   "description": "Record browser actions as reusable macros. AI agents run your automations via MCP. No code needed.",
-  "permissions": ["tabs", "scripting", "debugger", "sidePanel", "storage"],
+  "permissions": ["tabs", "scripting", "debugger", "sidePanel", "storage", "alarms"],
   "host_permissions": ["<all_urls>"],
   "content_scripts": [
     {

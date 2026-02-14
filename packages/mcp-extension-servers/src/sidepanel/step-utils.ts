@@ -201,6 +201,7 @@ interface ToolParameter {
   required: boolean
   source: string
   sourceKey: string
+  default?: string | number | boolean
 }
 
 export function applyParamMap(
@@ -330,6 +331,29 @@ export function applyParamMap(
           : `Filter value (${f.op})`
         parameters.push({ name, type: 'string', description: desc, required: true, source: 'input', sourceKey: `filter:value` })
       }
+    }
+  }
+
+  // Auto-detect {{param}} placeholders in code step bodies
+  for (const step of finalSteps) {
+    if (step.action !== 'code') continue
+    const code = step.code as string | undefined
+    if (!code) continue
+    const codeParams = step._codeParams as Record<string, { description?: string; defaultValue?: string }> | undefined
+    for (const m of code.matchAll(placeholderRe)) {
+      const name = toSnakeCase(m[1])
+      if (seen.has(name)) continue
+      seen.add(name)
+      const meta = codeParams?.[m[1]]
+      parameters.push({
+        name,
+        type: 'string',
+        description: meta?.description || 'Parameter used in code step',
+        required: true,
+        source: 'input',
+        sourceKey: 'code',
+        ...(meta?.defaultValue ? { default: meta.defaultValue } : {}),
+      })
     }
   }
 

@@ -22,6 +22,7 @@ import {
   Loader2,
   CheckCircle,
   AlertCircle,
+  CalendarClock,
 } from 'lucide-react'
 import { Button } from '~/components/ui/button'
 import {
@@ -75,6 +76,18 @@ function formatCost(v: number): string {
   return `$${v < 0.01 ? v.toFixed(4) : v.toFixed(2)}`
 }
 
+function formatRelativeTime(ts: number): string {
+  const diff = Date.now() - ts
+  const mins = Math.floor(diff / 60_000)
+  if (mins < 1) return 'just now'
+  if (mins < 60) return `${mins}m ago`
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `${hours}h ago`
+  const days = Math.floor(hours / 24)
+  if (days < 7) return `${days}d ago`
+  return new Date(ts).toLocaleDateString()
+}
+
 function ChatItem({ chat, isSelected, onSelect, onDelete, taskStatus, usage }: {
   chat: Chat
   isSelected: boolean
@@ -85,7 +98,10 @@ function ChatItem({ chat, isSelected, onSelect, onDelete, taskStatus, usage }: {
 }) {
   const { t } = useTranslation('common')
 
-  const { Icon: StatusIcon, iconClass } = getTaskStatusIcon(taskStatus?.status)
+  const isPlan = !!chat.planId
+  const { Icon: StatusIcon, iconClass } = isPlan
+    ? { Icon: CalendarClock, iconClass: 'text-primary' }
+    : getTaskStatusIcon(taskStatus?.status)
   const stepLabel = taskStatus?.status === 'running'
     ? t('longTask.stepProgress', { current: taskStatus.currentStep, total: taskStatus.totalSteps })
     : null
@@ -101,6 +117,11 @@ function ChatItem({ chat, isSelected, onSelect, onDelete, taskStatus, usage }: {
       <StatusIcon className={cn('h-4 w-4 flex-shrink-0', iconClass)} />
       <div className="flex-1 min-w-0">
         <span className="text-sm truncate block">{chat.title}</span>
+        {isPlan && (
+          <span className="text-[10px] text-primary/70">
+            {chat.planName} · {formatRelativeTime(chat.createdAt)}
+          </span>
+        )}
         {stepLabel && (
           <span className="text-[10px] text-amber-600 dark:text-amber-400">{stepLabel}</span>
         )}

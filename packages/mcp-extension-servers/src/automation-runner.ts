@@ -184,6 +184,12 @@ export class AutomationRunner {
             console.log(`[izan-ext] executeLane[${i}]: extract "${step.name}" → ${preview}`)
             // Capture source URL at extraction time
             try { sourceUrl = await bw.getUrl() } catch { /* tab may have closed */ }
+          } else if (result !== undefined && step.action === 'code' && (step as { name?: string }).name) {
+            const codeName = (step as { name: string }).name
+            data[codeName] = result
+            const preview = Array.isArray(result) ? `array(${result.length})` : typeof result === 'object' && result ? `object(${Object.keys(result as object).length})` : String(result).slice(0, 100)
+            console.log(`[izan-ext] executeLane[${i}]: code "${codeName}" → ${preview}`)
+            try { sourceUrl = await bw.getUrl() } catch { /* tab may have closed */ }
           } else if (step.action === 'extract') {
             console.log(`[izan-ext] executeLane[${i}]: extract "${step.name}" → undefined (no data)`)
           }
@@ -320,6 +326,8 @@ export class AutomationRunner {
         return this.stepWaitForLoad(bw, step)
       case 'extract':
         return this.stepExtract(bw, step)
+      case 'code':
+        return this.stepCode(bw, step, args)
       case 'forEachItem':
         throw new Error('forEachItem is handled by executeLane, not executeStep')
       default:
@@ -501,6 +509,19 @@ export class AutomationRunner {
     const cssPreview = Array.isArray(cssResult) ? `array(${cssResult.length})` : typeof cssResult === 'object' && cssResult ? `object(${Object.keys(cssResult).length})` : String(cssResult).slice(0, 100)
     console.log(`[izan-ext] stepExtract: CSS extraction returned ${cssPreview}`)
     return cssResult
+  }
+
+  private async stepCode(
+    bw: BrowserWindow,
+    step: Extract<ActionStep, { action: 'code' }>,
+    args: Record<string, unknown>,
+  ): Promise<unknown> {
+    const code = resolveTemplate((step as unknown as { code: string }).code, args)
+    const wrapped = `(async function(){\n${code}\n})()`
+    console.log(`[izan-ext] stepCode: name="${(step as unknown as { name?: string }).name ?? ''}" code=${code.length} chars`)
+    const result = await bw.evaluate(wrapped)
+    console.log(`[izan-ext] stepCode: result=${typeof result === 'string' ? result.slice(0, 100) : JSON.stringify(result)?.slice(0, 100)}`)
+    return result
   }
 
   // ─── ForEachItem ──────────────────────────────────────────────

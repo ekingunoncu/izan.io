@@ -34,6 +34,7 @@ Kaydedici, her etkilesimi element selektorleri, islem tipleri ve giris degerleri
 - **Selektor** -- **Selector** butonuna tiklayarak CSS selektor cikarma panelini acin (asagidaki [Cikarma Yontemleri](#cikarma-yontemleri) bolumune bakin)
 - **A11y** -- **A11y** butonuna tiklayarak erisebilirlik cikarma panelini acin; ARIA rolu ile veri cikarabilir veya tam sayfa erisebilirlik goruntusu alabilirsiniz
 - **Bekleme adimi** -- **Bekle** butonuna tiklayarak adimlar arasina manuel gecikme ekleyebilirsiniz (0.1--30 saniye)
+- **Kod adimi** -- **Code** butonuna tiklayarak sayfa baglaminda calisacak ozel JavaScript kodu ekleyebilirsiniz (asagidaki [Kod Adimlari](#kod-adimlari) bolumune bakin)
 - **Serit** -- ayri sekmelerde eszamanli yurutme icin paralel serit ekleyebilirsiniz
 
 ## Parametrelestirme
@@ -66,6 +67,54 @@ Giris alanlarina yazilan metinler parametrelestirilebilir:
 3. Bir **parametre adi** (ornegin `search_query`) ve **aciklama** girin
 4. Calisma zamaninda LLM yazilacak metni saglar
 
+## Kod Adimlari
+
+Bazi web siteleri yalnizca UI kaydi ile otomatiklestirilemeyecek kadar karmasiktir -- selektorler bozulur, elemanlar dinamik olarak olusturulur veya ihtiyaciniz olan veriler ozel mantik gerektirir. **Kod adimlari**, sayfa baglaminda dogrudan ozel JavaScript yazmaniza ve calistirmaniza olanak tanir.
+
+### Kod Adimi Ekleme
+
+1. Arac cubugundan **Code** butonuna tiklayin (hem kayit hem duzenleme gorunumlerinde mevcuttur)
+2. JavaScript sozdizimi vurgulama iceren bir kod duzenleyici paneli acilir
+3. Kodunuzu yazin -- kod bir `async function` icinde calisir, bu nedenle `await` ve `return` kullanabilirsiniz
+4. Istege bagli olarak bir **Sonuc adi** belirleyin -- belirlendiginde, donus degeri cikarma verisi olarak (extract adimi gibi) saklanir ve sonraki adimlar tarafindan kullanilabilir
+5. Aktif sekmede kodu calistirmak ve sonucu hemen gormek icin **Test** butonuna tiklayin
+6. Makroya eklemek icin **Add Step** butonuna tiklayin
+
+### Veri Dondurme
+
+Makroya veri gondermek icin `return` kulllanin. Donus degeri cikarma sonuclari gibi calisir:
+
+- `return document.title` -- sayfa basligini string olarak dondurur
+- `return [...document.querySelectorAll('h2')].map(e => e.textContent)` -- basliklarin bir dizisini dondurur
+- `return { price: document.querySelector('.price').textContent, stock: document.querySelector('.stock').textContent }` -- yapilandirilmis bir nesne dondurur
+
+Bir **Sonuc adi** belirlendiginde (ornegin `page_data`), donus degeri o anahtar altinda saklanir ve `forEachItem` yinelemeleri dahil sonraki adimlar tarafindan referans alinabilir.
+
+### Parametrelestirme
+
+Kod adimlari, diger adim turleri gibi `{{param}}` yer tutucularini destekler. Kodunuzda bir yer tutucu yazdiginizda, **otomatik olarak algilanir** ve duzenleyicinin altinda bir parametre karti goruntulenir:
+
+- **Parametre etiketi** -- `{{param_name}}` gosterir (salt okunur)
+- **Varsayilan deger** -- LLM deger saglamadiginda kullanilan deger
+- **Aciklama** -- LLM'e bu parametrenin ne icin oldugunu anlatir
+
+Ornegin `return document.querySelector('{{selector}}').textContent` yazmak bir `selector` parametresi olusturur. Calisma zamaninda LLM gercek CSS selektoru saglar.
+
+### Kod Adimlarini Duzenleme
+
+Kod adimlari adim listesinde **suslu parantez ikonu** ile goruntulenir. Adimi genisletip duzenlemek icin **Edit code** butonuna tiklayin:
+
+- JavaScript kodu (tam sozdizimi vurgulama ile)
+- Sonuc adi
+- Algilanan parametre aciklamalari ve varsayilan degerler
+
+### Kullanim Alanlari
+
+- **Karmasik veri cikarma** -- CSS selektorleri ve erisebilirlik yontemleri yeterli olmadiginda, ozel DOM gezinme mantigi yazin
+- **Sayfa manipulasyonu** -- gizli butonlara tiklayin, JavaScript API'lerini tetikleyin veya sonraki adimdan once sayfa durumunu degistirin
+- **Hesaplanmis degerler** -- birden fazla sayfa elemanindaki degerleri hesaplayin ve yapilandirilmis sonuclar dondurun
+- **API cagrilari** -- cerezler veya oturum baglami gerektiren sayfa ici API'leri cagirmak icin `fetch()` kullanin
+
 ## Makro Duzenleme
 
 Listedeki herhangi bir makroya tiklayarak **duzenleme gorunumunu** acabilirsiniz:
@@ -76,6 +125,7 @@ Listedeki herhangi bir makroya tiklayarak **duzenleme gorunumunu** acabilirsiniz
 - **Ek adimlar kaydetme**: Kaydet butonuna basarak mevcut makroya yeni islemler ekleyebilirsiniz
 - **Cikarma adimlari ekleme**: Duzenleme-kayit modundayken Liste/Tekil butonlarini kullanarak
 - **Bekleme adimi ekleme**: Yapilandirtilabilir sureli manuel bekleme
+- **Kod adimi ekleme**: Sayfa baglaminda calisan ozel JavaScript kodu
 - **Bekleme kosulu ayarlama**: Navigasyon adimlarinda Sayfa Yuklenmesi (varsayilan), DOM Hazir veya Ag Bosalma arasinda secim
 - **Parametreleri ayarlama**: URL parametreleri, yol parcalari ve metin girisleri icin parametrelestirmeyi acip kapatma
 - **JSON olarak disa aktarma**: Duzenleme gorunumunden makroyu disa aktarabilirsiniz

@@ -1,12 +1,14 @@
-import { useState, useEffect, useCallback, useRef, useMemo, type ReactNode } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense, type ReactNode } from 'react'
 import {
   ArrowLeft, Server, Plus, Trash2, X, Circle, Square,
   List, FileText, Check, Globe, MousePointerClick,
   Keyboard, ArrowDownUp, ListFilter, Timer, Hourglass,
   Link, Database, Save, Wrench, Loader2, AlertTriangle, RefreshCw,
   GripVertical, ChevronUp, ChevronDown, Pencil, Columns,
-  Download, Upload, Code, ScanEye, Layers,
+  Download, Upload, Code, ScanEye, Layers, Braces, Play,
 } from 'lucide-react'
+
+const LazyCodeEditor = lazy(() => import('./code-editor').then(m => ({ default: m.CodeEditor })))
 import { Button } from '~ui/button'
 import { Input } from '~ui/input'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '~ui/select'
@@ -65,7 +67,7 @@ const STEP_ICONS: Record<string, typeof Globe> = {
   navigate: Globe, click: MousePointerClick, type: Keyboard, scroll: ArrowDownUp,
   select: ListFilter, wait: Timer, waitForSelector: Hourglass,
   waitForUrl: Link, waitForLoad: Hourglass, extract: Database,
-  forEachItem: Layers,
+  forEachItem: Layers, code: Braces,
 }
 
 function slugify(str: string): string {
@@ -106,6 +108,14 @@ export function App() {
   // Manual wait step insertion
   const [showWaitInput, setShowWaitInput] = useState(false)
   const [waitSeconds, setWaitSeconds] = useState('1')
+
+  // Code step insertion
+  const [showCodeInput, setShowCodeInput] = useState(false)
+  const [codeValue, setCodeValue] = useState('')
+  const [codeName, setCodeName] = useState('')
+  const [codeRunning, setCodeRunning] = useState(false)
+  const [codeResult, setCodeResult] = useState<{ success: boolean; data?: unknown; error?: string } | null>(null)
+  const [codeParamMeta, setCodeParamMeta] = useState<Map<string, { description: string; defaultValue: string }>>(new Map())
 
   // Connection
   const [connectionError, setConnectionError] = useState<string | null>(null)
@@ -446,6 +456,9 @@ export function App() {
           }
           downloadJson(exportData, `${slugify(raw.server.name)}-server.json`)
         }
+      } else if (type === 'evaluateCodePreview-result') {
+        setCodeRunning(false)
+        setCodeResult({ success: msg.success as boolean, data: msg.data, error: msg.error as string | undefined })
       } else if (type === 'importAutomationServerDone' || type === 'importAutomationToolDone') {
         if (msg.error) {
           setImportError(msg.error as string)
@@ -778,6 +791,11 @@ export function App() {
     setSaveError(null)
     setShowWaitInput(false)
     setWaitSeconds('1')
+    setShowCodeInput(false)
+    setCodeValue('')
+    setCodeName('')
+    setCodeResult(null)
+    setCodeParamMeta(new Map())
     setView('save')
   }
 
@@ -816,6 +834,11 @@ export function App() {
     setRecordError(null)
     setLanes([{ name: 'Lane 1', steps: [] }])
     setActiveLane(0)
+    setShowCodeInput(false)
+    setCodeValue('')
+    setCodeName('')
+    setCodeResult(null)
+    setCodeParamMeta(new Map())
     setView('record')
   }
 
@@ -823,6 +846,11 @@ export function App() {
     setSelectedServerId(null)
     setShowWaitInput(false)
     setWaitSeconds('1')
+    setShowCodeInput(false)
+    setCodeValue('')
+    setCodeName('')
+    setCodeResult(null)
+    setCodeParamMeta(new Map())
     setView('list')
   }
 
@@ -919,6 +947,61 @@ export function App() {
 
     setShowWaitInput(false)
     setWaitSeconds('1')
+  }
+
+  // Auto-detect {{param}} placeholders in code editor
+  const detectedCodeParams = useMemo(() => {
+    const re = /\{\{(\w+)\}\}/g
+    const params: string[] = []
+    const seen = new Set<string>()
+    for (const m of codeValue.matchAll(re)) {
+      const name = m[1]
+      if (!seen.has(name)) { seen.add(name); params.push(name) }
+    }
+    return params
+  }, [codeValue])
+
+  const handleTestCode = () => {
+    if (!codeValue.trim() || codeRunning) return
+    if (!portRef.current) {
+      setCodeResult({ success: false, error: 'Extension not connected' })
+      return
+    }
+    setCodeRunning(true)
+    setCodeResult(null)
+    portRef.current.postMessage({ type: 'evaluateCodePreview', code: codeValue })
+  }
+
+  const handleAddCodeStep = (isEditMode: boolean) => {
+    if (!codeValue.trim()) return
+    // Build _codeParams metadata from detected placeholders
+    const paramMetaObj: Record<string, { description: string; defaultValue: string }> = {}
+    for (const p of detectedCodeParams) {
+      const meta = codeParamMeta.get(p)
+      if (meta && (meta.description || meta.defaultValue)) {
+        paramMetaObj[p] = { description: meta.description, defaultValue: meta.defaultValue }
+      }
+    }
+    const codeStep: Step = {
+      action: 'code',
+      code: codeValue,
+      ...(codeName.trim() ? { name: codeName.trim() } : {}),
+      ...(Object.keys(paramMetaObj).length > 0 ? { _codeParams: paramMetaObj } : {}),
+    }
+
+    if (subActionFlowRef.current?.phase === 'recording') {
+      setSubActionFlow(prev => prev ? { ...prev, detailSteps: [...prev.detailSteps, codeStep] } : prev)
+    } else if (isEditMode) {
+      addStepToLane(setEditSteps, setEditLanes, activeLane, codeStep)
+    } else {
+      addStepToLane(setSteps, setLanes, activeLane, codeStep)
+    }
+
+    setShowCodeInput(false)
+    setCodeValue('')
+    setCodeName('')
+    setCodeResult(null)
+    setCodeParamMeta(new Map())
   }
 
   const handleClearAllSteps = (isEditMode: boolean) => {
@@ -1195,6 +1278,9 @@ export function App() {
                 <Button variant="outline" size="sm" onClick={() => setShowWaitInput(!showWaitInput)}>
                   <Timer className="h-3.5 w-3.5" /> Wait
                 </Button>
+                <Button variant={showCodeInput ? 'secondary' : 'outline'} size="sm" onClick={() => { setShowCodeInput(!showCodeInput); setCodeResult(null) }}>
+                  <Braces className="h-3.5 w-3.5" /> Code
+                </Button>
               </div>
             </div>
           </div>
@@ -1254,6 +1340,58 @@ export function App() {
               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setShowWaitInput(false); setWaitSeconds('1') }}>
                 <X className="h-3.5 w-3.5" />
               </Button>
+            </div>
+          )}
+
+          {/* Code step input (edit mode) */}
+          {showCodeInput && (
+            <div className="px-1 space-y-2">
+              <div className="flex items-center gap-2">
+                <Input
+                  value={codeName}
+                  onChange={(e) => setCodeName(e.target.value)}
+                  className="flex-1"
+                  placeholder="Result name (optional)"
+                />
+                <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => { setShowCodeInput(false); setCodeValue(''); setCodeName(''); setCodeResult(null); setCodeParamMeta(new Map()) }}>
+                  <X className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+              <Suspense fallback={<div className="h-20 rounded-md border bg-muted animate-pulse" />}>
+                <LazyCodeEditor
+                  value={codeValue}
+                  onChange={setCodeValue}
+                  placeholder="// JavaScript to run in page context&#10;return document.title"
+                  onRun={handleTestCode}
+                />
+              </Suspense>
+              {detectedCodeParams.length > 0 && (
+                <CodeParamCards params={detectedCodeParams} meta={codeParamMeta} onUpdate={(name, field, value) => {
+                  setCodeParamMeta(prev => {
+                    const next = new Map(prev)
+                    const existing = next.get(name) ?? { description: '', defaultValue: '' }
+                    next.set(name, { ...existing, [field]: value })
+                    return next
+                  })
+                }} />
+              )}
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={handleTestCode} disabled={codeRunning || !codeValue.trim()}>
+                  {codeRunning ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />} Test
+                </Button>
+                <Button variant="default" size="sm" onClick={() => handleAddCodeStep(true)} disabled={!codeValue.trim()}>
+                  Add Step
+                </Button>
+              </div>
+              {codeResult && (
+                <div className={cn('px-3 py-2 rounded-md text-xs break-all', codeResult.success ? 'bg-green-500/10 text-green-400' : 'bg-destructive/10 text-destructive')}>
+                  {codeResult.success
+                    ? codeResult.data !== undefined && codeResult.data !== null
+                      ? <pre className="font-mono whitespace-pre-wrap">{JSON.stringify(codeResult.data, null, 2)}</pre>
+                      : <span className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5" /> Ran successfully (no return value)</span>
+                    : codeResult.error}
+                </div>
+              )}
             </div>
           )}
 
@@ -1678,6 +1816,9 @@ export function App() {
             <Button variant="outline" size="sm" onClick={() => setShowWaitInput(!showWaitInput)}>
               <Timer className="h-3.5 w-3.5" /> Wait
             </Button>
+            <Button variant={showCodeInput ? 'secondary' : 'outline'} size="sm" onClick={() => { setShowCodeInput(!showCodeInput); setCodeResult(null) }}>
+              <Braces className="h-3.5 w-3.5" /> Code
+            </Button>
           </div>
         </div>
       </div>
@@ -1737,6 +1878,58 @@ export function App() {
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setShowWaitInput(false); setWaitSeconds('1') }}>
             <X className="h-3.5 w-3.5" />
           </Button>
+        </div>
+      )}
+
+      {/* Code step input (record mode) */}
+      {showCodeInput && (
+        <div className="px-4 py-2 border-b space-y-2">
+          <div className="flex items-center gap-2">
+            <Input
+              value={codeName}
+              onChange={(e) => setCodeName(e.target.value)}
+              className="flex-1"
+              placeholder="Result name (optional)"
+            />
+            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => { setShowCodeInput(false); setCodeValue(''); setCodeName(''); setCodeResult(null); setCodeParamMeta(new Map()) }}>
+              <X className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+          <Suspense fallback={<div className="h-20 rounded-md border bg-muted animate-pulse" />}>
+            <LazyCodeEditor
+              value={codeValue}
+              onChange={setCodeValue}
+              placeholder="// JavaScript to run in page context&#10;return document.title"
+              onRun={handleTestCode}
+            />
+          </Suspense>
+          {detectedCodeParams.length > 0 && (
+            <CodeParamCards params={detectedCodeParams} meta={codeParamMeta} onUpdate={(name, field, value) => {
+              setCodeParamMeta(prev => {
+                const next = new Map(prev)
+                const existing = next.get(name) ?? { description: '', defaultValue: '' }
+                next.set(name, { ...existing, [field]: value })
+                return next
+              })
+            }} />
+          )}
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={handleTestCode} disabled={codeRunning || !codeValue.trim()}>
+              {codeRunning ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />} Test
+            </Button>
+            <Button variant="default" size="sm" onClick={() => handleAddCodeStep(false)} disabled={!codeValue.trim()}>
+              Add Step
+            </Button>
+          </div>
+          {codeResult && (
+            <div className={cn('px-3 py-2 rounded-md text-xs break-all', codeResult.success ? 'bg-green-500/10 text-green-400' : 'bg-destructive/10 text-destructive')}>
+              {codeResult.success
+                ? codeResult.data !== undefined && codeResult.data !== null
+                  ? <pre className="font-mono whitespace-pre-wrap">{JSON.stringify(codeResult.data, null, 2)}</pre>
+                  : <span className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5" /> Ran successfully (no return value)</span>
+                : codeResult.error}
+            </div>
+          )}
         </div>
       )}
 
@@ -2501,6 +2694,7 @@ function StepCard({
     || hasSelector
     || (step.action === 'extract' && Array.isArray(step.fields))
     || (step.action === 'forEachItem')
+    || (step.action === 'code')
   const [expanded, setExpanded] = useState(step.action === 'forEachItem')
 
   return (
@@ -2539,6 +2733,7 @@ function StepCard({
               : step.action === 'navigate' ? 'Parameterize'
               : step.action === 'type' ? 'Advanced'
               : step.action === 'forEachItem' ? 'Show details'
+              : step.action === 'code' ? 'Edit code'
               : hasSelector ? 'Advanced'
               : 'Edit'}
           </button>
@@ -3008,6 +3203,11 @@ function StepCard({
             )}
           </div>
         )}
+
+        {/* Code step expanded editor */}
+        {step.action === 'code' && expanded && onUpdateStepProps && (
+          <CodeStepExpanded step={step} onUpdateStepProps={onUpdateStepProps} />
+        )}
       </div>
 
       <button type="button" onClick={onDelete}
@@ -3456,6 +3656,111 @@ function formatPreviewValue(v: unknown): string {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
+// ─── CodeStepExpanded ────────────────────────────────────────────────────────
+
+function CodeStepExpanded({ step, onUpdateStepProps }: { step: Step; onUpdateStepProps: (props: Partial<Step>) => void }) {
+  const code = (step.code as string) ?? ''
+  const codeParams = (step._codeParams ?? undefined) as Record<string, { description?: string; defaultValue?: string }> | undefined
+
+  const detectedParams = useMemo(() => {
+    const re = /\{\{(\w+)\}\}/g
+    const params: string[] = []
+    const seen = new Set<string>()
+    for (const m of code.matchAll(re)) {
+      if (!seen.has(m[1])) { seen.add(m[1]); params.push(m[1]) }
+    }
+    return params
+  }, [code])
+
+  const metaMap = useMemo(() => {
+    const map = new Map<string, { description: string; defaultValue: string }>()
+    if (codeParams) {
+      for (const [k, v] of Object.entries(codeParams)) {
+        map.set(k, { description: v.description ?? '', defaultValue: v.defaultValue ?? '' })
+      }
+    }
+    return map
+  }, [codeParams])
+
+  const handleParamUpdate = (name: string, field: 'description' | 'defaultValue', value: string) => {
+    const updated = { ...(codeParams ?? {}) }
+    const existing = updated[name] ?? { description: '', defaultValue: '' }
+    updated[name] = { ...existing, [field]: value }
+    // Clean up empty entries
+    const cleaned: Record<string, { description: string; defaultValue: string }> = {}
+    for (const [k, v] of Object.entries(updated)) {
+      if (v.description || v.defaultValue) cleaned[k] = { description: v.description ?? '', defaultValue: v.defaultValue ?? '' }
+    }
+    onUpdateStepProps({ _codeParams: Object.keys(cleaned).length > 0 ? cleaned : undefined })
+  }
+
+  return (
+    <div className="mt-2.5 space-y-2">
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-muted-foreground shrink-0">Result name</span>
+        <Input
+          value={(step.name as string) ?? ''}
+          onChange={(e) => onUpdateStepProps({ name: e.target.value || undefined })}
+          className="h-7 text-xs flex-1"
+          placeholder="(optional)"
+        />
+      </div>
+      <Suspense fallback={<div className="h-20 rounded-md border bg-muted animate-pulse" />}>
+        <LazyCodeEditor
+          value={code}
+          onChange={(v) => onUpdateStepProps({ code: v })}
+          placeholder="// JavaScript to run in page context"
+          minHeight="60px"
+        />
+      </Suspense>
+      {detectedParams.length > 0 && (
+        <CodeParamCards params={detectedParams} meta={metaMap} onUpdate={handleParamUpdate} />
+      )}
+    </div>
+  )
+}
+
+// ─── CodeParamCards ─────────────────────────────────────────────────────────
+
+type CodeParamMetaMap = Map<string, { description: string; defaultValue: string }>
+
+function CodeParamCards({ params, meta, onUpdate }: {
+  params: string[]
+  meta: CodeParamMetaMap
+  onUpdate: (name: string, field: 'description' | 'defaultValue', value: string) => void
+}) {
+
+  return (
+    <div className="space-y-1.5">
+      <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Parameters</p>
+      {params.map(name => {
+        const m = meta.get(name)
+        return (
+          <div key={name} className="rounded-md border border-primary/20 bg-primary/5 px-2.5 py-2 space-y-1.5">
+            <div className="flex items-center gap-2">
+              <span className="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full bg-primary/15 text-primary text-[11px] font-mono font-medium">
+                {`{{${name}}}`}
+              </span>
+              <Input
+                value={m?.defaultValue ?? ''}
+                onChange={(e) => onUpdate(name, 'defaultValue', e.target.value)}
+                className="h-7 text-xs flex-1"
+                placeholder="Default value"
+              />
+            </div>
+            <Input
+              value={m?.description ?? ''}
+              onChange={(e) => onUpdate(name, 'description', e.target.value)}
+              className="h-7 text-xs"
+              placeholder="Description for LLM (e.g. CSS selector to extract)"
+            />
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 function stepDetail(step: Step): string {
   switch (step.action) {
     case 'navigate': {
@@ -3481,6 +3786,11 @@ function stepDetail(step: Step): string {
       const n = Array.isArray(step.detailSteps) ? (step.detailSteps as unknown[]).length : 0
       const filters = Array.isArray(step.filters) ? (step.filters as unknown[]).length : 0
       return `${step.sourceExtract as string} · ${n} steps${filters ? ` · ${filters} filter${filters > 1 ? 's' : ''}` : ''}`
+    }
+    case 'code': {
+      const name = step.name ? `${step.name} · ` : ''
+      const code = (step.code as string) ?? ''
+      return `${name}${code.slice(0, 40)}${code.length > 40 ? '…' : ''}`
     }
     default: return ''
   }

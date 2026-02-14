@@ -4,7 +4,8 @@
     "startChat": "Sohbete Başla",
     "settings": "Ayarlar",
     "docs": "Dokümantasyon",
-    "analytics": "Analitik"
+    "analytics": "Analitik",
+    "plans": "Planlar"
   },
   "github": {
     "feedbackAria": "Hata bildir veya özellik iste",
@@ -455,7 +456,8 @@
     "titleChromeExtension": "Chrome Eklentisi",
     "titleApiKeysPrivacy": "API Anahtarları ve Gizlilik",
     "titleProviders": "Sağlayıcılar",
-    "titleAnalytics": "Analitik"
+    "titleAnalytics": "Analitik",
+    "titleScheduledPlans": "Zamanlanmış Planlar"
   },
   "errors": {
     "notConfigured": "LLM yapılandırılmadı. Ayarlardan bir provider ve model seçin.",
@@ -496,5 +498,50 @@
     "notificationDone": "Görev tamamlandı: {{title}}",
     "notificationFailed": "Görev başarısız oldu: {{title}}",
     "stepProgress": "Adım {{current}}"
+  },
+  "plans": {
+    "title": "Zamanlanmış Planlar",
+    "description": "Agentları belirli bir prompt ile otomatik çalışacak şekilde zamanlayın.",
+    "create": "Plan Oluştur",
+    "edit": "Planı Düzenle",
+    "delete": "Sil",
+    "deleteConfirm": "Bu plan ve çalıştırma geçmişi kalıcı olarak silinecek. Bu işlem geri alınamaz.",
+    "name": "Ad",
+    "namePlaceholder": "ör. Günlük Pazar Raporu",
+    "descriptionLabel": "Açıklama",
+    "descriptionPlaceholder": "Bu planın ne yaptığının isteğe bağlı açıklaması",
+    "agent": "Agent",
+    "selectAgent": "Bir agent seçin",
+    "prompt": "Prompt",
+    "promptPlaceholder": "Agenta gönderilecek mesaj",
+    "scheduleType": "Zamanlama Türü",
+    "once": "Bir Kez",
+    "recurring": "Tekrarlayan",
+    "scheduledAt": "Çalışma Zamanı",
+    "cronExpression": "Cron İfadesi",
+    "cronPlaceholder": "ör. 0 9 * * *",
+    "cronInvalid": "Geçersiz cron ifadesi",
+    "presetHourly": "Her saat",
+    "presetDaily9am": "Her gün 09:00",
+    "presetWeeklyMonday": "Haftalık (Pazartesi)",
+    "presetMonthly1st": "Aylık (1.)",
+    "nextRun": "Sonraki çalışma",
+    "lastRun": "Son çalışma",
+    "status": "Durum",
+    "statusActive": "Aktif",
+    "statusPaused": "Duraklatıldı",
+    "statusCompleted": "Tamamlandı",
+    "statusError": "Hata",
+    "runNow": "Şimdi Çalıştır",
+    "running": "Çalışıyor...",
+    "noPlans": "Henüz zamanlanmış plan yok. Agentlarınızı otomatikleştirmek için bir tane oluşturun.",
+    "save": "Kaydet",
+    "cancel": "İptal",
+    "executionHistory": "Çalıştırma Geçmişi",
+    "noExecutions": "Henüz çalıştırma yok",
+    "viewChat": "Sohbeti Gör",
+    "errorLastRun": "Son hata: {{error}}",
+    "browserWarning": "Zamanlanmış planları kullanmak için izan.io Chrome eklentisini yükleyin. Chrome açık olduğu sürece planlar arka planda çalışır - bu sekmeyi açık tutmanıza gerek yok.",
+    "browserWarningExtension": "Zamanlanmış planlar Chrome eklentisi aracılığıyla arka planda çalışır. Chrome açık olsun yeter - bu sekmeyi kapatabilirsiniz."
   }
 }

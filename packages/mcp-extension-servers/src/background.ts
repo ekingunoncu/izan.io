@@ -16,6 +16,72 @@ chrome.runtime.onInstalled.addListener(({ reason }) => {
   else if (reason === 'update') console.log(`[izan-ext] Updated to ${chrome.runtime.getManifest().version}`)
 })
 
+// ─── Scheduled Plan Alarms ────────────────────────────────────────────────────
+
+const PLAN_ALARM_PREFIX = 'izan-plan-'
+
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (!alarm.name.startsWith(PLAN_ALARM_PREFIX)) return
+  const planId = alarm.name.slice(PLAN_ALARM_PREFIX.length)
+  console.log(`[izan-ext] Plan alarm fired: ${planId}`)
+
+  // Notify all izan.io tabs that a plan alarm has fired
+  chrome.tabs.query({}, (tabs) => {
+    const izanTabs = tabs.filter(t => t.id && isIzanTab(t))
+
+    if (izanTabs.length === 0) {
+      // No izan.io tab open - open one so the plan can execute on startup catch-up
+      console.log(`[izan-ext] No izan.io tab found, opening one for plan: ${planId}`)
+      chrome.tabs.create({ url: 'https://izan.io/chat', active: false })
+      return
+    }
+
+    for (const t of izanTabs) {
+      chrome.tabs.sendMessage(t.id!, {
+        type: 'izan-plan-alarm-fired',
+        planId,
+      }).catch(() => {})
+    }
+  })
+})
+
+// Listen for plan alarm management messages from content script
+chrome.runtime.onMessage.addListener((msg: { type: string; planId?: string; fireAt?: number; alarms?: Array<{ planId: string; fireAt: number }> }, _sender, sendResponse) => {
+  if (msg.type === 'izan-plan-alarm-register' && msg.planId && msg.fireAt) {
+    const delayMinutes = Math.max((msg.fireAt - Date.now()) / 60_000, 0.1)
+    chrome.alarms.create(`${PLAN_ALARM_PREFIX}${msg.planId}`, { delayInMinutes: delayMinutes })
+    console.log(`[izan-ext] Registered plan alarm: ${msg.planId} in ${delayMinutes.toFixed(1)} min`)
+    sendResponse({ ok: true })
+    return false
+  }
+
+  if (msg.type === 'izan-plan-alarm-clear' && msg.planId) {
+    chrome.alarms.clear(`${PLAN_ALARM_PREFIX}${msg.planId}`)
+    console.log(`[izan-ext] Cleared plan alarm: ${msg.planId}`)
+    sendResponse({ ok: true })
+    return false
+  }
+
+  if (msg.type === 'izan-plan-alarm-sync' && msg.alarms) {
+    // Clear all existing plan alarms, then re-register
+    chrome.alarms.getAll((existing) => {
+      const planAlarms = existing.filter(a => a.name.startsWith(PLAN_ALARM_PREFIX))
+      for (const a of planAlarms) {
+        chrome.alarms.clear(a.name)
+      }
+      for (const alarm of msg.alarms!) {
+        const delayMinutes = Math.max((alarm.fireAt - Date.now()) / 60_000, 0.1)
+        chrome.alarms.create(`${PLAN_ALARM_PREFIX}${alarm.planId}`, { delayInMinutes: delayMinutes })
+      }
+      console.log(`[izan-ext] Synced ${msg.alarms!.length} plan alarm(s)`)
+      sendResponse({ ok: true })
+    })
+    return true // async
+  }
+
+  return false
+})
+
 // ─── Side panel & recording bridge ───────────────────────────────────────────
 
 let sidePanelPort: chrome.runtime.Port | null = null
@@ -326,6 +392,35 @@ chrome.runtime.onConnect.addListener((port) => {
           (m.matchMode as 'contains' | 'equals') ?? 'contains',
         )
       })
+    } else if (msg.type === 'evaluateCodePreview') {
+      const m = msg as Record<string, unknown>
+      const code = m.code as string
+      chrome.tabs.query({ active: true, currentWindow: true }, async ([tab]) => {
+        if (!tab?.id) {
+          sidePanelPort?.postMessage({ type: 'evaluateCodePreview-result', success: false, error: 'No active tab' })
+          return
+        }
+        const tid = tab.id
+        let weAttached = false
+        try {
+          // Attach CDP if not already attached
+          try {
+            await cdpAttach(tid)
+            weAttached = true
+          } catch {
+            // Already attached (e.g. from automation run)
+          }
+          const wrapped = `(async function(){\n${code}\n})()`
+          const result = await cdpEval(tid, wrapped)
+          sidePanelPort?.postMessage({ type: 'evaluateCodePreview-result', success: true, data: result })
+        } catch (e) {
+          sidePanelPort?.postMessage({ type: 'evaluateCodePreview-result', success: false, error: e instanceof Error ? e.message : String(e) })
+        } finally {
+          if (weAttached) {
+            await cdpDetach(tid).catch(() => {})
+          }
+        }
+      })
     } else if (msg.type === 'trySelectorHighlight') {
       const selector = (msg as Record<string, unknown>).selector as string
       chrome.tabs.query({ active: true, currentWindow: true }, async ([tab]) => {
@@ -539,7 +634,7 @@ async function handleOpen(p: P): Promise<R> {
   if (p.background !== undefined) {
     background = p.background !== false
   } else {
-    // No explicit param — check user preference
+    // No explicit param - check user preference
     try {
       const result = await chrome.storage.local.get('izan_pref_automationBrowserForeground')
       background = !result.izan_pref_automationBrowserForeground

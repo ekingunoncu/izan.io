@@ -23,6 +23,7 @@ import {
   Check,
   MousePointerClick,
   BookOpen,
+  CalendarClock,
 } from "lucide-react";
 import { BUILTIN_AGENT_DEFINITIONS } from "@izan/agents";
 import { getAgentIcon } from "~/components/agents/AgentSelector";
@@ -194,6 +195,15 @@ export default function Home() {
               >
                 <BookOpen className="h-4 w-4" />
                 <span className="hidden sm:inline">{t("nav.docs")}</span>
+              </Button>
+            </Link>
+            <Link to={`/${lang}/plans`} state={{ from: location.pathname }}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-11 w-11 min-h-[44px] min-w-[44px] sm:h-9 sm:w-9 sm:min-h-0 sm:min-w-0 rounded-lg"
+              >
+                <CalendarClock className="h-5 w-5" />
               </Button>
             </Link>
             <Link to={`/${lang}/analytics`} state={{ from: location.pathname }}>
@@ -769,6 +779,9 @@ export default function Home() {
                 </Link>
                 <Link to="/chat" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                   {t("nav.startChat")}
+                </Link>
+                <Link to={`/${lang}/plans`} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  {t("nav.plans")}
                 </Link>
                 <Link to={`/${lang}/settings`} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                   {t("nav.settings")}

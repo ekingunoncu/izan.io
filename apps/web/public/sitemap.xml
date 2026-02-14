@@ -512,4 +512,34 @@
     <changefreq>weekly</changefreq>
   </url>
 
+  <url>
+    <loc>https://izan.io/tr/docs/scheduled-plans</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/docs/scheduled-plans" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/docs/scheduled-plans" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/docs/scheduled-plans" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/docs/scheduled-plans" />
+    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://izan.io/en/docs/scheduled-plans</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/docs/scheduled-plans" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/docs/scheduled-plans" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/docs/scheduled-plans" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/docs/scheduled-plans" />
+    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://izan.io/de/docs/scheduled-plans</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/docs/scheduled-plans" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/docs/scheduled-plans" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/docs/scheduled-plans" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/docs/scheduled-plans" />
+    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
 </urlset>

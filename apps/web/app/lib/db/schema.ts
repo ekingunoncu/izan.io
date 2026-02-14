@@ -69,6 +69,10 @@ export interface Chat {
   taskCurrentStep?: number
   /** Estimated total rounds (based on MAX_TOOL_ROUNDS_BACKGROUND) */
   taskTotalSteps?: number
+  /** Scheduled plan ID that created this chat (undefined = manual chat) */
+  planId?: string
+  /** Scheduled plan name for display in sidebar */
+  planName?: string
   createdAt: number
   updatedAt: number
 }
@@ -242,6 +246,51 @@ export interface AutomationServer {
   createdAt: number
   /** Updated timestamp */
   updatedAt: number
+}
+
+// ─── Scheduled Plans Types ────────────────────────────────────────────────────
+
+export type PlanScheduleType = 'once' | 'recurring'
+export type PlanStatus = 'active' | 'paused' | 'completed' | 'error'
+
+/**
+ * ScheduledPlan - a plan that runs an agent with a specific prompt on a schedule.
+ * One-time plans execute once at scheduledAt; recurring plans use cronExpression.
+ */
+export interface ScheduledPlan {
+  id: string
+  name: string
+  description: string
+  agentId: string
+  prompt: string
+  scheduleType: PlanScheduleType
+  /** Standard 5-field cron expression (for recurring plans) */
+  cronExpression: string | null
+  /** Epoch ms timestamp (for one-time plans) */
+  scheduledAt: number | null
+  status: PlanStatus
+  lastRunAt: number | null
+  /** Computed next execution time (epoch ms), indexed for efficient querying */
+  nextRunAt: number | null
+  runCount: number
+  lastError: string | null
+  createdAt: number
+  updatedAt: number
+}
+
+/**
+ * PlanExecution - a single execution record of a scheduled plan.
+ * Links back to the chat created for this execution.
+ */
+export interface PlanExecution {
+  id: string
+  planId: string
+  chatId: string
+  agentId: string
+  status: 'running' | 'completed' | 'failed'
+  error: string | null
+  startedAt: number
+  completedAt: number | null
 }
 
 // ─── Agent Types ──────────────────────────────────────────────────────────────

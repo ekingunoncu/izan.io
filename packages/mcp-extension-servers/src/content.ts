@@ -160,7 +160,7 @@ async function bootstrap(): Promise<void> {
     }).catch(() => {})
 
     // Messages from background: recording complete or sync automation data
-    chrome.runtime.onMessage.addListener((msg: { type: string; steps?: unknown[]; parameters?: unknown[]; serverId?: string; servers?: unknown[]; tools?: unknown[] }, _sender, sendResponse) => {
+    chrome.runtime.onMessage.addListener((msg: { type: string; steps?: unknown[]; parameters?: unknown[]; serverId?: string; servers?: unknown[]; tools?: unknown[]; planId?: string }, _sender, sendResponse) => {
       console.log('[izan-ext][content] chrome.runtime.onMessage received:', msg.type)
       if (msg.type === 'izan-recording-complete' && msg.steps) {
         globalThis.dispatchEvent(
@@ -168,6 +168,17 @@ async function bootstrap(): Promise<void> {
             detail: { steps: msg.steps, parameters: msg.parameters ?? [], serverId: msg.serverId },
           }),
         )
+        sendResponse({ ok: true })
+        return false
+      }
+
+      // Forward plan alarm fired from background to the web app page
+      if (msg.type === 'izan-plan-alarm-fired' && msg.planId) {
+        globalThis.postMessage({
+          source: 'izan-extension',
+          channel: 'plan-alarm-fired',
+          planId: msg.planId,
+        }, location.origin)
         sendResponse({ ok: true })
         return false
       }
@@ -211,6 +222,22 @@ async function bootstrap(): Promise<void> {
           }).catch(() => {})
           console.log('[izan-ext][content] Reverse sync: wrote automation data to chrome.storage')
         }
+      } else if (data.channel === 'plan-alarm-register') {
+        chrome.runtime.sendMessage({
+          type: 'izan-plan-alarm-register',
+          planId: data.planId,
+          fireAt: data.fireAt,
+        }).catch(() => {})
+      } else if (data.channel === 'plan-alarm-clear') {
+        chrome.runtime.sendMessage({
+          type: 'izan-plan-alarm-clear',
+          planId: data.planId,
+        }).catch(() => {})
+      } else if (data.channel === 'plan-alarm-sync') {
+        chrome.runtime.sendMessage({
+          type: 'izan-plan-alarm-sync',
+          alarms: data.alarms,
+        }).catch(() => {})
       } else if (data.channel === 'request-automation-data') {
         // Page is requesting fresh automation data (e.g. settings page opened)
         chrome.storage.local.get('izan_automation').then((result) => {

@@ -34,6 +34,7 @@ Der Rekorder erfasst jede Interaktion als einzelnen Schritt mit Element-Selektor
 - **Selektor** -- klicken Sie auf **Selector**, um das CSS-Selektor-Extraktions-Panel zu oeffnen (siehe [Extraktionsmethoden](#extraktionsmethoden) unten)
 - **A11y** -- klicken Sie auf **A11y**, um das Accessibility-Extraktions-Panel zu oeffnen; dort koennen Sie Daten per ARIA-Rolle extrahieren oder einen vollstaendigen Accessibility-Snapshot der Seite abrufen
 - **Warteschritt** -- klicken Sie auf **Warten**, um eine manuelle Verzoegerung (0,1--30 Sekunden) einzufuegen
+- **Code-Schritt** -- klicken Sie auf **Code**, um benutzerdefinierten JavaScript-Code einzufuegen, der im Seitenkontext ausgefuehrt wird (siehe [Code-Schritte](#code-schritte) unten)
 - **Lane** -- fuegen Sie eine parallele Lane fuer gleichzeitige Ausfuehrung in separaten Tabs hinzu
 
 ## Parametrisierung
@@ -66,6 +67,54 @@ In Eingabefelder eingegebener Text kann parametrisiert werden:
 3. Geben Sie einen **Parameternamen** (z. B. `search_query`) und eine **Beschreibung** ein
 4. Zur Laufzeit stellt das LLM den einzugebenden Text bereit
 
+## Code-Schritte
+
+Manche Websites sind zu komplex, um sie allein durch UI-Aufzeichnung zu automatisieren -- Selektoren brechen, Elemente werden dynamisch erzeugt, oder die benoetigten Daten erfordern benutzerdefinierte Logik. **Code-Schritte** ermoeglichen es Ihnen, benutzerdefinierten JavaScript-Code direkt im Seitenkontext als Automatisierungsschritt zu schreiben und auszufuehren.
+
+### Code-Schritt hinzufuegen
+
+1. Klicken Sie auf den **Code**-Button in der Werkzeugleiste (verfuegbar in Aufnahme- und Bearbeitungsansicht)
+2. Ein Code-Editor-Panel mit JavaScript-Syntaxhervorhebung oeffnet sich
+3. Schreiben Sie Ihren Code -- er laeuft in einer `async function`, Sie koennen also `await` und `return` verwenden
+4. Setzen Sie optional einen **Ergebnisnamen** -- wenn angegeben, wird der Rueckgabewert als Extraktionsdaten gespeichert (wie ein Extract-Schritt) und ist fuer nachfolgende Schritte verfuegbar
+5. Klicken Sie auf **Test**, um den Code gegen den aktiven Tab auszufuehren und das Ergebnis sofort zu sehen
+6. Klicken Sie auf **Add Step**, um ihn in das Makro einzufuegen
+
+### Daten zurueckgeben
+
+Verwenden Sie `return`, um Daten an das Makro zurueckzugeben. Der Rueckgabewert funktioniert wie Extraktionsergebnisse:
+
+- `return document.title` -- gibt den Seitentitel als String zurueck
+- `return [...document.querySelectorAll('h2')].map(e => e.textContent)` -- gibt ein Array von Ueberschriften zurueck
+- `return { price: document.querySelector('.price').textContent, stock: document.querySelector('.stock').textContent }` -- gibt ein strukturiertes Objekt zurueck
+
+Wenn ein **Ergebnisname** gesetzt ist (z. B. `page_data`), wird der Rueckgabewert unter diesem Schluessel gespeichert und kann von nachfolgenden Schritten referenziert werden, einschliesslich `forEachItem`-Iterationen.
+
+### Parametrisierung
+
+Code-Schritte unterstuetzen `{{param}}`-Platzhalter, genau wie andere Schritttypen. Wenn Sie einen Platzhalter in Ihren Code schreiben, wird er **automatisch erkannt** und eine Parameterkarte erscheint unter dem Editor:
+
+- **Parameter-Badge** -- zeigt `{{param_name}}` (schreibgeschuetzt)
+- **Standardwert** -- der Wert, der verwendet wird, wenn das LLM keinen bereitstellt
+- **Beschreibung** -- erklaert dem LLM, wofuer dieser Parameter verwendet wird
+
+Zum Beispiel erstellt `return document.querySelector('{{selector}}').textContent` einen `selector`-Parameter. Zur Laufzeit stellt das LLM den tatsaechlichen CSS-Selektor bereit.
+
+### Code-Schritte bearbeiten
+
+Code-Schritte erscheinen in der Schrittliste mit einem **geschweifte-Klammern-Symbol**. Klicken Sie auf **Edit code**, um den Schritt aufzuklappen und zu aendern:
+
+- Den JavaScript-Code (mit vollstaendiger Syntaxhervorhebung)
+- Den Ergebnisnamen
+- Erkannte Parameterbeschreibungen und Standardwerte
+
+### Anwendungsfaelle
+
+- **Komplexe Datenextraktion** -- wenn CSS-Selektoren und Accessibility-Methoden nicht ausreichen, schreiben Sie benutzerdefinierte DOM-Traversierungslogik
+- **Seitenmanipulation** -- versteckte Buttons klicken, JavaScript-APIs ausloesen oder den Seitenzustand vor dem naechsten Schritt aendern
+- **Berechnete Werte** -- Werte aus mehreren Seitenelementen berechnen und strukturierte Ergebnisse zurueckgeben
+- **API-Aufrufe** -- verwenden Sie `fetch()`, um seiteninterne APIs aufzurufen, die Cookies oder Sitzungskontext erfordern
+
 ## Makros bearbeiten
 
 Klicken Sie auf ein Makro in der Liste, um die **Bearbeitungsansicht** zu oeffnen:
@@ -76,6 +125,7 @@ Klicken Sie auf ein Makro in der Liste, um die **Bearbeitungsansicht** zu oeffne
 - **Zusaetzliche Schritte aufnehmen** -- druecken Sie Aufnehmen, um neue Aktionen an das bestehende Makro anzufuegen
 - **Extraktionsschritte hinzufuegen** mit den Liste/Einzel-Buttons im Bearbeitungs-Aufnahmemodus
 - **Warteschritte einfuegen** mit konfigurierbarer Dauer
+- **Code-Schritte einfuegen** mit benutzerdefiniertem JavaScript, das im Seitenkontext ausgefuehrt wird
 - **Warte-Bedingung konfigurieren** bei Navigationsschritten: Seitenladung (Standard), DOM Bereit oder Netzwerk Idle
 - **Parameter anpassen** -- Parametrisierung fuer URL-Parameter, Pfadsegmente und Texteingaben ein-/ausschalten
 - **Als JSON exportieren** aus der Bearbeitungsansicht

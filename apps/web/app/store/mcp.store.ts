@@ -216,7 +216,7 @@ export const useMCPStore = create<MCPState>((set, get) => ({
         } else {
           // Re-announce (e.g. dynamic server restarted with new tools):
           // Reconnect only active extension servers. Sequential remove→add to avoid races.
-          // Skip if activateAgentMCPs is running — it handles connection itself.
+          // Skip if activateAgentMCPs is running - it handles connection itself.
           if (activatingMCPs) return
           const { registry, activeServerIds } = get()
           if (!registry) return

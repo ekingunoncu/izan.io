@@ -177,6 +177,14 @@ export const waitForLoadStepSchema = baseStepSchema.extend({
   timeout: z.number().default(15_000),
 })
 
+export const codeStepSchema = baseStepSchema.extend({
+  action: z.literal('code'),
+  /** JavaScript code to evaluate in the page context (wrapped in async IIFE) */
+  code: z.string().min(1),
+  /** When set, the return value is stored as extraction data under this key */
+  name: z.string().optional(),
+})
+
 export const extractStepSchema = baseStepSchema.extend({
   action: z.literal('extract'),
   /** Name for this extraction result (used as key in merged output) */
@@ -225,6 +233,7 @@ export const simpleActionStepSchema = z.discriminatedUnion('action', [
   waitForUrlStepSchema,
   waitForLoadStepSchema,
   extractStepSchema,
+  codeStepSchema,
 ])
 
 export type SimpleActionStep = z.infer<typeof simpleActionStepSchema>
@@ -275,6 +284,7 @@ export const actionStepSchema = z.discriminatedUnion('action', [
   waitForUrlStepSchema,
   waitForLoadStepSchema,
   extractStepSchema,
+  codeStepSchema,
   forEachItemStepSchema,
 ])
 

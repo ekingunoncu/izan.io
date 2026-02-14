@@ -1,6 +1,7 @@
 import { useEffect } from "react";
-import { useMCPStore, useModelStore, useUIStore, useAutomationStore } from "~/store";
+import { useMCPStore, useModelStore, useUIStore, useAutomationStore, usePlanStore } from "~/store";
 import { requestAutomationData } from "~/lib/mcp/extension-bridge";
+import { schedulerService } from "~/lib/scheduler/scheduler.service";
 
 /**
  * Initializes stores on app load (client-side only).
@@ -16,6 +17,13 @@ export function ClientInit() {
 
   useEffect(() => {
     void Promise.all([initMCP(), initModel()]);
+    // Initialize scheduled plans and start scheduler
+    usePlanStore.getState().initialize().then(() => {
+      schedulerService.start()
+    })
+    return () => {
+      schedulerService.stop()
+    }
   }, [initMCP, initModel]);
 
   // Extension side panel bridge: uses window.postMessage (structured clone)

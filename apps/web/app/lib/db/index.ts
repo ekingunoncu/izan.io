@@ -8,6 +8,8 @@ import {
   type AutomationTool,
   type AutomationServer,
   type UsageRecord,
+  type ScheduledPlan,
+  type PlanExecution,
   DEFAULT_AGENTS,
   DEFAULT_PREFERENCES,
   slugify,
@@ -26,6 +28,8 @@ export class IzanDB extends Dexie {
   automationTools!: EntityTable<AutomationTool, 'id'>
   automationServers!: EntityTable<AutomationServer, 'id'>
   usageRecords!: EntityTable<UsageRecord, 'id'>
+  scheduledPlans!: EntityTable<ScheduledPlan, 'id'>
+  planExecutions!: EntityTable<PlanExecution, 'id'>
 
   constructor() {
     super('izan-db')
@@ -80,6 +84,19 @@ export class IzanDB extends Dexie {
       automationTools: 'id, name, serverId, updatedAt',
       automationServers: 'id, updatedAt',
       usageRecords: 'id, chatId, agentId, modelId, providerId, timestamp',
+    })
+
+    this.version(7).stores({
+      chats: 'id, agentId, updatedAt, [agentId+updatedAt]',
+      messages: 'id, chatId, timestamp, [chatId+timestamp]',
+      preferences: 'id',
+      mcpServers: 'id',
+      agents: 'id, source, category, enabled',
+      automationTools: 'id, name, serverId, updatedAt',
+      automationServers: 'id, updatedAt',
+      usageRecords: 'id, chatId, agentId, modelId, providerId, timestamp',
+      scheduledPlans: 'id, agentId, status, nextRunAt',
+      planExecutions: 'id, planId, chatId, startedAt',
     })
 
     // Note: Chat also has optional taskStatus/taskCurrentStep/taskTotalSteps fields
@@ -210,7 +227,7 @@ export async function initializeDatabase(): Promise<void> {
  * Clear all data from the database (for testing/reset)
  */
 export async function clearDatabase(): Promise<void> {
-  await db.transaction('rw', [db.chats, db.messages, db.preferences, db.mcpServers, db.agents, db.automationTools, db.automationServers, db.usageRecords], async () => {
+  await db.transaction('rw', [db.chats, db.messages, db.preferences, db.mcpServers, db.agents, db.automationTools, db.automationServers, db.usageRecords, db.scheduledPlans, db.planExecutions], async () => {
     await db.chats.clear()
     await db.messages.clear()
     await db.preferences.clear()
@@ -219,9 +236,11 @@ export async function clearDatabase(): Promise<void> {
     await db.automationTools.clear()
     await db.automationServers.clear()
     await db.usageRecords.clear()
+    await db.scheduledPlans.clear()
+    await db.planExecutions.clear()
   })
 }
 
 // Re-export types
-export type { Agent, Chat, Message, TaskStatus, UserPreferences, UserMCPServer, AutomationTool, AutomationServer, UsageRecord } from './schema'
+export type { Agent, Chat, Message, TaskStatus, UserPreferences, UserMCPServer, AutomationTool, AutomationServer, UsageRecord, ScheduledPlan, PlanExecution, PlanScheduleType, PlanStatus } from './schema'
 export { DEFAULT_AGENTS, DEFAULT_PREFERENCES, slugify } from './schema'

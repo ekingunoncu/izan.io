@@ -14,6 +14,7 @@ const DOC_SLUGS = [
   "api-keys-privacy",
   "providers",
   "analytics",
+  "scheduled-plans",
 ];
 
 export default {
@@ -29,6 +30,7 @@ export default {
     ...LANGUAGES.flatMap((lang) =>
       DOC_SLUGS.map((slug) => `/${lang}/docs/${slug}`)
     ),
+    ...LANGUAGES.map((lang) => `/${lang}/plans`),
     ...LANGUAGES.map((lang) => `/${lang}/privacy`),
     ...LANGUAGES.map((lang) => `/${lang}/terms`),
   ],

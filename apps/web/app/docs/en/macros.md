@@ -32,6 +32,7 @@ The recorder captures each interaction as a discrete step with element selectors
 - **Selector** -- click the **Selector** button to open the CSS selector extraction panel (see [Extraction Methods](#extraction-methods) below)
 - **A11y** -- click the **A11y** button to open the accessibility extraction panel, where you can extract data by ARIA role or take a full-page accessibility snapshot
 - **Wait step** -- click **Wait** to insert a manual delay (0.1--30 seconds) between steps
+- **Code step** -- click **Code** to insert a custom JavaScript step that runs in the page context (see [Code Steps](#code-steps) below)
 - **Lane** -- add a parallel lane for concurrent execution in separate tabs
 
 ## Parameterization
@@ -64,6 +65,54 @@ Text typed into input fields can be parameterized:
 3. Enter a **parameter name** (e.g., `search_query`) and **description**
 4. At runtime, the LLM provides the text to type
 
+## Code Steps
+
+Some websites are too complex to automate via UI recording alone -- selectors break, elements are dynamically generated, or the data you need requires custom logic. **Code steps** let you write and execute custom JavaScript directly in the page context as an automation step.
+
+### Adding a Code Step
+
+1. Click the **Code** button in the toolbar (available in both record and edit views)
+2. A code editor panel opens with JavaScript syntax highlighting
+3. Write your code -- it runs inside an `async function`, so you can use `await` and `return`
+4. Optionally set a **Result name** -- when provided, the return value is stored as extraction data (just like an extract step) and available to subsequent steps
+5. Click **Test** to run the code against the active tab and see the result immediately
+6. Click **Add Step** to insert it into the macro
+
+### Returning Data
+
+Use `return` to send data back to the macro. The return value works just like extraction results:
+
+- `return document.title` -- returns the page title as a string
+- `return [...document.querySelectorAll('h2')].map(e => e.textContent)` -- returns an array of headings
+- `return { price: document.querySelector('.price').textContent, stock: document.querySelector('.stock').textContent }` -- returns a structured object
+
+When a **Result name** is set (e.g., `page_data`), the return value is stored under that key and can be referenced by subsequent steps, including `forEachItem` iterations.
+
+### Parameterization
+
+Code steps support `{{param}}` placeholders, just like other step types. When you write a placeholder in your code, it is **automatically detected** and a parameter card appears below the editor:
+
+- **Parameter badge** -- shows `{{param_name}}` (read-only)
+- **Default value** -- the value used when the LLM doesn't provide one
+- **Description** -- tells the LLM what this parameter is for
+
+For example, writing `return document.querySelector('{{selector}}').textContent` will create a `selector` parameter. At runtime, the LLM provides the actual CSS selector.
+
+### Editing Code Steps
+
+Code steps appear in the step list with a **braces icon**. Click **Edit code** to expand the step and modify:
+
+- The JavaScript code (with full syntax highlighting)
+- The result name
+- Detected parameter descriptions and defaults
+
+### Use Cases
+
+- **Complex data extraction** -- when CSS selectors and accessibility methods aren't enough, write custom DOM traversal logic
+- **Page manipulation** -- click hidden buttons, trigger JavaScript APIs, or modify page state before the next step
+- **Computed values** -- calculate values from multiple page elements and return structured results
+- **API calls** -- use `fetch()` to call page-internal APIs that require cookies or session context
+
 ## Editing Macros
 
 Click any macro in the list to open the **edit view**. You can:
@@ -74,6 +123,7 @@ Click any macro in the list to open the **edit view**. You can:
 - **Record additional steps** -- press Record to append new actions to the existing macro
 - **Add extraction steps** using the List/Single buttons while in edit-record mode
 - **Insert wait steps** manually with configurable duration
+- **Insert code steps** with custom JavaScript that runs in the page context
 - **Configure wait-until** on navigate steps: choose between Page Load (default), DOM Ready, or Network Idle
 - **Adjust parameters** -- toggle parameterization on/off for URL params, path segments, and type inputs
 - **Export** the macro as JSON from the edit view

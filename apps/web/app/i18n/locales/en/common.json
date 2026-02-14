@@ -4,7 +4,8 @@
     "startChat": "Start Chat",
     "settings": "Settings",
     "docs": "Docs",
-    "analytics": "Analytics"
+    "analytics": "Analytics",
+    "plans": "Plans"
   },
   "github": {
     "feedbackAria": "Report bug or request feature",
@@ -455,7 +456,8 @@
     "titleChromeExtension": "Chrome Extension",
     "titleApiKeysPrivacy": "API Keys & Privacy",
     "titleProviders": "Providers",
-    "titleAnalytics": "Analytics"
+    "titleAnalytics": "Analytics",
+    "titleScheduledPlans": "Scheduled Plans"
   },
   "errors": {
     "notConfigured": "LLM not configured. Select a provider and model from settings.",
@@ -496,5 +498,50 @@
     "notificationDone": "Task completed: {{title}}",
     "notificationFailed": "Task failed: {{title}}",
     "stepProgress": "Step {{current}}"
+  },
+  "plans": {
+    "title": "Scheduled Plans",
+    "description": "Schedule agents to run automatically with a specific prompt.",
+    "create": "Create Plan",
+    "edit": "Edit Plan",
+    "delete": "Delete",
+    "deleteConfirm": "This will permanently delete this plan and its execution history. This action cannot be undone.",
+    "name": "Name",
+    "namePlaceholder": "e.g. Daily Market Report",
+    "descriptionLabel": "Description",
+    "descriptionPlaceholder": "Optional description of what this plan does",
+    "agent": "Agent",
+    "selectAgent": "Select an agent",
+    "prompt": "Prompt",
+    "promptPlaceholder": "The message to send to the agent",
+    "scheduleType": "Schedule Type",
+    "once": "Once",
+    "recurring": "Recurring",
+    "scheduledAt": "Run At",
+    "cronExpression": "Cron Expression",
+    "cronPlaceholder": "e.g. 0 9 * * *",
+    "cronInvalid": "Invalid cron expression",
+    "presetHourly": "Every hour",
+    "presetDaily9am": "Daily at 9am",
+    "presetWeeklyMonday": "Weekly (Monday)",
+    "presetMonthly1st": "Monthly (1st)",
+    "nextRun": "Next run",
+    "lastRun": "Last run",
+    "status": "Status",
+    "statusActive": "Active",
+    "statusPaused": "Paused",
+    "statusCompleted": "Completed",
+    "statusError": "Error",
+    "runNow": "Run Now",
+    "running": "Running...",
+    "noPlans": "No scheduled plans yet. Create one to automate your agents.",
+    "save": "Save",
+    "cancel": "Cancel",
+    "executionHistory": "Execution History",
+    "noExecutions": "No executions yet",
+    "viewChat": "View Chat",
+    "errorLastRun": "Last error: {{error}}",
+    "browserWarning": "Install the izan.io Chrome extension to enable scheduled plans. The extension runs plans in the background as long as Chrome is open - no need to keep this tab open.",
+    "browserWarningExtension": "Scheduled plans run in the background via the Chrome extension. Just keep Chrome running - you can close this tab."
   }
 }

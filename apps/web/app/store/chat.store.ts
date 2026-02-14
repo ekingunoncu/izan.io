@@ -63,6 +63,8 @@ interface ChatState {
   moveToBackground: (chatId: string) => void
   clearTaskStatus: (chatId: string) => void
   enableNotifyOnCompletion: (chatId: string) => void
+  /** Execute a plan message in the background without affecting UI state */
+  executePlanMessage: (agentId: string, prompt: string, planName: string, planId?: string) => Promise<{ chatId: string; success: boolean; error?: string }>
 }
 
 function generateChatTitle(content: string): string {
@@ -1024,6 +1026,109 @@ export const useChatStore = create<ChatState>((set, get) => ({
     // Request notification permission if needed
     if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
       Notification.requestPermission().catch(() => {})
+    }
+  },
+
+  executePlanMessage: async (agentId: string, prompt: string, planName: string, planId?: string) => {
+    if (!llmService.isConfigured()) {
+      return { chatId: '', success: false, error: i18n.t('chat.llmNotConfigured') }
+    }
+
+    try {
+      // Create chat in storage without affecting UI state
+      const chat = await storageService.createChat({
+        agentId,
+        title: `[Plan] ${planName}: ${generateChatTitle(prompt)}`,
+        planId,
+        planName,
+      })
+
+      // Create user message
+      await storageService.createMessage({
+        chatId: chat.id,
+        role: 'user',
+        content: prompt,
+        modelId: llmService.getModel() || undefined,
+      })
+
+      // Create assistant message placeholder
+      const assistantMessage = await storageService.createMessage({
+        chatId: chat.id,
+        role: 'assistant',
+        content: '',
+        modelId: llmService.getModel() || undefined,
+      })
+
+      // Get agent and activate MCPs
+      const agentStore = useAgentStore.getState()
+      const agent = agentStore.getAgentById(agentId)
+      const mcpStore = useMCPStore.getState()
+
+      if (agent) {
+        await mcpStore.activateAgentMCPs(agent)
+      }
+
+      let mcpTools = agent ? mcpStore.getToolsForAgent(agent) : []
+      if (mcpTools.length === 0 && agent && (mcpStore.error || !mcpStore.isInitialized)) {
+        await useMCPStore.getState().reconnect()
+        if (agent) {
+          await useMCPStore.getState().activateAgentMCPs(agent)
+          mcpTools = useMCPStore.getState().getToolsForAgent(agent)
+        }
+      }
+
+      const linkedAgentTools = agent ? buildLinkedAgentTools(agent) : []
+      const allOpenAITools = [...mcpTools.map(mcpToolToOpenAI), ...linkedAgentTools]
+      const hasTools = allOpenAITools.length > 0
+
+      const basePrompt = agent?.basePrompt || 'You are a helpful AI assistant.'
+      let systemContent = basePrompt + '\n\nRespond in the same language the user writes in.'
+      if (hasTools) {
+        systemContent += '\n\nWhen a task requires multiple operations, keep making tool calls until the task is fully complete. Do not stop partway and ask the user if you should continue - just keep going until done. Never present fabricated or unverified results - always use the available tools to obtain real data.'
+      }
+
+      const chatMessages: ChatCompletionMessageParam[] = [
+        { role: 'system', content: systemContent },
+        { role: 'user', content: prompt },
+      ]
+
+      // Background-only callbacks: persist to DB, no UI updates
+      const updateAssistantMsg = (content: string) => {
+        storageService.updateMessage(assistantMessage.id, content).catch(() => {})
+      }
+      const persistMessage = (content: string) =>
+        storageService.updateMessage(assistantMessage.id, content)
+
+      const llmOptions = getAgentGenerationOptions(agent)
+      const capturedProviderId = llmService.getProvider() || 'unknown'
+      const capturedModelId = llmService.getModel() || 'unknown'
+
+      if (hasTools) {
+        await runToolCallingLoop(
+          chatMessages,
+          allOpenAITools,
+          mcpTools,
+          mcpStore,
+          updateAssistantMsg,
+          persistMessage,
+          () => false, // never abort
+          llmOptions,
+          (usage, toolCallNames) => {
+            persistUsageRecord(usage, chat.id, agentId, toolCallNames, capturedProviderId, capturedModelId)
+          },
+          () => agent?.maxIterations ?? DEFAULT_MAX_ITERATIONS,
+        )
+      } else {
+        const usage = await streamPlainChat(chatMessages, updateAssistantMsg, persistMessage, () => false, llmOptions)
+        if (usage) {
+          persistUsageRecord(usage, chat.id, agentId, [], capturedProviderId, capturedModelId)
+        }
+      }
+
+      return { chatId: chat.id, success: true }
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error)
+      return { chatId: '', success: false, error: errorMsg }
     }
   },
 
