@@ -277,7 +277,7 @@
   "provider": {
     "selectTitle": "Select Provider",
     "selectDesc": "Choose an AI provider and enter your API key. Keys are stored only in your browser.",
-    "freeTier": "Free",
+    "freeTier": "Start Free",
     "local": "Local",
     "localHint": {
       "ollama": "Runs locally on your machine. No API key needed, no data leaves your device."

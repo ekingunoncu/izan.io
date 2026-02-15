@@ -277,7 +277,7 @@
   "provider": {
     "selectTitle": "Provider Seçin",
     "selectDesc": "AI provider seçin ve API key'inizi girin. Key'ler sadece tarayıcınızda saklanır.",
-    "freeTier": "Ücretsiz",
+    "freeTier": "Ücretsiz Başla",
     "local": "Yerel",
     "localHint": {
       "ollama": "Makinenizde yerel olarak çalışır. API key gerekmez, verileriniz cihazınızdan çıkmaz."

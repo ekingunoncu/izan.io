@@ -277,7 +277,7 @@
   "provider": {
     "selectTitle": "Provider auswählen",
     "selectDesc": "Wählen Sie einen KI-Provider und geben Sie Ihren API-Schlüssel ein. Schlüssel werden nur in Ihrem Browser gespeichert.",
-    "freeTier": "Kostenlos",
+    "freeTier": "Kostenlos starten",
     "local": "Lokal",
     "localHint": {
       "ollama": "Läuft lokal auf Ihrem Gerät. Kein API-Schlüssel nötig, keine Daten verlassen Ihr Gerät."
