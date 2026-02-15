@@ -22,7 +22,6 @@ import {
   MousePointerClick,
   BookOpen,
   CalendarClock,
-  Wand2,
   CheckCircle2,
   Download,
 } from "lucide-react";
@@ -346,12 +345,6 @@ const ROADMAP_ITEMS = [
     descKey: "home.roadmapItem3Desc",
     icon: CalendarClock,
     shipped: true,
-  },
-  {
-    titleKey: "home.roadmapItem6Title",
-    descKey: "home.roadmapItem6Desc",
-    icon: Wand2,
-    shipped: false,
   },
   {
     titleKey: "home.roadmapItem1Title",

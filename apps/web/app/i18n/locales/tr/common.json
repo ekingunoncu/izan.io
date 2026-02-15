@@ -190,9 +190,6 @@
     "roadmapItem4Desc": "Geçmiş konuşmaları hatırlayan ve belgelerinizden öğrenen agentlar ile daha akıllı, bağlam farkındalıklı yanıtlar.",
     "roadmapItem5Title": "Tarayıcıda Çalışan LLM'ler",
     "roadmapItem5Desc": "Hafif AI modellerini doğrudan tarayıcınızda çalıştırın - tamamen gizli, temel görevler için API key gerekmez.",
-    "roadmapItem6Title": "Otopilot Makro Oluşturucu",
-    "roadmapItem6Desc": "Sayfaları analiz eden, network isteklerini yakalayan, erişilebilirlik ağacını okuyan ve en sağlam veri çekme stratejisini otomatik oluşturan yapay zeka destekli makro oluşturucu - manuel kayıt gerekmez.",
-
     "providersTitle": "İstediğiniz AI Modelini Kullanın",
     "providersDesc": "17+ AI sağlayıcı, tek platform. Kendi API key'inizi getirin - platform bağımlılığı yok, aracı ücreti yok. Key'leriniz tarayıcınızdan asla çıkmaz.",
     "providersCta": "Ayarlardan API key'lerinizi yapılandırın",

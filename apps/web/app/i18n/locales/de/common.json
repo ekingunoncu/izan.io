@@ -190,9 +190,6 @@
     "roadmapItem4Desc": "Agenten, die sich an vergangene Gespräche erinnern und aus Ihren Dokumenten lernen - für intelligentere, kontextbewusste Antworten.",
     "roadmapItem5Title": "Browser-LLMs",
     "roadmapItem5Desc": "Leichte KI-Modelle direkt im Browser ausführen - vollständig privat, kein API-Schlüssel für einfache Aufgaben nötig.",
-    "roadmapItem6Title": "Autopilot Makro-Builder",
-    "roadmapItem6Desc": "KI-gestützte Makro-Erstellung, die Seiten analysiert, Netzwerkanfragen abfängt, Accessibility-Trees liest und automatisch die robusteste Scraping-Strategie erstellt - keine manuelle Aufzeichnung nötig.",
-
     "providersTitle": "Nutzen Sie jedes KI-Modell",
     "providersDesc": "17+ KI-Provider, eine Plattform. Bringen Sie Ihren eigenen API-Schlüssel mit - kein Vendor Lock-in, keine Mittelsmann-Gebühren. Ihre Schlüssel verlassen nie Ihren Browser.",
     "providersCta": "API-Schlüssel in den Einstellungen konfigurieren",
