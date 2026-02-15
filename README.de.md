@@ -41,8 +41,11 @@
 | 🔐 **Privatsphäre** | API-Keys nur im Browser. Nie an unsere Server gesendet. |
 | 🧠 **Multi-Provider** | 17+ KI-Provider unterstützt (siehe unten). |
 | 🤖 **Smarte Agents** | MCP-vernetzte Agents - Websuche, Code, und mehr. |
+| 🔗 **Multi-Agent-Orchestrierung** | Agenten verketten - die Ausgabe eines Agenten wird zur Eingabe des nächsten. Bis zu 3 Ebenen tief. |
 | 🌐 **MCP** | Integrierte und eigene MCP-Server. |
 | 🎬 **Aktions-Recorder** | Browser-Aktionen aufzeichnen, Daten per CSS oder Accessibility-Tree extrahieren und als MCP-Tools speichern; kein Code nötig ([docs/visual-mcp-tool-builder.md](docs/visual-mcp-tool-builder.md)). |
+| ⏱️ **Langzeitaufgaben** | Agenten arbeiten im Hintergrund an komplexer Recherche und mehrstufigen Workflows. Benachrichtigung, wenn Ergebnisse bereit sind. |
+| 📅 **Geplante Automatisierungen** | Agent-Aufgaben nach Zeitplan ausführen - Preisverfolgung, Datenerfassung und wiederkehrende Workflows auf Autopilot. |
 
 ---
 

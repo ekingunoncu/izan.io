@@ -41,8 +41,11 @@
 | 🔐 **Privacy** | API keys stored only in your browser. Never sent to our servers. |
 | 🧠 **Multi-Provider** | 17+ AI providers supported (see below). |
 | 🤖 **Smart Agents** | MCP-connected agents - web search, code, and more. |
+| 🔗 **Multi-Agent Orchestration** | Chain agents together - one agent's output becomes another's input. Up to 3 levels deep. |
 | 🌐 **MCP** | Built-in and custom MCP servers. |
-| 🎬 **Action recorder** | Record browser actions, extract data via CSS or accessibility tree, and save as MCP tools; no coding required (see [docs/visual-mcp-tool-builder.md](docs/visual-mcp-tool-builder.md)). |
+| 🎬 **Action Recorder** | Record browser actions, extract data via CSS or accessibility tree, and save as MCP tools; no coding required (see [docs/visual-mcp-tool-builder.md](docs/visual-mcp-tool-builder.md)). |
+| ⏱️ **Long Running Tasks** | Agents work in the background on complex research and multi-step workflows. Get notified when results are ready. |
+| 📅 **Scheduled Automations** | Run agent tasks on a schedule - price tracking, data collection, and recurring workflows on autopilot. |
 
 ---
 

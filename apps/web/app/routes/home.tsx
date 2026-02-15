@@ -10,10 +10,8 @@ import {
   ChevronRight,
   Code2,
   Users,
-  Link2,
   Puzzle,
   Eye,
-  Clock,
   Database,
   Hourglass,
   Monitor,
@@ -24,6 +22,8 @@ import {
   MousePointerClick,
   BookOpen,
   CalendarClock,
+  CheckCircle2,
+  Download,
 } from "lucide-react";
 import { BUILTIN_AGENT_DEFINITIONS } from "@izan/agents";
 import { getAgentIcon } from "~/components/agents/AgentSelector";
@@ -38,15 +38,15 @@ export function meta({ params }: Route.MetaArgs) {
   const lang = params.lang || "en";
 
   const titles: Record<string, string> = {
-    tr: "izan.io - Akıllı AI Agent Platformu",
-    en: "izan.io - Smart AI Agent Platform",
-    de: "izan.io - Intelligente KI-Agent-Plattform",
+    en: "izan.io - Open Source AI Agent Platform | Browser Automation, MCP Tools, 17+ Providers",
+    tr: "izan.io - Açık Kaynak AI Agent Platformu | Tarayıcı Otomasyonu, MCP Araçları, 17+ Sağlayıcı",
+    de: "izan.io - Open Source KI-Agent-Plattform | Browser-Automatisierung, MCP-Tools, 17+ Anbieter",
   };
 
   const descriptions: Record<string, string> = {
-    tr: "İşini bilen akıllı AI agentlar. Tarayıcı otomasyonu, domain arama ve daha fazlası. Açık kaynak, gizlilik öncelikli.",
-    en: "Smart AI agents that actually get things done. Browser automation, domain search, and more. Open source, privacy first.",
-    de: "Intelligente KI-Agenten, die wirklich Ergebnisse liefern. Browser-Automatisierung, Domain-Suche und mehr. Open Source, Datenschutz zuerst.",
+    en: "Build and deploy AI agents with browser automation, Chrome extension macros, MCP protocol tools, and 17+ AI providers. Open source, privacy-first. Create custom agents, schedule tasks, extract web data.",
+    tr: "Tarayıcı otomasyonu, Chrome uzantısı makroları, MCP protokol araçları ve 17+ AI sağlayıcı ile AI agentlar oluşturun. Açık kaynak, gizlilik öncelikli. Özel agentlar yaratın, görevleri planlayın, web verisi çekin.",
+    de: "Erstellen Sie KI-Agenten mit Browser-Automatisierung, Chrome-Extension-Makros, MCP-Protokoll-Tools und 17+ KI-Anbietern. Open Source, Datenschutz zuerst. Agenten erstellen, Aufgaben planen, Web-Daten extrahieren.",
   };
 
   const jsonLd = {
@@ -63,6 +63,27 @@ export function meta({ params }: Route.MetaArgs) {
       priceCurrency: "USD",
     },
     browserRequirements: "Modern web browser",
+    keywords:
+      "ai agent platform, browser automation, mcp client web, chrome extension ai, no-code automation, ai assistant open source, multi-agent orchestration, scheduled ai tasks, web data extraction, privacy-first ai",
+    featureList: [
+      "Multi-Agent Orchestration",
+      "Chrome Extension Browser Automation",
+      "17+ AI Providers",
+      "MCP Protocol Client",
+      "Visual No-Code Macro Builder",
+      "Scheduled Automations & Cron Tasks",
+      "Long-Running Background Tasks",
+      "Privacy-First Open Source",
+      "Custom Agent Builder",
+      "AI-Powered Web Data Extraction",
+    ],
+    license: "https://www.gnu.org/licenses/agpl-3.0.html",
+    isAccessibleForFree: true,
+    sameAs: [
+      "https://github.com/ekingunoncu/izan.io",
+      "https://x.com/izan_io",
+      "https://www.youtube.com/@izan_io",
+    ],
   };
 
   return [
@@ -108,59 +129,240 @@ const AGENTS = [
   },
 ];
 
-const FLEX_ITEMS = [
-  {
-    titleKey: "home.flexMcpTitle",
-    descKey: "home.flexMcpDesc",
-    icon: Puzzle,
-  },
-  {
-    titleKey: "home.flexCreateTitle",
-    descKey: "home.flexCreateDesc",
-    icon: Bot,
-  },
-  {
-    titleKey: "home.flexChainTitle",
-    descKey: "home.flexChainDesc",
-    icon: Link2,
-  },
-  {
-    titleKey: "home.flexMacrosTitle",
-    descKey: "home.flexMacrosDesc",
-    icon: MousePointerClick,
-  },
-  {
-    titleKey: "home.flexTestTitle",
-    descKey: "home.flexTestDesc",
-    icon: Eye,
-  },
+const FEATURES = [
+  { slug: "agents", titleKey: "home.featAgentsTitle", descKey: "home.featAgentsDesc", icon: Bot, color: "blue", wide: true },
+  { slug: "browser", titleKey: "home.featBrowserTitle", descKey: "home.featBrowserDesc", icon: MousePointerClick, color: "violet", wide: false },
+  { slug: "providers", titleKey: "home.featProvidersTitle", descKey: "home.featProvidersDesc", icon: Sparkles, color: "amber", wide: false },
+  { slug: "mcp", titleKey: "home.featMcpTitle", descKey: "home.featMcpDesc", icon: Puzzle, color: "emerald", wide: false },
+  { slug: "macros", titleKey: "home.featMacrosTitle", descKey: "home.featMacrosDesc", icon: Eye, color: "rose", wide: false },
+  { slug: "scheduled", titleKey: "home.featScheduledTitle", descKey: "home.featScheduledDesc", icon: CalendarClock, color: "teal", wide: true },
+  { slug: "background", titleKey: "home.featBackgroundTitle", descKey: "home.featBackgroundDesc", icon: Hourglass, color: "indigo", wide: false },
+  { slug: "privacy", titleKey: "home.featPrivacyTitle", descKey: "home.featPrivacyDesc", icon: Shield, color: "emerald", wide: false },
+  { slug: "builder", titleKey: "home.featBuilderTitle", descKey: "home.featBuilderDesc", icon: Settings, color: "amber", wide: false },
+  { slug: "extraction", titleKey: "home.featExtractionTitle", descKey: "home.featExtractionDesc", icon: Database, color: "violet", wide: false },
 ];
 
-const ROADMAP_ITEMS = [
-  {
-    titleKey: "home.roadmapItem1Title",
-    descKey: "home.roadmapItem1Desc",
-    icon: Store,
+const colorMap: Record<string, { border: string; bg: string; iconBg: string; shadow: string }> = {
+  blue: {
+    border: "border-blue-200/40 dark:border-blue-500/15 hover:border-blue-200/60 dark:hover:border-blue-500/25",
+    bg: "bg-blue-50/30 dark:bg-blue-950/25",
+    iconBg: "bg-blue-500 shadow-blue-500/15",
+    shadow: "hover:shadow-blue-500/5",
   },
+  violet: {
+    border: "border-violet-200/40 dark:border-violet-500/15 hover:border-violet-200/60 dark:hover:border-violet-500/25",
+    bg: "bg-violet-50/30 dark:bg-violet-950/25",
+    iconBg: "bg-violet-500 shadow-violet-500/15",
+    shadow: "hover:shadow-violet-500/5",
+  },
+  amber: {
+    border: "border-amber-200/40 dark:border-amber-500/15 hover:border-amber-200/60 dark:hover:border-amber-500/25",
+    bg: "bg-amber-50/30 dark:bg-amber-950/25",
+    iconBg: "bg-amber-500 shadow-amber-500/15",
+    shadow: "hover:shadow-amber-500/5",
+  },
+  emerald: {
+    border: "border-emerald-200/40 dark:border-emerald-500/15 hover:border-emerald-200/60 dark:hover:border-emerald-500/25",
+    bg: "bg-emerald-50/30 dark:bg-emerald-950/25",
+    iconBg: "bg-emerald-500 shadow-emerald-500/15",
+    shadow: "hover:shadow-emerald-500/5",
+  },
+  rose: {
+    border: "border-rose-200/40 dark:border-rose-500/15 hover:border-rose-200/60 dark:hover:border-rose-500/25",
+    bg: "bg-rose-50/30 dark:bg-rose-950/25",
+    iconBg: "bg-rose-500 shadow-rose-500/15",
+    shadow: "hover:shadow-rose-500/5",
+  },
+  teal: {
+    border: "border-teal-200/40 dark:border-teal-500/15 hover:border-teal-200/60 dark:hover:border-teal-500/25",
+    bg: "bg-teal-50/30 dark:bg-teal-950/25",
+    iconBg: "bg-teal-500 shadow-teal-500/15",
+    shadow: "hover:shadow-teal-500/5",
+  },
+  indigo: {
+    border: "border-indigo-200/40 dark:border-indigo-500/15 hover:border-indigo-200/60 dark:hover:border-indigo-500/25",
+    bg: "bg-indigo-50/30 dark:bg-indigo-950/25",
+    iconBg: "bg-indigo-500 shadow-indigo-500/15",
+    shadow: "hover:shadow-indigo-500/5",
+  },
+};
+
+function FeatureDecoration({ slug }: { slug: string }) {
+  switch (slug) {
+    case "agents":
+      return (
+        <svg width="140" height="100" viewBox="0 0 140 100" fill="none">
+          <rect x="50" y="2" width="40" height="28" rx="8" className="fill-blue-500" />
+          <rect x="2" y="68" width="36" height="28" rx="8" className="fill-emerald-500" />
+          <rect x="102" y="68" width="36" height="28" rx="8" className="fill-violet-500" />
+          <line x1="70" y1="30" x2="20" y2="68" className="stroke-blue-500" strokeWidth="2" strokeDasharray="4 4">
+            <animate attributeName="stroke-dashoffset" from="8" to="0" dur="1s" repeatCount="indefinite" />
+          </line>
+          <line x1="70" y1="30" x2="120" y2="68" className="stroke-blue-500" strokeWidth="2" strokeDasharray="4 4">
+            <animate attributeName="stroke-dashoffset" from="8" to="0" dur="1s" repeatCount="indefinite" />
+          </line>
+        </svg>
+      );
+    case "browser":
+      return (
+        <svg width="64" height="72" viewBox="0 0 64 72" fill="none">
+          <rect x="8" y="4" width="48" height="36" rx="6" className="stroke-violet-500" strokeWidth="2" fill="none" />
+          <circle cx="32" cy="22" r="4" className="fill-violet-500">
+            <animate attributeName="cx" values="20;44;20" dur="3s" repeatCount="indefinite" />
+            <animate attributeName="cy" values="14;28;14" dur="3s" repeatCount="indefinite" />
+          </circle>
+          <circle cx="32" cy="56" r="10" className="stroke-violet-500" strokeWidth="2" fill="none">
+            <animate attributeName="r" values="8;12;8" dur="2s" repeatCount="indefinite" />
+            <animate attributeName="opacity" values="1;0.3;1" dur="2s" repeatCount="indefinite" />
+          </circle>
+          <circle cx="32" cy="56" r="3" className="fill-violet-500" />
+        </svg>
+      );
+    case "providers":
+      return (
+        <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
+          <circle cx="16" cy="16" r="3" className="fill-amber-500" opacity="0.5" />
+          <circle cx="32" cy="16" r="3" className="fill-amber-500" opacity="0.5" />
+          <circle cx="48" cy="16" r="3" className="fill-amber-500" opacity="0.5" />
+          <circle cx="16" cy="32" r="3" className="fill-amber-500" opacity="0.5" />
+          <circle cx="32" cy="32" r="4" className="fill-amber-500">
+            <animate attributeName="r" values="4;6;4" dur="2s" repeatCount="indefinite" />
+          </circle>
+          <circle cx="48" cy="32" r="3" className="fill-amber-500" opacity="0.5" />
+          <circle cx="16" cy="48" r="3" className="fill-amber-500" opacity="0.5" />
+          <circle cx="32" cy="48" r="3" className="fill-amber-500" opacity="0.5" />
+          <circle cx="48" cy="48" r="3" className="fill-amber-500" opacity="0.5" />
+        </svg>
+      );
+    case "mcp":
+      return (
+        <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
+          <rect x="18" y="18" width="28" height="28" rx="6" className="stroke-emerald-500" strokeWidth="2" fill="none" />
+          <line x1="32" y1="8" x2="32" y2="18" className="stroke-emerald-500" strokeWidth="1.5" strokeDasharray="3 3">
+            <animate attributeName="stroke-dashoffset" from="6" to="0" dur="1s" repeatCount="indefinite" />
+          </line>
+          <line x1="32" y1="46" x2="32" y2="56" className="stroke-emerald-500" strokeWidth="1.5" strokeDasharray="3 3">
+            <animate attributeName="stroke-dashoffset" from="6" to="0" dur="1s" repeatCount="indefinite" />
+          </line>
+          <line x1="8" y1="32" x2="18" y2="32" className="stroke-emerald-500" strokeWidth="1.5" strokeDasharray="3 3">
+            <animate attributeName="stroke-dashoffset" from="6" to="0" dur="1s" repeatCount="indefinite" />
+          </line>
+          <line x1="46" y1="32" x2="56" y2="32" className="stroke-emerald-500" strokeWidth="1.5" strokeDasharray="3 3">
+            <animate attributeName="stroke-dashoffset" from="6" to="0" dur="1s" repeatCount="indefinite" />
+          </line>
+        </svg>
+      );
+    case "macros":
+      return (
+        <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
+          <circle cx="32" cy="32" r="20" className="stroke-rose-500" strokeWidth="2" fill="none" />
+          <circle cx="32" cy="32" r="8" className="fill-rose-500" opacity="0.6">
+            <animate attributeName="r" values="6;10;6" dur="2s" repeatCount="indefinite" />
+            <animate attributeName="opacity" values="0.6;0.3;0.6" dur="2s" repeatCount="indefinite" />
+          </circle>
+          <circle cx="32" cy="32" r="3" className="fill-rose-500" />
+        </svg>
+      );
+    case "scheduled":
+      return (
+        <svg width="120" height="80" viewBox="0 0 120 80" fill="none">
+          <circle cx="40" cy="40" r="24" className="stroke-teal-500" strokeWidth="2" fill="none" />
+          <line x1="40" y1="40" x2="40" y2="24" className="stroke-teal-500" strokeWidth="2" strokeLinecap="round">
+            <animateTransform attributeName="transform" type="rotate" from="0 40 40" to="360 40 40" dur="10s" repeatCount="indefinite" />
+          </line>
+          <line x1="40" y1="40" x2="52" y2="40" className="stroke-teal-500" strokeWidth="1.5" strokeLinecap="round">
+            <animateTransform attributeName="transform" type="rotate" from="0 40 40" to="360 40 40" dur="60s" repeatCount="indefinite" />
+          </line>
+          <circle cx="40" cy="40" r="2" className="fill-teal-500" />
+          <rect x="76" y="20" width="32" height="6" rx="3" className="fill-teal-500" opacity="0.4" />
+          <rect x="76" y="34" width="24" height="6" rx="3" className="fill-teal-500" opacity="0.3" />
+          <rect x="76" y="48" width="28" height="6" rx="3" className="fill-teal-500" opacity="0.2" />
+        </svg>
+      );
+    case "background":
+      return (
+        <svg width="48" height="72" viewBox="0 0 48 72" fill="none">
+          <path d="M8 4h32v24L28 36H20L8 28V4Z" className="stroke-indigo-500" strokeWidth="2" fill="none" />
+          <path d="M8 68h32V44L28 36H20L8 44V68Z" className="stroke-indigo-500" strokeWidth="2" fill="none" />
+          <circle cx="24" cy="36" r="2" className="fill-indigo-500">
+            <animate attributeName="cy" values="20;52;20" dur="3s" repeatCount="indefinite" />
+            <animate attributeName="opacity" values="1;0.3;1" dur="3s" repeatCount="indefinite" />
+          </circle>
+        </svg>
+      );
+    case "privacy":
+      return (
+        <svg width="64" height="72" viewBox="0 0 64 72" fill="none">
+          <rect x="8" y="30" width="48" height="36" rx="6" className="stroke-emerald-500" strokeWidth="2.5" fill="none" />
+          <path d="M18 30V22C18 14.268 24.268 8 32 8C39.732 8 46 14.268 46 22V30" className="stroke-emerald-500" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+          <circle cx="32" cy="48" r="5" className="fill-emerald-500">
+            <animate attributeName="r" values="5;6;5" dur="2s" repeatCount="indefinite" />
+          </circle>
+        </svg>
+      );
+    case "builder":
+      return (
+        <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
+          <circle cx="32" cy="32" r="20" className="stroke-amber-500" strokeWidth="1.5" fill="none" strokeDasharray="4 4">
+            <animateTransform attributeName="transform" type="rotate" from="0 32 32" to="360 32 32" dur="20s" repeatCount="indefinite" />
+          </circle>
+          <circle cx="32" cy="32" r="10" className="stroke-amber-500" strokeWidth="2" fill="none" />
+          <circle cx="32" cy="32" r="4" className="fill-amber-500" />
+        </svg>
+      );
+    case "extraction":
+      return (
+        <svg width="64" height="72" viewBox="0 0 64 72" fill="none">
+          <rect x="4" y="4" width="56" height="40" rx="4" className="stroke-violet-500" strokeWidth="2" fill="none" />
+          <line x1="4" y1="14" x2="60" y2="14" className="stroke-violet-500" strokeWidth="1" />
+          <rect x="12" y="22" width="24" height="4" rx="2" className="fill-violet-500" opacity="0.4">
+            <animate attributeName="opacity" values="0.2;0.6;0.2" dur="2s" begin="0s" repeatCount="indefinite" />
+          </rect>
+          <rect x="12" y="30" width="32" height="4" rx="2" className="fill-violet-500" opacity="0.3">
+            <animate attributeName="opacity" values="0.2;0.6;0.2" dur="2s" begin="0.3s" repeatCount="indefinite" />
+          </rect>
+          <rect x="12" y="38" width="20" height="4" rx="2" className="fill-violet-500" opacity="0.2">
+            <animate attributeName="opacity" values="0.2;0.6;0.2" dur="2s" begin="0.6s" repeatCount="indefinite" />
+          </rect>
+          <rect x="16" y="52" width="32" height="6" rx="3" className="fill-violet-500" opacity="0.5" />
+          <rect x="16" y="62" width="24" height="6" rx="3" className="fill-violet-500" opacity="0.3" />
+        </svg>
+      );
+    default:
+      return null;
+  }
+}
+
+const ROADMAP_ITEMS = [
   {
     titleKey: "home.roadmapItem2Title",
     descKey: "home.roadmapItem2Desc",
     icon: Hourglass,
+    shipped: true,
   },
   {
     titleKey: "home.roadmapItem3Title",
     descKey: "home.roadmapItem3Desc",
-    icon: Clock,
+    icon: CalendarClock,
+    shipped: true,
+  },
+  {
+    titleKey: "home.roadmapItem1Title",
+    descKey: "home.roadmapItem1Desc",
+    icon: Store,
+    shipped: false,
   },
   {
     titleKey: "home.roadmapItem4Title",
     descKey: "home.roadmapItem4Desc",
     icon: Database,
+    shipped: false,
   },
   {
     titleKey: "home.roadmapItem5Title",
     descKey: "home.roadmapItem5Desc",
     icon: Monitor,
+    shipped: false,
   },
 ];
 
@@ -301,7 +503,7 @@ export default function Home() {
             </div>
 
             {/* Trust indicators */}
-            <div className="mt-12 flex flex-wrap items-center justify-center gap-6 text-sm text-muted-foreground">
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-6 text-sm text-muted-foreground">
               <span className="flex items-center gap-1.5">
                 <Check className="h-4 w-4 text-emerald-500" />
                 {t("home.openSourceBadge")}
@@ -344,78 +546,46 @@ export default function Home() {
           </div>
         </section>
 
-        {/* ========== FEATURES - Bento Grid ========== */}
+        {/* ========== FEATURES - SEO Grid ========== */}
         <section className="py-10 sm:py-14 md:py-20">
           <div className="container mx-auto px-4 sm:px-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
-              {/* Feature 1 - Larger */}
-              <div className="md:col-span-2 group relative rounded-2xl border border-blue-200/40 dark:border-blue-500/15 bg-blue-50/30 dark:bg-blue-950/25 p-8 sm:p-10 transition-all duration-300 hover:shadow-md hover:shadow-blue-500/5 hover:border-blue-200/60 dark:hover:border-blue-500/25 overflow-hidden">
-                <div className="relative">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-500 text-white shadow-md shadow-blue-500/15 mb-6">
-                    <Bot className="h-7 w-7" />
-                  </div>
-                  <h3 className="text-xl sm:text-2xl font-bold mb-3">
-                    {t("home.featureAgentsTitle")}
-                  </h3>
-                  <p className="text-base sm:text-lg text-muted-foreground leading-relaxed max-w-lg">
-                    {t("home.featureAgentsDesc")}
-                  </p>
-                </div>
-              </div>
-
-              {/* Feature 2 */}
-              <div className="group relative rounded-2xl border border-emerald-200/40 dark:border-emerald-500/15 bg-emerald-50/30 dark:bg-emerald-950/25 p-8 sm:p-10 transition-all duration-300 hover:shadow-md hover:shadow-emerald-500/5 hover:border-emerald-200/60 dark:hover:border-emerald-500/25 overflow-hidden">
-                <div className="relative">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-500 text-white shadow-md shadow-emerald-500/15 mb-6">
-                    <Shield className="h-7 w-7" />
-                  </div>
-                  <h3 className="text-xl font-bold mb-3">
-                    {t("home.featurePrivacyTitle")}
-                  </h3>
-                  <p className="text-base text-muted-foreground leading-relaxed">
-                    {t("home.featurePrivacyDesc")}
-                  </p>
-                </div>
-              </div>
-
-              {/* Feature 3 - Macros */}
-              <div className="group relative rounded-2xl border border-violet-200/40 dark:border-violet-500/15 bg-violet-50/30 dark:bg-violet-950/25 p-8 sm:p-10 transition-all duration-300 hover:shadow-md hover:shadow-violet-500/5 hover:border-violet-200/60 dark:hover:border-violet-500/25 overflow-hidden">
-                <div className="relative">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-violet-500 text-white shadow-md shadow-violet-500/15 mb-6">
-                    <MousePointerClick className="h-7 w-7" />
-                  </div>
-                  <h3 className="text-xl font-bold mb-3">
-                    {t("home.featureMacrosTitle")}
-                  </h3>
-                  <p className="text-base text-muted-foreground leading-relaxed">
-                    {t("home.featureMacrosDesc")}
-                  </p>
-                  <Link
-                    to={`/${lang}/docs/chrome-extension`}
-                    className="inline-flex items-center gap-1.5 text-sm font-medium text-violet-600 dark:text-violet-400 hover:underline mt-3"
+            <div className="text-center mb-10 sm:mb-14">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3">
+                {t("home.featSectionTitle")}
+              </h2>
+              <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto">
+                {t("home.featSectionDesc")}
+              </p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+              {FEATURES.map((feat) => {
+                const Icon = feat.icon;
+                const c = colorMap[feat.color];
+                return (
+                  <div
+                    key={feat.slug}
+                    className={`group relative rounded-2xl border ${c.border} ${c.bg} p-7 sm:p-8 transition-all duration-300 hover:shadow-md ${c.shadow} overflow-hidden ${
+                      feat.wide ? "md:col-span-2" : ""
+                    }`}
                   >
-                    {t("home.featureMacrosExtLink")}
-                    <ArrowRight className="h-3.5 w-3.5" />
-                  </Link>
-                </div>
-              </div>
-
-              {/* Feature 4 - For Everyone */}
-              <div className="md:col-span-2 group relative rounded-2xl border border-amber-200/40 dark:border-amber-500/15 bg-amber-50/30 dark:bg-amber-950/25 p-8 sm:p-10 transition-all duration-300 hover:shadow-md hover:shadow-amber-500/5 hover:border-amber-200/60 dark:hover:border-amber-500/25 overflow-hidden">
-                <div className="relative flex flex-col md:flex-row md:items-center gap-6">
-                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-amber-500 text-white shadow-md shadow-amber-500/15">
-                    <Users className="h-7 w-7" />
+                    {/* SVG decoration */}
+                    <div className="absolute top-5 right-5 sm:top-6 sm:right-6 opacity-[0.10] dark:opacity-[0.13] group-hover:opacity-[0.20] transition-opacity duration-500" aria-hidden>
+                      <FeatureDecoration slug={feat.slug} />
+                    </div>
+                    <div className="relative">
+                      <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${c.iconBg} text-white shadow-md mb-5`}>
+                        <Icon className="h-6 w-6" />
+                      </div>
+                      <h3 className="text-lg sm:text-xl font-bold mb-2">
+                        {t(feat.titleKey)}
+                      </h3>
+                      <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
+                        {t(feat.descKey)}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="text-xl sm:text-2xl font-bold mb-3">
-                      {t("home.featureForEveryoneTitle")}
-                    </h3>
-                    <p className="text-base sm:text-lg text-muted-foreground leading-relaxed max-w-2xl">
-                      {t("home.featureForEveryoneDesc")}
-                    </p>
-                  </div>
-                </div>
-              </div>
+                );
+              })}
             </div>
           </div>
         </section>
@@ -506,86 +676,75 @@ export default function Home() {
           </div>
         </section>
 
-        {/* ========== HOW IT WORKS - Numbered Steps ========== */}
+        {/* ========== HOW IT WORKS ========== */}
         <section className="py-12 sm:py-16 md:py-20 bg-muted/30 dark:bg-muted/10 section-muted-fade-from-dark">
           <div className="container mx-auto px-4 sm:px-6">
-            <div className="text-center mb-14 sm:mb-20">
+            <div className="text-center mb-12 sm:mb-16">
               <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4">
                 {t("home.howItWorks")}
               </h2>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 sm:gap-4 md:gap-6 max-w-4xl mx-auto">
-              {[1, 2, 3].map((step, idx) => (
-                <div
-                  key={step}
-                  className={`relative flex flex-col items-center text-center ${idx < 2 ? "step-connector" : ""}`}
-                >
-                  {/* Large step number */}
-                  <div className="relative mb-6">
-                    <div className="flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-3xl bg-primary text-primary-foreground font-bold text-2xl sm:text-3xl shadow-xl shadow-primary/20">
-                      {step}
-                    </div>
-                    <div className="absolute inset-0 rounded-3xl bg-primary/20 animate-pulse-glow -z-10 scale-110" />
-                  </div>
-                  <h3 className="font-bold text-lg mb-3">
-                    {t(`home.step${step}Title`)}
-                  </h3>
-                  <p className="text-sm sm:text-base text-muted-foreground leading-relaxed max-w-xs">
-                    {t(`home.step${step}Desc`)}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* ========== FLEXIBILITY - Gradient Border Cards ========== */}
-        <section className="py-12 sm:py-16 md:py-20 relative overflow-hidden section-light-fade">
-          {/* Background decoration */}
-          <div className="absolute -left-40 top-1/2 -translate-y-1/2 w-80 h-80 rounded-full bg-violet-400/10 dark:bg-violet-400/5 blur-[100px]" aria-hidden />
-          <div className="absolute -right-40 top-1/3 w-64 h-64 rounded-full bg-blue-400/10 dark:bg-blue-400/5 blur-[80px]" aria-hidden />
-
-          <div className="container mx-auto px-4 sm:px-6 relative">
-            <div className="text-center mb-14 sm:mb-16">
-              <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4">
-                {t("home.flexTitle")}
-              </h2>
-              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                {t("home.flexDesc")}
-              </p>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6 max-w-4xl mx-auto">
-              {FLEX_ITEMS.map((item, idx) => {
-                const Icon = item.icon;
-                const gradients = [
-                  "from-violet-500/20 via-transparent to-blue-500/20 hover:from-violet-500/30 hover:to-blue-500/30",
-                  "from-blue-500/20 via-transparent to-emerald-500/20 hover:from-blue-500/30 hover:to-emerald-500/30",
-                  "from-emerald-500/20 via-transparent to-amber-500/20 hover:from-emerald-500/30 hover:to-amber-500/30",
-                  "from-amber-500/20 via-transparent to-rose-500/20 hover:from-amber-500/30 hover:to-rose-500/30",
-                  "from-rose-500/20 via-transparent to-violet-500/20 hover:from-rose-500/30 hover:to-violet-500/30",
-                ];
-                const iconColors = [
-                  "text-violet-600 dark:text-violet-400 bg-violet-100 dark:bg-violet-500/15",
-                  "text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-500/15",
-                  "text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-500/15",
-                  "text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-500/15",
-                  "text-rose-600 dark:text-rose-400 bg-rose-100 dark:bg-rose-500/15",
-                ];
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-5 md:gap-6 max-w-6xl mx-auto">
+              {([
+                { step: 1, icon: Sparkles, color: "blue" as const },
+                { step: 2, icon: Download, color: "amber" as const },
+                { step: 3, icon: Bot, color: "violet" as const },
+                { step: 4, icon: CheckCircle2, color: "emerald" as const },
+              ]).map(({ step, icon: StepIcon, color }, idx) => {
+                const accents = {
+                  blue: {
+                    border: "border-blue-500/20 hover:border-blue-500/40",
+                    badge: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
+                    icon: "bg-blue-500 shadow-blue-500/20",
+                    glow: "bg-blue-500/10",
+                  },
+                  amber: {
+                    border: "border-amber-500/20 hover:border-amber-500/40",
+                    badge: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+                    icon: "bg-amber-500 shadow-amber-500/20",
+                    glow: "bg-amber-500/10",
+                  },
+                  violet: {
+                    border: "border-violet-500/20 hover:border-violet-500/40",
+                    badge: "bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/20",
+                    icon: "bg-violet-500 shadow-violet-500/20",
+                    glow: "bg-violet-500/10",
+                  },
+                  emerald: {
+                    border: "border-emerald-500/20 hover:border-emerald-500/40",
+                    badge: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+                    icon: "bg-emerald-500 shadow-emerald-500/20",
+                    glow: "bg-emerald-500/10",
+                  },
+                };
+                const a = accents[color];
                 return (
-                  <div
-                    key={item.titleKey}
-                    className={`group relative rounded-2xl p-[1px] bg-gradient-to-br ${gradients[idx]} transition-all duration-300`}
-                  >
-                    <div className="rounded-2xl bg-background p-7 sm:p-8 h-full">
-                      <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${iconColors[idx]} mb-5`}>
-                        <Icon className="h-6 w-6" />
+                  <div key={step} className="relative">
+                    {/* Arrow connector (desktop) */}
+                    {idx < 3 && (
+                      <div className="hidden lg:block absolute top-12 -right-4 z-10">
+                        <ArrowRight className="h-5 w-5 text-muted-foreground/30" />
                       </div>
-                      <h3 className="text-lg font-bold mb-2">
-                        {t(item.titleKey)}
-                      </h3>
-                      <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
-                        {t(item.descKey)}
-                      </p>
+                    )}
+                    <div className={`group relative rounded-2xl border ${a.border} bg-background/60 dark:bg-background/40 p-6 sm:p-7 transition-all duration-300 hover:shadow-lg overflow-hidden h-full`}>
+                      {/* Subtle glow */}
+                      <div className={`absolute -top-12 -right-12 w-32 h-32 rounded-full ${a.glow} blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500`} aria-hidden />
+                      <div className="relative">
+                        <div className="flex items-center gap-3 mb-5">
+                          <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${a.icon} text-white shadow-lg`}>
+                            <StepIcon className="h-5 w-5" />
+                          </div>
+                          <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-bold ${a.badge}`}>
+                            {step}
+                          </span>
+                        </div>
+                        <h3 className="font-bold text-lg mb-2">
+                          {t(`home.step${step}Title`)}
+                        </h3>
+                        <p className="text-sm text-muted-foreground leading-relaxed">
+                          {t(`home.step${step}Desc`)}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 );
@@ -607,17 +766,17 @@ export default function Home() {
             </div>
             <div className="max-w-2xl mx-auto relative">
               {/* Vertical timeline line */}
-              <div className="absolute left-5 sm:left-6 top-0 bottom-0 w-0.5 bg-gradient-to-b from-primary/40 via-primary/20 to-transparent" aria-hidden />
+              <div className="absolute left-5 sm:left-6 top-0 bottom-0 w-0.5 bg-gradient-to-b from-emerald-400/40 via-primary/20 to-transparent" aria-hidden />
 
               <div className="space-y-6 sm:space-y-8">
                 {ROADMAP_ITEMS.map((item, index) => {
                   const Icon = item.icon;
                   const dotColors = [
+                    "bg-emerald-500 shadow-emerald-500/30",
+                    "bg-emerald-500 shadow-emerald-500/30",
                     "bg-violet-500 shadow-violet-500/30",
                     "bg-blue-500 shadow-blue-500/30",
-                    "bg-emerald-500 shadow-emerald-500/30",
                     "bg-amber-500 shadow-amber-500/30",
-                    "bg-rose-500 shadow-rose-500/30",
                   ];
                   return (
                     <div
@@ -627,14 +786,30 @@ export default function Home() {
                       {/* Timeline dot */}
                       <div className="relative z-10 flex-shrink-0">
                         <div className={`flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full ${dotColors[index]} text-white shadow-lg transition-transform duration-300 group-hover:scale-110`}>
-                          <Icon className="h-5 w-5 sm:h-6 sm:w-6" />
+                          {item.shipped ? (
+                            <CheckCircle2 className="h-5 w-5 sm:h-6 sm:w-6" />
+                          ) : (
+                            <Icon className="h-5 w-5 sm:h-6 sm:w-6" />
+                          )}
                         </div>
                       </div>
                       {/* Content */}
                       <div className="flex-1 pb-2 pt-1">
-                        <h3 className="font-bold text-base sm:text-lg mb-1.5 group-hover:text-primary transition-colors">
-                          {t(item.titleKey)}
-                        </h3>
+                        <div className="flex items-center gap-2.5 mb-1.5 flex-wrap">
+                          <h3 className="font-bold text-base sm:text-lg group-hover:text-primary transition-colors">
+                            {t(item.titleKey)}
+                          </h3>
+                          {item.shipped ? (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 px-2.5 py-0.5 text-xs font-semibold">
+                              <Check className="h-3 w-3" />
+                              {t("home.roadmapShipped")}
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center rounded-full bg-primary/5 text-muted-foreground px-2.5 py-0.5 text-xs font-medium">
+                              {t("home.roadmapPlanned")}
+                            </span>
+                          )}
+                        </div>
                         <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
                           {t(item.descKey)}
                         </p>
@@ -720,7 +895,18 @@ export default function Home() {
                   <span className="font-medium text-sm truncate flex-1">
                     {provider.name}
                   </span>
-                  {provider.hasFreeTier && (
+                  {provider.isLocal ? (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="text-xs bg-violet-400/90 text-violet-950 dark:bg-violet-900/40 dark:text-violet-300 px-2 py-0.5 rounded-md shrink-0 cursor-help">
+                          {t("provider.local")}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-xs">
+                        {t(`provider.localHint.${provider.id}`)}
+                      </TooltipContent>
+                    </Tooltip>
+                  ) : provider.hasFreeTier ? (
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <span className="text-xs bg-emerald-400/90 text-emerald-950 dark:bg-emerald-900/40 dark:text-emerald-300 px-2 py-0.5 rounded-md shrink-0 cursor-help">
@@ -731,7 +917,7 @@ export default function Home() {
                         {t(`provider.freeTierHint.${provider.id}`)}
                       </TooltipContent>
                     </Tooltip>
-                  )}
+                  ) : null}
                   <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
                 </a>
               ))}

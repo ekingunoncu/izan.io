@@ -41,8 +41,11 @@
 | 🔐 **Gizlilik** | API anahtarları yalnızca tarayıcınızda. Sunucularımıza gönderilmez. |
 | 🧠 **Çoklu Sağlayıcı** | 17+ AI sağlayıcı desteklenir (aşağıda). |
 | 🤖 **Akıllı Ajanlar** | MCP ile bağlı ajanlar - web araması, kod, vb. |
+| 🔗 **Çoklu Agent Orkestrasyonu** | Agentları birbirine bağlayın - birinin çıktısı diğerinin girdisi olur. 3 seviye derinliğe kadar. |
 | 🌐 **MCP** | Hazır ve özel MCP sunucuları. |
-| 🎬 **Aksiyon kaydedici** | Tarayıcı aksiyonları kaydedin, CSS veya erişilebilirlik ağacı ile veri çıkarın ve MCP aracı olarak kaydedin; kod gerekmez ([docs/visual-mcp-tool-builder.md](docs/visual-mcp-tool-builder.md)). |
+| 🎬 **Aksiyon Kaydedici** | Tarayıcı aksiyonları kaydedin, CSS veya erişilebilirlik ağacı ile veri çıkarın ve MCP aracı olarak kaydedin; kod gerekmez ([docs/visual-mcp-tool-builder.md](docs/visual-mcp-tool-builder.md)). |
+| ⏱️ **Uzun Süreli Görevler** | Agentlar karmaşık araştırma ve çok adımlı iş akışlarında arka planda çalışır. Sonuçlar hazır olduğunda bildirim alın. |
+| 📅 **Zamanlanmış Otomasyonlar** | Agent görevlerini zamanlayıcıyla çalıştırın - fiyat takibi, veri toplama ve tekrarlayan iş akışları otomatik pilotta. |
 
 ---
 

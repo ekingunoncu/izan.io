@@ -111,6 +111,7 @@ function ProviderKeyRow({
   descriptionKey,
   pricingUrl,
   hasFreeTier,
+  isLocal,
   currentKey,
   onSave,
   onRemove,
@@ -125,6 +126,7 @@ function ProviderKeyRow({
   descriptionKey?: string;
   pricingUrl?: string;
   hasFreeTier?: boolean;
+  isLocal?: boolean;
   currentKey: string | null;
   onSave: (key: string) => void;
   onRemove: () => void;
@@ -154,7 +156,19 @@ function ProviderKeyRow({
           <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
         )}
         <span className="font-medium flex-1 truncate">{providerName}</span>
-        {hasFreeTier && (
+        {isLocal ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="text-xs bg-violet-400/90 text-violet-950 dark:bg-violet-900/40 dark:text-violet-300 px-2 py-1 rounded-md flex items-center gap-1.5 flex-shrink-0 cursor-help">
+                <HardDrive className="h-3.5 w-3.5" />
+                {t("provider.local")}
+              </span>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="max-w-xs">
+              {t(`provider.localHint.${providerId}`)}
+            </TooltipContent>
+          </Tooltip>
+        ) : hasFreeTier ? (
           <Tooltip>
             <TooltipTrigger asChild>
               <span className="text-xs bg-emerald-400/90 text-emerald-950 dark:bg-emerald-900/40 dark:text-emerald-300 px-2 py-1 rounded-md flex items-center gap-1.5 flex-shrink-0 cursor-help">
@@ -166,7 +180,7 @@ function ProviderKeyRow({
               {t(`provider.freeTierHint.${providerId}`)}
             </TooltipContent>
           </Tooltip>
-        )}
+        ) : null}
         {currentKey && (
           <span className="text-xs bg-emerald-400/90 text-emerald-950 dark:bg-emerald-900/40 dark:text-emerald-300 px-2 py-1 rounded-md flex items-center gap-1.5 flex-shrink-0">
             <CheckCircle className="h-3.5 w-3.5" />
@@ -223,31 +237,33 @@ function ProviderKeyRow({
               )}
             </div>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <a
-              href={apiKeyUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm text-primary hover:underline inline-flex items-center gap-1.5"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {t("settings.getApiKey")} <ExternalLink className="h-3.5 w-3.5" />
-            </a>
-            {pricingUrl && (
-              <>
-                <span className="text-muted-foreground">·</span>
-                <a
-                  href={pricingUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-primary hover:underline inline-flex items-center gap-1.5"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  {t("settings.viewPricing")} <ExternalLink className="h-3.5 w-3.5" />
-                </a>
-              </>
-            )}
-          </div>
+          {!isLocal && (
+            <div className="flex flex-wrap gap-2">
+              <a
+                href={apiKeyUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-primary hover:underline inline-flex items-center gap-1.5"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {t("settings.getApiKey")} <ExternalLink className="h-3.5 w-3.5" />
+              </a>
+              {pricingUrl && (
+                <>
+                  <span className="text-muted-foreground">·</span>
+                  <a
+                    href={pricingUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-primary hover:underline inline-flex items-center gap-1.5"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {t("settings.viewPricing")} <ExternalLink className="h-3.5 w-3.5" />
+                  </a>
+                </>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -1037,6 +1053,7 @@ export default function Settings() {
                     apiKeyUrl={provider.apiKeyUrl}
                     envHint={provider.envHint}
                     hasFreeTier={provider.hasFreeTier}
+                    isLocal={provider.isLocal}
                     currentKey={providerKeys[provider.id] ?? null}
                     onSave={(key) => setApiKey(provider.id, key)}
                     onRemove={() => removeApiKey(provider.id)}

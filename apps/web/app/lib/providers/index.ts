@@ -21,6 +21,8 @@ export interface ProviderInfo {
   models: ModelInfo[]
   /** Has a free tier (no credit card required for initial use). Sources: official docs. */
   hasFreeTier?: boolean
+  /** Runs locally on the user's machine (no API key needed, e.g. Ollama) */
+  isLocal?: boolean
 }
 
 /** Model metadata */
@@ -312,12 +314,12 @@ export const PROVIDERS: ProviderInfo[] = [
   // ── Ollama (Local) ──
   {
     id: 'ollama',
-    name: 'Ollama (Yerel)',
+    name: 'Ollama',
     description: 'Yerel modeller: Qwen, Llama, Mistral vb.',
     icon: 'hard-drive',
     apiKeyUrl: 'https://ollama.com/',
-    envHint: 'OLLAMA_HOST',
-    hasFreeTier: true, // Fully free, local, no API key needed
+    envHint: 'http://localhost:11434',
+    isLocal: true,
     models: [
       { id: 'qwen3:32b', name: 'Qwen 3 32B', description: 'Yerel Qwen 3 modeli.', contextWindow: 128_000, maxOutput: 8192, supportsTools: true, supportsVision: false, canReason: true, costIn: 0, costOut: 0 },
       { id: 'qwen3:8b', name: 'Qwen 3 8B', description: 'Hafif Qwen 3.', contextWindow: 128_000, maxOutput: 8192, supportsTools: true, supportsVision: false, canReason: true, costIn: 0, costOut: 0 },
