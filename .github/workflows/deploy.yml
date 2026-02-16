@@ -64,6 +64,6 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION || 'eu-central-1' }}
           VITE_GITHUB_CLIENT_ID: ${{ secrets.VITE_GITHUB_CLIENT_ID }}
-          GITHUB_CLIENT_SECRET: ${{ secrets.GITHUB_CLIENT_SECRET }}
+          CLIENT_SECRET_GITHUB: ${{ secrets.CLIENT_SECRET_GITHUB }}
           ZIHIN_DOMAIN_CERTIFICATE_ARN: ${{ secrets.ZIHIN_DOMAIN_CERTIFICATE_ARN }}
         run: cd packages/infra && npx cdk deploy ZihinStack --require-approval never
