@@ -1,0 +1,83 @@
+{
+  "id": "telegram-export-chat",
+  "name": "telegram_export_chat",
+  "description": "Export chat history from a Telegram chat. Searches for the chat, opens it, scrolls up to load more messages, and scrapes all visible messages into a structured format with author, content, timestamp, and direction.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "chat_name",
+      "type": "string",
+      "description": "Name of the chat, group, or channel to export messages from",
+      "required": true
+    },
+    {
+      "name": "message_count",
+      "type": "string",
+      "description": "Approximate number of messages to export (default: 50). More messages require more scroll time.",
+      "required": false
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://web.telegram.org/k/",
+      "label": "Open Telegram Web"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".input-search input, .chatlist-chat, .chat-list",
+      "timeout": 15000,
+      "label": "Wait for Telegram to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let app fully initialize"
+    },
+    {
+      "action": "code",
+      "code": "const searchInput = document.querySelector('.input-search input') || document.querySelector('input[type=\"text\"]'); if (searchInput) { searchInput.focus(); searchInput.click(); await new Promise(r => setTimeout(r, 300)); searchInput.value = ''; searchInput.dispatchEvent(new Event('input', { bubbles: true })); document.execCommand('insertText', false, `{{chat_name}}`); searchInput.dispatchEvent(new Event('input', { bubbles: true })); } return { searched: true }",
+      "name": "search_chat",
+      "label": "Search for the chat"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Wait for search results"
+    },
+    {
+      "action": "code",
+      "code": "const chatItems = document.querySelectorAll('.chatlist-chat, .chat-list .ListItem, .search-group .chatlist-chat'); let clicked = false; for (const item of chatItems) { const nameEl = item.querySelector('.peer-title, .user-title, .dialog-title'); if (nameEl && nameEl.textContent.trim().toLowerCase().includes(`{{chat_name}}`.toLowerCase())) { item.click(); clicked = true; break; } } if (!clicked && chatItems.length > 0) { chatItems[0].click(); clicked = true; } return { clicked: clicked }",
+      "name": "click_chat",
+      "label": "Click on the matching chat"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Wait for messages to load"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".bubble, .message, .bubble-content",
+      "timeout": 10000,
+      "label": "Wait for message bubbles"
+    },
+    {
+      "action": "code",
+      "code": "const targetCount = parseInt(`{{message_count}}` || '50', 10); const scrollContainer = document.querySelector('.bubbles-inner, .scrollable-y, .bubbles .scrollable'); const scrollAttempts = Math.ceil(targetCount / 15); for (let i = 0; i < scrollAttempts; i++) { if (scrollContainer) { scrollContainer.scrollTop = 0; } else { const bubblesEl = document.querySelector('.bubbles'); if (bubblesEl) bubblesEl.scrollTop = 0; } await new Promise(r => setTimeout(r, 1500)); } return { scroll_attempts: scrollAttempts, target: targetCount }",
+      "name": "scroll_up",
+      "label": "Scroll up to load more messages"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Wait for scrolled messages to render"
+    },
+    {
+      "action": "code",
+      "code": "const targetCount = parseInt(`{{message_count}}` || '50', 10); const messages = []; const bubbles = document.querySelectorAll('.bubble:not(.is-date), .message'); const startIdx = Math.max(0, bubbles.length - targetCount); for (let i = startIdx; i < bubbles.length; i++) { const el = bubbles[i]; const authorEl = el.querySelector('.peer-title, .name, .bubble-name .peer-title'); const contentEl = el.querySelector('.text-content, .message-content, .message'); const timeEl = el.querySelector('.time, time, .bubble-content .time'); const content = contentEl ? contentEl.textContent.trim() : ''; if (!content) continue; const isOutgoing = el.classList.contains('is-out') || el.classList.contains('outgoing'); const replyEl = el.querySelector('.reply, .reply-title'); messages.push({ index: messages.length + 1, author: authorEl ? authorEl.textContent.trim() : '', content: content, timestamp: timeEl ? timeEl.textContent.trim() : '', direction: isOutgoing ? 'outgoing' : 'incoming', has_reply: replyEl ? true : false, reply_to: replyEl ? replyEl.textContent.trim() : '' }); } const chatTitle = document.querySelector('.chat-info .peer-title, .top .peer-title'); return { chat_name: chatTitle ? chatTitle.textContent.trim() : `{{chat_name}}`, total_exported: messages.length, target_count: targetCount, messages: messages }",
+      "name": "export_result",
+      "label": "Export all visible messages"
+    }
+  ]
+}

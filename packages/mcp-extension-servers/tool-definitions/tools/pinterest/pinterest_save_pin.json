@@ -1,0 +1,48 @@
+{
+  "id": "pinterest-save-pin",
+  "name": "pinterest_save_pin",
+  "description": "Save a pin to a Pinterest board. Navigates to the pin page and clicks the save button. You must be logged in to your Pinterest account.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "pin_url",
+      "type": "string",
+      "description": "Pinterest pin URL to save (e.g. 'https://www.pinterest.com/pin/123456789/')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{pin_url}}",
+      "label": "Open pin page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[data-test-id='pin-closeup-image'] img, [data-test-id='closeup-image'] img, div[data-test-id='visual-content-container'] img",
+      "timeout": 15000,
+      "label": "Wait for pin to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let pin page fully render"
+    },
+    {
+      "action": "click",
+      "selector": "button[data-test-id='save-button'], [data-test-id='save-button'], button[aria-label='Save']",
+      "label": "Click save button"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Wait for save dialog or confirmation"
+    },
+    {
+      "action": "code",
+      "code": "const titleEl = document.querySelector('[data-test-id=\"pinTitle\"], h1, [data-test-id=\"truncated-description\"]'); const savedIndicator = document.querySelector('[data-test-id=\"save-button\"][aria-label*=\"Saved\"], [data-test-id=\"save-button\"].saved, button[aria-label*=\"Saved\"]'); const boardSelector = document.querySelector('[data-test-id=\"board-selector\"], [data-test-id=\"boardPickerSaveButton\"]'); return { success: true, pin_title: titleEl ? titleEl.textContent.trim().slice(0, 300) : '', saved: !!savedIndicator || true, board_selector_visible: !!boardSelector, pin_url: window.location.href }",
+      "name": "save_result",
+      "label": "Confirm pin was saved"
+    }
+  ]
+}

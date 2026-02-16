@@ -1,0 +1,65 @@
+{
+  "id": "indeed-scrape-salaries",
+  "name": "indeed_scrape_salaries",
+  "description": "Scrape salary data from Indeed for a specific job title. Returns average salary, salary range, salary by company, and salary by location.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "job_title",
+      "type": "string",
+      "description": "Job title to look up salary for (e.g. 'Software Engineer', 'Data Analyst')",
+      "required": true
+    },
+    {
+      "name": "location",
+      "type": "string",
+      "description": "Optional location to narrow salary data (e.g. 'San Francisco, CA')",
+      "required": false
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://www.indeed.com/career/salaries",
+      "label": "Open Indeed salaries page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "input[name=\"q\"], input[id=\"searchInput\"], input[aria-label*=\"search\"], form input[type=\"text\"]",
+      "timeout": 15000,
+      "label": "Wait for search input"
+    },
+    {
+      "action": "wait",
+      "ms": 1500,
+      "label": "Let page settle"
+    },
+    {
+      "action": "code",
+      "code": "const jobTitle = '{{job_title}}'; const location = '{{location}}'; const baseUrl = 'https://www.indeed.com/career/' + encodeURIComponent(jobTitle.toLowerCase().replace(/\\s+/g, '-')) + '/salaries'; const params = new URLSearchParams(); if (location && location !== '{{' + 'location}}' && location.trim()) { params.set('l', location); } window.location.href = baseUrl + (params.toString() ? '?' + params.toString() : ''); return { navigated: true }",
+      "name": "nav_result",
+      "label": "Navigate to salary page for job title"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Wait for salary page to load"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 800,
+      "label": "Scroll to load more data"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const titleEl = document.querySelector('h1, .cmp-SalaryHeader-title, [data-testid=\"salary-title\"]'); const avgSalaryEl = document.querySelector('.cmp-SalaryEstimate-salary, [data-testid=\"salary-estimate\"], .css-1bluz6i, .salary-estimate .css-1uyte9r'); const rangeEl = document.querySelector('.cmp-SalaryEstimate-range, [data-testid=\"salary-range\"], .css-1xe1b0e'); const salaryByCompany = []; const companyEls = document.querySelectorAll('.cmp-SalariesByCompany-row, [data-testid=\"salary-by-company-row\"], .css-1ac7rh0 tr, table tbody tr'); companyEls.forEach(function(row, i) { if (i >= 10) return; const name = row.querySelector('a, td:first-child, .css-1r0wrwl'); const salary = row.querySelector('.css-1bluz6i, td:nth-child(2), .cmp-SalariesByCompany-salary'); if (name && salary) salaryByCompany.push({ company: name.textContent.trim(), salary: salary.textContent.trim() }); }); const salaryByLocation = []; const locationEls = document.querySelectorAll('.cmp-SalariesByLocation-row, [data-testid=\"salary-by-location-row\"], .css-tvghk3 tr'); locationEls.forEach(function(row, i) { if (i >= 10) return; const loc = row.querySelector('a, td:first-child'); const salary = row.querySelector('.css-1bluz6i, td:nth-child(2)'); if (loc && salary) salaryByLocation.push({ location: loc.textContent.trim(), salary: salary.textContent.trim() }); }); const relatedJobs = []; const relatedEls = document.querySelectorAll('.cmp-RelatedJobs-item a, [data-testid=\"related-job\"] a'); relatedEls.forEach(function(el, i) { if (i >= 5) return; relatedJobs.push(el.textContent.trim()); }); return { job_title: titleEl ? titleEl.textContent.trim() : '{{job_title}}', average_salary: avgSalaryEl ? avgSalaryEl.textContent.trim() : 'Not available', salary_range: rangeEl ? rangeEl.textContent.trim() : '', salary_by_company: salaryByCompany, salary_by_location: salaryByLocation, related_jobs: relatedJobs, url: window.location.href }",
+      "name": "salary_data",
+      "label": "Extract salary data"
+    }
+  ]
+}

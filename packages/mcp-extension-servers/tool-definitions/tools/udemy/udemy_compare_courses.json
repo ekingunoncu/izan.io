@@ -1,0 +1,50 @@
+{
+  "id": "udemy-compare-courses",
+  "name": "udemy_compare_courses",
+  "description": "Compare multiple courses on Udemy by searching and extracting their ratings, prices, student counts, and instructor info side by side.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "courses",
+      "type": "string",
+      "description": "Comma-separated course names (e.g. 'python bootcamp,javascript course,react complete guide')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{courses}}`.split(',').map(c => ({ url: 'https://www.udemy.com/courses/search/?q=' + encodeURIComponent(c.trim()), course: c.trim() }))",
+      "name": "items",
+      "label": "Build search URL list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 3,
+      "maxItems": 10,
+      "waitUntil": "load",
+      "label": "Search each course in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": "[class*='course-card'], [data-purpose='course-card-container']",
+          "timeout": 15000,
+          "label": "Wait for results"
+        },
+        {
+          "action": "wait",
+          "ms": 2000
+        },
+        {
+          "action": "code",
+          "code": "const first = document.querySelector('[class*=\"course-card\"]:first-child, [data-purpose=\"course-card-container\"]:first-child'); if (!first) return { name: '', instructor: '', rating: '', price: '', url: '' }; const titleEl = first.querySelector('h3, [class*=\"title\"]'); const instructorEl = first.querySelector('[class*=\"instructor\"], [class*=\"teacher\"]'); const ratingEl = first.querySelector('[class*=\"rating\"] span, [data-purpose=\"rating-number\"]'); const priceEl = first.querySelector('[data-purpose=\"course-price-text\"] span, [class*=\"price\"] span'); const studentsEl = first.querySelector('[class*=\"enrollment\"], [class*=\"students\"]'); const linkEl = first.querySelector('a[href*=\"/course/\"]'); return { name: titleEl ? titleEl.textContent.trim() : '', instructor: instructorEl ? instructorEl.textContent.trim() : '', rating: ratingEl ? ratingEl.textContent.trim() : '', price: priceEl ? priceEl.textContent.trim() : '', students: studentsEl ? studentsEl.textContent.trim() : '', url: linkEl ? linkEl.href : '' }",
+          "name": "course_info",
+          "label": "Extract top result"
+        }
+      ]
+    }
+  ]
+}

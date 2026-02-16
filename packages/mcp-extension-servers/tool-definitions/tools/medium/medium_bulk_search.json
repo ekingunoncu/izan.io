@@ -1,0 +1,59 @@
+{
+  "id": "medium-bulk-search",
+  "name": "medium_bulk_search",
+  "description": "Search multiple topics on Medium in parallel using concurrent browser tabs. Use this instead of calling medium_search multiple times - it is faster and more efficient. Pass all queries as a single comma-separated string. Example: 'machine learning,startup advice,productivity tips'.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "queries",
+      "type": "string",
+      "description": "Comma-separated search queries (e.g. 'react hooks,node.js,typescript tips')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{queries}}`.split(',').map(q => ({ url: 'https://medium.com/search?q=' + encodeURIComponent(q.trim()), query: q.trim() }))",
+      "name": "items",
+      "label": "Build search URL list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 3,
+      "maxItems": 10,
+      "waitUntil": "load",
+      "label": "Search each query in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": "article, [data-testid='postPreview'], div[class*='postArticle']",
+          "timeout": 15000,
+          "label": "Wait for results"
+        },
+        {
+          "action": "wait",
+          "ms": 2000
+        },
+        {
+          "action": "scroll",
+          "direction": "down",
+          "amount": 800
+        },
+        {
+          "action": "wait",
+          "ms": 1500
+        },
+        {
+          "action": "code",
+          "code": "const results = []; const articles = document.querySelectorAll('article, [data-testid=\"postPreview\"], div[class*=\"postArticle\"]'); for (let i = 0; i < Math.min(articles.length, 5); i++) { const el = articles[i]; const titleEl = el.querySelector('h2, h3, [class*=\"title\"]'); const authorEl = el.querySelector('a[data-testid=\"authorName\"], a[rel=\"author\"], [class*=\"author\"] a'); const clapsEl = el.querySelector('[class*=\"clap\"] span, button[data-testid=\"clap\"] span'); const dateEl = el.querySelector('time, span[class*=\"date\"]'); const readTimeEl = el.querySelector('[class*=\"readingTime\"], span[class*=\"read-time\"]'); const linkEl = el.querySelector('a[href*=\"/p/\"], h2 a, h3 a'); results.push({ title: titleEl ? titleEl.textContent.trim() : '', author: authorEl ? authorEl.textContent.trim() : '', claps: clapsEl ? clapsEl.textContent.trim() : '', date: dateEl ? (dateEl.getAttribute('datetime') || dateEl.textContent.trim()) : '', read_time: readTimeEl ? readTimeEl.textContent.trim() : '', url: linkEl ? linkEl.href : '' }); } const params = new URLSearchParams(window.location.search); return { query: params.get('q') || '', result_count: results.length, results: results }",
+          "name": "search_results",
+          "label": "Extract results"
+        }
+      ]
+    }
+  ]
+}

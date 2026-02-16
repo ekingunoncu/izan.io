@@ -1,0 +1,58 @@
+{
+  "id": "medium-scrape-tag",
+  "name": "medium_scrape_tag",
+  "description": "Scrape a Medium tag page. Returns trending and recent articles for a given tag, along with related tags and writer recommendations.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "tag",
+      "type": "string",
+      "description": "Tag name (e.g. 'javascript', 'artificial-intelligence', 'productivity')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://medium.com/tag/{{tag}}",
+      "label": "Open tag page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "article, [data-testid='postPreview'], h1, h2",
+      "timeout": 15000,
+      "label": "Wait for tag page to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1200,
+      "label": "Scroll to load more"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1200,
+      "label": "Scroll further down"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const headingEl = document.querySelector('h1, h2[class*=\"tag\"]'); const articles = []; const articleEls = document.querySelectorAll('article, [data-testid=\"postPreview\"], div[class*=\"postArticle\"]'); for (let i = 0; i < Math.min(articleEls.length, 15); i++) { const el = articleEls[i]; const titleEl = el.querySelector('h2, h3, [class*=\"title\"]'); const authorEl = el.querySelector('a[data-testid=\"authorName\"], a[rel=\"author\"], [class*=\"author\"] a'); const clapsEl = el.querySelector('[class*=\"clap\"] span, button[data-testid=\"clap\"] span'); const dateEl = el.querySelector('time, span[class*=\"date\"]'); const readTimeEl = el.querySelector('[class*=\"readingTime\"], span[class*=\"read-time\"]'); const linkEl = el.querySelector('a[href*=\"/p/\"], h2 a, h3 a'); const imgEl = el.querySelector('img[src*=\"miro.medium\"], img[loading]'); articles.push({ title: titleEl ? titleEl.textContent.trim() : '', author: authorEl ? authorEl.textContent.trim() : '', claps: clapsEl ? clapsEl.textContent.trim() : '', date: dateEl ? (dateEl.getAttribute('datetime') || dateEl.textContent.trim()) : '', read_time: readTimeEl ? readTimeEl.textContent.trim() : '', url: linkEl ? linkEl.href : '', image: imgEl ? imgEl.getAttribute('src') : '' }); } const relatedTagEls = document.querySelectorAll('[class*=\"relatedTag\"] a, [class*=\"related\"] a[href*=\"/tag/\"]'); const relatedTags = []; relatedTagEls.forEach(function(el) { const t = el.textContent.trim(); if (t && t.length < 50 && !relatedTags.includes(t)) relatedTags.push(t); }); return { tag: `{{tag}}`, heading: headingEl ? headingEl.textContent.trim() : '', article_count: articles.length, articles: articles, related_tags: relatedTags.slice(0, 10), url: window.location.href }",
+      "name": "tag_data",
+      "label": "Extract tag content"
+    }
+  ]
+}

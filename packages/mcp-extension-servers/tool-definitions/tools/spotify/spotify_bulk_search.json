@@ -1,0 +1,51 @@
+{
+  "id": "spotify-bulk-search",
+  "name": "spotify_bulk_search",
+  "description": "Search for multiple queries on Spotify in parallel using concurrent browser tabs. More efficient than calling spotify_search multiple times. Pass all search queries as a single comma-separated string.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "queries",
+      "type": "string",
+      "description": "Comma-separated search queries (e.g. 'Bohemian Rhapsody, Stairway to Heaven, Hotel California')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{queries}}`.split(',').map(q => ({ query: q.trim(), url: 'https://open.spotify.com/search/' + encodeURIComponent(q.trim()) }))",
+      "name": "items",
+      "label": "Build search query list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 3,
+      "maxItems": 10,
+      "waitUntil": "load",
+      "label": "Search each query in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": "[data-testid=\"search-tracks-result\"], [data-testid=\"tracklist-row\"], .SearchResultsContainer",
+          "timeout": 15000,
+          "label": "Wait for search results"
+        },
+        {
+          "action": "wait",
+          "ms": 2500,
+          "label": "Let results render"
+        },
+        {
+          "action": "code",
+          "code": "const tracks = []; const trackRows = document.querySelectorAll('[data-testid=\"tracklist-row\"], [data-testid=\"search-tracks-result\"] [data-testid=\"tracklist-row\"]'); for (let i = 0; i < Math.min(trackRows.length, 5); i++) { const row = trackRows[i]; const nameEl = row.querySelector('[data-testid=\"internal-track-link\"], .encore-text a, a[href^=\"/track\"]'); const artistEl = row.querySelector('a[href^=\"/artist\"]'); tracks.push({ name: nameEl ? nameEl.textContent.trim() : '', artist: artistEl ? artistEl.textContent.trim() : '', link: nameEl ? nameEl.href || '' : '' }); } const artists = []; const artistLinks = document.querySelectorAll('section a[href^=\"/artist\"]'); const seen = new Set(); for (let i = 0; i < Math.min(artistLinks.length, 3); i++) { const a = artistLinks[i]; const name = a.textContent.trim(); if (name && !seen.has(name)) { seen.add(name); artists.push({ name: name, link: a.href || '' }); } } return { query: new URL(window.location.href).pathname.replace('/search/', '').replace(/%20/g, ' '), track_count: tracks.length, tracks: tracks, artist_count: artists.length, artists: artists }",
+          "name": "search_result",
+          "label": "Extract search results"
+        }
+      ]
+    }
+  ]
+}

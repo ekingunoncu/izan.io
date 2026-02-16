@@ -1,0 +1,59 @@
+{
+  "id": "youtube-bulk-search",
+  "name": "youtube_bulk_search",
+  "description": "Search multiple queries on YouTube in parallel using concurrent browser tabs. Use this instead of calling youtube_search multiple times - it is faster and more efficient. Pass all queries as a single comma-separated string. Example: 'react tutorial,vue tutorial,angular tutorial'.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "queries",
+      "type": "string",
+      "description": "Comma-separated search queries (e.g. 'python basics,javascript basics,rust basics')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{queries}}`.split(',').map(q => ({ url: 'https://www.youtube.com/results?search_query=' + encodeURIComponent(q.trim()), query: q.trim() }))",
+      "name": "items",
+      "label": "Build search URL list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 3,
+      "maxItems": 10,
+      "waitUntil": "load",
+      "label": "Search each query in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": "ytd-video-renderer",
+          "timeout": 15000,
+          "label": "Wait for results"
+        },
+        {
+          "action": "wait",
+          "ms": 2000
+        },
+        {
+          "action": "scroll",
+          "direction": "down",
+          "amount": 800
+        },
+        {
+          "action": "wait",
+          "ms": 1500
+        },
+        {
+          "action": "code",
+          "code": "const results = []; const renderers = document.querySelectorAll('ytd-video-renderer'); for (let i = 0; i < Math.min(renderers.length, 5); i++) { const el = renderers[i]; const titleEl = el.querySelector('#video-title'); const channelEl = el.querySelector('ytd-channel-name #text a, ytd-channel-name #text'); const metaItems = el.querySelectorAll('#metadata-line span.inline-metadata-item, #metadata-line span'); const views = metaItems[0] ? metaItems[0].textContent.trim() : ''; const uploaded = metaItems[1] ? metaItems[1].textContent.trim() : ''; const durationEl = el.querySelector('badge-shape .badge-shape-wiz__text, ytd-thumbnail-overlay-time-status-renderer span'); const linkEl = titleEl; const href = linkEl ? linkEl.getAttribute('href') : ''; results.push({ title: titleEl ? titleEl.textContent.trim() : 'Unknown', channel: channelEl ? channelEl.textContent.trim() : '', views: views, uploaded: uploaded, duration: durationEl ? durationEl.textContent.trim() : '', url: href ? 'https://www.youtube.com' + href : '' }); } const params = new URLSearchParams(window.location.search); return { query: params.get('search_query') || '', result_count: results.length, results: results }",
+          "name": "search_results",
+          "label": "Extract results"
+        }
+      ]
+    }
+  ]
+}

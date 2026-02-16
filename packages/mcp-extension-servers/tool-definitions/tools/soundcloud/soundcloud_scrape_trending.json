@@ -1,0 +1,58 @@
+{
+  "id": "soundcloud-scrape-trending",
+  "name": "soundcloud_scrape_trending",
+  "description": "Scrape trending/popular tracks from SoundCloud. Returns the current top and trending tracks with title, artist, play count, and genre.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "genre",
+      "type": "string",
+      "description": "Genre filter (e.g. 'all-music', 'electronic', 'hip-hop', 'pop', 'rock'). Defaults to 'all-music'.",
+      "required": false
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://soundcloud.com/charts/top?genre=soundcloud%3Agenres%3A{{genre}}",
+      "label": "Open SoundCloud charts"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".chartTrack, [class*='chartTrack'], [class*='soundList__item'], .sc-list-nostyle li",
+      "timeout": 15000,
+      "label": "Wait for chart to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1200,
+      "label": "Scroll to load more"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1200,
+      "label": "Scroll further"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const tracks = []; const trackEls = document.querySelectorAll('.chartTrack, [class*=\"chartTrack\"], .soundList__item, [class*=\"soundList__item\"]'); for (let i = 0; i < Math.min(trackEls.length, 20); i++) { const el = trackEls[i]; const titleEl = el.querySelector('.soundTitle__title span, a[class*=\"soundTitle\"] span, [class*=\"chartTrack__title\"]'); const artistEl = el.querySelector('.soundTitle__username, a[class*=\"soundTitle__username\"], [class*=\"chartTrack__username\"]'); const playsEl = el.querySelector('[class*=\"playbackCount\"], [title*=\"plays\"]'); const likesEl = el.querySelector('[class*=\"likeCount\"]'); const linkEl = el.querySelector('a[class*=\"soundTitle__title\"], a.soundTitle__title'); const imgEl = el.querySelector('.image__full, .sc-artwork img, img'); tracks.push({ rank: i + 1, title: titleEl ? titleEl.textContent.trim() : '', artist: artistEl ? artistEl.textContent.trim() : '', plays: playsEl ? playsEl.textContent.trim() : '', likes: likesEl ? likesEl.textContent.trim() : '', url: linkEl ? linkEl.href : '', image: imgEl ? imgEl.getAttribute('src') : '' }); } return { genre: `{{genre}}` || 'all-music', trending_count: tracks.length, tracks: tracks, url: window.location.href }",
+      "name": "trending_data",
+      "label": "Extract trending tracks"
+    }
+  ]
+}

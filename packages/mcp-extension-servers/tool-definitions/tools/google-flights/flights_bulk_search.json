@@ -1,0 +1,59 @@
+{
+  "id": "flights-bulk-search",
+  "name": "flights_bulk_search",
+  "description": "Search multiple flight routes on Google Flights in parallel using concurrent browser tabs. Use this instead of calling flights_search multiple times - it is faster and more efficient. Pass routes as comma-separated 'from-to' pairs. Example: 'NYC to London,NYC to Paris,NYC to Tokyo'.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "routes",
+      "type": "string",
+      "description": "Comma-separated flight routes as 'from to destination' pairs (e.g. 'NYC to London,LA to Tokyo,Chicago to Miami')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{routes}}`.split(',').map(r => { const route = r.trim(); return { url: 'https://www.google.com/travel/flights?q=' + encodeURIComponent(route), route: route }; })",
+      "name": "items",
+      "label": "Build flight search URL list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 3,
+      "maxItems": 10,
+      "waitUntil": "load",
+      "label": "Search each route in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": "li.pIav2d, div[data-resultid], ul[role='list'] li",
+          "timeout": 20000,
+          "label": "Wait for flight results"
+        },
+        {
+          "action": "wait",
+          "ms": 3000
+        },
+        {
+          "action": "scroll",
+          "direction": "down",
+          "amount": 800
+        },
+        {
+          "action": "wait",
+          "ms": 2000
+        },
+        {
+          "action": "code",
+          "code": "const results = []; const flightCards = document.querySelectorAll('li.pIav2d, div[data-resultid], ul[role=\"list\"] li'); for (let i = 0; i < Math.min(flightCards.length, 5); i++) { const card = flightCards[i]; const priceEl = card.querySelector('div.YMlIz span, span[data-gs], .price-text span, span[aria-label*=\"$\"], span[aria-label*=\"EUR\"]'); const airlineEl = card.querySelector('div.sSHqwe span, .airline-name span'); const timesEl = card.querySelectorAll('div.wtDYl span, span.mv1WYe'); const durationEl = card.querySelector('div.gvkrdb, div[aria-label*=\"duration\"]'); const stopsEl = card.querySelector('div.EfT7Ae span, span[aria-label*=\"stop\"]'); const times = []; timesEl.forEach(t => { const txt = t.textContent.trim(); if (txt.match(/\\d{1,2}:\\d{2}/) || txt.match(/\\d{1,2}\\s*(AM|PM)/i)) times.push(txt); }); results.push({ airline: airlineEl ? airlineEl.textContent.trim() : '', price: priceEl ? priceEl.textContent.trim() : '', departure_time: times[0] || '', arrival_time: times[1] || '', duration: durationEl ? durationEl.textContent.trim() : '', stops: stopsEl ? stopsEl.textContent.trim() : '' }); } const params = new URLSearchParams(window.location.search); return { route: params.get('q') || decodeURIComponent(window.location.href.split('q=')[1] || '').split('&')[0], result_count: results.length, results: results }",
+          "name": "flight_results",
+          "label": "Extract flight results"
+        }
+      ]
+    }
+  ]
+}

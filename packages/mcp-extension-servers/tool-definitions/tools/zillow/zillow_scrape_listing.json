@@ -1,0 +1,58 @@
+{
+  "id": "zillow-scrape-listing",
+  "name": "zillow_scrape_listing",
+  "description": "Scrape full property listing details from a Zillow property page. Returns address, price, beds, baths, sqft, description, features, price history, and agent info.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "listing_url",
+      "type": "string",
+      "description": "Zillow property URL (e.g. 'https://www.zillow.com/homedetails/123-Main-St/12345678_zpid/')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{listing_url}}",
+      "label": "Open property listing"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "h1, [data-testid='home-details-summary'], [class*='home-details']",
+      "timeout": 15000,
+      "label": "Wait for listing to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page fully render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll to load content"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll further"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const addressEl = document.querySelector('h1, [data-testid=\"bdp-address\"], [class*=\"summary\"] h1'); const priceEl = document.querySelector('[data-testid=\"price\"], [class*=\"price\"] span, [class*=\"home-summary\"] span[class*=\"price\"]'); const descEl = document.querySelector('[data-testid=\"description\"], [class*=\"description\"], [class*=\"home-description\"]'); const facts = {}; const factEls = document.querySelectorAll('[data-testid=\"bed-bath-beyond\"] span, [class*=\"fact\"], [class*=\"summary-container\"] span'); factEls.forEach(function(el) { const text = el.textContent.trim(); if (text) { if (text.match(/\\d+\\s*bd/i)) facts.beds = text; else if (text.match(/\\d+\\s*ba/i)) facts.baths = text; else if (text.match(/[\\d,]+\\s*sqft/i)) facts.sqft = text; } }); const features = []; const featureEls = document.querySelectorAll('[class*=\"feature\"] li, [class*=\"fact-list\"] li, [class*=\"home-facts\"] li'); featureEls.forEach(function(el) { const text = el.textContent.trim(); if (text && text.length < 200) features.push(text); }); const images = []; const imgEls = document.querySelectorAll('[class*=\"media\"] img, [class*=\"photo\"] img, [class*=\"gallery\"] img'); imgEls.forEach(function(img) { const src = img.getAttribute('src') || ''; if (src && !images.includes(src)) images.push(src); }); const agentEl = document.querySelector('[class*=\"agent\"] [class*=\"name\"], [class*=\"listing-agent\"], [class*=\"agent-name\"]'); const brokerEl = document.querySelector('[class*=\"broker\"], [class*=\"brokerage\"]'); const statusEl = document.querySelector('[class*=\"status\"], [class*=\"listing-status\"], [class*=\"home-status\"]'); const yearBuiltEl = document.querySelector('[class*=\"year-built\"], [class*=\"yearBuilt\"]'); const lotSizeEl = document.querySelector('[class*=\"lot-size\"], [class*=\"lotSize\"]'); const priceHistory = []; const historyRows = document.querySelectorAll('[class*=\"price-history\"] tr, [class*=\"priceHistory\"] tr'); historyRows.forEach(function(row) { const cells = row.querySelectorAll('td'); if (cells.length >= 3) { priceHistory.push({ date: cells[0] ? cells[0].textContent.trim() : '', event: cells[1] ? cells[1].textContent.trim() : '', price: cells[2] ? cells[2].textContent.trim() : '' }); } }); return { address: addressEl ? addressEl.textContent.trim() : '', price: priceEl ? priceEl.textContent.trim() : '', beds: facts.beds || '', baths: facts.baths || '', sqft: facts.sqft || '', status: statusEl ? statusEl.textContent.trim() : '', description: descEl ? descEl.textContent.trim().substring(0, 1500) : '', features: features.slice(0, 20), agent: agentEl ? agentEl.textContent.trim() : '', broker: brokerEl ? brokerEl.textContent.trim() : '', year_built: yearBuiltEl ? yearBuiltEl.textContent.trim() : '', lot_size: lotSizeEl ? lotSizeEl.textContent.trim() : '', price_history: priceHistory.slice(0, 10), images: images.slice(0, 8), url: window.location.href }",
+      "name": "listing_data",
+      "label": "Extract listing details"
+    }
+  ]
+}

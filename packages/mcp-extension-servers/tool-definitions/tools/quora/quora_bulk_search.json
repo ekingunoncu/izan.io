@@ -1,0 +1,26 @@
+{
+  "id": "quora-bulk-search",
+  "name": "quora_bulk_search",
+  "description": "Search multiple questions on Quora in parallel using concurrent browser tabs. Use this instead of calling quora_search multiple times.",
+  "version": "1.0.0",
+  "parameters": [
+    { "name": "queries", "type": "string", "description": "Comma-separated search queries (e.g. 'how to learn Python,best AI tools,remote work tips')", "required": true }
+  ],
+  "steps": [
+    { "action": "code", "code": "return `{{queries}}`.split(',').map(q => ({ url: 'https://www.quora.com/search?q=' + encodeURIComponent(q.trim()), query: q.trim() }))", "name": "items", "label": "Build search URL list" },
+    {
+      "action": "forEachItem", "sourceExtract": "items", "openMethod": "url", "urlField": "url", "concurrency": 3, "maxItems": 10, "waitUntil": "load", "label": "Search each query in parallel",
+      "detailSteps": [
+        { "action": "waitForSelector", "selector": "[class*='Question'], [class*='result']", "timeout": 15000, "label": "Wait for results" },
+        { "action": "wait", "ms": 2000 },
+        { "action": "scroll", "direction": "down", "amount": 800 },
+        { "action": "wait", "ms": 1500 },
+        {
+          "action": "code",
+          "code": "const results = []; const items = document.querySelectorAll('[class*=\"result\"], [class*=\"Question\"], [class*=\"pagedList\"] > div'); for (let i = 0; i < Math.min(items.length, 5); i++) { const el = items[i]; const qEl = el.querySelector('[class*=\"question_text\"], [class*=\"Question\"] a span'); const aEl = el.querySelector('[class*=\"answer\"], [class*=\"snippet\"]'); const linkEl = el.querySelector('a[href*=\"/\"]'); results.push({ question: qEl ? qEl.textContent.trim() : '', answer_preview: aEl ? aEl.textContent.trim().substring(0, 200) : '', url: linkEl ? linkEl.href : '' }); } const params = new URLSearchParams(window.location.search); return { query: params.get('q') || '', result_count: results.length, results: results }",
+          "name": "search_results", "label": "Extract results"
+        }
+      ]
+    }
+  ]
+}

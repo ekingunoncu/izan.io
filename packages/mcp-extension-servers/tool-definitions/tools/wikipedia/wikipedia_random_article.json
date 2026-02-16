@@ -1,0 +1,41 @@
+{
+  "id": "wikipedia-random-article",
+  "name": "wikipedia_random_article",
+  "description": "Navigate to a random Wikipedia article and scrape its content. Returns a random article title, summary, categories, and key information.",
+  "version": "1.0.0",
+  "parameters": [],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://en.wikipedia.org/wiki/Special:Random",
+      "label": "Open random article"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "#firstHeading, h1",
+      "timeout": 15000,
+      "label": "Wait for article to load"
+    },
+    {
+      "action": "wait",
+      "ms": 1500,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 800,
+      "label": "Scroll to load content"
+    },
+    {
+      "action": "wait",
+      "ms": 1000
+    },
+    {
+      "action": "code",
+      "code": "const titleEl = document.querySelector('#firstHeading, h1'); const content = document.querySelector('#mw-content-text .mw-parser-output'); const paragraphs = content ? content.querySelectorAll(':scope > p') : []; let summary = ''; for (let i = 0; i < Math.min(paragraphs.length, 3); i++) { const text = paragraphs[i].textContent.trim(); if (text.length > 50) { summary += text + ' '; } } const infobox = {}; const infoboxEl = document.querySelector('.infobox, .vcard'); if (infoboxEl) { const rows = infoboxEl.querySelectorAll('tr'); rows.forEach(function(row) { const th = row.querySelector('th'); const td = row.querySelector('td'); if (th && td) { infobox[th.textContent.trim()] = td.textContent.trim().substring(0, 200); } }); } const categories = []; const catLinks = document.querySelectorAll('#catlinks li a, #mw-normal-catlinks li a'); catLinks.forEach(function(a) { categories.push(a.textContent.trim()); }); const images = []; const imgEls = content ? content.querySelectorAll('img[src*=\"upload.wikimedia\"]') : []; imgEls.forEach(function(img) { const src = img.getAttribute('src'); if (src && src.includes('upload.wikimedia') && !images.includes(src)) images.push(src.startsWith('//') ? 'https:' + src : src); }); return { title: titleEl ? titleEl.textContent.trim() : '', summary: summary.trim().substring(0, 2000), infobox: infobox, categories: categories.slice(0, 10), images: images.slice(0, 3), url: window.location.href }",
+      "name": "article_data",
+      "label": "Extract random article"
+    }
+  ]
+}

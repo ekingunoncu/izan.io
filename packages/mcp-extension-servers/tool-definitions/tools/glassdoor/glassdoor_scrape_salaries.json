@@ -1,0 +1,48 @@
+{
+  "id": "glassdoor-scrape-salaries",
+  "name": "glassdoor_scrape_salaries",
+  "description": "Scrape salary data from Glassdoor for a company or job title. Returns up to 15 salary entries with job title, average salary, salary range, and number of reports.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "salaries_url",
+      "type": "string",
+      "description": "Glassdoor salary page URL (e.g. 'https://www.glassdoor.com/Salary/Google-Salaries-E9079.htm')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{salaries_url}}",
+      "label": "Open Glassdoor salary page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[data-test=\"salary-row\"], .salaryRow, .SalaryRowStyle__row, .salary-list-row, table tbody tr, .css-1bluz6i",
+      "timeout": 15000,
+      "label": "Wait for salary data to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Let salary data render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 800,
+      "label": "Scroll to load more salaries"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const salaries = []; const rows = document.querySelectorAll('[data-test=\"salary-row\"], .salaryRow, .SalaryRowStyle__row, .salary-list-row, table tbody tr, .css-1bluz6i, [class*=\"SalariesList\"] > div'); for (let i = 0; i < Math.min(rows.length, 15); i++) { const row = rows[i]; const titleEl = row.querySelector('[data-test=\"salary-job-title\"], .salaryRow__JobInfoStyle__jobTitle, a[href*=\"/Salaries/\"], .css-1h93d4v, h3, .job-title, strong'); const avgSalaryEl = row.querySelector('[data-test=\"salary-average\"], .salary-avg, .css-1xe6bi0, .SalaryRowStyle__payAmount, .salary-amount, .mean'); const rangeEl = row.querySelector('[data-test=\"salary-range\"], .salary-range, .css-1a7s2qh, .SalaryRowStyle__payRange, .range'); const countEl = row.querySelector('[data-test=\"salary-count\"], .salary-count, .css-1b1l5mh, .SalaryRowStyle__payCount, .num-salaries'); const linkEl = row.querySelector('a[href*=\"/Salary/\"], a[href*=\"/Salaries/\"]'); let url = ''; if (linkEl) { const href = linkEl.getAttribute('href') || ''; url = href.startsWith('http') ? href : 'https://www.glassdoor.com' + href; } salaries.push({ job_title: titleEl ? titleEl.textContent.trim() : '', average_salary: avgSalaryEl ? avgSalaryEl.textContent.trim() : '', salary_range: rangeEl ? rangeEl.textContent.trim() : '', report_count: countEl ? countEl.textContent.trim() : '', url: url }); } const companyEl = document.querySelector('[data-test=\"employer-name\"], .employer-name, h1, .css-16nw9e6'); return { company: companyEl ? companyEl.textContent.trim() : '', salary_count: salaries.length, salaries: salaries, salaries_url: window.location.href }",
+      "name": "salary_data",
+      "label": "Extract salary information"
+    }
+  ]
+}

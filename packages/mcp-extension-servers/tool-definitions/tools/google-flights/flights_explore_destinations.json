@@ -1,0 +1,64 @@
+{
+  "id": "flights-explore-destinations",
+  "name": "flights_explore_destinations",
+  "description": "Explore flight destinations from an origin city using Google Flights Explore. Shows destinations on a map with prices, useful for finding cheap flights anywhere.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "origin",
+      "type": "string",
+      "description": "Origin city or airport code (e.g. 'San Francisco', 'SFO')",
+      "required": true
+    },
+    {
+      "name": "max_price",
+      "type": "string",
+      "description": "Maximum price filter (optional, e.g. '500', '1000')",
+      "required": false
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://www.google.com/travel/explore?q=flights+from+{{origin}}",
+      "label": "Open Google Flights Explore"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "div.tsUJMc, div[class*='explore'], div[data-flt-ve='explore'], .gws-flights-explore__results, div[role='listbox']",
+      "timeout": 20000,
+      "label": "Wait for explore results"
+    },
+    {
+      "action": "wait",
+      "ms": 4000,
+      "label": "Let map and results load"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 800,
+      "label": "Scroll to see destination list"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 800,
+      "label": "Scroll further"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const destinations = []; const cards = document.querySelectorAll('div.tsUJMc, div[class*=\"destination-card\"], div[data-flt-ve=\"explore_destination\"], .gws-flights-explore__result, div[role=\"option\"], a[href*=\"/travel/flights\"]'); const seen = new Set(); cards.forEach((card, i) => { if (destinations.length >= 20) return; const nameEl = card.querySelector('h3, div.n4HaVc, .destination-name, div[class*=\"title\"]'); const priceEl = card.querySelector('div.f4F6oe, span[data-gs], .price, span[aria-label*=\"$\"], span[aria-label*=\"EUR\"]'); const datesEl = card.querySelector('div.mMKuie, .dates, div[class*=\"date\"]'); const imgEl = card.querySelector('img'); const linkEl = card.querySelector('a[href]'); const name = nameEl ? nameEl.textContent.trim() : ''; if (!name || seen.has(name)) return; seen.add(name); destinations.push({ destination: name, price: priceEl ? priceEl.textContent.trim() : '', dates: datesEl ? datesEl.textContent.trim() : '', image: imgEl ? imgEl.getAttribute('src') : '', url: linkEl ? linkEl.href : '' }); }); return { origin: `{{origin}}`, destination_count: destinations.length, destinations: destinations, url: window.location.href }",
+      "name": "explore_results",
+      "label": "Extract explore destinations"
+    }
+  ]
+}

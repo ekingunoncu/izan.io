@@ -1,0 +1,59 @@
+{
+  "id": "ebay-bulk-search",
+  "name": "ebay_bulk_search",
+  "description": "Search multiple products on eBay in parallel using concurrent browser tabs. Use this instead of calling ebay_search multiple times - it is faster and more efficient. Pass all queries as a single comma-separated string. Example: 'vintage watches,gaming laptop,nike air max'.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "queries",
+      "type": "string",
+      "description": "Comma-separated search queries (e.g. 'mechanical keyboard,wireless mouse,monitor stand')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{queries}}`.split(',').map(q => ({ url: 'https://www.ebay.com/sch/i.html?_nkw=' + encodeURIComponent(q.trim()), query: q.trim() }))",
+      "name": "items",
+      "label": "Build search URL list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 3,
+      "maxItems": 10,
+      "waitUntil": "load",
+      "label": "Search each query in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": ".srp-results .s-item, .srp-river-results .s-item, li.s-item",
+          "timeout": 15000,
+          "label": "Wait for results"
+        },
+        {
+          "action": "wait",
+          "ms": 2000
+        },
+        {
+          "action": "scroll",
+          "direction": "down",
+          "amount": 800
+        },
+        {
+          "action": "wait",
+          "ms": 1500
+        },
+        {
+          "action": "code",
+          "code": "const results = []; const items = document.querySelectorAll('.srp-results .s-item, .srp-river-results .s-item, li.s-item'); for (let i = 0; i < Math.min(items.length, 5); i++) { const el = items[i]; const titleEl = el.querySelector('.s-item__title, .s-item__title span'); const linkEl = el.querySelector('.s-item__link, a.s-item__link'); const priceEl = el.querySelector('.s-item__price, .s-item__price span.POSITIVE, .s-item__price span.BOLD'); const shippingEl = el.querySelector('.s-item__shipping, .s-item__freeXDays, .s-item__logisticsCost'); const conditionEl = el.querySelector('.SECONDARY_INFO, .s-item__subtitle span'); const bidsEl = el.querySelector('.s-item__bidCount, .s-item__bids'); const imgEl = el.querySelector('.s-item__image-wrapper img, .s-item__image img'); const sellerEl = el.querySelector('.s-item__seller-info-text, .s-item__seller-info a'); const title = titleEl ? titleEl.textContent.trim() : ''; if (!title || title === 'Shop on eBay' || title === 'Results matching fewer words') continue; results.push({ title: title, price: priceEl ? priceEl.textContent.trim() : '', shipping: shippingEl ? shippingEl.textContent.trim() : '', condition: conditionEl ? conditionEl.textContent.trim() : '', bids: bidsEl ? bidsEl.textContent.trim() : '', seller: sellerEl ? sellerEl.textContent.trim() : '', image: imgEl ? imgEl.getAttribute('src') : '', url: linkEl ? linkEl.href : '' }); } const params = new URLSearchParams(window.location.search); return { query: params.get('_nkw') || '', result_count: results.length, results: results }",
+          "name": "search_results",
+          "label": "Extract results"
+        }
+      ]
+    }
+  ]
+}

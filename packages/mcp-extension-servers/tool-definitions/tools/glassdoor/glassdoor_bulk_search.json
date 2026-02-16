@@ -1,0 +1,60 @@
+{
+  "id": "glassdoor-bulk-search",
+  "name": "glassdoor_bulk_search",
+  "description": "Search multiple job queries on Glassdoor in parallel using concurrent browser tabs. Use this instead of calling glassdoor_search_jobs multiple times - it is faster and more efficient. Pass all queries as a single comma-separated string. Example: 'software engineer,product manager,data scientist'.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "queries",
+      "type": "string",
+      "description": "Comma-separated job search queries (e.g. 'software engineer,product manager,data scientist')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{queries}}`.split(',').map(q => ({ url: 'https://www.glassdoor.com/Job/jobs.htm?sc.keyword=' + encodeURIComponent(q.trim()), query: q.trim() }))",
+      "name": "items",
+      "label": "Build search URL list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 3,
+      "maxItems": 10,
+      "waitUntil": "load",
+      "label": "Search each query in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": ".jobCard, .react-job-listing, [data-test=\"jobListing\"], .JobsList_jobListItem__wjTHv, li[data-jobid]",
+          "timeout": 15000,
+          "label": "Wait for results"
+        },
+        {
+          "action": "wait",
+          "ms": 2000
+        },
+        {
+          "action": "scroll",
+          "direction": "down",
+          "amount": 800,
+          "label": "Scroll for more results"
+        },
+        {
+          "action": "wait",
+          "ms": 1500
+        },
+        {
+          "action": "code",
+          "code": "const jobs = []; const cards = document.querySelectorAll('.jobCard, .react-job-listing, [data-test=\"jobListing\"], li[data-jobid], .JobsList_jobListItem__wjTHv'); for (let i = 0; i < Math.min(cards.length, 8); i++) { const card = cards[i]; const titleEl = card.querySelector('.job-title, .jobTitle, a[data-test=\"job-title\"], .JobCard_jobTitle__GLyJ1'); const companyEl = card.querySelector('.employer-name, .job-employer, [data-test=\"employer-name\"], .EmployerProfile_compactEmployerName__9MGcV'); const locationEl = card.querySelector('.location, [data-test=\"emp-location\"], .JobCard_location__rCz3x'); const salaryEl = card.querySelector('.salary-estimate, [data-test=\"detailSalary\"], .JobCard_salaryEstimate__QpbTW'); const linkEl = card.querySelector('a[href*=\"/job-listing/\"], a[href*=\"/partner/\"], a.jobTitle, a[data-test=\"job-title\"]'); let url = ''; if (linkEl) { const href = linkEl.getAttribute('href') || ''; url = href.startsWith('http') ? href : 'https://www.glassdoor.com' + href; } jobs.push({ title: titleEl ? titleEl.textContent.trim() : 'Unknown', company: companyEl ? companyEl.textContent.trim() : '', location: locationEl ? locationEl.textContent.trim() : '', salary_estimate: salaryEl ? salaryEl.textContent.trim() : 'Not listed', url: url }); } const urlParams = new URLSearchParams(window.location.search); return { query: urlParams.get('sc.keyword') || '', job_count: jobs.length, jobs: jobs }",
+          "name": "search_results",
+          "label": "Extract job results"
+        }
+      ]
+    }
+  ]
+}

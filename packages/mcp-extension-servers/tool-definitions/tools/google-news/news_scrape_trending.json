@@ -1,0 +1,51 @@
+{
+  "id": "news-scrape-trending",
+  "name": "news_scrape_trending",
+  "description": "Scrape trending stories from Google News. Returns up to 20 trending articles that are currently popular, with title, source, time, and URL.",
+  "version": "1.0.0",
+  "parameters": [],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://news.google.com/",
+      "label": "Open Google News"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "article, c-wiz article, [data-n-tid]",
+      "timeout": 15000,
+      "label": "Wait for content to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Let page settle"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 2000,
+      "label": "Scroll to find trending section"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 2000,
+      "label": "Continue scrolling for more stories"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const trending = []; const items = document.querySelectorAll('article, c-wiz article'); const seen = new Set(); for (let i = 0; i < items.length && trending.length < 20; i++) { const item = items[i]; const linkEl = item.querySelector('a[href*=\"./articles/\"], a[href*=\"./read/\"], a[href^=\"https\"]'); const titleEl = linkEl ? linkEl.querySelector('h3, h4, .JtKRv') || linkEl : null; const title = titleEl ? titleEl.textContent.trim() : ''; if (!title || seen.has(title)) continue; seen.add(title); const sourceEl = item.querySelector('.vr1PYe, [data-n-tid], .wsn2rd, div > div > a[data-n-tid]'); const timeEl = item.querySelector('time, .hvbAAd, datetime'); let url = ''; if (linkEl) { const href = linkEl.getAttribute('href') || ''; if (href.startsWith('./')) { url = 'https://news.google.com/' + href.slice(2); } else if (href.startsWith('http')) { url = href; } else { url = 'https://news.google.com/' + href; } } const relatedCount = item.querySelectorAll('a[href*=\"./articles/\"], a[href*=\"./read/\"]').length; trending.push({ title: title, source: sourceEl ? sourceEl.textContent.trim() : '', time: timeEl ? (timeEl.getAttribute('datetime') || timeEl.textContent.trim()) : '', url: url, related_articles: relatedCount > 1 ? relatedCount - 1 : 0 }); } return { source: 'Google News - Trending', trending_count: trending.length, trending: trending }",
+      "name": "trending_data",
+      "label": "Extract trending stories"
+    }
+  ]
+}

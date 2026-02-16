@@ -1,0 +1,38 @@
+{
+  "id": "twitch-scrape-stream",
+  "name": "twitch_scrape_stream",
+  "description": "Scrape a live Twitch stream page. Returns stream title, game, viewer count, streamer info, tags, and stream uptime.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "channel_name",
+      "type": "string",
+      "description": "Twitch channel name (e.g. 'shroud', 'pokimane')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://www.twitch.tv/{{channel_name}}",
+      "label": "Open stream page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[data-a-target='stream-title'], [class*='channel-header'], h1, h2",
+      "timeout": 15000,
+      "label": "Wait for stream page"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Let stream page load"
+    },
+    {
+      "action": "code",
+      "code": "const titleEl = document.querySelector('[data-a-target=\"stream-title\"], [class*=\"stream-info\"] h2, [class*=\"channel-info\"] p[data-a-target]'); const gameEl = document.querySelector('[data-a-target=\"stream-game-link\"], a[href*=\"/directory/game/\"]'); const viewersEl = document.querySelector('[data-a-target=\"animated-channel-viewers-count\"], [class*=\"stream-info\"] [aria-label*=\"viewer\"]'); const isLive = !!document.querySelector('[class*=\"live-indicator\"], [class*=\"LiveIndicator\"], [data-a-target=\"player-overlay-click-handler\"]'); const nameEl = document.querySelector('h1, [data-a-target=\"profile-username\"]'); const tags = []; const tagEls = document.querySelectorAll('[data-a-target=\"stream-tag\"], [class*=\"tag-list\"] button, [class*=\"stream-tags\"] a'); tagEls.forEach(function(el) { tags.push(el.textContent.trim()); }); const uptimeEl = document.querySelector('[class*=\"live-time\"], [class*=\"uptime\"]'); const avatarEl = document.querySelector('[class*=\"channel-info\"] img, [class*=\"avatar\"] img'); return { channel_name: '{{channel_name}}', display_name: nameEl ? nameEl.textContent.trim() : '', stream_title: titleEl ? titleEl.textContent.trim() : '', game: gameEl ? gameEl.textContent.trim() : '', viewer_count: viewersEl ? viewersEl.textContent.trim() : '', is_live: isLive, uptime: uptimeEl ? uptimeEl.textContent.trim() : '', tags: tags.slice(0, 10), avatar: avatarEl ? avatarEl.getAttribute('src') : '', url: window.location.href }",
+      "name": "stream_data",
+      "label": "Extract stream info"
+    }
+  ]
+}

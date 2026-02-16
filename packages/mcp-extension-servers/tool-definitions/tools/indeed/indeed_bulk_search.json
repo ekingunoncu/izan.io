@@ -1,0 +1,65 @@
+{
+  "id": "indeed-bulk-search",
+  "name": "indeed_bulk_search",
+  "description": "Search multiple job queries on Indeed in parallel using concurrent browser tabs. Use this instead of calling indeed_search_jobs multiple times - it is faster and more efficient. Pass all queries as a single comma-separated string. Example: 'software engineer,data analyst,product manager'.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "queries",
+      "type": "string",
+      "description": "Comma-separated job search queries (e.g. 'frontend developer,backend engineer,devops')",
+      "required": true
+    },
+    {
+      "name": "location",
+      "type": "string",
+      "description": "Optional location filter applied to all searches (e.g. 'Remote', 'New York, NY')",
+      "required": false
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "const location = '{{location}}'; const locParam = (location && location !== '{{' + 'location}}' && location.trim()) ? '&l=' + encodeURIComponent(location.trim()) : ''; return `{{queries}}`.split(',').map(q => ({ url: 'https://www.indeed.com/jobs?q=' + encodeURIComponent(q.trim()) + locParam, query: q.trim() }))",
+      "name": "items",
+      "label": "Build search URL list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 3,
+      "maxItems": 10,
+      "waitUntil": "load",
+      "label": "Search each query in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": ".job_seen_beacon, .jobsearch-ResultsList, #mosaic-provider-jobcards",
+          "timeout": 15000,
+          "label": "Wait for results"
+        },
+        {
+          "action": "wait",
+          "ms": 2000
+        },
+        {
+          "action": "scroll",
+          "direction": "down",
+          "amount": 800
+        },
+        {
+          "action": "wait",
+          "ms": 1500
+        },
+        {
+          "action": "code",
+          "code": "const jobs = []; const cards = document.querySelectorAll('.job_seen_beacon, .jobsearch-SerpJobCard, div.cardOutline, .resultContent'); for (let i = 0; i < Math.min(cards.length, 10); i++) { const card = cards[i]; const titleEl = card.querySelector('h2.jobTitle a, h2.jobTitle span, a.jcs-JobTitle span'); const companyEl = card.querySelector('[data-testid=\"company-name\"], .companyName, span.css-1h7lukg'); const locationEl = card.querySelector('[data-testid=\"text-location\"], .companyLocation'); const salaryEl = card.querySelector('.salary-snippet-container, .salaryOnly, [data-testid=\"attribute_snippet_testid\"]'); const linkEl = card.querySelector('h2.jobTitle a, a.jcs-JobTitle'); jobs.push({ title: titleEl ? titleEl.textContent.trim() : 'Unknown', company: companyEl ? companyEl.textContent.trim() : '', location: locationEl ? locationEl.textContent.trim() : '', salary: salaryEl ? salaryEl.textContent.trim() : 'Not listed', url: linkEl ? 'https://www.indeed.com' + linkEl.getAttribute('href') : '' }); } const params = new URLSearchParams(window.location.search); return { query: params.get('q') || '', job_count: jobs.length, jobs: jobs }",
+          "name": "search_results",
+          "label": "Extract job listings"
+        }
+      ]
+    }
+  ]
+}

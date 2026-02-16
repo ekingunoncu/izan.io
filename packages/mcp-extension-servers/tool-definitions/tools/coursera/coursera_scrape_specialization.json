@@ -1,0 +1,58 @@
+{
+  "id": "coursera-scrape-specialization",
+  "name": "coursera_scrape_specialization",
+  "description": "Scrape a Coursera specialization or professional certificate page. Returns title, provider, description, courses included, rating, enrollment, and duration.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "spec_url",
+      "type": "string",
+      "description": "Coursera specialization URL (e.g. 'https://www.coursera.org/specializations/deep-learning')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{spec_url}}",
+      "label": "Open specialization page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "h1, [class*='title'], [class*='banner']",
+      "timeout": 15000,
+      "label": "Wait for page to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1500,
+      "label": "Scroll to load courses"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1500,
+      "label": "Scroll further"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const titleEl = document.querySelector('h1, [class*=\"specialization-title\"], [class*=\"banner\"] h1'); const providerEl = document.querySelector('[class*=\"partner\"] a, [class*=\"institution\"] a, a[data-testid=\"partner-name\"]'); const descEl = document.querySelector('[class*=\"description\"], [class*=\"about\"] p'); const ratingEl = document.querySelector('[class*=\"rating\"] span, [class*=\"stars\"] span'); const enrollmentEl = document.querySelector('[class*=\"enrollment\"], [class*=\"students\"]'); const levelEl = document.querySelector('[class*=\"level\"], [class*=\"difficulty\"]'); const durationEl = document.querySelector('[class*=\"duration\"]'); const imgEl = document.querySelector('[class*=\"banner\"] img, [class*=\"hero\"] img'); const courses = []; const courseEls = document.querySelectorAll('[class*=\"course-list\"] li, [class*=\"course-card\"], [class*=\"CourseItem\"]'); for (let i = 0; i < Math.min(courseEls.length, 10); i++) { const el = courseEls[i]; const courseNameEl = el.querySelector('h3, h2, [class*=\"title\"]'); const courseDescEl = el.querySelector('p, [class*=\"description\"]'); const courseDurEl = el.querySelector('[class*=\"duration\"]'); courses.push({ name: courseNameEl ? courseNameEl.textContent.trim() : '', description: courseDescEl ? courseDescEl.textContent.trim().substring(0, 200) : '', duration: courseDurEl ? courseDurEl.textContent.trim() : '' }); } const skillEls = document.querySelectorAll('[class*=\"skill\"] span, [class*=\"skill\"] li'); const skills = []; skillEls.forEach(function(el) { const t = el.textContent.trim(); if (t && t.length < 50 && !skills.includes(t)) skills.push(t); }); const outcomeEls = document.querySelectorAll('[class*=\"outcome\"] li, [class*=\"what-you-will-learn\"] li'); const outcomes = []; outcomeEls.forEach(function(el) { outcomes.push(el.textContent.trim()); }); return { title: titleEl ? titleEl.textContent.trim() : '', provider: providerEl ? providerEl.textContent.trim() : '', description: descEl ? descEl.textContent.trim().substring(0, 1000) : '', rating: ratingEl ? ratingEl.textContent.trim() : '', enrollment: enrollmentEl ? enrollmentEl.textContent.trim() : '', level: levelEl ? levelEl.textContent.trim() : '', duration: durationEl ? durationEl.textContent.trim() : '', course_count: courses.length, courses: courses, skills: skills.slice(0, 10), outcomes: outcomes.slice(0, 8), image: imgEl ? imgEl.getAttribute('src') : '', url: window.location.href }",
+      "name": "specialization_data",
+      "label": "Extract specialization details"
+    }
+  ]
+}

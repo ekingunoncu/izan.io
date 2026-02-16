@@ -1,0 +1,48 @@
+{
+  "id": "indeed-scrape-company",
+  "name": "indeed_scrape_company",
+  "description": "Scrape company information from Indeed's company page including overall rating, review count, salary data, about section, and key stats.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "company",
+      "type": "string",
+      "description": "Company name or Indeed company slug (e.g. 'Google' or 'Google-Inc')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://www.indeed.com/cmp/{{company}}",
+      "label": "Open company page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[data-testid=\"company-name\"], .css-1b3lbgk, .cmp-CompanyName, h1",
+      "timeout": 15000,
+      "label": "Wait for company page to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page settle"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 800,
+      "label": "Scroll to load more content"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const nameEl = document.querySelector('[data-testid=\"company-name\"], .css-1b3lbgk, .cmp-CompanyName, h1'); const ratingEl = document.querySelector('[data-testid=\"rating-value\"], .css-1unnuiz, .cmp-OverallRating-value, [itemprop=\"ratingValue\"]'); const reviewCountEl = document.querySelector('[data-testid=\"review-count\"], .css-1yh6bo3 a, .cmp-OverallRating-reviewCount, [itemprop=\"reviewCount\"]'); const aboutEl = document.querySelector('[data-testid=\"about-company\"], .cmp-About-description, .css-1r0wrwl, .cmp-CompanyOverview-description'); const industryEl = document.querySelector('[data-testid=\"company-industry\"], .cmp-CompanyOverview-details dd:nth-child(2), .css-1w0fhqr'); const sizeEl = document.querySelector('[data-testid=\"company-size\"], .cmp-CompanyOverview-details dd:nth-child(4), .css-1plafzr'); const foundedEl = document.querySelector('[data-testid=\"company-founded\"], .cmp-CompanyOverview-details dd:nth-child(6)'); const revenueEl = document.querySelector('[data-testid=\"company-revenue\"], .cmp-CompanyOverview-details dd:nth-child(8)'); const headquartersEl = document.querySelector('[data-testid=\"company-headquarters\"], .cmp-CompanyOverview-details dd:nth-child(10)'); const ratingCategories = []; const categoryEls = document.querySelectorAll('.cmp-RatingBreakdown-item, [data-testid=\"rating-breakdown-item\"], .css-1bdln1k'); categoryEls.forEach(function(el) { const label = el.querySelector('.css-1rk87ix, .cmp-RatingBreakdown-label, span:first-child'); const value = el.querySelector('.css-1unnuiz, .cmp-RatingBreakdown-value, span:last-child'); if (label && value) ratingCategories.push({ category: label.textContent.trim(), rating: value.textContent.trim() }); }); return { name: nameEl ? nameEl.textContent.trim() : '{{company}}', overall_rating: ratingEl ? ratingEl.textContent.trim() : '', review_count: reviewCountEl ? reviewCountEl.textContent.trim() : '', about: aboutEl ? aboutEl.textContent.trim().slice(0, 1000) : '', industry: industryEl ? industryEl.textContent.trim() : '', company_size: sizeEl ? sizeEl.textContent.trim() : '', founded: foundedEl ? foundedEl.textContent.trim() : '', revenue: revenueEl ? revenueEl.textContent.trim() : '', headquarters: headquartersEl ? headquartersEl.textContent.trim() : '', rating_categories: ratingCategories, url: window.location.href }",
+      "name": "company_info",
+      "label": "Extract company information"
+    }
+  ]
+}

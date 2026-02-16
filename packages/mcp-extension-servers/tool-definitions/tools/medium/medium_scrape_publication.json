@@ -1,0 +1,58 @@
+{
+  "id": "medium-scrape-publication",
+  "name": "medium_scrape_publication",
+  "description": "Scrape a Medium publication page. Returns publication name, description, follower count, editors, recent articles, and tags.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "publication",
+      "type": "string",
+      "description": "Publication slug (e.g. 'towards-data-science', 'the-startup', 'better-programming')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://medium.com/{{publication}}",
+      "label": "Open publication page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "h1, h2, [class*='publication'], [class*='hero'], article",
+      "timeout": 15000,
+      "label": "Wait for publication page to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page fully render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1200,
+      "label": "Scroll to load articles"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1200,
+      "label": "Scroll further down"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const nameEl = document.querySelector('h1, h2[class*=\"name\"], [class*=\"publication\"] h1, [class*=\"hero\"] h1'); const descEl = document.querySelector('[class*=\"description\"], [class*=\"about\"] p, [class*=\"hero\"] p, [class*=\"tagline\"]'); const followersEl = document.querySelector('[class*=\"follower\"] span, [class*=\"subscriberCount\"], button[class*=\"follow\"] + span'); const imgEl = document.querySelector('[class*=\"publication\"] img[class*=\"logo\"], [class*=\"hero\"] img, header img'); const tagEls = document.querySelectorAll('[class*=\"tags\"] a, a[href*=\"/tag/\"]'); const tags = []; tagEls.forEach(function(el) { const t = el.textContent.trim(); if (t && t.length < 50 && !tags.includes(t)) tags.push(t); }); const articles = []; const articleEls = document.querySelectorAll('article, [data-testid=\"postPreview\"], div[class*=\"postArticle\"]'); for (let i = 0; i < Math.min(articleEls.length, 10); i++) { const el = articleEls[i]; const titleEl = el.querySelector('h2, h3, [class*=\"title\"]'); const authorEl = el.querySelector('a[data-testid=\"authorName\"], a[rel=\"author\"], [class*=\"author\"] a'); const clapsEl = el.querySelector('[class*=\"clap\"] span, button[data-testid=\"clap\"] span'); const dateEl = el.querySelector('time, span[class*=\"date\"]'); const linkEl = el.querySelector('a[href*=\"/p/\"], h2 a, h3 a'); articles.push({ title: titleEl ? titleEl.textContent.trim() : '', author: authorEl ? authorEl.textContent.trim() : '', claps: clapsEl ? clapsEl.textContent.trim() : '', date: dateEl ? (dateEl.getAttribute('datetime') || dateEl.textContent.trim()) : '', url: linkEl ? linkEl.href : '' }); } const editorEls = document.querySelectorAll('[class*=\"editor\"] a, [class*=\"writer\"] a'); const editors = []; editorEls.forEach(function(el) { const t = el.textContent.trim(); if (t && t.length < 80 && !editors.includes(t)) editors.push(t); }); return { name: nameEl ? nameEl.textContent.trim() : '{{publication}}', description: descEl ? descEl.textContent.trim().substring(0, 500) : '', followers: followersEl ? followersEl.textContent.trim() : '', image: imgEl ? imgEl.getAttribute('src') : '', tags: tags.slice(0, 10), editors: editors.slice(0, 10), article_count: articles.length, articles: articles, url: window.location.href }",
+      "name": "publication_data",
+      "label": "Extract publication details"
+    }
+  ]
+}

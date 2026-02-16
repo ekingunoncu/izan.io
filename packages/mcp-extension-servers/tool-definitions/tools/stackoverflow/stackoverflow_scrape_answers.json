@@ -1,0 +1,68 @@
+{
+  "id": "stackoverflow-scrape-answers",
+  "name": "stackoverflow_scrape_answers",
+  "description": "Scrape answers from a Stack Overflow question page. Returns all answers with vote count, author, date, content, and whether it is the accepted answer.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "question_url",
+      "type": "string",
+      "description": "Stack Overflow question URL (e.g. 'https://stackoverflow.com/questions/12345678/how-to-do-something')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{question_url}}",
+      "label": "Open question page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "#answers, .answer, [data-answerid]",
+      "timeout": 15000,
+      "label": "Wait for answers to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 2000,
+      "label": "Scroll to load answers"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 2000,
+      "label": "Scroll further"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 2000,
+      "label": "Scroll even further"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const titleEl = document.querySelector('#question-header h1 a, h1'); const answers = []; const answerEls = document.querySelectorAll('.answer, [data-answerid]'); for (let i = 0; i < Math.min(answerEls.length, 15); i++) { const el = answerEls[i]; const bodyEl = el.querySelector('.s-prose, .post-text, .js-post-body'); const votesEl = el.querySelector('.js-vote-count'); const authorEl = el.querySelector('.user-details a, .post-signature:last-child .user-details a'); const dateEl = el.querySelector('.relativetime, time'); const isAccepted = el.classList.contains('accepted-answer') || !!el.querySelector('.js-accepted-answer-indicator:not(.d-none)'); const commentEls = el.querySelectorAll('.comment-body, .comment-text'); const comments = []; commentEls.forEach(function(c, idx) { if (idx < 3) { const userEl = c.querySelector('.comment-user, a'); comments.push({ author: userEl ? userEl.textContent.trim() : '', text: c.textContent.trim().substring(0, 200) }); } }); answers.push({ answer_id: el.getAttribute('data-answerid') || '', is_accepted: isAccepted, votes: votesEl ? votesEl.textContent.trim() : '0', body: bodyEl ? bodyEl.textContent.trim().substring(0, 1500) : '', author: authorEl ? authorEl.textContent.trim() : '', date: dateEl ? (dateEl.getAttribute('title') || dateEl.textContent.trim()) : '', comment_count: commentEls.length, comments: comments }); } return { question_title: titleEl ? titleEl.textContent.trim() : '', answer_count: answers.length, answers: answers, url: window.location.href }",
+      "name": "answers_data",
+      "label": "Extract answers"
+    }
+  ]
+}

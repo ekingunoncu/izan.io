@@ -1,0 +1,58 @@
+{
+  "id": "stackoverflow-search",
+  "name": "stackoverflow_search",
+  "description": "Search for questions on Stack Overflow. Returns up to 15 results with title, vote count, answer count, view count, tags, author, date, and URL.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "query",
+      "type": "string",
+      "description": "Search query (e.g. 'react hooks useEffect', 'python async await', 'docker compose networking')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://stackoverflow.com/search?q={{query}}",
+      "label": "Search Stack Overflow"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".s-post-summary, .question-summary, [id*='question-summary']",
+      "timeout": 15000,
+      "label": "Wait for search results"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let results render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll to load more"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll further"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const results = []; const items = document.querySelectorAll('.s-post-summary, .question-summary, [id*=\"question-summary\"]'); for (let i = 0; i < Math.min(items.length, 15); i++) { const el = items[i]; const titleEl = el.querySelector('h3 a, .s-post-summary--content-title a, .result-link a'); const votesEl = el.querySelector('.s-post-summary--stats-item__emphasized .s-post-summary--stats-item-number, .vote-count-post strong, .votes span'); const answersEl = el.querySelector('.s-post-summary--stats-item:nth-child(2) .s-post-summary--stats-item-number, .status strong, .answered span'); const viewsEl = el.querySelector('.s-post-summary--stats-item:nth-child(3) .s-post-summary--stats-item-number, .views span'); const tagEls = el.querySelectorAll('.s-tag, .post-tag, a[class*=\"tag\"]'); const tags = []; tagEls.forEach(function(t) { tags.push(t.textContent.trim()); }); const authorEl = el.querySelector('.s-user-card--link a, .user-details a'); const dateEl = el.querySelector('.relativetime, time, [class*=\"date\"]'); const excerptEl = el.querySelector('.s-post-summary--content-excerpt, .excerpt'); const hasAccepted = !!el.querySelector('.has-accepted-answer, .answered-accepted'); results.push({ title: titleEl ? titleEl.textContent.trim() : '', votes: votesEl ? votesEl.textContent.trim() : '0', answers: answersEl ? answersEl.textContent.trim() : '0', views: viewsEl ? viewsEl.textContent.trim() : '', tags: tags.slice(0, 5), has_accepted_answer: hasAccepted, author: authorEl ? authorEl.textContent.trim() : '', date: dateEl ? (dateEl.getAttribute('title') || dateEl.textContent.trim()) : '', excerpt: excerptEl ? excerptEl.textContent.trim().substring(0, 200) : '', url: titleEl ? 'https://stackoverflow.com' + titleEl.getAttribute('href') : '' }); } return { query: `{{query}}`, result_count: results.length, results: results }",
+      "name": "search_results",
+      "label": "Extract question results"
+    }
+  ]
+}

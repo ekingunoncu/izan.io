@@ -1,0 +1,24 @@
+{
+  "id": "quora-search",
+  "name": "quora_search",
+  "description": "Search for questions and topics on Quora. Returns up to 15 results with question, answer preview, author, upvotes, and URL.",
+  "version": "1.0.0",
+  "parameters": [
+    { "name": "query", "type": "string", "description": "Search query (e.g. 'how does AI work', 'best programming language 2024')", "required": true }
+  ],
+  "steps": [
+    { "action": "navigate", "url": "https://www.quora.com/search?q={{query}}", "label": "Search Quora" },
+    { "action": "waitForSelector", "selector": "[class*='Question'], [class*='question'], [class*='result']", "timeout": 15000, "label": "Wait for results" },
+    { "action": "wait", "ms": 2000, "label": "Let results render" },
+    { "action": "scroll", "direction": "down", "amount": 1000, "label": "Scroll for more" },
+    { "action": "wait", "ms": 1500 },
+    { "action": "scroll", "direction": "down", "amount": 1000, "label": "Scroll further" },
+    { "action": "wait", "ms": 1500 },
+    {
+      "action": "code",
+      "code": "const results = []; const items = document.querySelectorAll('[class*=\"result\"], [class*=\"Question\"], [class*=\"pagedList\"] > div'); for (let i = 0; i < Math.min(items.length, 15); i++) { const el = items[i]; const questionEl = el.querySelector('[class*=\"question_text\"], [class*=\"Question\"] a, a[href*=\"/\"] span[class*=\"q-text\"]'); const answerEl = el.querySelector('[class*=\"answer\"], [class*=\"snippet\"], p'); const authorEl = el.querySelector('[class*=\"user\"], [class*=\"author\"] a'); const upvotesEl = el.querySelector('[class*=\"upvote\"], [class*=\"vote\"]'); const linkEl = el.querySelector('a[href*=\"/\"]'); results.push({ question: questionEl ? questionEl.textContent.trim() : '', answer_preview: answerEl ? answerEl.textContent.trim().substring(0, 300) : '', author: authorEl ? authorEl.textContent.trim() : '', upvotes: upvotesEl ? upvotesEl.textContent.trim() : '', url: linkEl ? linkEl.href : '' }); } return { query: `{{query}}`, result_count: results.length, results: results }",
+      "name": "search_results",
+      "label": "Extract search results"
+    }
+  ]
+}

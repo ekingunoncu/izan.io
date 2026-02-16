@@ -1,0 +1,65 @@
+{
+  "id": "gmail-archive",
+  "name": "gmail_archive",
+  "description": "Archive an email in Gmail by searching for it by subject, selecting it, and clicking the archive button. The email is removed from the inbox but remains accessible via the All Mail label. You must be logged in to Gmail.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "subject",
+      "type": "string",
+      "description": "Subject line (or partial subject) of the email to archive",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://mail.google.com/mail/u/0/#inbox",
+      "label": "Open Gmail"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "input[aria-label='Search mail']",
+      "timeout": 15000,
+      "label": "Wait for Gmail to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let Gmail fully initialize"
+    },
+    {
+      "action": "code",
+      "code": "const searchInput = document.querySelector('input[aria-label=\"Search mail\"]'); if (searchInput) { searchInput.focus(); searchInput.click(); await new Promise(r => setTimeout(r, 300)); searchInput.value = ''; searchInput.dispatchEvent(new Event('input', { bubbles: true })); document.execCommand('insertText', false, `subject:{{subject}}`); await new Promise(r => setTimeout(r, 300)); searchInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true })); } return { searched: true }",
+      "name": "search_email",
+      "label": "Search for the email by subject"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Wait for search results"
+    },
+    {
+      "action": "code",
+      "code": "const rows = document.querySelectorAll('tr.zA'); if (rows.length === 0) return { error: 'No emails found matching the subject' }; const target = `{{subject}}`.toLowerCase(); let bestMatch = rows[0]; for (const row of rows) { const subjectEl = row.querySelector('.bog span, .y6 span'); if (subjectEl && subjectEl.textContent.trim().toLowerCase().includes(target)) { bestMatch = row; break; } } const checkbox = bestMatch.querySelector('.oZ-jc [role=\"checkbox\"], .xY .oZ-jc'); if (checkbox) { checkbox.click(); } else { const checkArea = bestMatch.querySelector('.oZ-jc'); if (checkArea) checkArea.click(); } return { selected: true }",
+      "name": "select_email",
+      "label": "Select the matching email checkbox"
+    },
+    {
+      "action": "wait",
+      "ms": 1000,
+      "label": "Wait for selection to register"
+    },
+    {
+      "action": "code",
+      "code": "const archiveBtn = document.querySelector('[aria-label=\"Archive\"]') || document.querySelector('.ar9') || document.querySelector('[act=\"7\"]'); if (archiveBtn) { archiveBtn.click(); return { success: true, message: 'Email archived', subject: `{{subject}}` }; } else { throw new Error('Archive button not found'); }",
+      "name": "result",
+      "label": "Click archive button"
+    },
+    {
+      "action": "wait",
+      "ms": 1500,
+      "label": "Wait for archive to complete"
+    }
+  ]
+}

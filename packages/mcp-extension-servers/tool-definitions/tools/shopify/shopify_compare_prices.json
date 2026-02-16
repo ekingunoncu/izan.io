@@ -1,0 +1,28 @@
+{
+  "id": "shopify-compare-prices",
+  "name": "shopify_compare_prices",
+  "description": "Compare product prices across multiple Shopify stores by fetching their products.json API endpoint. Pass comma-separated store URLs to compare pricing, product counts, and top products from each store.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "store_urls",
+      "type": "string",
+      "description": "Comma-separated Shopify store URLs (e.g. 'https://store1.myshopify.com,https://store2.myshopify.com')",
+      "required": true
+    },
+    {
+      "name": "search_term",
+      "type": "string",
+      "description": "Optional product name to filter and compare across stores (e.g. 'sneakers')",
+      "required": false
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "const urls = `{{store_urls}}`.split(',').map(u => u.trim().replace(/\\/$/, '')); const searchTerm = `{{search_term}}`.toLowerCase(); const results = []; for (const baseUrl of urls) { try { const resp = await fetch(baseUrl + '/products.json?limit=30'); const data = await resp.json(); let products = data.products || []; if (searchTerm && searchTerm !== '{{search_term}}') { products = products.filter(function(p) { return p.title.toLowerCase().includes(searchTerm) || (p.product_type && p.product_type.toLowerCase().includes(searchTerm)) || (p.tags && p.tags.some(function(t) { return t.toLowerCase().includes(searchTerm); })); }); } const productSummaries = products.slice(0, 10).map(function(p) { const prices = p.variants.map(function(v) { return parseFloat(v.price); }).filter(function(n) { return !isNaN(n); }); return { title: p.title, vendor: p.vendor || '', product_type: p.product_type || '', min_price: prices.length > 0 ? Math.min.apply(null, prices).toFixed(2) : '', max_price: prices.length > 0 ? Math.max.apply(null, prices).toFixed(2) : '', variant_count: p.variants.length, available: p.variants.some(function(v) { return v.available; }), url: baseUrl + '/products/' + p.handle }; }); results.push({ store_url: baseUrl, total_products: data.products ? data.products.length : 0, matched_products: products.length, products: productSummaries }); } catch(e) { results.push({ store_url: baseUrl, error: 'Failed to fetch products: ' + e.message, total_products: 0, matched_products: 0, products: [] }); } } return { store_count: results.length, search_term: searchTerm !== '{{search_term}}' ? searchTerm : '', results: results }",
+      "name": "comparison_data",
+      "label": "Fetch and compare products from each store"
+    }
+  ]
+}

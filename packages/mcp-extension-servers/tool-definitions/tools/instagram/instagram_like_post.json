@@ -1,0 +1,43 @@
+{
+  "id": "instagram-like-post",
+  "name": "instagram_like_post",
+  "description": "Like an Instagram post. Navigates to the post and clicks the like button. You must be logged in to Instagram.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "post_url",
+      "type": "string",
+      "description": "Full URL of the Instagram post to like (e.g. 'https://www.instagram.com/p/ABC123/')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{post_url}}",
+      "label": "Open Instagram post"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "article, article[role='presentation'], main[role='main'] div[role='presentation']",
+      "timeout": 15000,
+      "label": "Wait for post to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let post fully render"
+    },
+    {
+      "action": "code",
+      "code": "const unlikeSvg = document.querySelector('svg[aria-label=\"Unlike\"]'); if (unlikeSvg) { return { success: true, message: 'Post is already liked', already_liked: true }; } const likeSvg = document.querySelector('svg[aria-label=\"Like\"]'); if (likeSvg) { const likeBtn = likeSvg.closest('button') || likeSvg.closest('div[role=\"button\"]') || likeSvg.parentElement; if (likeBtn) { likeBtn.click(); await new Promise(r => setTimeout(r, 1000)); const confirmUnlike = document.querySelector('svg[aria-label=\"Unlike\"]'); return { success: !!confirmUnlike, message: confirmUnlike ? 'Post liked successfully' : 'Like button clicked but could not confirm', post_url: `{{post_url}}` }; } } return { success: false, message: 'Like button not found. Make sure you are logged in and the post URL is valid.' }",
+      "name": "result",
+      "label": "Like the post"
+    },
+    {
+      "action": "wait",
+      "ms": 1000,
+      "label": "Wait for like to register"
+    }
+  ]
+}

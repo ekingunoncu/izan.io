@@ -1,0 +1,59 @@
+{
+  "id": "yahoo-finance-bulk-search",
+  "name": "yahoo_finance_bulk_search",
+  "description": "Search multiple stock symbols on Yahoo Finance in parallel using concurrent browser tabs. Use this instead of calling yahoo_finance_search multiple times - it is faster and more efficient. Pass all queries as a single comma-separated string.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "queries",
+      "type": "string",
+      "description": "Comma-separated search queries (e.g. 'AAPL,Tesla,crypto ETF,semiconductor stocks')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{queries}}`.split(',').map(q => ({ url: 'https://finance.yahoo.com/lookup?s=' + encodeURIComponent(q.trim()), query: q.trim() }))",
+      "name": "items",
+      "label": "Build search URL list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 3,
+      "maxItems": 10,
+      "waitUntil": "load",
+      "label": "Search each query in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": "table tbody tr, [data-testid='table-container']",
+          "timeout": 15000,
+          "label": "Wait for results"
+        },
+        {
+          "action": "wait",
+          "ms": 2000
+        },
+        {
+          "action": "scroll",
+          "direction": "down",
+          "amount": 800
+        },
+        {
+          "action": "wait",
+          "ms": 1500
+        },
+        {
+          "action": "code",
+          "code": "const results = []; const rows = document.querySelectorAll('table tbody tr'); for (let i = 0; i < Math.min(rows.length, 5); i++) { const row = rows[i]; const cells = row.querySelectorAll('td'); if (cells.length >= 2) { const symbolEl = cells[0] ? cells[0].querySelector('a') || cells[0] : null; const nameEl = cells[1]; const priceEl = cells.length > 2 ? cells[2] : null; const changeEl = cells.length > 3 ? cells[3] : null; const typeEl = cells.length > 4 ? cells[4] : null; results.push({ symbol: symbolEl ? symbolEl.textContent.trim() : '', name: nameEl ? nameEl.textContent.trim() : '', last_price: priceEl ? priceEl.textContent.trim() : '', change: changeEl ? changeEl.textContent.trim() : '', type: typeEl ? typeEl.textContent.trim() : '', url: symbolEl && symbolEl.href ? symbolEl.href : '' }); } } const params = new URLSearchParams(window.location.search); return { query: params.get('s') || '', result_count: results.length, results: results }",
+          "name": "search_results",
+          "label": "Extract results"
+        }
+      ]
+    }
+  ]
+}

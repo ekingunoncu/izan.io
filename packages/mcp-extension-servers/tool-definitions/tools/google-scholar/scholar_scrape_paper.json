@@ -1,0 +1,48 @@
+{
+  "id": "scholar-scrape-paper",
+  "name": "scholar_scrape_paper",
+  "description": "Scrape detailed information from an academic paper page. Navigates to the paper URL and extracts title, authors, abstract, citation count, publication venue, and related metadata.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "paper_url",
+      "type": "string",
+      "description": "URL of the paper page (e.g. 'https://arxiv.org/abs/2301.00001' or any academic paper URL)",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{paper_url}}",
+      "label": "Open paper page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "h1, title, .title, #title, [class*='title'], [class*='Title']",
+      "timeout": 15000,
+      "label": "Wait for paper page to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page fully render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 800,
+      "label": "Scroll to load additional content"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const titleEl = document.querySelector('h1, .title, #title, [class*=\"paper-title\"], [class*=\"article-title\"], .citation_title, meta[name=\"citation_title\"]'); let title = ''; if (titleEl) { if (titleEl.tagName === 'META') { title = titleEl.getAttribute('content') || ''; } else { title = titleEl.textContent.trim(); } } const authorEls = document.querySelectorAll('.authors a, .author, [class*=\"author\"] a, meta[name=\"citation_author\"], .gs_a a, [rel=\"author\"], .contrib-group a, .author-name'); const authors = []; const seenAuthors = new Set(); authorEls.forEach(function(el) { const name = el.tagName === 'META' ? (el.getAttribute('content') || '') : el.textContent.trim(); if (name && !seenAuthors.has(name) && name.length < 100) { seenAuthors.add(name); authors.push(name); } }); const abstractEl = document.querySelector('.abstract, #abstract, [class*=\"abstract\"], [id*=\"abstract\"], blockquote.abstract, .abstractSection, meta[name=\"description\"]'); let abstract = ''; if (abstractEl) { if (abstractEl.tagName === 'META') { abstract = abstractEl.getAttribute('content') || ''; } else { abstract = abstractEl.textContent.trim().replace(/^Abstract\\s*/i, '').substring(0, 2000); } } const dateEl = document.querySelector('.date, [class*=\"pub-date\"], [class*=\"publish-date\"], meta[name=\"citation_publication_date\"], meta[name=\"citation_date\"], time, .dateline'); let pubDate = ''; if (dateEl) { pubDate = dateEl.tagName === 'META' ? (dateEl.getAttribute('content') || '') : dateEl.textContent.trim(); } const venueEl = document.querySelector('[class*=\"journal\"], [class*=\"venue\"], [class*=\"conference\"], meta[name=\"citation_journal_title\"], meta[name=\"citation_conference_title\"]'); let venue = ''; if (venueEl) { venue = venueEl.tagName === 'META' ? (venueEl.getAttribute('content') || '') : venueEl.textContent.trim(); } const doiEl = document.querySelector('[class*=\"doi\"] a, a[href*=\"doi.org\"], meta[name=\"citation_doi\"]'); let doi = ''; if (doiEl) { doi = doiEl.tagName === 'META' ? (doiEl.getAttribute('content') || '') : (doiEl.href || doiEl.textContent.trim()); } const pdfEl = document.querySelector('a[href*=\".pdf\"], a[href*=\"pdf\"], .pdf-link, meta[name=\"citation_pdf_url\"]'); let pdfUrl = ''; if (pdfEl) { pdfUrl = pdfEl.tagName === 'META' ? (pdfEl.getAttribute('content') || '') : (pdfEl.href || ''); } const keywordEls = document.querySelectorAll('[class*=\"keyword\"] a, [class*=\"keyword\"] span, [class*=\"tag\"] a, meta[name=\"keywords\"]'); const keywords = []; keywordEls.forEach(function(el) { const kw = el.tagName === 'META' ? (el.getAttribute('content') || '') : el.textContent.trim(); if (kw) keywords.push(kw); }); return { title: title, authors: authors.slice(0, 20), abstract: abstract, publication_date: pubDate, venue: venue, doi: doi, pdf_url: pdfUrl, keywords: keywords.slice(0, 15), url: window.location.href }",
+      "name": "paper_data",
+      "label": "Extract paper details"
+    }
+  ]
+}

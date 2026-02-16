@@ -1,0 +1,116 @@
+{
+  "nav": {
+    "browse": "Entdecken",
+    "submit": "Einreichen",
+    "signIn": "Anmelden",
+    "signOut": "Abmelden",
+    "submitAgent": "Agent einreichen"
+  },
+  "hero": {
+    "badge": "Community-Agent-Marktplatz",
+    "title": "Entdecke KI-Agenten für",
+    "titleBrand": "izan.io",
+    "description": "Entdecke von der Community erstellte Agenten, teile deine eigenen und erweitere izan.io mit leistungsstarken KI-Assistenten. Per GitHub PR einreichen- jeder kann beitragen.",
+    "browseAgents": "Agenten entdecken",
+    "submitYourAgent": "Deinen Agenten einreichen",
+    "agents": "Agenten",
+    "contributors": "Mitwirkende"
+  },
+  "home": {
+    "featured": "Empfohlene Agenten",
+    "viewAll": "Alle anzeigen",
+    "browseByCategory": "Nach Kategorie durchsuchen",
+    "shareTitle": "Teile deinen Agenten",
+    "shareDescription": "Einen tollen Agenten erstellt? Reiche ihn über einen GitHub Pull Request auf dem Marktplatz ein. Nach dem Mergen ist er für alle verfügbar."
+  },
+  "agents": {
+    "title": "Agenten entdecken",
+    "available": "{{count}} Community-Agenten verfügbar",
+    "loading": "Agenten werden geladen...",
+    "search": "Agenten suchen...",
+    "newest": "Neueste",
+    "alphabetical": "Alphabetisch",
+    "all": "Alle",
+    "noResults": "Keine Agenten gefunden, die deiner Suche entsprechen.",
+    "notFound": "Agent nicht gefunden",
+    "notFoundDesc": "Dieser Agent existiert nicht oder wurde noch nicht veröffentlicht.",
+    "backToAgents": "Zurück zu Agenten",
+    "systemPrompt": "System-Prompt",
+    "examplePrompts": "Beispiel-Prompts",
+    "useInIzan": "In izan.io verwenden",
+    "downloadForIzan": "Für izan.io herunterladen",
+    "mcpServers": "Erforderliche MCP-Server",
+    "macroTools": "Makro-Tools",
+    "noMCPs": "Keine MCP-Server erforderlich",
+    "relatedIn": "Verwandte Agenten in {{category}}"
+  },
+  "submit": {
+    "title": "Agent einreichen",
+    "description": "Teile deinen Agenten mit der izan.io-Community.",
+    "signInRequired": "Melde dich mit GitHub an, um deinen Agenten auf dem Marktplatz einzureichen.",
+    "signInWithGitHub": "Mit GitHub anmelden",
+    "steps": {
+      "basicInfo": "Grundinfos",
+      "systemPrompt": "System-Prompt",
+      "mcpServers": "MCP-Server",
+      "config": "Konfiguration",
+      "preview": "Vorschau"
+    },
+    "fields": {
+      "name": "Name",
+      "namePlaceholder": "z.B. SEO-Experte",
+      "slug": "Slug",
+      "slugPlaceholder": "seo-experte",
+      "slugHint": "URL-freundliche Kennung. Kleinbuchstaben, nur Bindestriche.",
+      "description": "Beschreibung",
+      "descriptionPlaceholder": "Eine kurze Beschreibung, was dein Agent macht...",
+      "icon": "Symbol (Emoji)",
+      "iconPlaceholder": "z.B. 🔍",
+      "category": "Kategorie",
+      "systemPrompt": "System-Prompt",
+      "systemPromptPlaceholder": "Du bist ein Experte für...",
+      "characters": "{{count}} / 10.000 Zeichen",
+      "tags": "Tags",
+      "addTag": "Tag hinzufügen...",
+      "add": "Hinzufügen",
+      "examplePrompts": "Beispiel-Prompts",
+      "addAnother": "Weitere hinzufügen",
+      "mcpServers": "Erforderliche MCP-Server",
+      "mcpServersHint": "MCP-Server, die dieser Agent benötigt. Sie werden beim Download automatisch importiert.",
+      "mcpName": "Servername",
+      "mcpNamePlaceholder": "z.B. Wetter-API",
+      "mcpUrl": "Server-URL",
+      "mcpUrlPlaceholder": "https://mcp.example.com/sse",
+      "mcpDescription": "Beschreibung",
+      "mcpDescriptionPlaceholder": "Was dieser MCP-Server bereitstellt...",
+      "addMCP": "MCP-Server hinzufügen",
+      "removeMCP": "Entfernen",
+      "macros": "Makro-Tools",
+      "macrosHint": "Laden Sie Makro-/Automatisierungs-JSON-Dateien hoch, die aus izan.io exportiert wurden. Diese Browser-Automatisierungstools werden mit Ihrem Agenten gebündelt.",
+      "uploadMacro": "Makro-JSON hochladen",
+      "macroToolCount": "Tool(s)"
+    },
+    "back": "Zurück",
+    "next": "Weiter",
+    "submitting": "Wird eingereicht...",
+    "submitAgent": "Agent einreichen",
+    "success": {
+      "title": "Agent eingereicht!",
+      "description": "Dein Pull Request wurde erstellt. Nach Überprüfung und Merge ist dein Agent auf zihin.io live.",
+      "viewPR": "Pull Request anzeigen"
+    }
+  },
+  "footer": {
+    "browseAgents": "Agenten entdecken",
+    "submitAgent": "Agent einreichen",
+    "tagline": "Community-Agent-Marktplatz für izan.io",
+    "product": "Produkt",
+    "community": "Community"
+  },
+  "auth": {
+    "completingSignIn": "Anmeldung wird abgeschlossen...",
+    "noCode": "Kein Autorisierungscode erhalten",
+    "failed": "Authentifizierung fehlgeschlagen",
+    "backToHome": "Zurück zur Startseite"
+  }
+}

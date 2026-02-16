@@ -1,0 +1,48 @@
+{
+  "id": "ebay-track-auction",
+  "name": "ebay_track_auction",
+  "description": "Track an eBay auction listing. Navigates to the auction page and extracts current bid, number of bids, time remaining, watchers, bid history, and shipping details.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "auction_url",
+      "type": "string",
+      "description": "eBay auction listing URL (e.g. 'https://www.ebay.com/itm/123456789')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{auction_url}}",
+      "label": "Open auction listing"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".x-item-title__mainTitle, h1.it-ttl, h1[class*='title']",
+      "timeout": 15000,
+      "label": "Wait for auction page to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page fully render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 600,
+      "label": "Scroll to load more content"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const titleEl = document.querySelector('.x-item-title__mainTitle span, h1.it-ttl, h1[class*=\"title\"] span'); const currentBidEl = document.querySelector('.x-price-primary span, .x-bid-price span, #prcIsum_bidPrice, [itemprop=\"price\"], .x-price-approx__price span'); const bidCountEl = document.querySelector('.x-bid-count a, #vi-VR-bid-lnk, a[class*=\"bid-count\"], .x-bid-count span'); const timeLeftEl = document.querySelector('.x-timer__date-time, .vi-tm-left, .ux-timer__text, [data-testid=\"ux-timer\"]'); const endDateEl = document.querySelector('.x-timer__date-time--pseudo, .vi-tm-left .timeMs, [class*=\"end-date\"]'); const watchersEl = document.querySelector('.x-watch-count, .vi-notify-new-cnt, [class*=\"watch-count\"]'); const shippingEl = document.querySelector('.ux-labels-values--shipping .ux-textspans, .x-shipping-cost span, #fshippingCost span'); const sellerNameEl = document.querySelector('.x-sellercard-atf__info__about-seller a, .x-sellercard-atf a span, a.seller-persona'); const sellerRatingEl = document.querySelector('.x-sellercard-atf__info__about-seller .SECONDARY, .x-sellercard-atf__data-item span'); const conditionEl = document.querySelector('.x-item-condition-text span, .d-item-condition-text span, #vi-itm-cond'); const startPriceEl = document.querySelector('.x-price-approx__price--original span, [class*=\"start-price\"]'); const buyNowEl = document.querySelector('.x-bin-price__content span, #binBtn_btn, [class*=\"buy-now-price\"]'); const bidHistoryItems = []; const bidRows = document.querySelectorAll('.x-bid-history__item, #viTabs_1_is table tr, [class*=\"bid-history\"] tr'); bidRows.forEach(function(row, idx) { if (idx >= 10) return; const bidderEl = row.querySelector('.x-bid-history__item__bidder span, td:first-child a, [class*=\"bidder\"]'); const amountEl = row.querySelector('.x-bid-history__item__amount span, td:nth-child(2), [class*=\"bid-amount\"]'); const dateEl = row.querySelector('.x-bid-history__item__date span, td:nth-child(3), [class*=\"bid-date\"]'); if (bidderEl || amountEl) { bidHistoryItems.push({ bidder: bidderEl ? bidderEl.textContent.trim() : '', amount: amountEl ? amountEl.textContent.trim() : '', date: dateEl ? dateEl.textContent.trim() : '' }); } }); const locationEl = document.querySelector('.ux-labels-values--itemLocation .ux-textspans, [data-testid=\"ux-labels-values--itemLocation\"] span'); const imgEl = document.querySelector('#vi_main_img_fs img, .ux-image-carousel-item img, img[src*=\"i.ebayimg.com\"]'); return { title: titleEl ? titleEl.textContent.trim() : '', current_bid: currentBidEl ? currentBidEl.textContent.trim() : '', start_price: startPriceEl ? startPriceEl.textContent.trim() : '', buy_it_now_price: buyNowEl ? buyNowEl.textContent.trim() : '', bid_count: bidCountEl ? bidCountEl.textContent.trim() : '', time_left: timeLeftEl ? timeLeftEl.textContent.trim() : '', end_date: endDateEl ? endDateEl.textContent.trim() : '', watchers: watchersEl ? watchersEl.textContent.trim() : '', condition: conditionEl ? conditionEl.textContent.trim() : '', shipping: shippingEl ? shippingEl.textContent.trim() : '', location: locationEl ? locationEl.textContent.trim() : '', seller: { name: sellerNameEl ? sellerNameEl.textContent.trim() : '', rating: sellerRatingEl ? sellerRatingEl.textContent.trim() : '' }, bid_history: bidHistoryItems, image: imgEl ? imgEl.getAttribute('src') : '', url: window.location.href, tracked_at: new Date().toISOString() }",
+      "name": "auction_data",
+      "label": "Extract auction details"
+    }
+  ]
+}

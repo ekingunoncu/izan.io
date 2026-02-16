@@ -1,0 +1,59 @@
+{
+  "id": "tiktok-bulk-search",
+  "name": "tiktok_bulk_search",
+  "description": "Search multiple queries on TikTok in parallel using concurrent browser tabs. Use this instead of calling tiktok_search multiple times - it is faster and more efficient. Pass all queries as a single comma-separated string. Example: 'cooking tips,dance challenge,funny cats'.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "queries",
+      "type": "string",
+      "description": "Comma-separated search queries (e.g. 'recipe ideas,workout routine,travel vlog')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{queries}}`.split(',').map(q => ({ url: 'https://www.tiktok.com/search?q=' + encodeURIComponent(q.trim()), query: q.trim() }))",
+      "name": "items",
+      "label": "Build search URL list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 3,
+      "maxItems": 10,
+      "waitUntil": "load",
+      "label": "Search each query in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": "[data-e2e=\"search_video-item\"], .search-card-container",
+          "timeout": 15000,
+          "label": "Wait for results"
+        },
+        {
+          "action": "wait",
+          "ms": 2500
+        },
+        {
+          "action": "scroll",
+          "direction": "down",
+          "amount": 1000
+        },
+        {
+          "action": "wait",
+          "ms": 2000
+        },
+        {
+          "action": "code",
+          "code": "const results = []; const items = document.querySelectorAll('[data-e2e=\"search_video-item\"], .search-card-container'); for (let i = 0; i < Math.min(items.length, 5); i++) { const el = items[i]; const descEl = el.querySelector('[data-e2e=\"search-card-desc\"] a, .card-desc a, a[title]'); const creatorEl = el.querySelector('[data-e2e=\"search-card-user-unique-id\"], [data-e2e=\"creator-uniqueid\"], .author-uniqueid'); const viewsEl = el.querySelector('[data-e2e=\"search-card-like-count\"], .video-count, strong.view-count'); const likesEl = el.querySelector('[data-e2e=\"search-card-like-count\"], .like-count'); const thumbEl = el.querySelector('img[src*=\"tiktokcdn\"], img.poster, picture img'); const linkEl = el.querySelector('a[href*=\"/video/\"], a[href*=\"/@\"]'); results.push({ description: descEl ? descEl.textContent.trim().substring(0, 300) : '', creator: creatorEl ? creatorEl.textContent.trim() : '', views: viewsEl ? viewsEl.textContent.trim() : '', likes: likesEl ? likesEl.textContent.trim() : '', thumbnail: thumbEl ? thumbEl.src : '', url: linkEl ? linkEl.href : '' }); } const params = new URLSearchParams(window.location.search); return { query: params.get('q') || '', result_count: results.length, results: results }",
+          "name": "search_results",
+          "label": "Extract results"
+        }
+      ]
+    }
+  ]
+}

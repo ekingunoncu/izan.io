@@ -1,0 +1,59 @@
+{
+  "id": "scholar-bulk-search",
+  "name": "scholar_bulk_search",
+  "description": "Search multiple academic queries on Google Scholar in parallel using concurrent browser tabs. Use this instead of calling scholar_search multiple times - it is faster and more efficient. Pass all queries as a single comma-separated string. Example: 'transformer attention mechanism,CRISPR gene editing,quantum computing'.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "queries",
+      "type": "string",
+      "description": "Comma-separated search queries (e.g. 'deep learning,natural language processing,computer vision')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{queries}}`.split(',').map(q => ({ url: 'https://scholar.google.com/scholar?q=' + encodeURIComponent(q.trim()), query: q.trim() }))",
+      "name": "items",
+      "label": "Build search URL list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 3,
+      "maxItems": 10,
+      "waitUntil": "load",
+      "label": "Search each query in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": ".gs_r.gs_or.gs_scl, #gs_res_ccl",
+          "timeout": 15000,
+          "label": "Wait for results"
+        },
+        {
+          "action": "wait",
+          "ms": 2000
+        },
+        {
+          "action": "scroll",
+          "direction": "down",
+          "amount": 800
+        },
+        {
+          "action": "wait",
+          "ms": 1500
+        },
+        {
+          "action": "code",
+          "code": "const results = []; const items = document.querySelectorAll('.gs_r.gs_or.gs_scl'); for (let i = 0; i < Math.min(items.length, 5); i++) { const el = items[i]; const titleEl = el.querySelector('.gs_rt a'); const titleFallback = el.querySelector('.gs_rt'); const snippetEl = el.querySelector('.gs_rs'); const authorEl = el.querySelector('.gs_a'); const citedByEl = el.querySelector('.gs_fl a[href*=\"cites\"]'); const linkEl = el.querySelector('.gs_rt a'); const pdfEl = el.querySelector('.gs_or_ggsm a, a[href*=\"pdf\"]'); const yearMatch = authorEl ? authorEl.textContent.match(/(\\d{4})/) : null; results.push({ title: titleEl ? titleEl.textContent.trim() : (titleFallback ? titleFallback.textContent.trim() : ''), url: linkEl ? linkEl.href : '', pdf_url: pdfEl ? pdfEl.href : '', authors_info: authorEl ? authorEl.textContent.trim() : '', year: yearMatch ? yearMatch[1] : '', snippet: snippetEl ? snippetEl.textContent.trim().substring(0, 300) : '', cited_by: citedByEl ? citedByEl.textContent.trim() : '' }); } const params = new URLSearchParams(window.location.search); return { query: params.get('q') || '', result_count: results.length, results: results }",
+          "name": "search_results",
+          "label": "Extract results"
+        }
+      ]
+    }
+  ]
+}

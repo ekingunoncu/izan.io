@@ -1,0 +1,59 @@
+{
+  "id": "substack-bulk-search",
+  "name": "substack_bulk_search",
+  "description": "Search multiple topics on Substack in parallel using concurrent browser tabs. Use this instead of calling substack_search multiple times - it is faster and more efficient. Pass all queries as a single comma-separated string.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "queries",
+      "type": "string",
+      "description": "Comma-separated search queries (e.g. 'tech newsletter,finance writing,culture essays')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{queries}}`.split(',').map(q => ({ url: 'https://substack.com/search/' + encodeURIComponent(q.trim()), query: q.trim() }))",
+      "name": "items",
+      "label": "Build search URL list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 3,
+      "maxItems": 10,
+      "waitUntil": "load",
+      "label": "Search each query in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": "[class*='post'], [class*='search-result'], article",
+          "timeout": 15000,
+          "label": "Wait for results"
+        },
+        {
+          "action": "wait",
+          "ms": 2000
+        },
+        {
+          "action": "scroll",
+          "direction": "down",
+          "amount": 800
+        },
+        {
+          "action": "wait",
+          "ms": 1500
+        },
+        {
+          "action": "code",
+          "code": "const results = []; const items = document.querySelectorAll('[class*=\"search-result\"], [class*=\"post-preview\"], article'); for (let i = 0; i < Math.min(items.length, 5); i++) { const el = items[i]; const titleEl = el.querySelector('h2, h3, [class*=\"title\"]'); const authorEl = el.querySelector('[class*=\"author\"] a, [class*=\"byline\"] a'); const dateEl = el.querySelector('time, [class*=\"date\"]'); const likesEl = el.querySelector('[class*=\"like\"] span, [class*=\"heart\"] span'); const linkEl = el.querySelector('a[href*=\"/p/\"], a[href*=\".substack.com\"]'); results.push({ title: titleEl ? titleEl.textContent.trim() : '', author: authorEl ? authorEl.textContent.trim() : '', date: dateEl ? (dateEl.getAttribute('datetime') || dateEl.textContent.trim()) : '', likes: likesEl ? likesEl.textContent.trim() : '', url: linkEl ? linkEl.href : '' }); } return { query: decodeURIComponent(window.location.pathname.split('/search/')[1] || ''), result_count: results.length, results: results }",
+          "name": "search_results",
+          "label": "Extract results"
+        }
+      ]
+    }
+  ]
+}

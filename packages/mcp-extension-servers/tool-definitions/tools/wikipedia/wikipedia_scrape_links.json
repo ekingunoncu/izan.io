@@ -1,0 +1,48 @@
+{
+  "id": "wikipedia-scrape-links",
+  "name": "wikipedia_scrape_links",
+  "description": "Scrape all internal and external links from a Wikipedia article. Returns internal wiki links, external links, and \"See also\" links.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "article_url",
+      "type": "string",
+      "description": "Wikipedia article URL (e.g. 'https://en.wikipedia.org/wiki/Deep_learning')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{article_url}}",
+      "label": "Open article page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "#firstHeading, h1",
+      "timeout": 15000,
+      "label": "Wait for article to load"
+    },
+    {
+      "action": "wait",
+      "ms": 1500,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 2000,
+      "label": "Scroll through article"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const titleEl = document.querySelector('#firstHeading, h1'); const content = document.querySelector('#mw-content-text .mw-parser-output, #bodyContent'); const internalLinks = []; const externalLinks = []; const seeAlsoLinks = []; if (content) { const allLinks = content.querySelectorAll('a[href]'); allLinks.forEach(function(a) { const href = a.getAttribute('href') || ''; const text = a.textContent.trim(); if (!text || text.length < 2 || href.startsWith('#')) return; if (href.startsWith('/wiki/') && !href.includes(':') && !href.includes('File:') && !href.includes('Help:') && !href.includes('Wikipedia:') && !href.includes('Special:')) { if (!internalLinks.find(function(l) { return l.title === text; })) { internalLinks.push({ title: text, url: 'https://en.wikipedia.org' + href }); } } else if (href.startsWith('http') && !href.includes('wikipedia.org') && !href.includes('wikimedia.org')) { externalLinks.push({ text: text.substring(0, 200), url: a.href }); } }); const seeAlsoH2 = document.querySelector('#See_also'); if (seeAlsoH2) { let sibling = seeAlsoH2.closest('h2') ? seeAlsoH2.closest('h2').nextElementSibling : null; while (sibling && !sibling.matches('h2')) { if (sibling.matches('ul')) { const items = sibling.querySelectorAll('li a'); items.forEach(function(a) { seeAlsoLinks.push({ title: a.textContent.trim(), url: a.href }); }); } sibling = sibling.nextElementSibling; } } } return { title: titleEl ? titleEl.textContent.trim() : '', internal_link_count: internalLinks.length, internal_links: internalLinks.slice(0, 50), external_link_count: externalLinks.length, external_links: externalLinks.slice(0, 20), see_also: seeAlsoLinks.slice(0, 20), url: window.location.href }",
+      "name": "links_data",
+      "label": "Extract links"
+    }
+  ]
+}

@@ -1,0 +1,59 @@
+{
+  "id": "sheets-search",
+  "name": "sheets_search",
+  "description": "Search Google Drive for spreadsheets matching a query. Returns a list of matching spreadsheets with their names, URLs, and last opened dates.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "query",
+      "type": "string",
+      "description": "Search query to find spreadsheets by name or content",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://docs.google.com/spreadsheets/",
+      "label": "Open Google Sheets home"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "input[aria-label='Search'], input[type='search'], .docs-homescreen-search-input",
+      "timeout": 15000,
+      "label": "Wait for search input to appear"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let the page fully load"
+    },
+    {
+      "action": "click",
+      "selector": "input[aria-label='Search'], input[type='search'], .docs-homescreen-search-input",
+      "label": "Click search input"
+    },
+    {
+      "action": "wait",
+      "ms": 500,
+      "label": "Brief pause"
+    },
+    {
+      "action": "code",
+      "code": "const searchInput = document.querySelector('input[aria-label=\"Search\"], input[type=\"search\"], .docs-homescreen-search-input'); if (!searchInput) return { error: 'Could not find search input' }; searchInput.focus(); const nativeSet = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set; nativeSet.call(searchInput, `{{query}}`); searchInput.dispatchEvent(new Event('input', { bubbles: true })); searchInput.dispatchEvent(new Event('change', { bubbles: true })); await new Promise(r => setTimeout(r, 500)); searchInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', keyCode: 13, code: 'Enter', bubbles: true })); searchInput.dispatchEvent(new KeyboardEvent('keypress', { key: 'Enter', keyCode: 13, code: 'Enter', bubbles: true })); searchInput.dispatchEvent(new KeyboardEvent('keyup', { key: 'Enter', keyCode: 13, code: 'Enter', bubbles: true })); return { searched: true }",
+      "name": "search_trigger",
+      "label": "Type query and press Enter"
+    },
+    {
+      "action": "wait",
+      "ms": 4000,
+      "label": "Wait for search results to load"
+    },
+    {
+      "action": "code",
+      "code": "const results = []; const items = document.querySelectorAll('[data-id], .docs-homescreen-list-item, [role=\"listitem\"], .goog-list-item, a[data-document-id]'); if (items.length === 0) { const links = document.querySelectorAll('a[href*=\"/spreadsheets/d/\"]'); const seen = new Set(); links.forEach(link => { if (results.length >= 15) return; const href = link.href; if (seen.has(href)) return; seen.add(href); const container = link.closest('[role=\"listitem\"], [data-id], tr, li, div'); const nameEl = container ? container.querySelector('[data-column=\"name\"], .docs-homescreen-item-name, .doc-title') : null; const dateEl = container ? container.querySelector('[data-column=\"date\"], .docs-homescreen-item-date, time') : null; results.push({ name: nameEl ? nameEl.textContent.trim() : link.textContent.trim() || 'Untitled', url: href, last_opened: dateEl ? dateEl.textContent.trim() : '' }); }); } else { const seen = new Set(); items.forEach(item => { if (results.length >= 15) return; const link = item.querySelector('a[href*=\"/spreadsheets/d/\"]') || (item.tagName === 'A' && item.href && item.href.includes('/spreadsheets/d/') ? item : null); if (!link) return; const href = link.href; if (seen.has(href)) return; seen.add(href); const nameEl = item.querySelector('[data-column=\"name\"], .docs-homescreen-item-name, .doc-title, [aria-label]'); const dateEl = item.querySelector('[data-column=\"date\"], .docs-homescreen-item-date, time, .docs-homescreen-item-owner-date'); results.push({ name: nameEl ? (nameEl.getAttribute('aria-label') || nameEl.textContent || '').trim() : link.textContent.trim() || 'Untitled', url: href, last_opened: dateEl ? dateEl.textContent.trim() : '' }); }); } return { query: `{{query}}`, result_count: results.length, results: results }",
+      "name": "search_results",
+      "label": "Extract search results"
+    }
+  ]
+}

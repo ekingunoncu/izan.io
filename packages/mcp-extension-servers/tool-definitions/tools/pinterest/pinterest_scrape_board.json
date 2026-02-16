@@ -1,0 +1,38 @@
+{
+  "id": "pinterest-scrape-board",
+  "name": "pinterest_scrape_board",
+  "description": "Scrape a Pinterest board. Navigates to the board URL and extracts board name, description, pin count, follower count, creator info, and the pins on the board.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "board_url",
+      "type": "string",
+      "description": "Pinterest board URL (e.g. 'https://www.pinterest.com/username/board-name/')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{board_url}}",
+      "label": "Open Pinterest board"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[data-test-id='pin'], [data-test-id='pinWrapper'], div[data-grid-item]",
+      "timeout": 15000,
+      "label": "Wait for board pins to load"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Let board content fully render"
+    },
+    {
+      "action": "code",
+      "code": "const boardNameEl = document.querySelector('[data-test-id=\"board-header\"] h1, h1, [data-test-id=\"boardName\"]'); const descEl = document.querySelector('[data-test-id=\"board-description\"], [data-test-id=\"boardDescription\"]'); const pinCountEl = document.querySelector('[data-test-id=\"pin-count\"], [data-test-id=\"board-pin-count\"]'); const followerEl = document.querySelector('[data-test-id=\"follower-count\"], [data-test-id=\"board-follower-count\"]'); const creatorEl = document.querySelector('[data-test-id=\"board-owner-name\"] a, [data-test-id=\"creator-profile-name\"] a, [data-test-id=\"pinner-name\"] a'); const pins = []; const pinEls = document.querySelectorAll('[data-test-id=\"pin\"], [data-test-id=\"pinWrapper\"], div[data-grid-item]'); for (let i = 0; i < Math.min(pinEls.length, 25); i++) { const pin = pinEls[i]; const imgEl = pin.querySelector('img'); const linkEl = pin.querySelector('a[href*=\"/pin/\"]'); const titleEl = pin.querySelector('[data-test-id=\"pinTitle\"], [title]') || imgEl; pins.push({ title: titleEl ? (titleEl.getAttribute('title') || titleEl.getAttribute('alt') || titleEl.textContent || '').trim().slice(0, 200) : '', image_url: imgEl ? (imgEl.getAttribute('src') || '') : '', pin_url: linkEl ? 'https://www.pinterest.com' + linkEl.getAttribute('href') : '' }); } return { board_name: boardNameEl ? boardNameEl.textContent.trim() : '', description: descEl ? descEl.textContent.trim().slice(0, 500) : '', pin_count: pinCountEl ? pinCountEl.textContent.trim() : '', followers: followerEl ? followerEl.textContent.trim() : '', creator: creatorEl ? creatorEl.textContent.trim() : '', creator_url: creatorEl ? creatorEl.href : '', pins_scraped: pins.length, pins: pins, board_url: window.location.href }",
+      "name": "board_data",
+      "label": "Extract board info and pins"
+    }
+  ]
+}

@@ -1,0 +1,58 @@
+{
+  "id": "coursera-scrape-reviews",
+  "name": "coursera_scrape_reviews",
+  "description": "Scrape reviews from a Coursera course page. Returns learner reviews with rating, content, author, date, and helpfulness count.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "course_url",
+      "type": "string",
+      "description": "Coursera course URL (e.g. 'https://www.coursera.org/learn/machine-learning')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{course_url}}#reviews",
+      "label": "Open course reviews"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "h1, [class*='course-title']",
+      "timeout": 15000,
+      "label": "Wait for page to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 4000,
+      "label": "Scroll to reviews section"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 2000,
+      "label": "Scroll to load more reviews"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const reviews = []; const reviewEls = document.querySelectorAll('[class*=\"review\"][class*=\"card\"], [data-testid=\"review\"], [class*=\"Review\"]'); for (let i = 0; i < Math.min(reviewEls.length, 20); i++) { const el = reviewEls[i]; const ratingEl = el.querySelector('[class*=\"rating\"] span, [class*=\"stars\"], [aria-label*=\"star\"]'); const contentEl = el.querySelector('[class*=\"review-text\"], [class*=\"body\"] p, [class*=\"content\"]'); const authorEl = el.querySelector('[class*=\"reviewer\"], [class*=\"author\"], [class*=\"name\"]'); const dateEl = el.querySelector('time, [class*=\"date\"], [class*=\"timestamp\"]'); const helpfulEl = el.querySelector('[class*=\"helpful\"] span, [class*=\"votes\"]'); if (contentEl && contentEl.textContent.trim().length > 0) { reviews.push({ rating: ratingEl ? (ratingEl.getAttribute('aria-label') || ratingEl.textContent.trim()) : '', content: contentEl.textContent.trim().substring(0, 500), author: authorEl ? authorEl.textContent.trim() : 'Anonymous', date: dateEl ? (dateEl.getAttribute('datetime') || dateEl.textContent.trim()) : '', helpful: helpfulEl ? helpfulEl.textContent.trim() : '' }); } } const overallEl = document.querySelector('[class*=\"overall-rating\"], [class*=\"average-rating\"]'); const totalEl = document.querySelector('[class*=\"review-count\"], [class*=\"total-reviews\"]'); return { overall_rating: overallEl ? overallEl.textContent.trim() : '', total_reviews: totalEl ? totalEl.textContent.trim() : '', scraped_count: reviews.length, reviews: reviews, url: window.location.href }",
+      "name": "reviews_data",
+      "label": "Extract reviews"
+    }
+  ]
+}

@@ -1,0 +1,59 @@
+{
+  "id": "stackoverflow-bulk-search",
+  "name": "stackoverflow_bulk_search",
+  "description": "Search multiple questions on Stack Overflow in parallel using concurrent browser tabs. Use this instead of calling stackoverflow_search multiple times - it is faster and more efficient. Pass all queries as a single comma-separated string.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "queries",
+      "type": "string",
+      "description": "Comma-separated search queries (e.g. 'react hooks,python async,docker compose')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{queries}}`.split(',').map(q => ({ url: 'https://stackoverflow.com/search?q=' + encodeURIComponent(q.trim()), query: q.trim() }))",
+      "name": "items",
+      "label": "Build search URL list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 3,
+      "maxItems": 10,
+      "waitUntil": "load",
+      "label": "Search each query in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": ".s-post-summary, .question-summary, [id*='question-summary']",
+          "timeout": 15000,
+          "label": "Wait for results"
+        },
+        {
+          "action": "wait",
+          "ms": 2000
+        },
+        {
+          "action": "scroll",
+          "direction": "down",
+          "amount": 800
+        },
+        {
+          "action": "wait",
+          "ms": 1500
+        },
+        {
+          "action": "code",
+          "code": "const results = []; const items = document.querySelectorAll('.s-post-summary, .question-summary, [id*=\"question-summary\"]'); for (let i = 0; i < Math.min(items.length, 5); i++) { const el = items[i]; const titleEl = el.querySelector('h3 a, .s-post-summary--content-title a'); const votesEl = el.querySelector('.s-post-summary--stats-item__emphasized .s-post-summary--stats-item-number, .vote-count-post strong'); const answersEl = el.querySelector('.s-post-summary--stats-item:nth-child(2) .s-post-summary--stats-item-number, .status strong'); const tagEls = el.querySelectorAll('.s-tag, .post-tag'); const tags = []; tagEls.forEach(function(t) { tags.push(t.textContent.trim()); }); results.push({ title: titleEl ? titleEl.textContent.trim() : '', votes: votesEl ? votesEl.textContent.trim() : '0', answers: answersEl ? answersEl.textContent.trim() : '0', tags: tags.slice(0, 5), url: titleEl ? 'https://stackoverflow.com' + titleEl.getAttribute('href') : '' }); } const params = new URLSearchParams(window.location.search); return { query: params.get('q') || '', result_count: results.length, results: results }",
+          "name": "search_results",
+          "label": "Extract results"
+        }
+      ]
+    }
+  ]
+}

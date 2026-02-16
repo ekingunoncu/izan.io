@@ -1,0 +1,59 @@
+{
+  "id": "telegram-search-chats",
+  "name": "telegram_search_chats",
+  "description": "Search for chats, channels, and groups in Telegram. Returns matching chat names and message previews from the search results.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "query",
+      "type": "string",
+      "description": "Search query to find chats, channels, or groups by name or message content",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://web.telegram.org/k/",
+      "label": "Open Telegram Web"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".input-search input, .chatlist-chat, .chat-list",
+      "timeout": 15000,
+      "label": "Wait for Telegram to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let app fully initialize"
+    },
+    {
+      "action": "code",
+      "code": "const searchInput = document.querySelector('.input-search input') || document.querySelector('input[type=\"text\"]'); if (searchInput) { searchInput.focus(); searchInput.click(); } else { const searchArea = document.querySelector('.input-search'); if (searchArea) searchArea.click(); } return { focused: true }",
+      "name": "focus_search",
+      "label": "Focus search input"
+    },
+    {
+      "action": "wait",
+      "ms": 500
+    },
+    {
+      "action": "code",
+      "code": "const searchInput = document.querySelector('.input-search input') || document.querySelector('input[type=\"text\"]'); if (searchInput) { searchInput.focus(); searchInput.value = ''; searchInput.dispatchEvent(new Event('input', { bubbles: true })); document.execCommand('insertText', false, `{{query}}`); searchInput.dispatchEvent(new Event('input', { bubbles: true })); } return { searched: true }",
+      "name": "type_query",
+      "label": "Type search query"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Wait for search results"
+    },
+    {
+      "action": "code",
+      "code": "const results = []; const chatItems = document.querySelectorAll('.chatlist-chat, .search-group .chatlist-chat, .chat-list .ListItem, .search-super-content .row'); for (let i = 0; i < Math.min(chatItems.length, 15); i++) { const el = chatItems[i]; const nameEl = el.querySelector('.peer-title, .user-title, .dialog-title'); const previewEl = el.querySelector('.dialog-subtitle, .message-preview, .last-message'); const badgeEl = el.querySelector('.dialog-subtitle-badge, .badge, .unread-count'); results.push({ name: nameEl ? nameEl.textContent.trim() : '', preview: previewEl ? previewEl.textContent.trim() : '', has_unread: badgeEl ? true : false }); } return { result_count: results.length, query: `{{query}}`, results: results }",
+      "name": "search_results",
+      "label": "Extract search results"
+    }
+  ]
+}

@@ -1,0 +1,68 @@
+{
+  "id": "indeed-search-jobs",
+  "name": "indeed_search_jobs",
+  "description": "Search for jobs on Indeed by keywords and location. Returns up to 15 job listings with title, company, location, salary, snippet, and URL.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "query",
+      "type": "string",
+      "description": "Job search query (title, company, or keywords, e.g. 'software engineer')",
+      "required": true
+    },
+    {
+      "name": "location",
+      "type": "string",
+      "description": "Location filter (e.g. 'New York, NY', 'Remote')",
+      "required": false
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://www.indeed.com/jobs",
+      "urlParams": {
+        "q": "{{query}}",
+        "l": "{{location}}"
+      },
+      "label": "Search Indeed jobs"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".job_seen_beacon, .jobsearch-ResultsList, #mosaic-provider-jobcards",
+      "timeout": 15000,
+      "label": "Wait for job results"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let results render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll to load more results"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll further"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const jobs = []; const cards = document.querySelectorAll('.job_seen_beacon, .jobsearch-SerpJobCard, div.cardOutline, .resultContent'); for (let i = 0; i < Math.min(cards.length, 15); i++) { const card = cards[i]; const titleEl = card.querySelector('h2.jobTitle a, h2.jobTitle span, a.jcs-JobTitle span'); const companyEl = card.querySelector('[data-testid=\"company-name\"], .companyName, .company_location .companyName a, span.css-1h7lukg'); const locationEl = card.querySelector('[data-testid=\"text-location\"], .companyLocation, .company_location .companyLocation'); const salaryEl = card.querySelector('.salary-snippet-container, .salaryOnly, div.metadata.salary-snippet-container .attribute_snippet, [data-testid=\"attribute_snippet_testid\"]'); const snippetEl = card.querySelector('.job-snippet, .underShelfFooter, div.job-snippet ul li'); const linkEl = card.querySelector('h2.jobTitle a, a.jcs-JobTitle'); const dateEl = card.querySelector('.date, span.css-qvloho'); jobs.push({ title: titleEl ? titleEl.textContent.trim() : 'Unknown', company: companyEl ? companyEl.textContent.trim() : '', location: locationEl ? locationEl.textContent.trim() : '', salary: salaryEl ? salaryEl.textContent.trim() : 'Not listed', snippet: snippetEl ? snippetEl.textContent.trim().slice(0, 200) : '', date_posted: dateEl ? dateEl.textContent.trim() : '', url: linkEl ? 'https://www.indeed.com' + linkEl.getAttribute('href') : '' }); } return { query: '{{query}}', location: '{{location}}', job_count: jobs.length, jobs: jobs }",
+      "name": "search_results",
+      "label": "Extract job listings"
+    }
+  ]
+}

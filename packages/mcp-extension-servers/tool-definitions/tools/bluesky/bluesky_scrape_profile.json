@@ -1,0 +1,22 @@
+{
+  "id": "bluesky-scrape-profile",
+  "name": "bluesky_scrape_profile",
+  "description": "Scrape a Bluesky user profile. Returns display name, handle, bio, follower count, following count, post count, and recent posts.",
+  "version": "1.0.0",
+  "parameters": [
+    { "name": "handle", "type": "string", "description": "Bluesky handle (e.g. 'user.bsky.social' or 'custom.domain')", "required": true }
+  ],
+  "steps": [
+    { "action": "navigate", "url": "https://bsky.app/profile/{{handle}}", "label": "Open profile" },
+    { "action": "waitForSelector", "selector": "[data-testid='profileHeaderDisplayName'], h1, [class*='Profile']", "timeout": 15000, "label": "Wait for profile" },
+    { "action": "wait", "ms": 2000 },
+    { "action": "scroll", "direction": "down", "amount": 1000, "label": "Scroll for posts" },
+    { "action": "wait", "ms": 1500 },
+    {
+      "action": "code",
+      "code": "const nameEl = document.querySelector('[data-testid=\"profileHeaderDisplayName\"], h1, [class*=\"displayName\"]'); const handleEl = document.querySelector('[data-testid=\"profileHeaderHandle\"], [class*=\"handle\"]'); const bioEl = document.querySelector('[data-testid=\"profileHeaderDescription\"], [class*=\"description\"]'); const avatarEl = document.querySelector('[data-testid=\"userAvatarImage\"], [class*=\"avatar\"] img'); const stats = {}; document.querySelectorAll('[data-testid=\"profileHeaderFollowersButton\"], [data-testid=\"profileHeaderFollowsButton\"], [class*=\"stat\"]').forEach(function(el) { const text = el.textContent.trim(); if (text.match(/follower/i)) stats.followers = text; else if (text.match(/following/i)) stats.following = text; else if (text.match(/post/i)) stats.posts = text; }); const recentPosts = []; document.querySelectorAll('[data-testid=\"feedItem\"], [data-testid=\"postThreadItem\"]').forEach(function(el) { const contentEl = el.querySelector('[data-testid=\"postText\"]'); const likesEl = el.querySelector('[data-testid=\"likeCount\"]'); const timeEl = el.querySelector('time'); const linkEl = el.querySelector('a[href*=\"/post/\"]'); if (contentEl && recentPosts.length < 10) { recentPosts.push({ content: contentEl.textContent.trim().substring(0, 300), likes: likesEl ? likesEl.textContent.trim() : '', time: timeEl ? timeEl.textContent.trim() : '', url: linkEl ? linkEl.href : '' }); } }); return { display_name: nameEl ? nameEl.textContent.trim() : '', handle: handleEl ? handleEl.textContent.trim() : '{{handle}}', bio: bioEl ? bioEl.textContent.trim().substring(0, 500) : '', avatar: avatarEl ? avatarEl.getAttribute('src') : '', followers: stats.followers || '', following: stats.following || '', posts_count: stats.posts || '', recent_posts: recentPosts, url: window.location.href }",
+      "name": "profile_data",
+      "label": "Extract profile"
+    }
+  ]
+}

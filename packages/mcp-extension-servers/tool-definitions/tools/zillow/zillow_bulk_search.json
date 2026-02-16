@@ -1,0 +1,59 @@
+{
+  "id": "zillow-bulk-search",
+  "name": "zillow_bulk_search",
+  "description": "Search multiple locations on Zillow in parallel using concurrent browser tabs. Use this instead of calling zillow_search multiple times - it is faster and more efficient. Pass all queries as a single comma-separated string.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "queries",
+      "type": "string",
+      "description": "Comma-separated location queries (e.g. 'San Francisco CA,Austin TX,Miami FL')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{queries}}`.split(',').map(q => ({ url: 'https://www.zillow.com/homes/' + encodeURIComponent(q.trim()) + '_rb/', query: q.trim() }))",
+      "name": "items",
+      "label": "Build search URL list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 3,
+      "maxItems": 10,
+      "waitUntil": "load",
+      "label": "Search each location in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": "[data-test='property-card'], article[class*='property'], [class*='ListItem']",
+          "timeout": 15000,
+          "label": "Wait for results"
+        },
+        {
+          "action": "wait",
+          "ms": 2000
+        },
+        {
+          "action": "scroll",
+          "direction": "down",
+          "amount": 800
+        },
+        {
+          "action": "wait",
+          "ms": 1500
+        },
+        {
+          "action": "code",
+          "code": "const results = []; const cards = document.querySelectorAll('[data-test=\"property-card\"], article[class*=\"property\"], [class*=\"ListItem\"] article'); for (let i = 0; i < Math.min(cards.length, 5); i++) { const el = cards[i]; const addressEl = el.querySelector('[data-test=\"property-card-addr\"], address, [class*=\"address\"]'); const priceEl = el.querySelector('[data-test=\"property-card-price\"], [class*=\"price\"]'); const linkEl = el.querySelector('a'); const detailText = el.textContent || ''; const bdMatch = detailText.match(/(\\d+)\\s*bd/i); const baMatch = detailText.match(/(\\d+)\\s*ba/i); const sqftMatch = detailText.match(/([\\d,]+)\\s*sqft/i); results.push({ address: addressEl ? addressEl.textContent.trim() : '', price: priceEl ? priceEl.textContent.trim() : '', beds: bdMatch ? bdMatch[1] : '', baths: baMatch ? baMatch[1] : '', sqft: sqftMatch ? sqftMatch[1] : '', url: linkEl ? linkEl.href : '' }); } return { location: document.title || '', result_count: results.length, results: results }",
+          "name": "search_results",
+          "label": "Extract results"
+        }
+      ]
+    }
+  ]
+}

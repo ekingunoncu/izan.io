@@ -1,0 +1,58 @@
+{
+  "id": "producthunt-scrape-reviews",
+  "name": "producthunt_scrape_reviews",
+  "description": "Scrape reviews and comments from a Product Hunt product page. Returns user reviews with rating, content, author, date, and upvote count.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "product_url",
+      "type": "string",
+      "description": "Product Hunt product URL (e.g. 'https://www.producthunt.com/posts/product-name')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{product_url}}",
+      "label": "Open product page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "h1, [data-test='post-name']",
+      "timeout": 15000,
+      "label": "Wait for page to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 3000,
+      "label": "Scroll to reviews/comments section"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 2000,
+      "label": "Scroll to load more reviews"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const reviews = []; const reviewEls = document.querySelectorAll('[class*=\"comment\"], [class*=\"review\"], [data-test=\"comment\"], [class*=\"Comment\"]'); for (let i = 0; i < Math.min(reviewEls.length, 20); i++) { const el = reviewEls[i]; const authorEl = el.querySelector('[class*=\"user\"] a, [class*=\"author\"] a, [data-test=\"comment-user\"]'); const contentEl = el.querySelector('[class*=\"body\"], [class*=\"content\"] p, [class*=\"text\"]'); const dateEl = el.querySelector('time, [class*=\"date\"], [class*=\"timestamp\"]'); const upvotesEl = el.querySelector('[class*=\"vote\"] span, [class*=\"upvote\"] span'); const ratingEl = el.querySelector('[class*=\"rating\"], [class*=\"stars\"]'); const isMaker = !!el.querySelector('[class*=\"maker\"], [class*=\"badge\"]'); if (contentEl && contentEl.textContent.trim().length > 0) { reviews.push({ author: authorEl ? authorEl.textContent.trim() : 'Anonymous', content: contentEl ? contentEl.textContent.trim().substring(0, 500) : '', date: dateEl ? (dateEl.getAttribute('datetime') || dateEl.textContent.trim()) : '', upvotes: upvotesEl ? upvotesEl.textContent.trim() : '', rating: ratingEl ? ratingEl.textContent.trim() : '', is_maker: isMaker }); } } return { scraped_count: reviews.length, reviews: reviews, url: window.location.href }",
+      "name": "reviews_data",
+      "label": "Extract reviews"
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "id": "aliexpress-compare-prices",
+  "name": "aliexpress_compare_prices",
+  "description": "Compare prices for similar products on AliExpress. Searches and extracts pricing from multiple items sorted by price.",
+  "version": "1.0.0",
+  "parameters": [
+    { "name": "query", "type": "string", "description": "Product to compare prices for (e.g. 'wireless mouse', 'USB-C cable')", "required": true }
+  ],
+  "steps": [
+    { "action": "navigate", "url": "https://www.aliexpress.com/w/wholesale-{{query}}.html?SortType=price_asc", "label": "Search sorted by price" },
+    { "action": "waitForSelector", "selector": "[class*='search-item'], [class*='product-card']", "timeout": 15000, "label": "Wait for results" },
+    { "action": "wait", "ms": 2000 },
+    { "action": "scroll", "direction": "down", "amount": 1200, "label": "Scroll for more" },
+    { "action": "wait", "ms": 1500 },
+    { "action": "scroll", "direction": "down", "amount": 1200, "label": "Scroll further" },
+    { "action": "wait", "ms": 1500 },
+    {
+      "action": "code",
+      "code": "const items = []; const cards = document.querySelectorAll('[class*=\"search-item-card\"], [class*=\"product-card\"], a[href*=\"/item/\"]'); for (let i = 0; i < Math.min(cards.length, 20); i++) { const el = cards[i]; const titleEl = el.querySelector('h1, h3, [class*=\"title\"]'); const priceEl = el.querySelector('[class*=\"price\"]'); const ratingEl = el.querySelector('[class*=\"rating\"], [class*=\"star\"]'); const ordersEl = el.querySelector('[class*=\"sold\"], [class*=\"orders\"]'); const storeEl = el.querySelector('[class*=\"store\"]'); const linkEl = el.tagName === 'A' ? el : el.querySelector('a[href*=\"/item/\"]'); const shippingEl = el.querySelector('[class*=\"shipping\"], [class*=\"delivery\"]'); items.push({ title: titleEl ? titleEl.textContent.trim().substring(0, 200) : '', price: priceEl ? priceEl.textContent.trim() : '', rating: ratingEl ? ratingEl.textContent.trim() : '', orders: ordersEl ? ordersEl.textContent.trim() : '', store: storeEl ? storeEl.textContent.trim() : '', shipping: shippingEl ? shippingEl.textContent.trim() : '', url: linkEl ? linkEl.href : '' }); } const prices = items.map(function(item) { return parseFloat(item.price.replace(/[^0-9.]/g, '')) || 0; }).filter(function(p) { return p > 0; }); const avg = prices.length > 0 ? (prices.reduce(function(a,b){return a+b;},0)/prices.length).toFixed(2) : '0'; return { query: `{{query}}`, item_count: items.length, price_summary: { average: '$' + avg, lowest: prices.length > 0 ? '$' + Math.min.apply(null,prices).toFixed(2) : '$0', highest: prices.length > 0 ? '$' + Math.max.apply(null,prices).toFixed(2) : '$0' }, items: items }",
+      "name": "comparison_data",
+      "label": "Extract and compare prices"
+    }
+  ]
+}

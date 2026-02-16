@@ -1,0 +1,38 @@
+{
+  "id": "hn-scrape-story",
+  "name": "hn_scrape_story",
+  "description": "Scrape a Hacker News story and its comments. Returns story info (title, URL, score, author, time) and the top 30 comments with author, content, time, and indent depth.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "story_url",
+      "type": "string",
+      "description": "Hacker News story URL (e.g. 'https://news.ycombinator.com/item?id=12345')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{story_url}}",
+      "label": "Open story page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".athing, .fatitem",
+      "timeout": 15000,
+      "label": "Wait for story to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let comments load"
+    },
+    {
+      "action": "code",
+      "code": "const titleEl = document.querySelector('.titleline > a'); const subtext = document.querySelector('.subtext'); const scoreEl = subtext ? subtext.querySelector('.score') : null; const authorEl = subtext ? subtext.querySelector('.hnuser') : null; const ageEl = subtext ? subtext.querySelector('.age a') : null; let storyCommentCount = '0'; if (subtext) { const links = subtext.querySelectorAll('a'); for (const link of links) { const text = link.textContent.trim(); if (text.includes('comment')) { storyCommentCount = text.split('\\u00a0')[0] || text.split(' ')[0]; break; } } } const comments = []; const commentRows = document.querySelectorAll('.comtr'); for (let i = 0; i < Math.min(commentRows.length, 30); i++) { const c = commentRows[i]; const indentEl = c.querySelector('.ind img'); const depth = indentEl ? Math.round(parseInt(indentEl.getAttribute('width') || '0', 10) / 40) : 0; const cAuthor = c.querySelector('.hnuser'); const cText = c.querySelector('.commtext'); const cAge = c.querySelector('.age a'); comments.push({ author: cAuthor ? cAuthor.textContent.trim() : '[deleted]', content: cText ? cText.textContent.trim().slice(0, 800) : '[deleted]', time: cAge ? cAge.textContent.trim() : '', depth: depth }); } return { title: titleEl ? titleEl.textContent.trim() : '', url: titleEl ? titleEl.href : '', score: scoreEl ? scoreEl.textContent.trim() : '0 points', author: authorEl ? authorEl.textContent.trim() : '', time: ageEl ? ageEl.textContent.trim() : '', total_comments: storyCommentCount, comments_scraped: comments.length, comments: comments, story_url: window.location.href }",
+      "name": "story_data",
+      "label": "Extract story and comments"
+    }
+  ]
+}

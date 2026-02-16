@@ -1,0 +1,59 @@
+{
+  "id": "amazon-compare-prices",
+  "name": "amazon_compare_prices",
+  "description": "Compare prices from different sellers for an Amazon product. Navigates to the 'Other Sellers' or 'New & Used' section and scrapes all available offers with seller name, price, shipping cost, and condition.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "product_url",
+      "type": "string",
+      "description": "Amazon product URL (e.g. 'https://www.amazon.com/dp/B09V3KXJPB')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{product_url}}",
+      "label": "Open product page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "#productTitle, .a-size-large.product-title-word-break",
+      "timeout": 15000,
+      "label": "Wait for product page to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page render"
+    },
+    {
+      "action": "code",
+      "code": "const titleEl = document.querySelector('#productTitle'); const productTitle = titleEl ? titleEl.textContent.trim() : ''; const mainPriceEl = document.querySelector('.a-price .a-offscreen, #priceblock_ourprice, #corePrice_feature_div .a-offscreen'); const mainPrice = mainPriceEl ? mainPriceEl.textContent.trim() : ''; const mainSellerEl = document.querySelector('#sellerProfileTriggerId, #merchant-info a, .tabular-buybox-text a'); const mainSeller = mainSellerEl ? mainSellerEl.textContent.trim() : 'Amazon.com'; const offersLink = document.querySelector('#olp-upd-new a, a[href*=\"/gp/offer-listing/\"], #buybox-see-all-buying-choices a, a#buybox-see-all-buying-choices-announce, .olp-text-box a, a[href*=\"offer-listing\"]'); if (offersLink) { window.location.href = offersLink.href; } else { const asin = window.location.pathname.match(/\\/(?:dp|gp\\/product)\\/([A-Z0-9]{10})/); if (asin) { window.location.href = 'https://www.amazon.com/gp/offer-listing/' + asin[1]; } } return { product_title: productTitle, main_price: mainPrice, main_seller: mainSeller, navigated: true }",
+      "name": "main_offer",
+      "label": "Get main offer and navigate to all offers"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Wait for offers page to load"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll to load all offers"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const offers = []; const offerEls = document.querySelectorAll('#aod-offer, .olpOffer, [id^=\"aod-price-\"]'); if (offerEls.length > 0) { const aodOffers = document.querySelectorAll('#aod-offer'); aodOffers.forEach(function(el, idx) { if (idx >= 20) return; const priceEl = el.querySelector('.a-price .a-offscreen, .a-price-whole'); const conditionEl = el.querySelector('#aod-offer-heading h5, .aod-offer-condition'); const shippingEl = el.querySelector('#aod-offer-shipsFrom .a-fixed-left-grid-col.a-col-right span, #delivery-message span, .a-color-secondary'); const sellerEl = el.querySelector('#aod-offer-soldBy .a-fixed-left-grid-col.a-col-right a, #aod-offer-soldBy a, .a-fixed-left-grid-col a[role=\"link\"]'); const sellerRatingEl = el.querySelector('#aod-offer-seller-rating, .seller-rating'); offers.push({ seller: sellerEl ? sellerEl.textContent.trim() : 'Unknown Seller', price: priceEl ? priceEl.textContent.trim() : '', condition: conditionEl ? conditionEl.textContent.trim() : 'New', shipping: shippingEl ? shippingEl.textContent.trim() : '', seller_rating: sellerRatingEl ? sellerRatingEl.textContent.trim() : '' }); }); } const olpOffers = document.querySelectorAll('.olpOffer'); olpOffers.forEach(function(el, idx) { if (idx >= 20) return; const priceEl = el.querySelector('.olpOfferPrice, .a-color-price'); const conditionEl = el.querySelector('.olpCondition'); const shippingEl = el.querySelector('.olpShippingInfo, .a-color-secondary'); const sellerEl = el.querySelector('.olpSellerName a, .olpSellerColumn a'); offers.push({ seller: sellerEl ? sellerEl.textContent.trim() : 'Unknown Seller', price: priceEl ? priceEl.textContent.trim() : '', condition: conditionEl ? conditionEl.textContent.trim() : 'New', shipping: shippingEl ? shippingEl.textContent.trim() : '' }); }); return { offer_count: offers.length, offers: offers, url: window.location.href }",
+      "name": "price_comparison",
+      "label": "Extract seller offers"
+    }
+  ]
+}

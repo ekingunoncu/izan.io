@@ -1,0 +1,20 @@
+{
+  "id": "bluesky-create-post",
+  "name": "bluesky_create_post",
+  "description": "Navigate to Bluesky compose screen to create a new post. Opens the new post composer with pre-filled text. Requires being logged in.",
+  "version": "1.0.0",
+  "parameters": [
+    { "name": "text", "type": "string", "description": "Post text content (max 300 characters)", "required": true }
+  ],
+  "steps": [
+    { "action": "navigate", "url": "https://bsky.app/", "label": "Open Bluesky" },
+    { "action": "waitForSelector", "selector": "[data-testid='composePromptButton'], [class*='compose'], button[aria-label*='New']", "timeout": 15000, "label": "Wait for compose button" },
+    { "action": "wait", "ms": 2000 },
+    {
+      "action": "code",
+      "code": "const composeBtn = document.querySelector('[data-testid=\"composePromptButton\"], button[aria-label*=\"New\"], [class*=\"compose\"] button'); if (composeBtn) { composeBtn.click(); } return { status: composeBtn ? 'compose_opened' : 'compose_button_not_found', text_to_post: `{{text}}`, note: 'The compose dialog has been opened. The text needs to be typed manually or pasted by the user.', url: window.location.href }",
+      "name": "compose_data",
+      "label": "Open compose dialog"
+    }
+  ]
+}

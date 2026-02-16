@@ -1,0 +1,58 @@
+{
+  "id": "stackoverflow-scrape-tag",
+  "name": "stackoverflow_scrape_tag",
+  "description": "Scrape a Stack Overflow tag page. Returns tag description, question count, related tags, and recent questions for the given tag.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "tag",
+      "type": "string",
+      "description": "Tag name (e.g. 'javascript', 'python', 'react', 'docker')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://stackoverflow.com/questions/tagged/{{tag}}",
+      "label": "Open tag page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".s-post-summary, .question-summary, [id*='question-summary']",
+      "timeout": 15000,
+      "label": "Wait for questions to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll to load more"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll further"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const headingEl = document.querySelector('h1, [class*=\"tagged-header\"]'); const countEl = document.querySelector('[class*=\"questions-count\"], .fs-body3'); const questions = []; const qEls = document.querySelectorAll('.s-post-summary, .question-summary, [id*=\"question-summary\"]'); for (let i = 0; i < Math.min(qEls.length, 15); i++) { const el = qEls[i]; const titleEl = el.querySelector('h3 a, .s-post-summary--content-title a, .result-link a'); const votesEl = el.querySelector('.s-post-summary--stats-item__emphasized .s-post-summary--stats-item-number, .vote-count-post strong'); const answersEl = el.querySelector('.s-post-summary--stats-item:nth-child(2) .s-post-summary--stats-item-number, .status strong'); const viewsEl = el.querySelector('.s-post-summary--stats-item:nth-child(3) .s-post-summary--stats-item-number'); const tagEls = el.querySelectorAll('.s-tag, .post-tag'); const tags = []; tagEls.forEach(function(t) { tags.push(t.textContent.trim()); }); const authorEl = el.querySelector('.s-user-card--link a, .user-details a'); const dateEl = el.querySelector('.relativetime, time'); questions.push({ title: titleEl ? titleEl.textContent.trim() : '', votes: votesEl ? votesEl.textContent.trim() : '0', answers: answersEl ? answersEl.textContent.trim() : '0', views: viewsEl ? viewsEl.textContent.trim() : '', tags: tags.slice(0, 5), author: authorEl ? authorEl.textContent.trim() : '', date: dateEl ? (dateEl.getAttribute('title') || dateEl.textContent.trim()) : '', url: titleEl ? 'https://stackoverflow.com' + titleEl.getAttribute('href') : '' }); } const relatedTagEls = document.querySelectorAll('[class*=\"related-tag\"] a, .sidebar .s-tag'); const relatedTags = []; relatedTagEls.forEach(function(el) { const t = el.textContent.trim(); if (t && !relatedTags.includes(t) && t !== '{{tag}}') relatedTags.push(t); }); return { tag: `{{tag}}`, heading: headingEl ? headingEl.textContent.trim() : '', total_questions: countEl ? countEl.textContent.trim() : '', question_count: questions.length, questions: questions, related_tags: relatedTags.slice(0, 10), url: window.location.href }",
+      "name": "tag_data",
+      "label": "Extract tag content"
+    }
+  ]
+}

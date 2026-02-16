@@ -1,0 +1,31 @@
+{
+  "id": "figma-list-files",
+  "name": "figma_list_files",
+  "description": "List recent Figma files. Returns file names, thumbnails, last modified dates, and URLs from your Figma recents page. You must be logged into Figma.",
+  "version": "1.0.0",
+  "parameters": [],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://www.figma.com/files/recents",
+      "label": "Open Figma recents"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[data-testid='file-card'], .file_card, .file-browser-page--files .tile",
+      "timeout": 15000,
+      "label": "Wait for file cards to load"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Let file thumbnails render"
+    },
+    {
+      "action": "code",
+      "code": "const files = []; const cards = document.querySelectorAll('[data-testid=\"file-card\"], .file_card, .file-browser-page--files .tile'); for (let i = 0; i < Math.min(cards.length, 20); i++) { const card = cards[i]; const nameEl = card.querySelector('.file-name, [data-testid=\"filename\"], [class*=\"file_name\"]'); const linkEl = card.querySelector('a[href*=\"/design/\"], a[href*=\"/file/\"]'); const thumbEl = card.querySelector('img[src*=\"figma\"], img[class*=\"thumbnail\"]'); const timeEl = card.querySelector('time, [class*=\"last_modified\"], [class*=\"timestamp\"]'); files.push({ name: nameEl ? nameEl.textContent.trim() : '', url: linkEl ? linkEl.href : '', thumbnail: thumbEl ? thumbEl.src : '', last_modified: timeEl ? (timeEl.getAttribute('datetime') || timeEl.textContent.trim()) : '' }); } return { file_count: files.length, files: files }",
+      "name": "result",
+      "label": "Scrape recent file cards"
+    }
+  ]
+}

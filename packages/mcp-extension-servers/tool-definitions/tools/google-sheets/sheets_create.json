@@ -1,0 +1,39 @@
+{
+  "id": "sheets-create",
+  "name": "sheets_create",
+  "description": "Create a new Google Spreadsheet. Optionally provide a title to rename the spreadsheet from the default 'Untitled spreadsheet'.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "title",
+      "type": "string",
+      "description": "Title for the new spreadsheet (leave empty for default 'Untitled spreadsheet')",
+      "required": false,
+      "default": ""
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://docs.google.com/spreadsheets/create",
+      "label": "Create a new spreadsheet"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "table.waffle, .waffle",
+      "timeout": 25000,
+      "label": "Wait for new spreadsheet to fully load"
+    },
+    {
+      "action": "wait",
+      "ms": 4000,
+      "label": "Let the new spreadsheet initialize completely"
+    },
+    {
+      "action": "code",
+      "code": "const title = `{{title}}`; if (title) { const titleInput = document.querySelector('.docs-title-input, input.docs-title-input'); if (titleInput) { titleInput.focus(); titleInput.click(); await new Promise(r => setTimeout(r, 500)); titleInput.select(); await new Promise(r => setTimeout(r, 300)); const nativeSet = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set; nativeSet.call(titleInput, title); titleInput.dispatchEvent(new Event('input', { bubbles: true })); titleInput.dispatchEvent(new Event('change', { bubbles: true })); await new Promise(r => setTimeout(r, 300)); titleInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', keyCode: 13, code: 'Enter', bubbles: true })); titleInput.dispatchEvent(new KeyboardEvent('keyup', { key: 'Enter', keyCode: 13, code: 'Enter', bubbles: true })); await new Promise(r => setTimeout(r, 1500)); } else { const titleBar = document.querySelector('.docs-titlebar-text'); if (titleBar) { titleBar.click(); await new Promise(r => setTimeout(r, 500)); const input = document.querySelector('.docs-title-input, input.docs-title-input'); if (input) { input.select(); const nativeSet2 = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set; nativeSet2.call(input, title); input.dispatchEvent(new Event('input', { bubbles: true })); input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', keyCode: 13, bubbles: true })); await new Promise(r => setTimeout(r, 1500)); } } } } const finalTitle = document.querySelector('.docs-title-input, input.docs-title-input'); const displayTitle = finalTitle ? (finalTitle.value || finalTitle.textContent || '').trim() : document.title.replace(/ - Google Sheets$/, '').trim(); return { success: true, title: displayTitle, url: window.location.href, spreadsheet_id: window.location.href.match(/\\/d\\/([a-zA-Z0-9_-]+)/)?.[1] || '' }",
+      "name": "create_result",
+      "label": "Rename spreadsheet if title provided"
+    }
+  ]
+}

@@ -1,0 +1,52 @@
+{
+  "id": "telegram-scrape-contacts",
+  "name": "telegram_scrape_contacts",
+  "description": "Scrape the contacts list from Telegram. Opens the contacts/people section and returns contact names and last seen status.",
+  "version": "1.0.0",
+  "parameters": [],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://web.telegram.org/k/",
+      "label": "Open Telegram Web"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".input-search input, .chatlist-chat, .chat-list",
+      "timeout": 15000,
+      "label": "Wait for Telegram to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let app fully initialize"
+    },
+    {
+      "action": "code",
+      "code": "const hamburgerBtn = document.querySelector('.btn-menu-toggle, .sidebar-header .btn-icon, .menu-hamburger'); if (hamburgerBtn) { hamburgerBtn.click(); } return { opened_menu: true }",
+      "name": "open_menu",
+      "label": "Open sidebar menu"
+    },
+    {
+      "action": "wait",
+      "ms": 1000
+    },
+    {
+      "action": "code",
+      "code": "const menuItems = document.querySelectorAll('.btn-menu-item, .menu-item, [class*=\"MenuItem\"]'); let clicked = false; for (const item of menuItems) { const text = item.textContent.trim().toLowerCase(); if (text.includes('contact') || text.includes('people')) { item.click(); clicked = true; break; } } return { clicked_contacts: clicked }",
+      "name": "click_contacts",
+      "label": "Click Contacts menu item"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Wait for contacts to load"
+    },
+    {
+      "action": "code",
+      "code": "const contacts = []; const contactEls = document.querySelectorAll('.contacts-container .row, .chatlist-chat, .search-group .chatlist-chat, .sidebar-slider .chatlist-chat'); for (let i = 0; i < Math.min(contactEls.length, 50); i++) { const el = contactEls[i]; const nameEl = el.querySelector('.peer-title, .user-title, .dialog-title'); const statusEl = el.querySelector('.user-last-message, .dialog-subtitle, .status, .last-seen'); contacts.push({ name: nameEl ? nameEl.textContent.trim() : '', last_seen: statusEl ? statusEl.textContent.trim() : '' }); } return { contact_count: contacts.length, contacts: contacts }",
+      "name": "contacts_list",
+      "label": "Extract contacts list"
+    }
+  ]
+}

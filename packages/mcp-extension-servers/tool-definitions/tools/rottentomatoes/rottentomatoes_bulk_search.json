@@ -1,0 +1,50 @@
+{
+  "id": "rottentomatoes-bulk-search",
+  "name": "rottentomatoes_bulk_search",
+  "description": "Search multiple titles on Rotten Tomatoes in parallel using concurrent browser tabs. Use this instead of calling rottentomatoes_search multiple times - it is faster and more efficient. Pass all queries as a single comma-separated string.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "queries",
+      "type": "string",
+      "description": "Comma-separated search queries (e.g. 'The Matrix,Breaking Bad,The Godfather')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{queries}}`.split(',').map(q => ({ url: 'https://www.rottentomatoes.com/search?search=' + encodeURIComponent(q.trim()), query: q.trim() }))",
+      "name": "items",
+      "label": "Build search URL list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 3,
+      "maxItems": 10,
+      "waitUntil": "load",
+      "label": "Search each query in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": "search-page-media-row, [class*='search-result'], [data-qa='search-result']",
+          "timeout": 15000,
+          "label": "Wait for results"
+        },
+        {
+          "action": "wait",
+          "ms": 2000
+        },
+        {
+          "action": "code",
+          "code": "const results = []; const items = document.querySelectorAll('search-page-media-row, [class*=\"search-result\"], [data-qa=\"search-result\"]'); for (let i = 0; i < Math.min(items.length, 5); i++) { const el = items[i]; const titleEl = el.querySelector('a[data-qa=\"info-name\"], [class*=\"title\"] a, a[slot=\"title\"]'); const yearEl = el.querySelector('[data-qa=\"info-year\"], span[slot=\"year\"]'); const tomatometerEl = el.querySelector('rt-text[slot=\"criticsScore\"], [data-qa=\"tomatometer\"]'); const audienceEl = el.querySelector('rt-text[slot=\"audienceScore\"], [data-qa=\"audience-score\"]'); const linkEl = el.querySelector('a[data-qa=\"info-name\"], a[href*=\"/m/\"], a[href*=\"/tv/\"]'); results.push({ title: titleEl ? titleEl.textContent.trim() : '', year: yearEl ? yearEl.textContent.trim() : '', tomatometer: tomatometerEl ? tomatometerEl.textContent.trim() : '', audience_score: audienceEl ? audienceEl.textContent.trim() : '', url: linkEl ? (linkEl.href.startsWith('http') ? linkEl.href : 'https://www.rottentomatoes.com' + linkEl.getAttribute('href')) : '' }); } const params = new URLSearchParams(window.location.search); return { query: params.get('search') || '', result_count: results.length, results: results }",
+          "name": "search_results",
+          "label": "Extract results"
+        }
+      ]
+    }
+  ]
+}

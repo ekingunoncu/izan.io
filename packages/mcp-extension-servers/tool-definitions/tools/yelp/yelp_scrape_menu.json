@@ -1,0 +1,24 @@
+{
+  "id": "yelp-scrape-menu",
+  "name": "yelp_scrape_menu",
+  "description": "Scrape the menu from a Yelp restaurant page. Returns menu sections with item names, descriptions, and prices.",
+  "version": "1.0.0",
+  "parameters": [
+    { "name": "business_url", "type": "string", "description": "Yelp business URL for a restaurant (e.g. 'https://www.yelp.com/biz/house-of-prime-rib-san-francisco')", "required": true }
+  ],
+  "steps": [
+    { "action": "navigate", "url": "{{business_url}}", "label": "Open business page" },
+    { "action": "waitForSelector", "selector": "h1, [class*='businessName']", "timeout": 15000, "label": "Wait for page" },
+    { "action": "wait", "ms": 2000 },
+    { "action": "scroll", "direction": "down", "amount": 2000, "label": "Scroll to menu section" },
+    { "action": "wait", "ms": 2000 },
+    { "action": "scroll", "direction": "down", "amount": 2000, "label": "Scroll further" },
+    { "action": "wait", "ms": 1500 },
+    {
+      "action": "code",
+      "code": "const menuSections = []; const sectionEls = document.querySelectorAll('[class*=\"menu-section\"], [class*=\"menu_section\"], section[class*=\"menu\"]'); if (sectionEls.length > 0) { sectionEls.forEach(function(section) { const titleEl = section.querySelector('h2, h3, [class*=\"section-header\"]'); const items = []; section.querySelectorAll('[class*=\"menu-item\"], [class*=\"menu_item\"], li').forEach(function(item) { const nameEl = item.querySelector('[class*=\"item-name\"], h4, [class*=\"name\"]'); const priceEl = item.querySelector('[class*=\"price\"], [class*=\"cost\"]'); const descEl = item.querySelector('[class*=\"description\"], p'); if (nameEl) { items.push({ name: nameEl.textContent.trim(), price: priceEl ? priceEl.textContent.trim() : '', description: descEl ? descEl.textContent.trim().substring(0, 200) : '' }); } }); menuSections.push({ section: titleEl ? titleEl.textContent.trim() : '', item_count: items.length, items: items.slice(0, 20) }); }); } else { const popularItems = []; document.querySelectorAll('[class*=\"dish\"], [class*=\"popular-menu\"] [class*=\"item\"]').forEach(function(el) { const nameEl = el.querySelector('[class*=\"name\"], h4, a'); const priceEl = el.querySelector('[class*=\"price\"]'); const imgEl = el.querySelector('img'); popularItems.push({ name: nameEl ? nameEl.textContent.trim() : '', price: priceEl ? priceEl.textContent.trim() : '', image: imgEl ? imgEl.getAttribute('src') : '' }); }); if (popularItems.length > 0) { menuSections.push({ section: 'Popular Dishes', item_count: popularItems.length, items: popularItems }); } } const nameEl = document.querySelector('h1'); return { business_name: nameEl ? nameEl.textContent.trim() : '', section_count: menuSections.length, menu: menuSections, url: window.location.href }",
+      "name": "menu_data",
+      "label": "Extract menu"
+    }
+  ]
+}

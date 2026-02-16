@@ -1,0 +1,38 @@
+{
+  "id": "sheets-export-csv",
+  "name": "sheets_export_csv",
+  "description": "Export the active sheet of a Google Spreadsheet as CSV data. Uses the built-in export URL pattern to download the spreadsheet content as comma-separated values.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "spreadsheet_url",
+      "type": "string",
+      "description": "Full Google Sheets URL (e.g. https://docs.google.com/spreadsheets/d/SPREADSHEET_ID/edit)",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{spreadsheet_url}}",
+      "label": "Open spreadsheet"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "table.waffle, .waffle",
+      "timeout": 20000,
+      "label": "Wait for spreadsheet to load"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Let spreadsheet fully render"
+    },
+    {
+      "action": "code",
+      "code": "const url = window.location.href; const idMatch = url.match(/\\/spreadsheets\\/d\\/([a-zA-Z0-9_-]+)/); if (!idMatch) return { error: 'Could not extract spreadsheet ID from URL' }; const spreadsheetId = idMatch[1]; let gid = '0'; const gidMatch = url.match(/[#&?]gid=(\\d+)/); if (gidMatch) { gid = gidMatch[1]; } else { const activeTab = document.querySelector('.docs-sheet-active-tab, .docs-sheet-tab[aria-selected=\"true\"]'); if (activeTab) { const tabGid = activeTab.getAttribute('id')?.replace('sheet-button-', '') || activeTab.dataset.id; if (tabGid) gid = tabGid; } } const exportUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv&gid=${gid}`; try { const response = await fetch(exportUrl, { credentials: 'include', redirect: 'follow' }); if (!response.ok) throw new Error(`Export failed with status ${response.status}`); const csvText = await response.text(); const lines = csvText.split('\\n'); const preview = lines.slice(0, 20).join('\\n'); const titleEl = document.querySelector('.docs-title-input, input.docs-title-input, .docs-titlebar-text'); const title = titleEl ? (titleEl.value || titleEl.textContent || '').trim() : ''; return { success: true, title: title, spreadsheet_id: spreadsheetId, gid: gid, total_rows: lines.length, csv_preview: preview, csv_data: csvText }; } catch (e) { return { error: 'Failed to export CSV: ' + e.message, export_url: exportUrl, suggestion: 'Make sure you are logged into Google and have access to this spreadsheet' }; }",
+      "name": "export_result",
+      "label": "Export spreadsheet as CSV via export URL"
+    }
+  ]
+}

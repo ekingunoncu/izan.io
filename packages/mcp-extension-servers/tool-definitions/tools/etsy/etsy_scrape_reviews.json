@@ -1,0 +1,68 @@
+{
+  "id": "etsy-scrape-reviews",
+  "name": "etsy_scrape_reviews",
+  "description": "Scrape reviews from an Etsy listing. Navigates to the listing page reviews section and returns reviews with author, rating, content, date, and item purchased info.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "listing_url",
+      "type": "string",
+      "description": "Etsy listing URL (e.g. 'https://www.etsy.com/listing/1234567890/handmade-ring')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{listing_url}}",
+      "label": "Open listing page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "h1, [data-listing-page-title]",
+      "timeout": 15000,
+      "label": "Wait for listing page to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 3000,
+      "label": "Scroll down to reviews section"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 2000,
+      "label": "Scroll further to load more reviews"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 2000,
+      "label": "Scroll even further"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const reviews = []; const reviewEls = document.querySelectorAll('[class*=\"review-item\"], [data-review-id], [class*=\"ReviewItem\"], [class*=\"review-card\"], [class*=\"wt-grid\"][class*=\"review\"]'); if (reviewEls.length > 0) { for (let i = 0; i < Math.min(reviewEls.length, 20); i++) { const el = reviewEls[i]; const authorEl = el.querySelector('[class*=\"reviewer-name\"], [class*=\"reviewer\"] a, [class*=\"name\"] a'); const ratingEl = el.querySelector('[class*=\"rating\"] input, [data-rating], [class*=\"stars\"] [class*=\"screen-reader\"]'); const contentEl = el.querySelector('[class*=\"review-text\"], [class*=\"content\"] p, [class*=\"review-body\"]'); const dateEl = el.querySelector('[class*=\"review-date\"], [class*=\"date\"], time'); const itemEl = el.querySelector('[class*=\"purchased-item\"], [class*=\"transaction\"] a, [class*=\"item-link\"]'); const imgEl = el.querySelector('[class*=\"review-image\"] img, [class*=\"review-photo\"] img'); reviews.push({ author: authorEl ? authorEl.textContent.trim() : 'Anonymous', rating: ratingEl ? (ratingEl.getAttribute('value') || ratingEl.textContent.trim()) : '', content: contentEl ? contentEl.textContent.trim().substring(0, 800) : '', date: dateEl ? dateEl.textContent.trim() : '', item_purchased: itemEl ? itemEl.textContent.trim() : '', has_image: !!imgEl }); } } else { const altReviews = document.querySelectorAll('[id*=\"review\"] > div, [class*=\"reviews-list\"] > div'); for (let i = 0; i < Math.min(altReviews.length, 20); i++) { const el = altReviews[i]; const textContent = el.textContent.trim(); if (textContent.length < 10) continue; const authorEl = el.querySelector('a[href*=\"/people/\"], [class*=\"name\"]'); const ratingEl = el.querySelector('[class*=\"rating\"], [class*=\"stars\"]'); const dateEl = el.querySelector('time, [class*=\"date\"]'); reviews.push({ author: authorEl ? authorEl.textContent.trim() : 'Anonymous', rating: ratingEl ? ratingEl.textContent.trim() : '', content: textContent.substring(0, 800), date: dateEl ? dateEl.textContent.trim() : '', item_purchased: '', has_image: false }); } } const overallRatingEl = document.querySelector('[class*=\"shop-rating\"], [data-rating][class*=\"overall\"], [class*=\"listing\"] [class*=\"stars\"] [class*=\"screen-reader\"]'); const totalReviewsEl = document.querySelector('[class*=\"review-count\"], a[href*=\"reviews\"] span'); return { overall_rating: overallRatingEl ? overallRatingEl.textContent.trim() : '', total_reviews: totalReviewsEl ? totalReviewsEl.textContent.trim() : '', scraped_count: reviews.length, reviews: reviews, url: window.location.href }",
+      "name": "reviews_data",
+      "label": "Extract reviews"
+    }
+  ]
+}

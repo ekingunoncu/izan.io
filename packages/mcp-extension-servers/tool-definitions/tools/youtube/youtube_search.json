@@ -1,0 +1,48 @@
+{
+  "id": "youtube-search",
+  "name": "youtube_search",
+  "description": "Search for videos on YouTube. Returns up to 10 results with title, channel, views, duration, and URL.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "query",
+      "type": "string",
+      "description": "Search query (e.g. 'javascript tutorial', 'lofi hip hop')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://www.youtube.com/results?search_query={{query}}",
+      "label": "Search YouTube"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "ytd-video-renderer",
+      "timeout": 15000,
+      "label": "Wait for search results"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let results render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 800,
+      "label": "Scroll to load more results"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const results = []; const renderers = document.querySelectorAll('ytd-video-renderer'); for (let i = 0; i < Math.min(renderers.length, 10); i++) { const el = renderers[i]; const titleEl = el.querySelector('#video-title'); const channelEl = el.querySelector('ytd-channel-name #text a, ytd-channel-name #text'); const metaItems = el.querySelectorAll('#metadata-line span.inline-metadata-item, #metadata-line span'); const views = metaItems[0] ? metaItems[0].textContent.trim() : ''; const uploadedTime = metaItems[1] ? metaItems[1].textContent.trim() : ''; const durationEl = el.querySelector('badge-shape .badge-shape-wiz__text, ytd-thumbnail-overlay-time-status-renderer span, span.ytd-thumbnail-overlay-time-status-renderer'); const url = titleEl ? 'https://www.youtube.com' + titleEl.getAttribute('href') : ''; results.push({ title: titleEl ? titleEl.textContent.trim() : 'Unknown', channel: channelEl ? channelEl.textContent.trim() : '', views: views, uploaded: uploadedTime, duration: durationEl ? durationEl.textContent.trim() : '', url: url }); } return { result_count: results.length, results: results }",
+      "name": "search_results",
+      "label": "Extract search results"
+    }
+  ]
+}

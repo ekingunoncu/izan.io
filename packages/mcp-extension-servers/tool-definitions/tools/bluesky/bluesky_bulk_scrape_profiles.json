@@ -1,0 +1,24 @@
+{
+  "id": "bluesky-bulk-scrape-profiles",
+  "name": "bluesky_bulk_scrape_profiles",
+  "description": "Scrape multiple Bluesky profiles in parallel using concurrent browser tabs. Use this instead of calling bluesky_scrape_profile multiple times.",
+  "version": "1.0.0",
+  "parameters": [
+    { "name": "handles", "type": "string", "description": "Comma-separated Bluesky handles (e.g. 'user1.bsky.social,user2.bsky.social,custom.domain')", "required": true }
+  ],
+  "steps": [
+    { "action": "code", "code": "return `{{handles}}`.split(',').map(h => ({ url: 'https://bsky.app/profile/' + h.trim(), handle: h.trim() }))", "name": "items", "label": "Build profile URL list" },
+    {
+      "action": "forEachItem", "sourceExtract": "items", "openMethod": "url", "urlField": "url", "concurrency": 3, "maxItems": 10, "waitUntil": "load", "label": "Scrape each profile in parallel",
+      "detailSteps": [
+        { "action": "waitForSelector", "selector": "[data-testid='profileHeaderDisplayName'], h1", "timeout": 15000, "label": "Wait for profile" },
+        { "action": "wait", "ms": 2000 },
+        {
+          "action": "code",
+          "code": "const nameEl = document.querySelector('[data-testid=\"profileHeaderDisplayName\"], h1'); const handleEl = document.querySelector('[data-testid=\"profileHeaderHandle\"], [class*=\"handle\"]'); const bioEl = document.querySelector('[data-testid=\"profileHeaderDescription\"]'); const avatarEl = document.querySelector('[data-testid=\"userAvatarImage\"]'); const stats = {}; document.querySelectorAll('[data-testid=\"profileHeaderFollowersButton\"], [data-testid=\"profileHeaderFollowsButton\"]').forEach(function(el) { const text = el.textContent.trim(); if (text.match(/follower/i)) stats.followers = text; else if (text.match(/following/i)) stats.following = text; }); return { display_name: nameEl ? nameEl.textContent.trim() : '', handle: handleEl ? handleEl.textContent.trim() : '', bio: bioEl ? bioEl.textContent.trim().substring(0, 300) : '', avatar: avatarEl ? avatarEl.getAttribute('src') : '', followers: stats.followers || '', following: stats.following || '', url: window.location.href }",
+          "name": "profile_data", "label": "Extract profile"
+        }
+      ]
+    }
+  ]
+}

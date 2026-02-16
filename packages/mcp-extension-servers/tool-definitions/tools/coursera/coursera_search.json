@@ -1,0 +1,58 @@
+{
+  "id": "coursera-search",
+  "name": "coursera_search",
+  "description": "Search for courses on Coursera. Returns up to 15 results with course name, provider, rating, enrollment count, difficulty level, and URL.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "query",
+      "type": "string",
+      "description": "Search query (e.g. 'machine learning', 'data science', 'python programming')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://www.coursera.org/search?query={{query}}",
+      "label": "Search Coursera"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[class*='result'], [class*='card'], [data-testid='search-result'], li[class*='ais-']",
+      "timeout": 15000,
+      "label": "Wait for search results"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let results render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll to load more"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll further"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const results = []; const items = document.querySelectorAll('[data-testid=\"search-result\"], [class*=\"result-card\"], li[class*=\"ais-\"], [class*=\"ProductCard\"]'); if (items.length === 0) { const altItems = document.querySelectorAll('a[href*=\"/learn/\"], a[href*=\"/specializations/\"], a[href*=\"/professional-certificates/\"]'); const seen = new Set(); for (let i = 0; i < altItems.length && results.length < 15; i++) { const el = altItems[i]; const href = el.getAttribute('href') || ''; if (seen.has(href)) continue; seen.add(href); const titleEl = el.querySelector('h3, h2, [class*=\"title\"], strong'); if (!titleEl) continue; const providerEl = el.querySelector('[class*=\"partner\"], [class*=\"provider\"], p'); const ratingEl = el.querySelector('[class*=\"rating\"] span, [class*=\"stars\"]'); const imgEl = el.querySelector('img'); results.push({ name: titleEl.textContent.trim(), provider: providerEl ? providerEl.textContent.trim() : '', rating: ratingEl ? ratingEl.textContent.trim() : '', image: imgEl ? imgEl.getAttribute('src') : '', url: href.startsWith('http') ? href : 'https://www.coursera.org' + href }); } } else { for (let i = 0; i < Math.min(items.length, 15); i++) { const el = items[i]; const titleEl = el.querySelector('h3, h2, [class*=\"title\"], [data-testid=\"result-title\"]'); const providerEl = el.querySelector('[class*=\"partner\"], [class*=\"provider\"], [data-testid=\"result-provider\"]'); const ratingEl = el.querySelector('[class*=\"rating\"] span, [class*=\"stars\"] span, [data-testid=\"result-rating\"]'); const enrollmentEl = el.querySelector('[class*=\"enrollment\"], [class*=\"students\"]'); const levelEl = el.querySelector('[class*=\"level\"], [class*=\"difficulty\"]'); const linkEl = el.querySelector('a[href*=\"/learn/\"], a[href*=\"/specializations/\"], a[href*=\"/professional-certificates/\"]'); const imgEl = el.querySelector('img'); const typeEl = el.querySelector('[class*=\"type\"], [class*=\"product-type\"]'); results.push({ name: titleEl ? titleEl.textContent.trim() : '', provider: providerEl ? providerEl.textContent.trim() : '', rating: ratingEl ? ratingEl.textContent.trim() : '', enrollment: enrollmentEl ? enrollmentEl.textContent.trim() : '', level: levelEl ? levelEl.textContent.trim() : '', type: typeEl ? typeEl.textContent.trim() : '', image: imgEl ? imgEl.getAttribute('src') : '', url: linkEl ? linkEl.href : '' }); } } return { query: `{{query}}`, result_count: results.length, results: results }",
+      "name": "search_results",
+      "label": "Extract course results"
+    }
+  ]
+}

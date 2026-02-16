@@ -1,0 +1,48 @@
+{
+  "id": "figma-scrape-comments",
+  "name": "figma_scrape_comments",
+  "description": "Scrape comments from a Figma file including author, content, timestamp, and resolved status. You must be logged into Figma and have access to the file.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "file_url",
+      "type": "string",
+      "description": "Figma file URL (e.g. 'https://www.figma.com/design/FILEID/FileName')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{file_url}}",
+      "label": "Open Figma file"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[class*=\"toolbar\"], [data-testid=\"canvas\"]",
+      "timeout": 20000,
+      "label": "Wait for editor to load"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Let editor initialize"
+    },
+    {
+      "action": "click",
+      "selector": "[class*=\"comment\"] button, [data-testid=\"comments-toggle\"], [class*=\"toolbar_view\"] [class*=\"comment\"], button[aria-label*=\"Comment\"], [class*=\"toolbar\"] [class*=\"comment_icon\"]",
+      "label": "Open comments panel"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let comments panel load"
+    },
+    {
+      "action": "code",
+      "code": "const comments = []; const threads = document.querySelectorAll('[class*=\"comment\"][class*=\"thread\"], .comment-thread, [class*=\"comment_thread\"], [data-testid=\"comment-thread\"]'); threads.forEach((thread, i) => { if (i >= 30) return; const messages = thread.querySelectorAll('[class*=\"comment_message\"], [class*=\"comment_body\"], [class*=\"message_content\"]'); const authorEl = thread.querySelector('[class*=\"comment_author\"], [class*=\"author_name\"], [class*=\"user_name\"]'); const timeEl = thread.querySelector('time, [class*=\"timestamp\"], [class*=\"comment_date\"]'); const resolvedEl = thread.querySelector('[class*=\"resolved\"], [class*=\"resolve\"]'); const isResolved = resolvedEl ? (resolvedEl.classList.toString().includes('resolved') || resolvedEl.getAttribute('aria-label')?.includes('resolved')) : false; const commentTexts = []; messages.forEach(msg => { commentTexts.push(msg.textContent.trim()); }); comments.push({ author: authorEl ? authorEl.textContent.trim() : '', content: commentTexts.length > 0 ? commentTexts.join(' | ') : thread.textContent.trim().substring(0, 300), timestamp: timeEl ? (timeEl.getAttribute('datetime') || timeEl.textContent.trim()) : '', resolved: isResolved }); }); return { file_url: window.location.href, comment_count: comments.length, comments: comments }",
+      "name": "result",
+      "label": "Extract comments from panel"
+    }
+  ]
+}

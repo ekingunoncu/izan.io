@@ -1,0 +1,48 @@
+{
+  "id": "indeed-scrape-job",
+  "name": "indeed_scrape_job",
+  "description": "Scrape detailed information about an Indeed job posting including title, company, salary, full description, requirements, benefits, and job metadata.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "job_url",
+      "type": "string",
+      "description": "Indeed job URL (e.g. 'https://www.indeed.com/viewjob?jk=abc123' or 'https://www.indeed.com/rc/clk?jk=abc123')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{job_url}}",
+      "label": "Open job posting"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".jobsearch-JobInfoHeader-title, h1.jobsearch-JobInfoHeader-title, [data-testid=\"jobsearch-JobInfoHeader-title\"], .jobs-unified-top-card__job-title",
+      "timeout": 15000,
+      "label": "Wait for job details to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page settle"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 600,
+      "label": "Scroll to load full description"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const titleEl = document.querySelector('.jobsearch-JobInfoHeader-title, h1.jobsearch-JobInfoHeader-title, [data-testid=\"jobsearch-JobInfoHeader-title\"], h2.icl-u-xs-mb--xs'); const companyEl = document.querySelector('[data-testid=\"inlineHeader-companyName\"] a, .jobsearch-InlineCompanyRating a, div.icl-u-lg-mr--sm a, [data-company-name=\"true\"] a'); const locationEl = document.querySelector('[data-testid=\"inlineHeader-companyLocation\"], .jobsearch-InlineCompanyRating div:last-child, div.icl-u-xs-mt--xs .icl-u-textColor--secondary'); const salaryEl = document.querySelector('#salaryInfoAndJobType span, .jobsearch-JobMetadataHeader-item, [data-testid=\"attribute_snippet_testid\"], .salary-snippet-container'); const jobTypeEl = document.querySelector('#salaryInfoAndJobType .css-k5flys, .jobsearch-JobMetadataHeader-item:last-child'); const descEl = document.querySelector('#jobDescriptionText, .jobsearch-jobDescriptionText, [data-testid=\"jobDescriptionText\"]'); const qualsList = []; if (descEl) { const listItems = descEl.querySelectorAll('ul li'); listItems.forEach(function(li, i) { if (i < 15) qualsList.push(li.textContent.trim()); }); } const benefitsEls = document.querySelectorAll('.jobsearch-benefits li, [data-testid=\"benefits-item\"], .css-1r0wrwl li'); const benefits = []; benefitsEls.forEach(function(el) { benefits.push(el.textContent.trim()); }); const ratingEl = document.querySelector('.jobsearch-InlineCompanyRating .icl-Ratings-starsCountWrapper, [data-testid=\"inlineHeader-companyRating\"], .css-1unnuiz'); return { title: titleEl ? titleEl.textContent.trim() : 'Unknown', company: companyEl ? companyEl.textContent.trim() : '', location: locationEl ? locationEl.textContent.trim() : '', salary: salaryEl ? salaryEl.textContent.trim() : 'Not listed', job_type: jobTypeEl ? jobTypeEl.textContent.trim() : '', company_rating: ratingEl ? ratingEl.textContent.trim() : '', description: descEl ? descEl.textContent.trim().slice(0, 3000) : '', requirements: qualsList, benefits: benefits, url: window.location.href }",
+      "name": "job_details",
+      "label": "Extract job details"
+    }
+  ]
+}

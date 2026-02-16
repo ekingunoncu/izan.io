@@ -1,0 +1,50 @@
+{
+  "id": "pinterest-bulk-search",
+  "name": "pinterest_bulk_search",
+  "description": "Bulk search Pinterest pins for multiple queries in parallel using concurrent browser tabs. Pass all search queries as a single comma-separated string. Example: 'home decor,wedding ideas,healthy recipes'.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "queries",
+      "type": "string",
+      "description": "Comma-separated search queries (e.g. 'home decor,wedding ideas,healthy recipes')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{queries}}`.split(',').map(q => ({ query: q.trim() }))",
+      "name": "items",
+      "label": "Build query list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlTemplate": "https://www.pinterest.com/search/pins/?q=${encodeURIComponent(item.query)}",
+      "concurrency": 3,
+      "maxItems": 10,
+      "waitUntil": "load",
+      "label": "Search each query in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": "[data-test-id='pin'], [data-test-id='pinWrapper'], div[data-grid-item]",
+          "timeout": 15000,
+          "label": "Wait for pin results"
+        },
+        {
+          "action": "wait",
+          "ms": 3000
+        },
+        {
+          "action": "code",
+          "code": "const results = []; const pins = document.querySelectorAll('[data-test-id=\"pin\"], [data-test-id=\"pinWrapper\"], div[data-grid-item]'); for (let i = 0; i < Math.min(pins.length, 15); i++) { const pin = pins[i]; const imgEl = pin.querySelector('img'); const linkEl = pin.querySelector('a[href*=\"/pin/\"]'); const titleEl = pin.querySelector('[data-test-id=\"pinTitle\"], [title]') || imgEl; const descEl = pin.querySelector('[data-test-id=\"truncated-description\"], [data-test-id=\"pin-description\"]'); results.push({ title: titleEl ? (titleEl.getAttribute('title') || titleEl.getAttribute('alt') || titleEl.textContent || '').trim().slice(0, 200) : '', image_url: imgEl ? (imgEl.getAttribute('src') || '') : '', pin_url: linkEl ? 'https://www.pinterest.com' + linkEl.getAttribute('href') : '', description: descEl ? descEl.textContent.trim().slice(0, 300) : '' }); } const params = new URLSearchParams(window.location.search); return { query: params.get('q') || '', result_count: results.length, results: results }",
+          "name": "search_results",
+          "label": "Extract pin search results"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,58 @@
+{
+  "id": "facebook-scrape-profile",
+  "name": "facebook_scrape_profile",
+  "description": "Scrape a Facebook profile page. Returns the user's name, bio, profile picture, friends count, followers count, and recent posts.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "profile_url",
+      "type": "string",
+      "description": "Facebook profile URL (e.g. 'https://www.facebook.com/zuck')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{profile_url}}",
+      "label": "Open Facebook profile"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[role='main'], [data-pagelet='ProfileTimeline'], h1",
+      "timeout": 15000,
+      "label": "Wait for profile to load"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Let profile fully render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 800,
+      "label": "Scroll to load about section"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll to load posts"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const nameEl = document.querySelector('h1'); const name = nameEl ? nameEl.textContent.trim() : ''; let bio = ''; const bioEls = document.querySelectorAll('[data-pagelet=\"ProfileTilesFeed_0\"] span, [data-pagelet=\"ProfileTilesFeed\"] span, div[dir=\"auto\"]'); for (const el of bioEls) { const text = el.textContent.trim(); if (text.length > 10 && text.length < 500 && text !== name) { bio = text; break; } } let friendsCount = ''; let followersCount = ''; const allLinks = document.querySelectorAll('a[href*=\"friends\"], a[href*=\"followers\"], a span'); for (const link of allLinks) { const text = link.textContent.trim().toLowerCase(); if (text.includes('friend')) { friendsCount = text; } if (text.includes('follower')) { followersCount = text; } } const profileImg = document.querySelector('image[preserveAspectRatio], svg image, [role=\"main\"] img[alt*=\"profile\"], [data-pagelet=\"ProfileActions\"] ~ div img, g image'); let profilePicture = ''; if (profileImg) { profilePicture = profileImg.getAttribute('xlink:href') || profileImg.getAttribute('src') || ''; } const posts = []; const postEls = document.querySelectorAll('[role=\"article\"], [data-ad-preview]'); for (let i = 0; i < Math.min(postEls.length, 5); i++) { const post = postEls[i]; let postText = ''; const textEls = post.querySelectorAll('div[dir=\"auto\"]'); for (const t of textEls) { const txt = t.textContent.trim(); if (txt.length > 15) { postText = txt.substring(0, 500); break; } } let postTime = ''; const timeEl = post.querySelector('a[href*=\"/posts/\"] span, abbr, span[id] a'); if (timeEl) { postTime = timeEl.textContent.trim(); } let postLink = ''; const linkEl = post.querySelector('a[href*=\"/posts/\"], a[href*=\"/photos/\"], a[href*=\"/videos/\"]'); if (linkEl) { postLink = linkEl.getAttribute('href') || ''; } if (postText) { posts.push({ text: postText, time: postTime, url: postLink }); } } return { name: name, bio: bio, friends_count: friendsCount, followers_count: followersCount, profile_picture: profilePicture, recent_posts_count: posts.length, recent_posts: posts, profile_url: window.location.href }",
+      "name": "profile_data",
+      "label": "Extract profile information"
+    }
+  ]
+}

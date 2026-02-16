@@ -1,0 +1,31 @@
+{
+  "id": "hn-scrape-frontpage",
+  "name": "hn_scrape_frontpage",
+  "description": "Scrape the Hacker News front page. Returns the top 30 stories with rank, title, URL, score, author, comment count, and age.",
+  "version": "1.0.0",
+  "parameters": [],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://news.ycombinator.com/",
+      "label": "Open Hacker News front page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".athing",
+      "timeout": 15000,
+      "label": "Wait for stories to load"
+    },
+    {
+      "action": "wait",
+      "ms": 1500,
+      "label": "Let page settle"
+    },
+    {
+      "action": "code",
+      "code": "const stories = []; const storyRows = document.querySelectorAll('.athing'); for (let i = 0; i < Math.min(storyRows.length, 30); i++) { const row = storyRows[i]; const subtext = row.nextElementSibling; const rankEl = row.querySelector('.rank'); const titleEl = row.querySelector('.titleline > a'); const scoreEl = subtext ? subtext.querySelector('.score') : null; const authorEl = subtext ? subtext.querySelector('.hnuser') : null; const ageEl = subtext ? subtext.querySelector('.age a') : null; let commentCount = '0'; if (subtext) { const links = subtext.querySelectorAll('a'); for (const link of links) { const text = link.textContent.trim(); if (text.includes('comment')) { commentCount = text.split('\\u00a0')[0] || text.split(' ')[0]; break; } } } stories.push({ rank: rankEl ? parseInt(rankEl.textContent.trim().replace('.', ''), 10) : i + 1, title: titleEl ? titleEl.textContent.trim() : '', url: titleEl ? titleEl.href : '', score: scoreEl ? scoreEl.textContent.trim() : '0 points', author: authorEl ? authorEl.textContent.trim() : '', comment_count: commentCount, age: ageEl ? ageEl.textContent.trim() : '' }); } return { source: 'Hacker News - Front Page', story_count: stories.length, stories: stories }",
+      "name": "frontpage_data",
+      "label": "Extract front page stories"
+    }
+  ]
+}

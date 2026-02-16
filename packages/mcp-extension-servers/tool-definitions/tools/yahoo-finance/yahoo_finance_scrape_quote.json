@@ -1,0 +1,58 @@
+{
+  "id": "yahoo-finance-scrape-quote",
+  "name": "yahoo_finance_scrape_quote",
+  "description": "Scrape detailed stock quote data from Yahoo Finance. Returns current price, change, volume, market cap, P/E ratio, dividend yield, 52-week range, and key statistics.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "symbol",
+      "type": "string",
+      "description": "Stock ticker symbol (e.g. 'AAPL', 'GOOGL', 'MSFT', 'TSLA')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://finance.yahoo.com/quote/{{symbol}}/",
+      "label": "Open stock quote page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[data-testid='qsp-price'], [class*='quote-header'], h1",
+      "timeout": 15000,
+      "label": "Wait for quote page to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page fully render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 800,
+      "label": "Scroll to load additional content"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 800,
+      "label": "Scroll further down"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const nameEl = document.querySelector('h1, [class*=\"quote-header\"] h1, [data-testid=\"qsp-header\"] h1'); const priceEl = document.querySelector('[data-testid=\"qsp-price\"], [class*=\"price\"] fin-streamer[data-field=\"regularMarketPrice\"], fin-streamer[data-field=\"regularMarketPrice\"]'); const changeEl = document.querySelector('[data-testid=\"qsp-price-change\"], fin-streamer[data-field=\"regularMarketChange\"]'); const changePctEl = document.querySelector('[data-testid=\"qsp-price-change-percent\"], fin-streamer[data-field=\"regularMarketChangePercent\"]'); const stats = {}; const statRows = document.querySelectorAll('[data-testid=\"quote-statistics\"] tr, table tr, [class*=\"quote-stats\"] li, [class*=\"summary-table\"] tr'); statRows.forEach(function(row) { const labelEl = row.querySelector('td:first-child, span:first-child, dt'); const valueEl = row.querySelector('td:last-child, span:last-child, dd, fin-streamer'); if (labelEl && valueEl) { const label = labelEl.textContent.trim(); const value = valueEl.textContent.trim(); if (label && value && label !== value) { stats[label] = value; } } }); const marketCapEl = document.querySelector('fin-streamer[data-field=\"marketCap\"], td[data-test=\"MARKET_CAP-value\"]'); const volumeEl = document.querySelector('fin-streamer[data-field=\"regularMarketVolume\"], td[data-test=\"TD_VOLUME-value\"]'); const peRatioEl = document.querySelector('td[data-test=\"PE_RATIO-value\"], [data-field=\"trailingPE\"]'); const dividendEl = document.querySelector('td[data-test=\"DIVIDEND_AND_YIELD-value\"]'); const rangeEl = document.querySelector('td[data-test=\"FIFTY_TWO_WK_RANGE-value\"]'); return { symbol: '{{symbol}}', name: nameEl ? nameEl.textContent.trim() : '', price: priceEl ? priceEl.textContent.trim() : '', change: changeEl ? changeEl.textContent.trim() : '', change_percent: changePctEl ? changePctEl.textContent.trim() : '', market_cap: marketCapEl ? marketCapEl.textContent.trim() : '', volume: volumeEl ? volumeEl.textContent.trim() : '', pe_ratio: peRatioEl ? peRatioEl.textContent.trim() : '', dividend_yield: dividendEl ? dividendEl.textContent.trim() : '', fifty_two_week_range: rangeEl ? rangeEl.textContent.trim() : '', statistics: stats, url: window.location.href }",
+      "name": "quote_data",
+      "label": "Extract quote details"
+    }
+  ]
+}

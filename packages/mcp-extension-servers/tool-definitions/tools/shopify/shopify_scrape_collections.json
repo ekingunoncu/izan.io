@@ -1,0 +1,58 @@
+{
+  "id": "shopify-scrape-collections",
+  "name": "shopify_scrape_collections",
+  "description": "Scrape all collections (categories) from a Shopify store. Navigates to the /collections page and extracts collection names, images, product counts, and links.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "store_url",
+      "type": "string",
+      "description": "Shopify store base URL (e.g. 'https://example.myshopify.com')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{store_url}}/collections",
+      "label": "Open collections page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "body",
+      "timeout": 15000,
+      "label": "Wait for collections page to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1500,
+      "label": "Scroll to load more collections"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1500,
+      "label": "Scroll further"
+    },
+    {
+      "action": "wait",
+      "ms": 1000
+    },
+    {
+      "action": "code",
+      "code": "const collections = []; const collectionCards = document.querySelectorAll('.collection-list__item, .grid__item, .collection-card, [class*=\"CollectionCard\"], [class*=\"collection-card\"], .list-collections__item'); for (let i = 0; i < Math.min(collectionCards.length, 30); i++) { const card = collectionCards[i]; const linkEl = card.querySelector('a[href*=\"/collections/\"]'); const nameEl = card.querySelector('h2, h3, .card__heading, .collection-card__title, [class*=\"title\"]'); const imgEl = card.querySelector('img'); const countEl = card.querySelector('[class*=\"count\"], .collection-card__count, .badge'); if (linkEl || nameEl) { collections.push({ name: nameEl ? nameEl.textContent.trim() : (linkEl ? linkEl.textContent.trim() : ''), url: linkEl ? linkEl.href : '', image: imgEl ? (imgEl.src || imgEl.dataset.src || '') : '', product_count: countEl ? countEl.textContent.trim() : '' }); } } if (collections.length === 0) { const links = document.querySelectorAll('a[href*=\"/collections/\"]'); const seen = new Set(); links.forEach(function(a) { const href = a.href; if (seen.has(href) || href.includes('/collections/all')) return; seen.add(href); const text = a.textContent.trim(); if (text && text.length > 1 && text.length < 100) { collections.push({ name: text, url: href, image: '', product_count: '' }); } }); } return { collection_count: collections.length, collections: collections, url: window.location.href }",
+      "name": "collections_data",
+      "label": "Extract collections"
+    }
+  ]
+}

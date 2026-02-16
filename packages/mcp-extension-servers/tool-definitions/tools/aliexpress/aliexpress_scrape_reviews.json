@@ -1,0 +1,24 @@
+{
+  "id": "aliexpress-scrape-reviews",
+  "name": "aliexpress_scrape_reviews",
+  "description": "Scrape reviews from an AliExpress product page. Returns reviews with author, rating, content, date, country, and photos.",
+  "version": "1.0.0",
+  "parameters": [
+    { "name": "product_url", "type": "string", "description": "AliExpress product URL", "required": true }
+  ],
+  "steps": [
+    { "action": "navigate", "url": "{{product_url}}", "label": "Open product page" },
+    { "action": "waitForSelector", "selector": "h1, [class*='product-title']", "timeout": 15000, "label": "Wait for page" },
+    { "action": "wait", "ms": 2000 },
+    { "action": "scroll", "direction": "down", "amount": 4000, "label": "Scroll to reviews" },
+    { "action": "wait", "ms": 2000 },
+    { "action": "scroll", "direction": "down", "amount": 2000, "label": "Scroll through reviews" },
+    { "action": "wait", "ms": 1500 },
+    {
+      "action": "code",
+      "code": "const reviews = []; const reviewEls = document.querySelectorAll('[class*=\"feedback-item\"], [class*=\"review-item\"], [class*=\"ReviewItem\"]'); for (let i = 0; i < Math.min(reviewEls.length, 20); i++) { const el = reviewEls[i]; const authorEl = el.querySelector('[class*=\"user-name\"], [class*=\"name\"]'); const ratingEl = el.querySelector('[class*=\"star\"], [class*=\"rating\"]'); const contentEl = el.querySelector('[class*=\"buyer-feedback\"], [class*=\"review-content\"], [class*=\"content\"]'); const dateEl = el.querySelector('[class*=\"date\"], time'); const countryEl = el.querySelector('[class*=\"country\"], [class*=\"flag\"]'); const hasPhoto = !!el.querySelector('[class*=\"photo\"] img, [class*=\"image\"] img'); reviews.push({ author: authorEl ? authorEl.textContent.trim() : '', rating: ratingEl ? ratingEl.textContent.trim() : '', content: contentEl ? contentEl.textContent.trim().substring(0, 800) : '', date: dateEl ? dateEl.textContent.trim() : '', country: countryEl ? countryEl.textContent.trim() : '', has_photo: hasPhoto }); } const overallRatingEl = document.querySelector('[class*=\"overview-rating\"], [class*=\"score\"]'); return { overall_rating: overallRatingEl ? overallRatingEl.textContent.trim() : '', review_count: reviews.length, reviews: reviews, url: window.location.href }",
+      "name": "reviews_data",
+      "label": "Extract reviews"
+    }
+  ]
+}

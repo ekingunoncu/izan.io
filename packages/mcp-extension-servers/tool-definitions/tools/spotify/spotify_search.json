@@ -1,0 +1,38 @@
+{
+  "id": "spotify-search",
+  "name": "spotify_search",
+  "description": "Search for songs, albums, and artists on Spotify. Returns matching tracks, artists, and albums with names and metadata.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "query",
+      "type": "string",
+      "description": "Search query (song name, artist, album, or any combination)",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://open.spotify.com/search/{{query}}",
+      "label": "Open Spotify search"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[data-testid=\"search-tracks-result\"], [data-testid=\"tracklist-row\"], .SearchResultsContainer, [data-testid=\"search-category-card\"]",
+      "timeout": 15000,
+      "label": "Wait for search results to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Let all result sections render"
+    },
+    {
+      "action": "code",
+      "code": "const tracks = []; const trackRows = document.querySelectorAll('[data-testid=\"tracklist-row\"], [data-testid=\"search-tracks-result\"] [data-testid=\"tracklist-row\"]'); for (let i = 0; i < Math.min(trackRows.length, 10); i++) { const row = trackRows[i]; const nameEl = row.querySelector('[data-testid=\"internal-track-link\"], .encore-text a, a[href^=\"/track\"]'); const artistEl = row.querySelector('a[href^=\"/artist\"]'); const imgEl = row.querySelector('img'); tracks.push({ name: nameEl ? nameEl.textContent.trim() : '', artist: artistEl ? artistEl.textContent.trim() : '', image: imgEl ? imgEl.src : '', link: nameEl ? nameEl.href || '' : '' }); } const artists = []; const artistCards = document.querySelectorAll('[data-testid=\"search-category-card\"] a[href^=\"/artist\"], section a[href^=\"/artist\"]'); const seenArtists = new Set(); for (let i = 0; i < Math.min(artistCards.length, 5); i++) { const card = artistCards[i]; const name = card.textContent.trim(); if (name && !seenArtists.has(name)) { seenArtists.add(name); artists.push({ name: name, link: card.href || '' }); } } const albums = []; const albumCards = document.querySelectorAll('section a[href^=\"/album\"]'); const seenAlbums = new Set(); for (let i = 0; i < Math.min(albumCards.length, 5); i++) { const card = albumCards[i]; const name = card.textContent.trim(); if (name && !seenAlbums.has(name)) { seenAlbums.add(name); albums.push({ name: name, link: card.href || '' }); } } return { query: '{{query}}', track_count: tracks.length, artist_count: artists.length, album_count: albums.length, tracks: tracks, artists: artists, albums: albums }",
+      "name": "search_results",
+      "label": "Extract search results"
+    }
+  ]
+}

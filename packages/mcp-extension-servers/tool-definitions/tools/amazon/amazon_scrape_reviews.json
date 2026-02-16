@@ -1,0 +1,79 @@
+{
+  "id": "amazon-scrape-reviews",
+  "name": "amazon_scrape_reviews",
+  "description": "Scrape product reviews from an Amazon product page. Navigates to the reviews section and returns top reviews with author, rating, title, content, date, and verified purchase status.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "product_url",
+      "type": "string",
+      "description": "Amazon product URL (e.g. 'https://www.amazon.com/dp/B09V3KXJPB')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{product_url}}",
+      "label": "Open product page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "#productTitle, .a-size-large.product-title-word-break",
+      "timeout": 15000,
+      "label": "Wait for product page to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 3000,
+      "label": "Scroll down to reviews section"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const seeAllLink = document.querySelector('a[data-hook=\"see-all-reviews-link-foot\"], a[href*=\"product-reviews\"], #reviews-medley-footer a'); if (seeAllLink) { window.location.href = seeAllLink.href; } else { const asin = window.location.pathname.match(/\\/(?:dp|gp\\/product)\\/([A-Z0-9]{10})/); if (asin) { window.location.href = 'https://www.amazon.com/product-reviews/' + asin[1] + '/ref=cm_cr_dp_d_show_all_btm?ie=UTF8&reviewerType=all_reviews'; } } return { navigated: true }",
+      "name": "nav_result",
+      "label": "Navigate to all reviews page"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Wait for reviews page to load"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1500,
+      "label": "Scroll to load reviews"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1500,
+      "label": "Scroll further to load more reviews"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const reviews = []; const reviewEls = document.querySelectorAll('[data-hook=\"review\"], .review'); for (let i = 0; i < Math.min(reviewEls.length, 20); i++) { const el = reviewEls[i]; const authorEl = el.querySelector('.a-profile-name, [data-hook=\"genome-widget\"] .a-profile-name'); const ratingEl = el.querySelector('.a-icon-star .a-icon-alt, .a-icon-star-small .a-icon-alt, [data-hook=\"review-star-rating\"] .a-icon-alt, [data-hook=\"cmps-review-star-rating\"] .a-icon-alt'); const titleEl = el.querySelector('[data-hook=\"review-title\"] span:not(.a-letter-space):not(.a-icon-alt), [data-hook=\"review-title\"] a span, a[data-hook=\"review-title\"] span'); const bodyEl = el.querySelector('[data-hook=\"review-body\"] span, .review-text-content span'); const dateEl = el.querySelector('[data-hook=\"review-date\"], .review-date'); const verifiedEl = el.querySelector('[data-hook=\"avp-badge\"], .a-size-mini.a-color-state'); const helpfulEl = el.querySelector('[data-hook=\"helpful-vote-statement\"], .cr-vote-text'); reviews.push({ author: authorEl ? authorEl.textContent.trim() : 'Anonymous', rating: ratingEl ? ratingEl.textContent.trim() : '', title: titleEl ? titleEl.textContent.trim() : '', content: bodyEl ? bodyEl.textContent.trim().substring(0, 800) : '', date: dateEl ? dateEl.textContent.trim() : '', verified_purchase: !!verifiedEl, helpful_votes: helpfulEl ? helpfulEl.textContent.trim() : '' }); } const overallRatingEl = document.querySelector('[data-hook=\"rating-out-of-text\"], .arp-rating-out-of-text'); const totalReviewsEl = document.querySelector('[data-hook=\"total-review-count\"], .totalReviewCount'); const ratingBreakdown = []; const histogramRows = document.querySelectorAll('#histogramTable tr, .a-histogram-row'); histogramRows.forEach(function(row) { const label = row.querySelector('.a-text-right a, td:first-child a'); const pct = row.querySelector('.a-text-right + td .a-size-base, .a-nowrap'); if (label && pct) { ratingBreakdown.push({ stars: label.textContent.trim(), percentage: pct.textContent.trim() }); } }); return { overall_rating: overallRatingEl ? overallRatingEl.textContent.trim() : '', total_reviews: totalReviewsEl ? totalReviewsEl.textContent.trim() : '', rating_breakdown: ratingBreakdown, scraped_count: reviews.length, reviews: reviews }",
+      "name": "reviews_data",
+      "label": "Extract reviews"
+    }
+  ]
+}

@@ -1,0 +1,58 @@
+{
+  "id": "imdb-scrape-title",
+  "name": "imdb_scrape_title",
+  "description": "Scrape full movie or TV show details from an IMDb title page. Returns title, year, rating, genre, director, cast, plot, runtime, and poster.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "title_url",
+      "type": "string",
+      "description": "IMDb title URL (e.g. 'https://www.imdb.com/title/tt0468569/')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{title_url}}",
+      "label": "Open title page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[data-testid='hero__pageTitle'], h1, [class*='TitleHeader']",
+      "timeout": 15000,
+      "label": "Wait for title page"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll to load content"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll further"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const titleEl = document.querySelector('[data-testid=\"hero__pageTitle\"] span, h1 span, [class*=\"TitleHeader\"] h1'); const yearEl = document.querySelector('[data-testid=\"hero__pageTitle\"] + ul li a, [class*=\"TitleBlockMetaData\"] a[href*=\"releaseinfo\"]'); const ratingEl = document.querySelector('[data-testid=\"hero-rating-bar__aggregate-rating__score\"] span, [class*=\"AggregateRatingButton\"] span'); const voteCountEl = document.querySelector('[data-testid=\"hero-rating-bar__aggregate-rating__score\"] + div + div, [class*=\"rating-count\"]'); const plotEl = document.querySelector('[data-testid=\"plot-xl\"], [data-testid=\"plot\"] span, [class*=\"GenresAndPlot\"] p'); const genres = []; document.querySelectorAll('[data-testid=\"genres\"] a, [class*=\"GenresAndPlot\"] a[href*=\"/genre/\"]').forEach(function(el) { genres.push(el.textContent.trim()); }); const runtimeEl = document.querySelector('[data-testid=\"title-techspec_runtime\"] li, [class*=\"TechSpec\"] [class*=\"runtime\"]'); const directorEl = document.querySelector('[data-testid=\"title-pc-principal-credit\"] a, a[href*=\"/name/\"]'); const cast = []; document.querySelectorAll('[data-testid=\"title-cast-item\"], [class*=\"CastList\"] [class*=\"CastItem\"]').forEach(function(el) { const nameEl = el.querySelector('[data-testid=\"title-cast-item__actor\"], a[href*=\"/name/\"]'); const charEl = el.querySelector('[data-testid=\"cast-item-characters-link\"], [class*=\"character\"]'); const imgEl = el.querySelector('img'); cast.push({ name: nameEl ? nameEl.textContent.trim() : '', character: charEl ? charEl.textContent.trim() : '', image: imgEl ? imgEl.getAttribute('src') : '' }); }); const posterEl = document.querySelector('[data-testid=\"hero-media__poster\"] img, [class*=\"Poster\"] img'); const metascoreEl = document.querySelector('[class*=\"metacritic\"], [data-testid=\"metacritic-score\"]'); return { title: titleEl ? titleEl.textContent.trim() : '', year: yearEl ? yearEl.textContent.trim() : '', rating: ratingEl ? ratingEl.textContent.trim() : '', vote_count: voteCountEl ? voteCountEl.textContent.trim() : '', plot: plotEl ? plotEl.textContent.trim().substring(0, 1000) : '', genres: genres, runtime: runtimeEl ? runtimeEl.textContent.trim() : '', director: directorEl ? directorEl.textContent.trim() : '', cast: cast.slice(0, 15), poster: posterEl ? posterEl.getAttribute('src') : '', metascore: metascoreEl ? metascoreEl.textContent.trim() : '', url: window.location.href }",
+      "name": "title_data",
+      "label": "Extract title details"
+    }
+  ]
+}

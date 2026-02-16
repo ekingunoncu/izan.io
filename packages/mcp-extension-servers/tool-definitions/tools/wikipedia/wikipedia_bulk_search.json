@@ -1,0 +1,50 @@
+{
+  "id": "wikipedia-bulk-search",
+  "name": "wikipedia_bulk_search",
+  "description": "Search multiple topics on Wikipedia in parallel using concurrent browser tabs. Use this instead of calling wikipedia_search multiple times - it is faster and more efficient. Pass all queries as a single comma-separated string.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "queries",
+      "type": "string",
+      "description": "Comma-separated search queries (e.g. 'quantum physics,black holes,string theory')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{queries}}`.split(',').map(q => ({ url: 'https://en.wikipedia.org/w/index.php?search=' + encodeURIComponent(q.trim()) + '&title=Special:Search&ns0=1', query: q.trim() }))",
+      "name": "items",
+      "label": "Build search URL list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 3,
+      "maxItems": 10,
+      "waitUntil": "load",
+      "label": "Search each query in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": ".mw-search-results li, .mw-search-result, #firstHeading",
+          "timeout": 15000,
+          "label": "Wait for results"
+        },
+        {
+          "action": "wait",
+          "ms": 1500
+        },
+        {
+          "action": "code",
+          "code": "const directArticle = document.querySelector('#firstHeading'); const isArticle = !document.querySelector('.mw-search-results'); if (isArticle && directArticle) { const content = document.querySelector('#mw-content-text .mw-parser-output'); const p = content ? content.querySelector(':scope > p') : null; return { query: new URLSearchParams(window.location.search).get('search') || directArticle.textContent.trim(), direct_match: true, title: directArticle.textContent.trim(), snippet: p ? p.textContent.trim().substring(0, 300) : '', url: window.location.href, results: [] }; } const results = []; const items = document.querySelectorAll('.mw-search-result, .mw-search-results li'); for (let i = 0; i < Math.min(items.length, 5); i++) { const el = items[i]; const titleEl = el.querySelector('.mw-search-result-heading a, a'); const snippetEl = el.querySelector('.searchresult'); results.push({ title: titleEl ? titleEl.textContent.trim() : '', url: titleEl ? titleEl.href : '', snippet: snippetEl ? snippetEl.textContent.trim().substring(0, 200) : '' }); } return { query: new URLSearchParams(window.location.search).get('search') || '', direct_match: false, result_count: results.length, results: results }",
+          "name": "search_results",
+          "label": "Extract results"
+        }
+      ]
+    }
+  ]
+}

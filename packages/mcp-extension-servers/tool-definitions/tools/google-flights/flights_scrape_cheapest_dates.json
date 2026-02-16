@@ -1,0 +1,65 @@
+{
+  "id": "flights-scrape-cheapest-dates",
+  "name": "flights_scrape_cheapest_dates",
+  "description": "Find the cheapest dates to fly a specific route using the Google Flights date grid. Returns prices for different departure and return date combinations.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "from",
+      "type": "string",
+      "description": "Origin city or airport code (e.g. 'Chicago', 'ORD')",
+      "required": true
+    },
+    {
+      "name": "to",
+      "type": "string",
+      "description": "Destination city or airport code (e.g. 'Miami', 'MIA')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://www.google.com/travel/flights?q={{from}}+to+{{to}}",
+      "label": "Search Google Flights"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "li.pIav2d, div[data-resultid], ul[role='list'] li",
+      "timeout": 20000,
+      "label": "Wait for flight results"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Let page render"
+    },
+    {
+      "action": "code",
+      "code": "const dateGridBtn = document.querySelector('button[aria-label*=\"Date grid\"], button[aria-label*=\"date grid\"], div[data-flt-ve=\"date_grid\"] button, button[jsaction*=\"date_grid\"]'); if (dateGridBtn) { dateGridBtn.click(); return { clicked: true, type: 'date_grid' }; } const priceGraphBtn = document.querySelector('button[aria-label*=\"Price graph\"], button[aria-label*=\"price graph\"]'); if (priceGraphBtn) { priceGraphBtn.click(); return { clicked: true, type: 'price_graph' }; } return { clicked: false }",
+      "name": "open_date_grid",
+      "label": "Open date grid view"
+    },
+    {
+      "action": "wait",
+      "ms": 4000,
+      "label": "Wait for date grid to load"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 600,
+      "label": "Scroll to see date grid"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const dateEntries = []; const gridCells = document.querySelectorAll('td[data-value], div[class*=\"date-grid\"] td, div[class*=\"price-grid\"] td, table td[role=\"button\"], div.JRwjBf td'); gridCells.forEach((cell, i) => { if (i >= 90) return; const label = cell.getAttribute('aria-label') || ''; const value = cell.getAttribute('data-value') || ''; const priceEl = cell.querySelector('div, span'); const text = cell.textContent.trim(); if (text && text.match(/\\d/)) { dateEntries.push({ date: value || label.split(',')[0] || '', price: priceEl ? priceEl.textContent.trim() : text, aria_label: label, is_cheapest: cell.classList.contains('cheapest') || cell.querySelector('[class*=\"cheapest\"], [class*=\"lowest\"]') !== null }); } }); const calendarBtns = document.querySelectorAll('button[aria-label*=\"$\"], button[aria-label*=\"EUR\"], button[aria-label*=\"GBP\"], div[class*=\"calendar\"] button[data-iso]'); calendarBtns.forEach((btn, i) => { if (i >= 60) return; const label = btn.getAttribute('aria-label') || ''; const iso = btn.getAttribute('data-iso') || ''; if (label) { dateEntries.push({ date: iso || label, price: label, is_cheapest: false }); } }); const cheapestEl = document.querySelector('div[class*=\"cheapest\"], div[class*=\"lowest-price\"], div.CQYfx'); const tipEl = document.querySelector('div[class*=\"tip\"], div[class*=\"advice\"], div[class*=\"insight\"]'); dateEntries.sort((a, b) => { const pa = parseInt((a.price || '').replace(/[^0-9]/g, '')) || 99999; const pb = parseInt((b.price || '').replace(/[^0-9]/g, '')) || 99999; return pa - pb; }); return { from: `{{from}}`, to: `{{to}}`, date_count: dateEntries.length, cheapest_dates: dateEntries.slice(0, 20), cheapest_highlight: cheapestEl ? cheapestEl.textContent.trim() : '', travel_tip: tipEl ? tipEl.textContent.trim() : '', url: window.location.href }",
+      "name": "cheapest_dates",
+      "label": "Extract cheapest date combinations"
+    }
+  ]
+}

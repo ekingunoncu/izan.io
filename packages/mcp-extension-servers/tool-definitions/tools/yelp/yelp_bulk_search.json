@@ -1,0 +1,40 @@
+{
+  "id": "yelp-bulk-search",
+  "name": "yelp_bulk_search",
+  "description": "Search multiple business types on Yelp in parallel using concurrent browser tabs. Use this instead of calling yelp_search multiple times.",
+  "version": "1.0.0",
+  "parameters": [
+    { "name": "queries", "type": "string", "description": "Comma-separated queries (e.g. 'pizza,sushi,tacos')", "required": true },
+    { "name": "location", "type": "string", "description": "Location for all searches (e.g. 'San Francisco, CA')", "required": true }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{queries}}`.split(',').map(q => ({ url: 'https://www.yelp.com/search?find_desc=' + encodeURIComponent(q.trim()) + '&find_loc=' + encodeURIComponent(`{{location}}`), query: q.trim() }))",
+      "name": "items",
+      "label": "Build search URL list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 3,
+      "maxItems": 10,
+      "waitUntil": "load",
+      "label": "Search each query in parallel",
+      "detailSteps": [
+        { "action": "waitForSelector", "selector": "[class*='businessName'], [data-testid='serp-ia-card']", "timeout": 15000, "label": "Wait for results" },
+        { "action": "wait", "ms": 2000 },
+        { "action": "scroll", "direction": "down", "amount": 800 },
+        { "action": "wait", "ms": 1500 },
+        {
+          "action": "code",
+          "code": "const results = []; const cards = document.querySelectorAll('[data-testid=\"serp-ia-card\"], [class*=\"container\"][class*=\"hoverable\"]'); for (let i = 0; i < Math.min(cards.length, 5); i++) { const el = cards[i]; const nameEl = el.querySelector('[class*=\"businessName\"] a, a[href*=\"/biz/\"]'); const ratingEl = el.querySelector('[class*=\"star\"][aria-label], [role=\"img\"][aria-label]'); const reviewCountEl = el.querySelector('[class*=\"reviewCount\"]'); const priceEl = el.querySelector('[class*=\"priceRange\"]'); results.push({ name: nameEl ? nameEl.textContent.trim() : '', rating: ratingEl ? (ratingEl.getAttribute('aria-label') || '') : '', review_count: reviewCountEl ? reviewCountEl.textContent.trim() : '', price_range: priceEl ? priceEl.textContent.trim() : '', url: nameEl ? nameEl.href : '' }); } const params = new URLSearchParams(window.location.search); return { query: params.get('find_desc') || '', result_count: results.length, results: results }",
+          "name": "search_results",
+          "label": "Extract results"
+        }
+      ]
+    }
+  ]
+}

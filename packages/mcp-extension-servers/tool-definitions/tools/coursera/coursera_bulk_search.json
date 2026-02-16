@@ -1,0 +1,59 @@
+{
+  "id": "coursera-bulk-search",
+  "name": "coursera_bulk_search",
+  "description": "Search multiple topics on Coursera in parallel using concurrent browser tabs. Use this instead of calling coursera_search multiple times - it is faster and more efficient. Pass all queries as a single comma-separated string.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "queries",
+      "type": "string",
+      "description": "Comma-separated search queries (e.g. 'machine learning,data science,web development')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{queries}}`.split(',').map(q => ({ url: 'https://www.coursera.org/search?query=' + encodeURIComponent(q.trim()), query: q.trim() }))",
+      "name": "items",
+      "label": "Build search URL list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 3,
+      "maxItems": 10,
+      "waitUntil": "load",
+      "label": "Search each query in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": "[class*='result'], [class*='card'], [data-testid='search-result']",
+          "timeout": 15000,
+          "label": "Wait for results"
+        },
+        {
+          "action": "wait",
+          "ms": 2000
+        },
+        {
+          "action": "scroll",
+          "direction": "down",
+          "amount": 800
+        },
+        {
+          "action": "wait",
+          "ms": 1500
+        },
+        {
+          "action": "code",
+          "code": "const results = []; const items = document.querySelectorAll('[data-testid=\"search-result\"], [class*=\"result-card\"], li[class*=\"ais-\"], [class*=\"ProductCard\"]'); for (let i = 0; i < Math.min(items.length, 5); i++) { const el = items[i]; const titleEl = el.querySelector('h3, h2, [class*=\"title\"]'); const providerEl = el.querySelector('[class*=\"partner\"], [class*=\"provider\"]'); const ratingEl = el.querySelector('[class*=\"rating\"] span'); const linkEl = el.querySelector('a[href*=\"/learn/\"], a[href*=\"/specializations/\"]'); results.push({ name: titleEl ? titleEl.textContent.trim() : '', provider: providerEl ? providerEl.textContent.trim() : '', rating: ratingEl ? ratingEl.textContent.trim() : '', url: linkEl ? linkEl.href : '' }); } const params = new URLSearchParams(window.location.search); return { query: params.get('query') || '', result_count: results.length, results: results }",
+          "name": "search_results",
+          "label": "Extract results"
+        }
+      ]
+    }
+  ]
+}

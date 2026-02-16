@@ -1,0 +1,58 @@
+{
+  "id": "glassdoor-scrape-interviews",
+  "name": "glassdoor_scrape_interviews",
+  "description": "Scrape interview experiences from Glassdoor for a company. Returns up to 15 interview entries with job title, experience rating, difficulty, question samples, date, and outcome.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "interviews_url",
+      "type": "string",
+      "description": "Glassdoor interview page URL (e.g. 'https://www.glassdoor.com/Interview/Google-Interview-Questions-E9079.htm')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{interviews_url}}",
+      "label": "Open Glassdoor interviews page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".interview-details, [data-test=\"interview-details\"], .interviewReview, #InterviewReview, .empInterviews, [id^=\"InterviewReview\"]",
+      "timeout": 15000,
+      "label": "Wait for interview data to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Let interview content render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll to load more interviews"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Continue scrolling"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const interviews = []; const interviewEls = document.querySelectorAll('.interview-details, [data-test=\"interview-details\"], .interviewReview, [id^=\"InterviewReview\"], .empInterviews .empReview, .gdReview'); for (let i = 0; i < Math.min(interviewEls.length, 15); i++) { const intv = interviewEls[i]; const titleEl = intv.querySelector('.interviewTitle, [data-test=\"interview-title\"], .reviewer-job-title, .reviewLink, h2 a, .interview-title'); const experienceEl = intv.querySelector('[data-test=\"interview-experience\"], .interviewOutcomes .experience, .css-w00cnv, .interview-experience'); const difficultyEl = intv.querySelector('[data-test=\"interview-difficulty\"], .interviewOutcomes .difficulty, .css-1q0j8pe, .interview-difficulty'); const offerEl = intv.querySelector('[data-test=\"interview-offer\"], .interviewOutcomes .offer, .css-1q0j8pe, .interview-offer'); const dateEl = intv.querySelector('.interviewDate, [data-test=\"interview-date\"], .reviewDate, time, .date, .authorInfo'); const descEl = intv.querySelector('.interviewDetails, [data-test=\"interview-description\"], .interview-body, .mainText, .css-14y4oq0, p.mt-0'); const questionsEl = intv.querySelector('.interviewQuestions, [data-test=\"interview-question\"], .interview-questions, .css-l3opep'); const applicationEl = intv.querySelector('.applicationDetails, [data-test=\"application-details\"], .css-1dud5qs'); interviews.push({ job_title: titleEl ? titleEl.textContent.trim() : '', experience: experienceEl ? experienceEl.textContent.trim() : '', difficulty: difficultyEl ? difficultyEl.textContent.trim() : '', offer: offerEl ? offerEl.textContent.trim() : '', date: dateEl ? dateEl.textContent.trim() : '', description: descEl ? descEl.textContent.trim().slice(0, 500) : '', questions: questionsEl ? questionsEl.textContent.trim().slice(0, 500) : '', application: applicationEl ? applicationEl.textContent.trim().slice(0, 300) : '' }); } const companyEl = document.querySelector('[data-test=\"employer-name\"], .employer-name, h1'); return { company: companyEl ? companyEl.textContent.trim() : '', interview_count: interviews.length, interviews: interviews, interviews_url: window.location.href }",
+      "name": "interview_data",
+      "label": "Extract interview experiences"
+    }
+  ]
+}

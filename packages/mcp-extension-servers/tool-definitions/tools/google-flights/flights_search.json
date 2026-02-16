@@ -1,0 +1,60 @@
+{
+  "id": "flights-search",
+  "name": "flights_search",
+  "description": "Search for flights on Google Flights. Enter origin and destination cities to find available flights with prices, airlines, duration, and stops.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "from",
+      "type": "string",
+      "description": "Origin city or airport code (e.g. 'New York', 'JFK', 'London Heathrow')",
+      "required": true
+    },
+    {
+      "name": "to",
+      "type": "string",
+      "description": "Destination city or airport code (e.g. 'Los Angeles', 'LAX', 'Tokyo')",
+      "required": true
+    },
+    {
+      "name": "date",
+      "type": "string",
+      "description": "Departure date in YYYY-MM-DD format (optional, defaults to flexible dates)",
+      "required": false
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://www.google.com/travel/flights?q={{from}}+to+{{to}}",
+      "label": "Search Google Flights"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "li.pIav2d, div[data-resultid], ul[role='list'] li",
+      "timeout": 20000,
+      "label": "Wait for flight results"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Let results fully render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll to load more results"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const results = []; const flightCards = document.querySelectorAll('li.pIav2d, div[data-resultid], ul[role=\"list\"] li'); for (let i = 0; i < Math.min(flightCards.length, 10); i++) { const card = flightCards[i]; const priceEl = card.querySelector('div.YMlIz span, span[data-gs], .price-text span, span[aria-label*=\"$\"], span[aria-label*=\"EUR\"], span[aria-label*=\"price\"]'); const airlineEl = card.querySelector('div.sSHqwe span, .airline-name span, span[class*=\"airline\"]'); const timesEl = card.querySelectorAll('div.wtDYl span, span[aria-label*=\"Depart\"], span[aria-label*=\"Arrive\"], span.mv1WYe'); const durationEl = card.querySelector('div.gvkrdb, div[aria-label*=\"duration\"], .duration'); const stopsEl = card.querySelector('div.EfT7Ae span, span[aria-label*=\"stop\"], .stops-text'); const times = []; timesEl.forEach(t => { const txt = t.textContent.trim(); if (txt.match(/\\d{1,2}:\\d{2}/) || txt.match(/\\d{1,2}\\s*(AM|PM)/i)) times.push(txt); }); const linkEl = card.querySelector('a[href]'); results.push({ airline: airlineEl ? airlineEl.textContent.trim() : '', price: priceEl ? priceEl.textContent.trim() : '', departure_time: times[0] || '', arrival_time: times[1] || '', duration: durationEl ? durationEl.textContent.trim() : '', stops: stopsEl ? stopsEl.textContent.trim() : '', url: linkEl ? linkEl.href : window.location.href }); } return { from: `{{from}}`, to: `{{to}}`, result_count: results.length, results: results, url: window.location.href }",
+      "name": "flight_results",
+      "label": "Extract flight results"
+    }
+  ]
+}

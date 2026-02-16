@@ -1,0 +1,71 @@
+{
+  "id": "expedia-bulk-search",
+  "name": "expedia_bulk_search",
+  "description": "Search multiple destinations on Expedia in parallel using concurrent browser tabs. Use this instead of calling expedia_search_hotels multiple times - it is faster and more efficient. Pass all destinations as a single comma-separated string.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "destinations",
+      "type": "string",
+      "description": "Comma-separated destination cities (e.g. 'New York,Paris,Tokyo')",
+      "required": true
+    },
+    {
+      "name": "checkin",
+      "type": "string",
+      "description": "Check-in date in YYYY-MM-DD format",
+      "required": true
+    },
+    {
+      "name": "checkout",
+      "type": "string",
+      "description": "Check-out date in YYYY-MM-DD format",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{destinations}}`.split(',').map(d => ({ url: 'https://www.expedia.com/Hotel-Search?destination=' + encodeURIComponent(d.trim()) + '&startDate={{checkin}}&endDate={{checkout}}', destination: d.trim() }))",
+      "name": "items",
+      "label": "Build search URL list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 3,
+      "maxItems": 10,
+      "waitUntil": "load",
+      "label": "Search each destination in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": "[data-stid='property-listing'], [class*='hotel-card'], [class*='PropertyCard']",
+          "timeout": 20000,
+          "label": "Wait for results"
+        },
+        {
+          "action": "wait",
+          "ms": 3000
+        },
+        {
+          "action": "scroll",
+          "direction": "down",
+          "amount": 800
+        },
+        {
+          "action": "wait",
+          "ms": 1500
+        },
+        {
+          "action": "code",
+          "code": "const results = []; const items = document.querySelectorAll('[data-stid=\"property-listing\"], [class*=\"hotel-card\"], [class*=\"PropertyCard\"]'); for (let i = 0; i < Math.min(items.length, 5); i++) { const el = items[i]; const nameEl = el.querySelector('h3, h2, [data-stid=\"content-hotel-title\"]'); const priceEl = el.querySelector('[data-stid=\"content-hotel-price\"], [class*=\"price\"] span'); const ratingEl = el.querySelector('[class*=\"guest-rating\"], [class*=\"review-score\"]'); const linkEl = el.querySelector('a[href*=\"Hotel\"], a[href*=\"hotel\"]'); results.push({ name: nameEl ? nameEl.textContent.trim() : '', price: priceEl ? priceEl.textContent.trim() : '', rating: ratingEl ? ratingEl.textContent.trim() : '', url: linkEl ? linkEl.href : '' }); } const params = new URLSearchParams(window.location.search); return { destination: params.get('destination') || '', result_count: results.length, results: results }",
+          "name": "search_results",
+          "label": "Extract results"
+        }
+      ]
+    }
+  ]
+}

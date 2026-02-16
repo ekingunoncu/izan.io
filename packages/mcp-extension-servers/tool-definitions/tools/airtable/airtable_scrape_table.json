@@ -1,0 +1,38 @@
+{
+  "id": "airtable-scrape-table",
+  "name": "airtable_scrape_table",
+  "description": "Scrape table data from an Airtable view. Returns column headers and row data from the visible grid.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "table_url",
+      "type": "string",
+      "description": "Airtable table URL (e.g. 'https://airtable.com/appXXX/tblXXX/viwXXX')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{table_url}}",
+      "label": "Open Airtable table"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".dataRow, [data-rowindex], .cell, .headerRow",
+      "timeout": 15000,
+      "label": "Wait for grid to load"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Let grid fully render"
+    },
+    {
+      "action": "code",
+      "code": "const headers = []; const headerEls = document.querySelectorAll('.headerRow .header, .columnHeader, [data-columnid] .header, [role=\"columnheader\"]'); headerEls.forEach(h => { const text = h.textContent?.trim(); if (text && text.length > 0) headers.push(text); }); const rows = []; const rowEls = document.querySelectorAll('.dataRow, [data-rowindex], [role=\"row\"]:not(.headerRow)'); for (let i = 0; i < Math.min(rowEls.length, 100); i++) { const row = rowEls[i]; const cells = row.querySelectorAll('.cell, [data-columnid], [role=\"gridcell\"]'); const rowData = {}; cells.forEach((cell, idx) => { const key = headers[idx] || 'col_' + idx; const text = cell.textContent?.trim()?.substring(0, 300) || ''; if (text) rowData[key] = text; }); if (Object.keys(rowData).length > 0) rows.push(rowData); } return { headers: headers, row_count: rows.length, rows: rows }",
+      "name": "result",
+      "label": "Extract column headers and row data"
+    }
+  ]
+}

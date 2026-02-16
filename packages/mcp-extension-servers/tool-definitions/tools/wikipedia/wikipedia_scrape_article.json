@@ -1,0 +1,58 @@
+{
+  "id": "wikipedia-scrape-article",
+  "name": "wikipedia_scrape_article",
+  "description": "Scrape a full Wikipedia article. Returns title, summary, sections with content, infobox data, images, and table of contents.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "article_url",
+      "type": "string",
+      "description": "Wikipedia article URL (e.g. 'https://en.wikipedia.org/wiki/Artificial_intelligence')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{article_url}}",
+      "label": "Open article page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "#firstHeading, .mw-page-title-main, h1",
+      "timeout": 15000,
+      "label": "Wait for article to load"
+    },
+    {
+      "action": "wait",
+      "ms": 1500,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll to load content"
+    },
+    {
+      "action": "wait",
+      "ms": 1000
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll further"
+    },
+    {
+      "action": "wait",
+      "ms": 1000
+    },
+    {
+      "action": "code",
+      "code": "const titleEl = document.querySelector('#firstHeading, .mw-page-title-main, h1'); const content = document.querySelector('#mw-content-text .mw-parser-output, #bodyContent'); const paragraphs = content ? content.querySelectorAll(':scope > p') : []; let summary = ''; for (let i = 0; i < Math.min(paragraphs.length, 3); i++) { const text = paragraphs[i].textContent.trim(); if (text.length > 50) { summary += text + ' '; } } const sections = []; const headings = content ? content.querySelectorAll('h2, h3') : []; headings.forEach(function(h) { const titleText = h.querySelector('.mw-headline, span') ? h.querySelector('.mw-headline, span').textContent.trim() : h.textContent.trim(); let sectionText = ''; let sibling = h.nextElementSibling; while (sibling && !sibling.matches('h2, h3')) { if (sibling.matches('p')) { sectionText += sibling.textContent.trim() + ' '; } sibling = sibling.nextElementSibling; } if (titleText && titleText !== 'References' && titleText !== 'External links' && titleText !== 'See also') { sections.push({ heading: titleText, level: h.tagName === 'H2' ? 2 : 3, content: sectionText.substring(0, 500) }); } }); const infobox = {}; const infoboxEl = document.querySelector('.infobox, .vcard'); if (infoboxEl) { const rows = infoboxEl.querySelectorAll('tr'); rows.forEach(function(row) { const th = row.querySelector('th'); const td = row.querySelector('td'); if (th && td) { infobox[th.textContent.trim()] = td.textContent.trim().substring(0, 200); } }); } const toc = []; const tocItems = document.querySelectorAll('#toc li a, .toc li a, [class*=\"sidebar-toc\"] li a'); tocItems.forEach(function(a) { toc.push(a.textContent.trim()); }); const images = []; const imgEls = content ? content.querySelectorAll('img[src*=\"upload.wikimedia\"]') : []; imgEls.forEach(function(img) { const src = img.getAttribute('src'); if (src && src.includes('upload.wikimedia') && !images.includes(src)) images.push(src.startsWith('//') ? 'https:' + src : src); }); return { title: titleEl ? titleEl.textContent.trim() : '', summary: summary.trim().substring(0, 2000), section_count: sections.length, sections: sections.slice(0, 15), infobox: infobox, table_of_contents: toc.slice(0, 20), images: images.slice(0, 5), url: window.location.href }",
+      "name": "article_data",
+      "label": "Extract article content"
+    }
+  ]
+}

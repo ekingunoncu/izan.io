@@ -1,0 +1,50 @@
+{
+  "id": "twitch-bulk-search",
+  "name": "twitch_bulk_search",
+  "description": "Search multiple terms on Twitch in parallel using concurrent browser tabs. Use this instead of calling twitch_search multiple times - it is faster and more efficient.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "queries",
+      "type": "string",
+      "description": "Comma-separated search queries (e.g. 'Fortnite,Minecraft,Just Chatting')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{queries}}`.split(',').map(q => ({ url: 'https://www.twitch.tv/search?term=' + encodeURIComponent(q.trim()), query: q.trim() }))",
+      "name": "items",
+      "label": "Build search URL list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 3,
+      "maxItems": 10,
+      "waitUntil": "load",
+      "label": "Search each query in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": "[class*='search-result'], [class*='tw-tower'] > div, article",
+          "timeout": 15000,
+          "label": "Wait for results"
+        },
+        {
+          "action": "wait",
+          "ms": 2000
+        },
+        {
+          "action": "code",
+          "code": "const results = []; const cards = document.querySelectorAll('[class*=\"search-result\"] article, [class*=\"tw-tower\"] > div, article'); for (let i = 0; i < Math.min(cards.length, 5); i++) { const el = cards[i]; const nameEl = el.querySelector('h3, [class*=\"channel-name\"], [data-a-target=\"preview-card-channel-link\"]'); const gameEl = el.querySelector('[data-a-target=\"preview-card-game-link\"], [class*=\"game\"]'); const viewersEl = el.querySelector('[class*=\"viewer\"]'); const linkEl = el.querySelector('a[href]'); const liveEl = el.querySelector('[class*=\"live\"]'); results.push({ name: nameEl ? nameEl.textContent.trim() : '', game: gameEl ? gameEl.textContent.trim() : '', viewers: viewersEl ? viewersEl.textContent.trim() : '', is_live: !!liveEl, url: linkEl ? linkEl.href : '' }); } const params = new URLSearchParams(window.location.search); return { query: params.get('term') || '', result_count: results.length, results: results }",
+          "name": "search_results",
+          "label": "Extract results"
+        }
+      ]
+    }
+  ]
+}

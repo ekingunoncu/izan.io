@@ -1,0 +1,68 @@
+{
+  "id": "tripadvisor-scrape-reviews",
+  "name": "tripadvisor_scrape_reviews",
+  "description": "Scrape reviews for a hotel, restaurant, or attraction on TripAdvisor. Returns up to 15 reviews with reviewer name, rating, title, text, date, and trip type.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "place_url",
+      "type": "string",
+      "description": "Full TripAdvisor URL of the place to scrape reviews from (e.g. 'https://www.tripadvisor.com/Hotel_Review-g187147-d...')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{place_url}}",
+      "label": "Open place page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[data-test-target='HR_CC_CARD'], [data-test-target='review-card'], .review-container, [class*='ReviewCard'], #REVIEWS",
+      "timeout": 15000,
+      "label": "Wait for reviews section to load"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Let reviews render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 2000,
+      "label": "Scroll to reviews section"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 2000,
+      "label": "Scroll to load more reviews"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 2000,
+      "label": "Scroll further for more reviews"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const placeNameEl = document.querySelector('h1#HEADING, h1[data-test-target=\"top-info-header\"]'); const placeName = placeNameEl ? placeNameEl.textContent.trim() : ''; const reviews = []; const reviewEls = document.querySelectorAll('[data-test-target=\"HR_CC_CARD\"], [data-test-target=\"review-card\"], .review-container, [class*=\"ReviewCard\"], [class*=\"reviewCard\"]'); for (let i = 0; i < Math.min(reviewEls.length, 15); i++) { const el = reviewEls[i]; const reviewerEl = el.querySelector('[class*=\"username\"], [class*=\"memberOverlay\"] a, [class*=\"reviewer\"] a, a[class*=\"ui_header_link\"], [class*=\"member\"] a span'); const reviewer = reviewerEl ? reviewerEl.textContent.trim() : ''; const ratingEl = el.querySelector('svg[aria-label*=\"bubble\"], .ui_bubble_rating, [class*=\"ratingValue\"], span[class*=\"rating\"]'); const rating = ratingEl ? (ratingEl.getAttribute('aria-label') || ratingEl.className || '') : ''; const titleEl = el.querySelector('[data-test-target=\"review-title\"], a[class*=\"title\"], .noQuotes, span[class*=\"reviewTitle\"], [class*=\"title\"] span'); const title = titleEl ? titleEl.textContent.trim() : ''; const textEl = el.querySelector('[data-test-target=\"review-body\"], .entry, [class*=\"reviewText\"], q span, [class*=\"reviewBody\"]'); const text = textEl ? textEl.textContent.trim().substring(0, 500) : ''; const dateEl = el.querySelector('[class*=\"date\"], .ratingDate, [class*=\"Date\"], span[class*=\"date\"]'); const date = dateEl ? (dateEl.getAttribute('title') || dateEl.textContent.trim()) : ''; const tripTypeEl = el.querySelector('[class*=\"tripType\"], [class*=\"trip\"], .recommend-titleInline'); const tripType = tripTypeEl ? tripTypeEl.textContent.trim() : ''; const contributionEl = el.querySelector('[class*=\"contribution\"], [class*=\"memberBadge\"]'); const contributions = contributionEl ? contributionEl.textContent.trim() : ''; if (title || text) { reviews.push({ reviewer: reviewer, rating: rating, title: title, text: text, date: date, trip_type: tripType, contributions: contributions }); } } return { place_name: placeName, review_count: reviews.length, reviews: reviews, url: window.location.href }",
+      "name": "result",
+      "label": "Extract reviews"
+    }
+  ]
+}

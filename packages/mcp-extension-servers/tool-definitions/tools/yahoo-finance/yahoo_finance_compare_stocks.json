@@ -1,0 +1,58 @@
+{
+  "id": "yahoo-finance-compare-stocks",
+  "name": "yahoo_finance_compare_stocks",
+  "description": "Compare multiple stocks on Yahoo Finance. Searches for a given query and extracts pricing details from multiple symbols for easy comparison including price, change, market cap, and volume.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "symbols",
+      "type": "string",
+      "description": "Comma-separated stock ticker symbols to compare (e.g. 'AAPL,GOOGL,MSFT,AMZN')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://finance.yahoo.com/compare?comps={{symbols}}",
+      "label": "Open stock comparison page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "table, [class*='compare'], [data-testid='comparison-table']",
+      "timeout": 15000,
+      "label": "Wait for comparison data"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll to load more data"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll further"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const stocks = []; const rows = document.querySelectorAll('table tbody tr, [class*=\"compare\"] [class*=\"row\"]'); rows.forEach(function(row) { const cells = row.querySelectorAll('td, [class*=\"cell\"]'); if (cells.length >= 3) { const symbolEl = cells[0] ? cells[0].querySelector('a') || cells[0] : null; const nameEl = cells[1] || null; const priceEl = cells[2] || null; const changeEl = cells.length > 3 ? cells[3] : null; const changePctEl = cells.length > 4 ? cells[4] : null; const marketCapEl = cells.length > 5 ? cells[5] : null; const volumeEl = cells.length > 6 ? cells[6] : null; stocks.push({ symbol: symbolEl ? symbolEl.textContent.trim() : '', name: nameEl ? nameEl.textContent.trim() : '', price: priceEl ? priceEl.textContent.trim() : '', change: changeEl ? changeEl.textContent.trim() : '', change_percent: changePctEl ? changePctEl.textContent.trim() : '', market_cap: marketCapEl ? marketCapEl.textContent.trim() : '', volume: volumeEl ? volumeEl.textContent.trim() : '' }); } }); if (stocks.length === 0) { const symbolList = `{{symbols}}`.split(','); symbolList.forEach(function(sym) { const el = document.querySelector('[data-symbol=\"' + sym.trim() + '\"], a[href*=\"/quote/' + sym.trim() + '\"]'); if (el) { const parent = el.closest('tr, [class*=\"row\"]'); if (parent) { const vals = parent.querySelectorAll('td, [class*=\"cell\"]'); stocks.push({ symbol: sym.trim(), name: vals[1] ? vals[1].textContent.trim() : '', price: vals[2] ? vals[2].textContent.trim() : '', change: vals[3] ? vals[3].textContent.trim() : '', change_percent: vals[4] ? vals[4].textContent.trim() : '', market_cap: vals[5] ? vals[5].textContent.trim() : '', volume: vals[6] ? vals[6].textContent.trim() : '' }); } } }); } return { symbols: '{{symbols}}', stock_count: stocks.length, stocks: stocks, url: window.location.href }",
+      "name": "comparison_data",
+      "label": "Extract comparison data"
+    }
+  ]
+}

@@ -1,0 +1,68 @@
+{
+  "id": "substack-scrape-archive",
+  "name": "substack_scrape_archive",
+  "description": "Scrape the full archive of a Substack newsletter. Returns all available posts with title, date, preview, like count, and URL.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "newsletter_slug",
+      "type": "string",
+      "description": "Newsletter subdomain slug (e.g. 'platformer', 'thegeneralist')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://{{newsletter_slug}}.substack.com/archive",
+      "label": "Open newsletter archive"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[class*='post'], article, a[href*='/p/'], [class*='archive']",
+      "timeout": 15000,
+      "label": "Wait for archive to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1500,
+      "label": "Scroll to load more posts"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1500,
+      "label": "Scroll further"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1500,
+      "label": "Scroll even further"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const posts = []; const postEls = document.querySelectorAll('[class*=\"post-preview\"], article, [class*=\"post-item\"], [class*=\"archive\"] a[href*=\"/p/\"]'); for (let i = 0; i < Math.min(postEls.length, 30); i++) { const el = postEls[i]; const titleEl = el.querySelector('h2, h3, [class*=\"post-title\"], [class*=\"title\"]'); const dateEl = el.querySelector('time, [class*=\"date\"], [class*=\"timestamp\"]'); const previewEl = el.querySelector('[class*=\"subtitle\"], [class*=\"preview\"], p'); const likesEl = el.querySelector('[class*=\"like\"] span, [class*=\"heart\"] span'); const commentsEl = el.querySelector('[class*=\"comment\"] span'); const linkEl = el.tagName === 'A' ? el : el.querySelector('a[href*=\"/p/\"]'); const isPaid = !!el.querySelector('[class*=\"paywall\"], [class*=\"lock\"], [class*=\"paid\"]'); posts.push({ title: titleEl ? titleEl.textContent.trim() : '', preview: previewEl ? previewEl.textContent.trim().substring(0, 200) : '', date: dateEl ? (dateEl.getAttribute('datetime') || dateEl.textContent.trim()) : '', likes: likesEl ? likesEl.textContent.trim() : '', comments: commentsEl ? commentsEl.textContent.trim() : '', is_paid: isPaid, url: linkEl ? linkEl.href : '' }); } return { newsletter: '{{newsletter_slug}}', post_count: posts.length, posts: posts, url: window.location.href }",
+      "name": "archive_data",
+      "label": "Extract archive posts"
+    }
+  ]
+}

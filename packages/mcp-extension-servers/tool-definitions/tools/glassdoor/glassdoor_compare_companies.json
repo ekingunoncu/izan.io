@@ -1,0 +1,66 @@
+{
+  "id": "glassdoor-compare-companies",
+  "name": "glassdoor_compare_companies",
+  "description": "Compare two companies on Glassdoor side by side. Provide both company overview URLs and get ratings, reviews summary, salary data, and key metrics for comparison.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "company1_url",
+      "type": "string",
+      "description": "Glassdoor overview URL of the first company (e.g. 'https://www.glassdoor.com/Overview/Working-at-Google-EI_IE9079.htm')",
+      "required": true
+    },
+    {
+      "name": "company2_url",
+      "type": "string",
+      "description": "Glassdoor overview URL of the second company (e.g. 'https://www.glassdoor.com/Overview/Working-at-Microsoft-EI_IE1651.htm')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return [{ url: `{{company1_url}}`, label: 'company1' }, { url: `{{company2_url}}`, label: 'company2' }]",
+      "name": "items",
+      "label": "Build company URL list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 2,
+      "maxItems": 2,
+      "waitUntil": "load",
+      "label": "Scrape both companies in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": "[data-test=\"employer-name\"], .employer-name, .employerName, h1, .css-16nw9e6",
+          "timeout": 15000,
+          "label": "Wait for company page"
+        },
+        {
+          "action": "wait",
+          "ms": 2500
+        },
+        {
+          "action": "scroll",
+          "direction": "down",
+          "amount": 800,
+          "label": "Scroll for more data"
+        },
+        {
+          "action": "wait",
+          "ms": 1500
+        },
+        {
+          "action": "code",
+          "code": "const nameEl = document.querySelector('[data-test=\"employer-name\"], .employer-name, .employerName, h1[data-test=\"employerName\"]'); const ratingEl = document.querySelector('[data-test=\"rating-info\"], .ratingNum, .rating-num, .css-1m5m32b'); const descEl = document.querySelector('[data-test=\"employerDescription\"], .employer-description, .empDescription, .css-dwl48b'); let size = ''; let revenue = ''; let industry = ''; let headquarters = ''; let founded = ''; const infoSections = document.querySelectorAll('.css-1ub3gu6 > div, .infoEntity, .employer-overview-item, [class*=\"EmpBasicInfo\"] div, .css-1pldt9c'); infoSections.forEach(section => { const label = section.querySelector('label, .css-wmzaki, .infoEntity__label, dt, h6, span:first-child'); const value = section.querySelector('.css-1hg9omi, .infoEntity__value, dd, span:last-child, p'); if (label && value) { const lbl = label.textContent.trim().toLowerCase(); const val = value.textContent.trim(); if (lbl.includes('size') || lbl.includes('employee')) size = val; else if (lbl.includes('revenue')) revenue = val; else if (lbl.includes('industry') || lbl.includes('sector')) industry = val; else if (lbl.includes('headquarters') || lbl.includes('location')) headquarters = val; else if (lbl.includes('founded') || lbl.includes('year')) founded = val; } }); const recommendEl = document.querySelector('[data-test=\"recommend-pct\"], .css-1ihavw2, .recommendToFriend'); const ceoApprovalEl = document.querySelector('[data-test=\"ceo-approval-pct\"], .css-1ihavw2, .ceoApproval'); return { name: nameEl ? nameEl.textContent.trim() : '', overall_rating: ratingEl ? ratingEl.textContent.trim() : '', description: descEl ? descEl.textContent.trim().slice(0, 500) : '', size: size, revenue: revenue, industry: industry, headquarters: headquarters, founded: founded, recommend_to_friend: recommendEl ? recommendEl.textContent.trim() : '', ceo_approval: ceoApprovalEl ? ceoApprovalEl.textContent.trim() : '', company_url: window.location.href }",
+          "name": "company_data",
+          "label": "Extract company info"
+        }
+      ]
+    }
+  ]
+}

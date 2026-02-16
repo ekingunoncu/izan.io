@@ -1,0 +1,59 @@
+{
+  "id": "flights-scrape-details",
+  "name": "flights_scrape_details",
+  "description": "Scrape detailed flight information from a Google Flights result URL. Returns full itinerary details including layovers, aircraft type, baggage info, and booking options.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "flight_url",
+      "type": "string",
+      "description": "Google Flights URL for a specific flight result (from flights_search results)",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{flight_url}}",
+      "label": "Open flight details page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "div.yR1fYc, div[class*='flight-details'], div.BVAVmf, li.pIav2d",
+      "timeout": 20000,
+      "label": "Wait for flight details"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Let details fully render"
+    },
+    {
+      "action": "code",
+      "code": "const expandBtns = document.querySelectorAll('button[aria-expanded=\"false\"], div[role=\"button\"][aria-expanded=\"false\"]'); expandBtns.forEach(btn => { const label = (btn.getAttribute('aria-label') || btn.textContent || '').toLowerCase(); if (label.includes('flight') || label.includes('detail') || label.includes('more') || label.includes('expand')) btn.click(); }); return { expanded: expandBtns.length }",
+      "name": "expand_details",
+      "label": "Expand flight detail sections"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Wait for expanded content"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 800,
+      "label": "Scroll to see more details"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const segments = []; const segmentEls = document.querySelectorAll('div.yR1fYc, div.BVAVmf, div[class*=\"segment\"]'); segmentEls.forEach((seg, i) => { if (i >= 6) return; const airlineEl = seg.querySelector('div.sSHqwe span, span[class*=\"airline\"], .airline-name'); const flightNumEl = seg.querySelector('span.Xsgmwe, span[class*=\"flight-number\"]'); const aircraftEl = seg.querySelector('span[class*=\"aircraft\"], .aircraft-type'); const depTimeEl = seg.querySelector('div.wtDYl span:first-child, span[aria-label*=\"Depart\"]'); const arrTimeEl = seg.querySelector('div.wtDYl span:last-child, span[aria-label*=\"Arrive\"]'); const depAirportEl = seg.querySelector('div.G2WY5c span, .departure-airport'); const arrAirportEl = seg.querySelector('div.c8rWCd span, .arrival-airport'); const durationEl = seg.querySelector('div.gvkrdb, span[aria-label*=\"duration\"]'); const classEl = seg.querySelector('span[class*=\"cabin\"], .cabin-class'); segments.push({ airline: airlineEl ? airlineEl.textContent.trim() : '', flight_number: flightNumEl ? flightNumEl.textContent.trim() : '', aircraft: aircraftEl ? aircraftEl.textContent.trim() : '', departure_time: depTimeEl ? depTimeEl.textContent.trim() : '', arrival_time: arrTimeEl ? arrTimeEl.textContent.trim() : '', departure_airport: depAirportEl ? depAirportEl.textContent.trim() : '', arrival_airport: arrAirportEl ? arrAirportEl.textContent.trim() : '', duration: durationEl ? durationEl.textContent.trim() : '', cabin_class: classEl ? classEl.textContent.trim() : '' }); }); const priceEl = document.querySelector('div.YMlIz span, span[data-gs], span[aria-label*=\"price\"], .price-text span'); const totalDurationEl = document.querySelector('.gvkrdb, div[aria-label*=\"Total duration\"]'); const co2El = document.querySelector('div[class*=\"emission\"], span[aria-label*=\"CO2\"], span[aria-label*=\"carbon\"]'); const layoverEls = document.querySelectorAll('div.tvtJdb, div[class*=\"layover\"]'); const layovers = []; layoverEls.forEach(l => { layovers.push(l.textContent.trim()); }); const baggageEl = document.querySelector('div[class*=\"baggage\"], span[aria-label*=\"bag\"], div.YBQ0ob'); return { price: priceEl ? priceEl.textContent.trim() : '', total_duration: totalDurationEl ? totalDurationEl.textContent.trim() : '', segments: segments, layovers: layovers, co2_emissions: co2El ? co2El.textContent.trim() : '', baggage: baggageEl ? baggageEl.textContent.trim() : '', url: window.location.href }",
+      "name": "flight_details",
+      "label": "Extract detailed flight information"
+    }
+  ]
+}

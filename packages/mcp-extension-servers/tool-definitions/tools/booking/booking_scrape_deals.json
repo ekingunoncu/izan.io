@@ -1,0 +1,61 @@
+{
+  "id": "booking-scrape-deals",
+  "name": "booking_scrape_deals",
+  "description": "Browse and scrape current deals and offers from Booking.com. Returns featured deals with hotel name, location, price, discount percentage, rating, and deal type.",
+  "version": "1.0.0",
+  "parameters": [],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://www.booking.com/deals",
+      "label": "Open Booking.com deals page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[data-testid='property-card'], .bui-card, .deal-card, [data-testid='deal-card'], .sr_property_block",
+      "timeout": 15000,
+      "label": "Wait for deals to load"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Let deals page fully render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1200,
+      "label": "Scroll to load more deals"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1200,
+      "label": "Scroll further"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1200,
+      "label": "Scroll for even more deals"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const deals = []; const dealCards = document.querySelectorAll('[data-testid=\"property-card\"], .bui-card, .deal-card, [data-testid=\"deal-card\"], .sr_property_block, [data-testid=\"recommendation-item\"]'); dealCards.forEach(function(el, idx) { if (idx >= 20) return; const nameEl = el.querySelector('[data-testid=\"title\"], .bui-card__title, .sr-hotel__name, a[data-testid=\"title-link\"] div, h3'); const linkEl = el.querySelector('a[data-testid=\"title-link\"], a.bui-card__header-link, a.hotel_name_link, a[href*=\"/hotel/\"]'); const priceEl = el.querySelector('[data-testid=\"price-and-discounted-price\"], .bui-price-display__value, .prco-valign-middle-helper'); const originalPriceEl = el.querySelector('.bui-price-display__original, .prco-text-nowrap-helper del, [data-testid=\"price-original\"]'); const discountEl = el.querySelector('[data-testid=\"price-discount\"], .bui-badge, .deal-badge, [class*=\"discount\"]'); const ratingEl = el.querySelector('[data-testid=\"review-score\"] div:first-child, .bui-review-score__badge'); const ratingTextEl = el.querySelector('[data-testid=\"review-score\"] div:nth-child(2) div:first-child, .bui-review-score__text'); const locationEl = el.querySelector('[data-testid=\"address\"], .sr_card_address_line, [data-testid=\"distance\"]'); const imgEl = el.querySelector('img[data-testid=\"image\"], img.hotel_image, img[loading]'); const dealTypeEl = el.querySelector('.deal-type, [data-testid=\"deal-type\"], .bui-badge--constructive, [class*=\"genius\"]'); const url = linkEl ? (linkEl.href.startsWith('http') ? linkEl.href : 'https://www.booking.com' + linkEl.getAttribute('href')) : ''; const name = nameEl ? nameEl.textContent.trim() : ''; if (name) { deals.push({ name: name.substring(0, 200), location: locationEl ? locationEl.textContent.trim() : '', deal_price: priceEl ? priceEl.textContent.trim() : '', original_price: originalPriceEl ? originalPriceEl.textContent.trim() : '', discount: discountEl ? discountEl.textContent.trim() : '', deal_type: dealTypeEl ? dealTypeEl.textContent.trim() : '', rating_score: ratingEl ? ratingEl.textContent.trim() : '', rating_text: ratingTextEl ? ratingTextEl.textContent.trim() : '', image: imgEl ? imgEl.getAttribute('src') : '', url: url }); } }); return { deal_count: deals.length, deals: deals, scraped_at: new Date().toISOString() }",
+      "name": "deals_data",
+      "label": "Extract current deals"
+    }
+  ]
+}

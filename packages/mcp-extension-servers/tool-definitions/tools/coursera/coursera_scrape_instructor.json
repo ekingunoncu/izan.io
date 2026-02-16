@@ -1,0 +1,58 @@
+{
+  "id": "coursera-scrape-instructor",
+  "name": "coursera_scrape_instructor",
+  "description": "Scrape a Coursera instructor profile page. Returns name, title, institution, bio, courses taught, learner count, and rating.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "instructor_url",
+      "type": "string",
+      "description": "Coursera instructor URL (e.g. 'https://www.coursera.org/instructor/andrewng')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{instructor_url}}",
+      "label": "Open instructor page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "h1, [class*='instructor'], [class*='profile']",
+      "timeout": 15000,
+      "label": "Wait for profile to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll to load courses"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll further"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const nameEl = document.querySelector('h1, [class*=\"instructor-name\"], [class*=\"profile\"] h1'); const titleEl = document.querySelector('[class*=\"title\"], [class*=\"position\"], h1 + p'); const institutionEl = document.querySelector('[class*=\"institution\"], [class*=\"partner\"], [class*=\"university\"]'); const bioEl = document.querySelector('[class*=\"bio\"], [class*=\"about\"] p, [class*=\"description\"]'); const avatarEl = document.querySelector('[class*=\"avatar\"] img, [class*=\"profile\"] img, [class*=\"instructor\"] img'); const learnersEl = document.querySelector('[class*=\"learner\"] span, [class*=\"students\"]'); const ratingEl = document.querySelector('[class*=\"rating\"] span'); const coursesCountEl = document.querySelector('[class*=\"courses\"] span, [class*=\"course-count\"]'); const courses = []; const courseEls = document.querySelectorAll('a[href*=\"/learn/\"], a[href*=\"/specializations/\"], [class*=\"course-card\"]'); for (let i = 0; i < Math.min(courseEls.length, 10); i++) { const el = courseEls[i]; const courseNameEl = el.querySelector('h3, h2, [class*=\"title\"]'); const courseRatingEl = el.querySelector('[class*=\"rating\"] span'); courses.push({ name: courseNameEl ? courseNameEl.textContent.trim() : el.textContent.trim().substring(0, 100), rating: courseRatingEl ? courseRatingEl.textContent.trim() : '', url: el.href || '' }); } return { name: nameEl ? nameEl.textContent.trim() : '', title: titleEl ? titleEl.textContent.trim() : '', institution: institutionEl ? institutionEl.textContent.trim() : '', bio: bioEl ? bioEl.textContent.trim().substring(0, 500) : '', avatar: avatarEl ? avatarEl.getAttribute('src') : '', learners: learnersEl ? learnersEl.textContent.trim() : '', rating: ratingEl ? ratingEl.textContent.trim() : '', course_count: coursesCountEl ? coursesCountEl.textContent.trim() : '', courses: courses, profile_url: window.location.href }",
+      "name": "instructor_data",
+      "label": "Extract instructor profile"
+    }
+  ]
+}

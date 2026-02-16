@@ -1,0 +1,57 @@
+{
+  "id": "sheets-bulk-read",
+  "name": "sheets_bulk_read",
+  "description": "Read a cell range from multiple Google Spreadsheets in parallel using concurrent browser tabs. Pass all spreadsheet URLs as a single comma-separated string. Each spreadsheet will be opened in a separate tab and the specified range will be read from each.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "spreadsheet_urls",
+      "type": "string",
+      "description": "Comma-separated Google Sheets URLs (e.g. 'https://docs.google.com/spreadsheets/d/ID1/edit,https://docs.google.com/spreadsheets/d/ID2/edit')",
+      "required": true
+    },
+    {
+      "name": "range",
+      "type": "string",
+      "description": "Cell range in A1 notation to read from each spreadsheet (e.g. 'A1:C10')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{spreadsheet_urls}}`.split(',').map(u => ({ url: u.trim(), range: `{{range}}` }))",
+      "name": "items",
+      "label": "Build spreadsheet URL list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 3,
+      "maxItems": 10,
+      "waitUntil": "load",
+      "label": "Read range from each spreadsheet in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": "table.waffle, .waffle",
+          "timeout": 20000,
+          "label": "Wait for grid"
+        },
+        {
+          "action": "wait",
+          "ms": 3000,
+          "label": "Let content render"
+        },
+        {
+          "action": "code",
+          "code": "function colToIndex(col) { let idx = 0; for (let i = 0; i < col.length; i++) { idx = idx * 26 + (col.charCodeAt(i) - 64); } return idx - 1; } function parseRange(range) { const clean = range.includes('!') ? range.split('!')[1] : range; const match = clean.match(/^([A-Z]+)(\\d+):([A-Z]+)(\\d+)$/i); if (!match) return null; return { startCol: colToIndex(match[1].toUpperCase()), startRow: parseInt(match[2]) - 1, endCol: colToIndex(match[3].toUpperCase()), endRow: parseInt(match[4]) - 1 }; } const r = parseRange(`{{range}}`); if (!r) return { error: 'Invalid range format' }; const nameBox = document.querySelector('#t-name-box input, .jfk-textinput[aria-label*=\"Name\"]'); if (nameBox) { nameBox.focus(); const nativeSet = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set; nativeSet.call(nameBox, `{{range}}`); nameBox.dispatchEvent(new Event('input', { bubbles: true })); nameBox.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', keyCode: 13, bubbles: true })); } await new Promise(resolve => setTimeout(resolve, 1500)); const waffle = document.querySelector('table.waffle'); if (!waffle) return { error: 'Could not find grid' }; const rows = waffle.querySelectorAll('tbody tr, tr'); const data = []; for (let ri = r.startRow; ri <= r.endRow && ri < rows.length; ri++) { const row = rows[ri]; const cells = row.querySelectorAll('td, th'); const rowData = []; for (let ci = r.startCol; ci <= r.endCol && ci < cells.length; ci++) { rowData.push(cells[ci] ? cells[ci].textContent.trim() : ''); } data.push(rowData); } const titleEl = document.querySelector('.docs-title-input, input.docs-title-input, .docs-titlebar-text'); const title = titleEl ? (titleEl.value || titleEl.textContent || '').trim() : document.title.replace(/ - Google Sheets$/, '').trim(); const idMatch = window.location.href.match(/\\/d\\/([a-zA-Z0-9_-]+)/); return { title: title, spreadsheet_id: idMatch ? idMatch[1] : '', url: window.location.href, range: `{{range}}`, row_count: data.length, column_count: data.length > 0 ? data[0].length : 0, data: data }",
+          "name": "sheet_data",
+          "label": "Read range from grid"
+        }
+      ]
+    }
+  ]
+}

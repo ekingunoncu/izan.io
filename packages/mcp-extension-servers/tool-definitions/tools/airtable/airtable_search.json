@@ -1,0 +1,55 @@
+{
+  "id": "airtable-search",
+  "name": "airtable_search",
+  "description": "Search for records in an Airtable table using the built-in search feature. Opens the search bar, types a query, and scrapes matching records.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "table_url",
+      "type": "string",
+      "description": "Airtable table URL (e.g. 'https://airtable.com/appXXX/tblXXX/viwXXX')",
+      "required": true
+    },
+    {
+      "name": "query",
+      "type": "string",
+      "description": "Search query text to find matching records",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{table_url}}",
+      "label": "Open Airtable table"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".dataRow, [data-rowindex], .headerRow",
+      "timeout": 15000,
+      "label": "Wait for grid to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let grid fully render"
+    },
+    {
+      "action": "code",
+      "code": "const searchBtn = document.querySelector('[data-testid=\"search-input\"], .searchInput, [aria-label=\"Find\"], [aria-label=\"Search\"], .toolbarButton[aria-label*=\"search\" i], .toolbarButton[aria-label*=\"find\" i]'); if (searchBtn) { searchBtn.click(); } else { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'f', ctrlKey: true, bubbles: true })); } return { opened: true }",
+      "name": "open_search",
+      "label": "Open search bar"
+    },
+    {
+      "action": "wait",
+      "ms": 1000,
+      "label": "Wait for search bar to appear"
+    },
+    {
+      "action": "code",
+      "code": "const query = `{{query}}`; const searchInput = document.querySelector('[data-testid=\"search-input\"] input, .searchInput input, [placeholder*=\"Find\" i], [placeholder*=\"Search\" i], input[type=\"search\"]'); if (!searchInput) throw new Error('Could not find search input field'); searchInput.focus(); searchInput.value = query; searchInput.dispatchEvent(new Event('input', { bubbles: true })); searchInput.dispatchEvent(new Event('change', { bubbles: true })); await new Promise(r => setTimeout(r, 2000)); const headers = []; document.querySelectorAll('.headerRow .header, .columnHeader, [data-columnid] .header, [role=\"columnheader\"]').forEach(h => { headers.push(h.textContent?.trim() || ''); }); const matchingRows = []; const highlightedRows = document.querySelectorAll('.dataRow.searchHighlight, [data-rowindex].highlighted, .dataRow:has(.cellHighlight), .dataRow:has(mark), [role=\"row\"]:has(.searchResult)'); const rowSource = highlightedRows.length > 0 ? highlightedRows : document.querySelectorAll('.dataRow, [data-rowindex], [role=\"row\"]:not(.headerRow)'); for (let i = 0; i < Math.min(rowSource.length, 50); i++) { const row = rowSource[i]; const rowText = row.textContent || ''; if (highlightedRows.length === 0 && !rowText.toLowerCase().includes(query.toLowerCase())) continue; const cells = row.querySelectorAll('.cell, [data-columnid], [role=\"gridcell\"]'); const rowData = {}; cells.forEach((cell, idx) => { const key = headers[idx] || 'col_' + idx; const text = cell.textContent?.trim()?.substring(0, 300) || ''; if (text) rowData[key] = text; }); if (Object.keys(rowData).length > 0) matchingRows.push(rowData); } return { query: query, headers: headers, result_count: matchingRows.length, rows: matchingRows }",
+      "name": "result",
+      "label": "Type query and scrape matching records"
+    }
+  ]
+}

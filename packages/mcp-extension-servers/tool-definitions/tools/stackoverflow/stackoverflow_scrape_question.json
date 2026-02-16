@@ -1,0 +1,48 @@
+{
+  "id": "stackoverflow-scrape-question",
+  "name": "stackoverflow_scrape_question",
+  "description": "Scrape full question details from a Stack Overflow question page. Returns title, body, vote count, tags, author, date, comments, and accepted answer status.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "question_url",
+      "type": "string",
+      "description": "Stack Overflow question URL (e.g. 'https://stackoverflow.com/questions/12345678/how-to-do-something')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{question_url}}",
+      "label": "Open question page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "#question-header, h1, .question-hyperlink",
+      "timeout": 15000,
+      "label": "Wait for question to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 800,
+      "label": "Scroll to load content"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const titleEl = document.querySelector('#question-header h1 a, h1 a.question-hyperlink, h1'); const bodyEl = document.querySelector('#question .s-prose, #question .post-text, .question .js-post-body'); const votesEl = document.querySelector('#question .js-vote-count, .question [itemprop=\"upvoteCount\"]'); const tagEls = document.querySelectorAll('#question .s-tag, .question .post-tag'); const tags = []; tagEls.forEach(function(t) { tags.push(t.textContent.trim()); }); const authorEl = document.querySelector('#question .user-details a, .question .post-signature:last-child .user-details a'); const dateEl = document.querySelector('#question .relativetime, .question time'); const viewsEl = document.querySelector('[title*=\"Viewed\"], #qinfo td:nth-child(2)'); const bookmarksEl = document.querySelector('.js-bookmark-count'); const commentEls = document.querySelectorAll('#question .comment-body, .question .comment-text'); const comments = []; commentEls.forEach(function(el, idx) { if (idx < 5) { const userEl = el.querySelector('.comment-user, a'); const textEl = el.querySelector('.comment-copy, span'); comments.push({ author: userEl ? userEl.textContent.trim() : '', text: textEl ? textEl.textContent.trim().substring(0, 300) : el.textContent.trim().substring(0, 300) }); } }); const answerCountEl = document.querySelector('#answers-header h2, [data-answercount]'); return { title: titleEl ? titleEl.textContent.trim() : '', body: bodyEl ? bodyEl.textContent.trim().substring(0, 2000) : '', votes: votesEl ? votesEl.textContent.trim() : '0', tags: tags, author: authorEl ? authorEl.textContent.trim() : '', date: dateEl ? (dateEl.getAttribute('title') || dateEl.textContent.trim()) : '', views: viewsEl ? viewsEl.getAttribute('title') || viewsEl.textContent.trim() : '', bookmarks: bookmarksEl ? bookmarksEl.textContent.trim() : '0', answer_count: answerCountEl ? answerCountEl.textContent.trim() : '', comments: comments, url: window.location.href }",
+      "name": "question_data",
+      "label": "Extract question details"
+    }
+  ]
+}

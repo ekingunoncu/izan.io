@@ -1,0 +1,58 @@
+{
+  "id": "yahoo-finance-scrape-financials",
+  "name": "yahoo_finance_scrape_financials",
+  "description": "Scrape financial statements from Yahoo Finance for a given stock. Returns income statement, balance sheet data, revenue, net income, total assets, and key financial metrics.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "symbol",
+      "type": "string",
+      "description": "Stock ticker symbol (e.g. 'AAPL', 'GOOGL', 'MSFT')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://finance.yahoo.com/quote/{{symbol}}/financials/",
+      "label": "Open financials page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "table, [class*='financials'], [data-testid='fin-row']",
+      "timeout": 15000,
+      "label": "Wait for financial data to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page fully render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll to see more data"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll further down"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const financials = []; const rows = document.querySelectorAll('[data-testid=\"fin-row\"], table tbody tr, [class*=\"financials\"] [class*=\"row\"]'); rows.forEach(function(row) { const labelEl = row.querySelector('[class*=\"label\"], td:first-child, [title]'); const valueCells = row.querySelectorAll('[class*=\"cell\"]:not(:first-child), td:not(:first-child)'); const values = []; valueCells.forEach(function(cell) { values.push(cell.textContent.trim()); }); if (labelEl) { financials.push({ metric: labelEl.getAttribute('title') || labelEl.textContent.trim(), values: values.slice(0, 5) }); } }); const headerCells = document.querySelectorAll('table thead th, [class*=\"header\"] [class*=\"cell\"], [class*=\"column-header\"]'); const periods = []; headerCells.forEach(function(cell) { const text = cell.textContent.trim(); if (text && text.match(/\\d{4}|TTM|\\d{1,2}\\/\\d{1,2}\\/\\d{4}/)) { periods.push(text); } }); const nameEl = document.querySelector('h1, [class*=\"quote-header\"] h1'); return { symbol: '{{symbol}}', name: nameEl ? nameEl.textContent.trim() : '', periods: periods.slice(0, 5), row_count: financials.length, financials: financials.slice(0, 30), url: window.location.href }",
+      "name": "financials_data",
+      "label": "Extract financial statements"
+    }
+  ]
+}

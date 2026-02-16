@@ -1,0 +1,22 @@
+{
+  "id": "quora-scrape-profile",
+  "name": "quora_scrape_profile",
+  "description": "Scrape a Quora user profile. Returns name, bio, credentials, follower count, answer count, and recent answers.",
+  "version": "1.0.0",
+  "parameters": [
+    { "name": "profile_url", "type": "string", "description": "Quora profile URL (e.g. 'https://www.quora.com/profile/Username')", "required": true }
+  ],
+  "steps": [
+    { "action": "navigate", "url": "{{profile_url}}", "label": "Open profile" },
+    { "action": "waitForSelector", "selector": "[class*='Profile'], [class*='profile'], h1", "timeout": 15000, "label": "Wait for profile" },
+    { "action": "wait", "ms": 2000 },
+    { "action": "scroll", "direction": "down", "amount": 1000, "label": "Scroll for content" },
+    { "action": "wait", "ms": 1500 },
+    {
+      "action": "code",
+      "code": "const nameEl = document.querySelector('[class*=\"profile-name\"], [class*=\"ProfileName\"], h1'); const bioEl = document.querySelector('[class*=\"profile-description\"], [class*=\"bio\"]'); const credentialEl = document.querySelector('[class*=\"credential\"], [class*=\"ProfileCredential\"]'); const followersEl = document.querySelector('[class*=\"followers\"] [class*=\"count\"], [class*=\"FollowerCount\"]'); const answersCountEl = document.querySelector('[class*=\"answers\"] [class*=\"count\"], [class*=\"AnswerCount\"]'); const avatarEl = document.querySelector('[class*=\"profile-photo\"] img, [class*=\"avatar\"] img'); const stats = {}; document.querySelectorAll('[class*=\"stat\"], [class*=\"ProfileStat\"]').forEach(function(el) { const text = el.textContent.trim(); if (text) { const parts = text.split('\\n').filter(function(p) { return p.trim(); }); if (parts.length >= 2) stats[parts[1].trim()] = parts[0].trim(); } }); return { name: nameEl ? nameEl.textContent.trim() : '', bio: bioEl ? bioEl.textContent.trim().substring(0, 1000) : '', credential: credentialEl ? credentialEl.textContent.trim() : '', followers: followersEl ? followersEl.textContent.trim() : '', answers_count: answersCountEl ? answersCountEl.textContent.trim() : '', avatar: avatarEl ? avatarEl.getAttribute('src') : '', stats: stats, url: window.location.href }",
+      "name": "profile_data",
+      "label": "Extract profile"
+    }
+  ]
+}

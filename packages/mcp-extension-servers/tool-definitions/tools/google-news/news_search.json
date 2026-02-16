@@ -1,0 +1,51 @@
+{
+  "id": "news-search",
+  "name": "news_search",
+  "description": "Search Google News for articles matching a query. Returns up to 20 news articles with title, source, time, snippet, and URL.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "query",
+      "type": "string",
+      "description": "Search query (e.g. 'artificial intelligence', 'climate change policy')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://news.google.com/search",
+      "urlParams": {
+        "q": "{{query}}"
+      },
+      "label": "Search Google News"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "article, c-wiz article, [data-n-tid]",
+      "timeout": 15000,
+      "label": "Wait for search results"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Let results render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll to load more articles"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const articles = []; const items = document.querySelectorAll('article, c-wiz article'); for (let i = 0; i < Math.min(items.length, 20); i++) { const item = items[i]; const linkEl = item.querySelector('a[href*=\"./articles/\"], a[href*=\"./read/\"], a[href^=\"https\"]'); const titleEl = linkEl ? linkEl.querySelector('h3, h4, .JtKRv') || linkEl : null; const sourceEl = item.querySelector('.vr1PYe, [data-n-tid], .wsn2rd, time + span, div > div > a[data-n-tid]'); const timeEl = item.querySelector('time, .hvbAAd, datetime'); const snippetEl = item.querySelector('.GI74Re, .xBbh9, .Y8wuc'); let url = ''; if (linkEl) { const href = linkEl.getAttribute('href') || ''; if (href.startsWith('./')) { url = 'https://news.google.com/' + href.slice(2); } else if (href.startsWith('http')) { url = href; } else { url = 'https://news.google.com/' + href; } } articles.push({ title: titleEl ? titleEl.textContent.trim() : '', source: sourceEl ? sourceEl.textContent.trim() : '', time: timeEl ? (timeEl.getAttribute('datetime') || timeEl.textContent.trim()) : '', snippet: snippetEl ? snippetEl.textContent.trim().slice(0, 300) : '', url: url }); } return { query: '{{query}}', article_count: articles.length, articles: articles }",
+      "name": "search_results",
+      "label": "Extract search results"
+    }
+  ]
+}

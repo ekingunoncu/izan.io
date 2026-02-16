@@ -1,0 +1,22 @@
+{
+  "id": "quora-scrape-topic",
+  "name": "quora_scrape_topic",
+  "description": "Scrape a Quora topic page. Returns topic name, description, follower count, and top questions within the topic.",
+  "version": "1.0.0",
+  "parameters": [
+    { "name": "topic", "type": "string", "description": "Topic name (e.g. 'Artificial-Intelligence', 'Machine-Learning', 'Python-programming-language-1')", "required": true }
+  ],
+  "steps": [
+    { "action": "navigate", "url": "https://www.quora.com/topic/{{topic}}", "label": "Open topic page" },
+    { "action": "waitForSelector", "selector": "[class*='Topic'], [class*='topic'], h1", "timeout": 15000, "label": "Wait for topic" },
+    { "action": "wait", "ms": 2000 },
+    { "action": "scroll", "direction": "down", "amount": 1500, "label": "Scroll for questions" },
+    { "action": "wait", "ms": 1500 },
+    {
+      "action": "code",
+      "code": "const titleEl = document.querySelector('[class*=\"topic-name\"], h1, [class*=\"TopicName\"]'); const descEl = document.querySelector('[class*=\"topic-description\"], [class*=\"description\"]'); const followersEl = document.querySelector('[class*=\"followers\"], [class*=\"FollowerCount\"]'); const questions = []; document.querySelectorAll('[class*=\"question\"], [class*=\"Question\"]').forEach(function(el) { const qEl = el.querySelector('a span, [class*=\"text\"]'); const answersEl = el.querySelector('[class*=\"answer-count\"]'); if (qEl) { questions.push({ question: qEl.textContent.trim(), answers: answersEl ? answersEl.textContent.trim() : '', url: el.querySelector('a') ? el.querySelector('a').href : '' }); } }); return { topic: '{{topic}}', name: titleEl ? titleEl.textContent.trim() : '', description: descEl ? descEl.textContent.trim().substring(0, 500) : '', followers: followersEl ? followersEl.textContent.trim() : '', question_count: questions.length, questions: questions.slice(0, 20), url: window.location.href }",
+      "name": "topic_data",
+      "label": "Extract topic content"
+    }
+  ]
+}

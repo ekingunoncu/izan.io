@@ -1,0 +1,58 @@
+{
+  "id": "yahoo-finance-scrape-news",
+  "name": "yahoo_finance_scrape_news",
+  "description": "Scrape latest financial news from Yahoo Finance for a given stock or general market news. Returns headlines, summaries, sources, timestamps, and article URLs.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "symbol",
+      "type": "string",
+      "description": "Stock ticker symbol for news (e.g. 'AAPL', 'TSLA') or leave empty for general market news",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://finance.yahoo.com/quote/{{symbol}}/news/",
+      "label": "Open stock news page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[class*='news'] a, [class*='stream'] li, [data-testid='news-stream'] a, article",
+      "timeout": 15000,
+      "label": "Wait for news articles to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1200,
+      "label": "Scroll to load more news"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1200,
+      "label": "Scroll further down"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const articles = []; const articleEls = document.querySelectorAll('[data-testid=\"news-stream\"] li, [class*=\"stream\"] li, [class*=\"news-item\"], article, [class*=\"js-stream-content\"] li'); for (let i = 0; i < Math.min(articleEls.length, 15); i++) { const el = articleEls[i]; const titleEl = el.querySelector('h3, h2, [class*=\"title\"] a, a[class*=\"title\"]'); const linkEl = el.querySelector('a[href*=\"/news/\"], a[href*=\"finance.yahoo.com\"], a'); const summaryEl = el.querySelector('p, [class*=\"summary\"], [class*=\"description\"]'); const sourceEl = el.querySelector('[class*=\"source\"], [class*=\"provider\"], span[class*=\"publishing\"]'); const timeEl = el.querySelector('time, [class*=\"time\"], [class*=\"date\"], [class*=\"ago\"]'); const imgEl = el.querySelector('img'); if (titleEl) { articles.push({ title: titleEl.textContent.trim(), url: linkEl ? linkEl.href : '', summary: summaryEl ? summaryEl.textContent.trim().substring(0, 500) : '', source: sourceEl ? sourceEl.textContent.trim() : '', time: timeEl ? timeEl.textContent.trim() : '', image: imgEl ? imgEl.getAttribute('src') : '' }); } } return { symbol: '{{symbol}}', article_count: articles.length, articles: articles, url: window.location.href }",
+      "name": "news_data",
+      "label": "Extract news articles"
+    }
+  ]
+}

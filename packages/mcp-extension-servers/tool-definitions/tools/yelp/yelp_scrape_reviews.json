@@ -1,0 +1,26 @@
+{
+  "id": "yelp-scrape-reviews",
+  "name": "yelp_scrape_reviews",
+  "description": "Scrape reviews from a Yelp business page. Returns reviews with author, rating, content, date, and useful/funny/cool counts.",
+  "version": "1.0.0",
+  "parameters": [
+    { "name": "business_url", "type": "string", "description": "Yelp business URL (e.g. 'https://www.yelp.com/biz/house-of-prime-rib-san-francisco')", "required": true }
+  ],
+  "steps": [
+    { "action": "navigate", "url": "{{business_url}}", "label": "Open business page" },
+    { "action": "waitForSelector", "selector": "h1, [class*='businessName']", "timeout": 15000, "label": "Wait for page" },
+    { "action": "wait", "ms": 2000 },
+    { "action": "scroll", "direction": "down", "amount": 3000, "label": "Scroll to reviews" },
+    { "action": "wait", "ms": 2000 },
+    { "action": "scroll", "direction": "down", "amount": 2000, "label": "Scroll through reviews" },
+    { "action": "wait", "ms": 2000 },
+    { "action": "scroll", "direction": "down", "amount": 2000, "label": "Scroll further" },
+    { "action": "wait", "ms": 1500 },
+    {
+      "action": "code",
+      "code": "const reviews = []; const reviewEls = document.querySelectorAll('[class*=\"review\"][class*=\"margin\"], [class*=\"review__\"], [data-review-id], #reviews > section > div > div > ul > li'); for (let i = 0; i < Math.min(reviewEls.length, 20); i++) { const el = reviewEls[i]; const authorEl = el.querySelector('[class*=\"user-passport\"] a, a[href*=\"/user_details\"], [class*=\"author\"]'); const ratingEl = el.querySelector('[class*=\"star\"][aria-label], [role=\"img\"][aria-label*=\"star\"]'); const contentEl = el.querySelector('[class*=\"comment\"], [class*=\"review-content\"] p, p[lang]'); const dateEl = el.querySelector('[class*=\"date\"], span[class*=\"css\"]'); const usefulEl = el.querySelector('[class*=\"useful\"]'); const funnyEl = el.querySelector('[class*=\"funny\"]'); const coolEl = el.querySelector('[class*=\"cool\"]'); if (contentEl || authorEl) { reviews.push({ author: authorEl ? authorEl.textContent.trim() : 'Anonymous', rating: ratingEl ? (ratingEl.getAttribute('aria-label') || ratingEl.textContent.trim()) : '', content: contentEl ? contentEl.textContent.trim().substring(0, 800) : '', date: dateEl ? dateEl.textContent.trim() : '', useful: usefulEl ? usefulEl.textContent.trim() : '', funny: funnyEl ? funnyEl.textContent.trim() : '', cool: coolEl ? coolEl.textContent.trim() : '' }); } } const overallRatingEl = document.querySelector('[class*=\"star\"][aria-label*=\"star\"]'); const totalReviewsEl = document.querySelector('[class*=\"reviewCount\"]'); return { overall_rating: overallRatingEl ? overallRatingEl.getAttribute('aria-label') || '' : '', total_reviews: totalReviewsEl ? totalReviewsEl.textContent.trim() : '', scraped_count: reviews.length, reviews: reviews, url: window.location.href }",
+      "name": "reviews_data",
+      "label": "Extract reviews"
+    }
+  ]
+}

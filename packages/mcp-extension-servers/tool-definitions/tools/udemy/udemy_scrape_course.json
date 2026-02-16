@@ -1,0 +1,58 @@
+{
+  "id": "udemy-scrape-course",
+  "name": "udemy_scrape_course",
+  "description": "Scrape full course details from a Udemy course page. Returns title, instructor, description, rating, student count, price, requirements, what you will learn, and course content overview.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "course_url",
+      "type": "string",
+      "description": "Udemy course URL (e.g. 'https://www.udemy.com/course/the-web-developer-bootcamp/')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{course_url}}",
+      "label": "Open course page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "h1, [data-purpose='lead-title'], [class*='course-title']",
+      "timeout": 15000,
+      "label": "Wait for course page to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1200,
+      "label": "Scroll to load content"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1200,
+      "label": "Scroll further"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const titleEl = document.querySelector('h1, [data-purpose=\"lead-title\"], [class*=\"course-title\"]'); const subtitleEl = document.querySelector('[data-purpose=\"lead-headline\"], [class*=\"subtitle\"], h1 + div'); const instructorEl = document.querySelector('[data-purpose=\"instructor-name-top\"] a, a[href*=\"/user/\"], [class*=\"instructor\"] a'); const ratingEl = document.querySelector('[data-purpose=\"rating-number\"], [class*=\"rating\"] span'); const studentsEl = document.querySelector('[data-purpose=\"enrollment\"], [class*=\"enrollment\"]'); const priceEl = document.querySelector('[data-purpose=\"course-price-text\"] span, [class*=\"price\"] span'); const lastUpdatedEl = document.querySelector('[data-purpose=\"last-update-date\"], [class*=\"last-update\"]'); const languageEl = document.querySelector('[data-purpose=\"lead-course-locale\"], [class*=\"language\"]'); const descEl = document.querySelector('[data-purpose=\"safely-set-inner-html:description:description\"], [class*=\"description\"] p, [data-purpose=\"course-description\"]'); const learnEls = document.querySelectorAll('[data-purpose=\"objective\"] span, [class*=\"what-you-will-learn\"] li, [class*=\"objective\"] li'); const learns = []; learnEls.forEach(function(el) { const t = el.textContent.trim(); if (t) learns.push(t); }); const requirementEls = document.querySelectorAll('[data-purpose=\"requirements\"] li, [class*=\"requirement\"] li'); const requirements = []; requirementEls.forEach(function(el) { requirements.push(el.textContent.trim()); }); const durationEl = document.querySelector('[data-purpose=\"curriculum-stats\"], [class*=\"content-length\"]'); const lecturesEl = document.querySelector('[class*=\"lecture-count\"], [data-purpose=\"curriculum-stats\"]'); const imgEl = document.querySelector('[class*=\"intro-asset\"] img, [class*=\"course-image\"] img'); const bestsellerEl = document.querySelector('[class*=\"bestseller\"], [data-purpose=\"badge\"]'); return { title: titleEl ? titleEl.textContent.trim() : '', subtitle: subtitleEl ? subtitleEl.textContent.trim().substring(0, 300) : '', instructor: instructorEl ? instructorEl.textContent.trim() : '', rating: ratingEl ? ratingEl.textContent.trim() : '', students: studentsEl ? studentsEl.textContent.trim() : '', price: priceEl ? priceEl.textContent.trim() : '', last_updated: lastUpdatedEl ? lastUpdatedEl.textContent.trim() : '', language: languageEl ? languageEl.textContent.trim() : '', description: descEl ? descEl.textContent.trim().substring(0, 1000) : '', what_you_will_learn: learns.slice(0, 10), requirements: requirements.slice(0, 8), duration: durationEl ? durationEl.textContent.trim() : '', is_bestseller: !!bestsellerEl, image: imgEl ? imgEl.getAttribute('src') : '', url: window.location.href }",
+      "name": "course_data",
+      "label": "Extract course details"
+    }
+  ]
+}

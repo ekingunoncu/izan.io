@@ -1,0 +1,58 @@
+{
+  "id": "expedia-scrape-hotel",
+  "name": "expedia_scrape_hotel",
+  "description": "Scrape full hotel details from an Expedia hotel page. Returns name, star rating, guest rating, price, amenities, room types, location, description, and images.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "hotel_url",
+      "type": "string",
+      "description": "Expedia hotel URL (e.g. 'https://www.expedia.com/Hotel-Name.h12345.Hotel-Information')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{hotel_url}}",
+      "label": "Open hotel page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "h1, [data-stid='content-hotel-title'], [class*='hotel-name']",
+      "timeout": 15000,
+      "label": "Wait for hotel page to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1200,
+      "label": "Scroll to load content"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1200,
+      "label": "Scroll further"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const nameEl = document.querySelector('h1, [data-stid=\"content-hotel-title\"], [class*=\"hotel-name\"]'); const ratingEl = document.querySelector('[class*=\"guest-rating\"], [class*=\"review-score\"]'); const starEl = document.querySelector('[class*=\"star-rating\"], [class*=\"Star\"]'); const priceEl = document.querySelector('[data-stid=\"content-hotel-price\"], [class*=\"price\"] span'); const descEl = document.querySelector('[class*=\"description\"], [data-stid=\"content-hotel-description\"], [class*=\"about\"] p'); const locationEl = document.querySelector('[class*=\"location\"], [class*=\"address\"], [data-stid=\"content-hotel-address\"]'); const amenityEls = document.querySelectorAll('[class*=\"amenity\"] li, [class*=\"amenities\"] span, [data-stid*=\"amenity\"]'); const amenities = []; amenityEls.forEach(function(a) { const t = a.textContent.trim(); if (t && t.length < 80) amenities.push(t); }); const roomEls = document.querySelectorAll('[class*=\"room-type\"], [data-stid*=\"room\"], [class*=\"RoomCard\"]'); const rooms = []; for (let i = 0; i < Math.min(roomEls.length, 5); i++) { const el = roomEls[i]; const nameEl = el.querySelector('h3, h4, [class*=\"room-name\"]'); const priceEl = el.querySelector('[class*=\"price\"] span'); const featureEls = el.querySelectorAll('[class*=\"feature\"] li, [class*=\"amenity\"]'); const features = []; featureEls.forEach(function(f) { features.push(f.textContent.trim()); }); rooms.push({ name: nameEl ? nameEl.textContent.trim() : '', price: priceEl ? priceEl.textContent.trim() : '', features: features.slice(0, 5) }); } const images = []; const imgEls = document.querySelectorAll('[class*=\"gallery\"] img, [class*=\"photo\"] img, [class*=\"carousel\"] img'); imgEls.forEach(function(img) { const src = img.getAttribute('src') || ''; if (src && !images.includes(src)) images.push(src); }); const reviewCountEl = document.querySelector('[class*=\"review-count\"], [class*=\"reviewCount\"]'); return { name: nameEl ? nameEl.textContent.trim() : '', star_rating: starEl ? starEl.textContent.trim() : '', guest_rating: ratingEl ? ratingEl.textContent.trim() : '', review_count: reviewCountEl ? reviewCountEl.textContent.trim() : '', price: priceEl ? priceEl.textContent.trim() : '', location: locationEl ? locationEl.textContent.trim() : '', description: descEl ? descEl.textContent.trim().substring(0, 1000) : '', amenities: amenities.slice(0, 15), rooms: rooms, images: images.slice(0, 8), url: window.location.href }",
+      "name": "hotel_data",
+      "label": "Extract hotel details"
+    }
+  ]
+}

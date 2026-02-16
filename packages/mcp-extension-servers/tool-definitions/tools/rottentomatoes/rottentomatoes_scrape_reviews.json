@@ -1,0 +1,58 @@
+{
+  "id": "rottentomatoes-scrape-reviews",
+  "name": "rottentomatoes_scrape_reviews",
+  "description": "Scrape critic reviews from a Rotten Tomatoes movie or TV show page. Returns critic reviews with rating, fresh/rotten status, quote, publication, and date.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "movie_url",
+      "type": "string",
+      "description": "Rotten Tomatoes movie URL (e.g. 'https://www.rottentomatoes.com/m/the_matrix')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{movie_url}}/reviews",
+      "label": "Open reviews page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[class*='review-row'], [class*='review_table'], .review_table_row, [data-qa='review-item']",
+      "timeout": 15000,
+      "label": "Wait for reviews to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1500,
+      "label": "Scroll to load more reviews"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1500,
+      "label": "Scroll further"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const reviews = []; const reviewEls = document.querySelectorAll('[class*=\"review-row\"], .review_table_row, [data-qa=\"review-item\"], [class*=\"ReviewRow\"]'); for (let i = 0; i < Math.min(reviewEls.length, 20); i++) { const el = reviewEls[i]; const criticEl = el.querySelector('[class*=\"critic-name\"] a, [data-qa=\"review-critic\"], [class*=\"critic\"] a'); const pubEl = el.querySelector('[class*=\"publication\"], [data-qa=\"review-publication\"]'); const quoteEl = el.querySelector('[class*=\"review-text\"], [data-qa=\"review-quote\"], [class*=\"quote\"]'); const dateEl = el.querySelector('[data-qa=\"review-date\"], [class*=\"review-date\"], time'); const freshEl = el.querySelector('[class*=\"fresh\"], [class*=\"rotten\"], [data-qa=\"review-icon\"]'); const scoreEl = el.querySelector('[class*=\"score\"], [data-qa=\"review-score\"]'); let status = ''; if (freshEl) { const cls = freshEl.className || ''; if (cls.includes('fresh')) status = 'Fresh'; else if (cls.includes('rotten')) status = 'Rotten'; else status = freshEl.textContent.trim(); } reviews.push({ critic: criticEl ? criticEl.textContent.trim() : '', publication: pubEl ? pubEl.textContent.trim() : '', quote: quoteEl ? quoteEl.textContent.trim().substring(0, 500) : '', score: scoreEl ? scoreEl.textContent.trim() : '', status: status, date: dateEl ? dateEl.textContent.trim() : '' }); } const titleEl = document.querySelector('h1, [class*=\"scoreboard\"] h1'); const tomatometerEl = document.querySelector('rt-button[slot=\"criticsScore\"] rt-text, [data-qa=\"tomatometer\"]'); return { title: titleEl ? titleEl.textContent.trim() : '', tomatometer: tomatometerEl ? tomatometerEl.textContent.trim() : '', scraped_count: reviews.length, reviews: reviews, url: window.location.href }",
+      "name": "reviews_data",
+      "label": "Extract critic reviews"
+    }
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "id": "hn-bulk-scrape-stories",
+  "name": "hn_bulk_scrape_stories",
+  "description": "Scrape multiple Hacker News stories and their comments in parallel using concurrent browser tabs. Pass all story URLs as a single comma-separated string. Example: 'https://news.ycombinator.com/item?id=123,https://news.ycombinator.com/item?id=456'.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "story_urls",
+      "type": "string",
+      "description": "Comma-separated Hacker News story URLs (e.g. 'https://news.ycombinator.com/item?id=123,https://news.ycombinator.com/item?id=456')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{story_urls}}`.split(',').map(u => ({ url: u.trim() }))",
+      "name": "items",
+      "label": "Build story URL list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 3,
+      "maxItems": 10,
+      "waitUntil": "load",
+      "label": "Scrape each story in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": ".athing, .fatitem",
+          "timeout": 15000,
+          "label": "Wait for story"
+        },
+        {
+          "action": "wait",
+          "ms": 2000
+        },
+        {
+          "action": "code",
+          "code": "const titleEl = document.querySelector('.titleline > a'); const subtext = document.querySelector('.subtext'); const scoreEl = subtext ? subtext.querySelector('.score') : null; const authorEl = subtext ? subtext.querySelector('.hnuser') : null; const ageEl = subtext ? subtext.querySelector('.age a') : null; let storyCommentCount = '0'; if (subtext) { const links = subtext.querySelectorAll('a'); for (const link of links) { const text = link.textContent.trim(); if (text.includes('comment')) { storyCommentCount = text.split('\\u00a0')[0] || text.split(' ')[0]; break; } } } const comments = []; const commentRows = document.querySelectorAll('.comtr'); for (let i = 0; i < Math.min(commentRows.length, 15); i++) { const c = commentRows[i]; const indentEl = c.querySelector('.ind img'); const depth = indentEl ? Math.round(parseInt(indentEl.getAttribute('width') || '0', 10) / 40) : 0; const cAuthor = c.querySelector('.hnuser'); const cText = c.querySelector('.commtext'); const cAge = c.querySelector('.age a'); comments.push({ author: cAuthor ? cAuthor.textContent.trim() : '[deleted]', content: cText ? cText.textContent.trim().slice(0, 500) : '[deleted]', time: cAge ? cAge.textContent.trim() : '', depth: depth }); } return { title: titleEl ? titleEl.textContent.trim() : '', url: titleEl ? titleEl.href : '', score: scoreEl ? scoreEl.textContent.trim() : '0 points', author: authorEl ? authorEl.textContent.trim() : '', time: ageEl ? ageEl.textContent.trim() : '', total_comments: storyCommentCount, comments_scraped: comments.length, comments: comments, story_url: window.location.href }",
+          "name": "story_data",
+          "label": "Extract story and comments"
+        }
+      ]
+    }
+  ]
+}

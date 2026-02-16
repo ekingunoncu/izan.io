@@ -1,0 +1,58 @@
+{
+  "id": "cmc-scrape-rankings",
+  "name": "cmc_scrape_rankings",
+  "description": "Scrape the top cryptocurrency rankings from CoinMarketCap. Returns coin name, symbol, price, market cap, 24h volume, and 24h price change for the top coins.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "limit",
+      "type": "string",
+      "description": "Number of coins to scrape (default '20', max '100')",
+      "required": false
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://coinmarketcap.com/",
+      "label": "Open CoinMarketCap homepage"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "table tbody tr",
+      "timeout": 15000,
+      "label": "Wait for rankings table to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Let table data render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 2000,
+      "label": "Scroll to load more rows"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 2000,
+      "label": "Scroll further for more coins"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const limit = parseInt('{{limit}}') || 20; const coins = []; const rows = document.querySelectorAll('table tbody tr'); for (let i = 0; i < Math.min(rows.length, limit); i++) { const row = rows[i]; const cells = row.querySelectorAll('td'); if (cells.length < 7) continue; const rank = cells[1] ? cells[1].textContent.trim() : String(i + 1); const nameCell = cells[2]; const nameEl = nameCell ? nameCell.querySelector('p, a, .coin-item-name, [class*=\"name\"]') : null; const symbolEl = nameCell ? nameCell.querySelector('.coin-item-symbol, [class*=\"symbol\"], p + p, span + span') : null; const linkEl = nameCell ? nameCell.querySelector('a[href*=\"/currencies/\"]') : null; const priceCell = cells[3]; const price = priceCell ? priceCell.textContent.trim() : ''; const change1hCell = cells[4]; const change1h = change1hCell ? change1hCell.textContent.trim() : ''; const change24hCell = cells[5]; const change24h = change24hCell ? change24hCell.textContent.trim() : ''; const change7dCell = cells[6]; const change7d = change7dCell ? change7dCell.textContent.trim() : ''; const marketCapCell = cells[7]; const marketCap = marketCapCell ? marketCapCell.textContent.trim() : ''; const volumeCell = cells[8]; const volume = volumeCell ? volumeCell.textContent.trim() : ''; let name = nameEl ? nameEl.textContent.trim() : ''; let symbol = symbolEl ? symbolEl.textContent.trim() : ''; if (!name && nameCell) { const allText = nameCell.textContent.trim().split('\\n').map(s => s.trim()).filter(Boolean); name = allText[0] || ''; symbol = allText[1] || ''; } coins.push({ rank: rank, name: name, symbol: symbol, price: price, change_1h: change1h, change_24h: change24h, change_7d: change7d, market_cap: marketCap, volume_24h: volume, url: linkEl ? linkEl.href : '' }); } return { scraped_count: coins.length, coins: coins }",
+      "name": "rankings_data",
+      "label": "Extract coin rankings"
+    }
+  ]
+}

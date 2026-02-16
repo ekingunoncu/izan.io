@@ -1,0 +1,58 @@
+{
+  "id": "medium-scrape-article",
+  "name": "medium_scrape_article",
+  "description": "Scrape full article details from a Medium post page. Returns title, author, publication, content preview, claps, responses, read time, tags, and date.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "article_url",
+      "type": "string",
+      "description": "Medium article URL (e.g. 'https://medium.com/@author/article-title-abc123')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{article_url}}",
+      "label": "Open article page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "article, h1, [data-testid='storyTitle']",
+      "timeout": 15000,
+      "label": "Wait for article to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page fully render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1500,
+      "label": "Scroll to load content"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1500,
+      "label": "Scroll further down"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const titleEl = document.querySelector('h1, [data-testid=\"storyTitle\"]'); const authorEl = document.querySelector('a[data-testid=\"authorName\"], a[rel=\"author\"], [class*=\"author\"] a'); const pubEl = document.querySelector('[data-testid=\"publicationName\"] a, [class*=\"publication\"] a'); const dateEl = document.querySelector('time, [data-testid=\"storyPublishDate\"], span[class*=\"date\"]'); const readTimeEl = document.querySelector('[class*=\"readingTime\"], span[class*=\"read-time\"]'); const clapsEl = document.querySelector('button[data-testid=\"clap\"] span, [class*=\"clap\"] span, [class*=\"clapCount\"]'); const responsesEl = document.querySelector('button[data-testid=\"responses\"] span, a[href*=\"responses\"] span, [class*=\"responseCount\"]'); const contentEls = document.querySelectorAll('article p, article [class*=\"paragraph\"], section p'); let content = ''; for (let i = 0; i < contentEls.length; i++) { content += contentEls[i].textContent.trim() + '\\n'; if (content.length > 2000) break; } const tagEls = document.querySelectorAll('a[href*=\"/tag/\"], [class*=\"tags\"] a'); const tags = []; tagEls.forEach(function(el) { const t = el.textContent.trim(); if (t && t.length < 50 && !tags.includes(t)) tags.push(t); }); const imgEl = document.querySelector('article img[src*=\"miro.medium\"], article figure img'); const subtitleEl = document.querySelector('h2[class*=\"subtitle\"], article h2:first-of-type'); return { title: titleEl ? titleEl.textContent.trim() : '', subtitle: subtitleEl ? subtitleEl.textContent.trim() : '', author: authorEl ? authorEl.textContent.trim() : '', publication: pubEl ? pubEl.textContent.trim() : '', date: dateEl ? (dateEl.getAttribute('datetime') || dateEl.textContent.trim()) : '', read_time: readTimeEl ? readTimeEl.textContent.trim() : '', claps: clapsEl ? clapsEl.textContent.trim() : '', responses: responsesEl ? responsesEl.textContent.trim() : '', content_preview: content.substring(0, 2000), tags: tags.slice(0, 10), image: imgEl ? imgEl.getAttribute('src') : '', url: window.location.href }",
+      "name": "article_data",
+      "label": "Extract article details"
+    }
+  ]
+}

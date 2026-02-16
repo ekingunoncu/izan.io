@@ -1,0 +1,58 @@
+{
+  "id": "soundcloud-search",
+  "name": "soundcloud_search",
+  "description": "Search for tracks on SoundCloud. Returns up to 15 results with title, artist, play count, like count, duration, genre, and URL.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "query",
+      "type": "string",
+      "description": "Search query (e.g. 'lo-fi beats', 'indie rock', 'electronic music')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://soundcloud.com/search/sounds?q={{query}}",
+      "label": "Search SoundCloud"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".searchList__item, [class*='soundList__item'], .sound__content, li[class*='searchList']",
+      "timeout": 15000,
+      "label": "Wait for search results"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let results render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll to load more"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll further"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const results = []; const items = document.querySelectorAll('.searchList__item, [class*=\"soundList__item\"], li[class*=\"searchList\"]'); for (let i = 0; i < Math.min(items.length, 15); i++) { const el = items[i]; const titleEl = el.querySelector('.soundTitle__title span, a[class*=\"soundTitle\"] span, [class*=\"sound-title\"]'); const artistEl = el.querySelector('.soundTitle__username, a[class*=\"soundTitle__username\"], [class*=\"artist\"]'); const playsEl = el.querySelector('[class*=\"playbackCount\"], [class*=\"plays\"], [title*=\"plays\"]'); const likesEl = el.querySelector('[class*=\"likeCount\"], [class*=\"likes\"], [title*=\"likes\"]'); const durationEl = el.querySelector('[class*=\"duration\"], .playbackTimeline__duration span'); const genreEl = el.querySelector('[class*=\"genre\"], .soundTitle__tagContent'); const linkEl = el.querySelector('a[href*=\"/\"][class*=\"soundTitle__title\"], a.soundTitle__title'); const imgEl = el.querySelector('.image__full, img[src*=\"sndcdn\"], .sc-artwork img'); const repostsEl = el.querySelector('[class*=\"repostCount\"], [title*=\"reposts\"]'); results.push({ title: titleEl ? titleEl.textContent.trim() : '', artist: artistEl ? artistEl.textContent.trim() : '', plays: playsEl ? playsEl.textContent.trim() : '', likes: likesEl ? likesEl.textContent.trim() : '', reposts: repostsEl ? repostsEl.textContent.trim() : '', duration: durationEl ? durationEl.textContent.trim() : '', genre: genreEl ? genreEl.textContent.trim() : '', url: linkEl ? linkEl.href : '', image: imgEl ? imgEl.getAttribute('src') : '' }); } return { query: `{{query}}`, result_count: results.length, results: results }",
+      "name": "search_results",
+      "label": "Extract track results"
+    }
+  ]
+}

@@ -1,0 +1,85 @@
+{
+  "id": "tripadvisor-compare-hotels",
+  "name": "tripadvisor_compare_hotels",
+  "description": "Compare hotels in a destination on TripAdvisor. Searches for hotels and returns up to 15 results with name, price, rating, review count, star class, and amenity highlights for easy comparison.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "destination",
+      "type": "string",
+      "description": "Destination city or area (e.g. 'Paris', 'Manhattan New York', 'Bali')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://www.tripadvisor.com/Search?q={{destination}}+hotels",
+      "label": "Search TripAdvisor for hotels"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[data-test-target='search-result'], .result-title, .search-results-list",
+      "timeout": 15000,
+      "label": "Wait for search results"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Let results render"
+    },
+    {
+      "action": "code",
+      "code": "const hotelLink = document.querySelector('a[href*=\"Hotels-g\"], a[href*=\"Hotels-\"], [data-test-target=\"search-result\"] a[href*=\"Hotel\"]'); if (hotelLink) { hotelLink.click(); } return { clicked: !!hotelLink }",
+      "name": "click_hotels",
+      "label": "Click through to hotel listings"
+    },
+    {
+      "action": "wait",
+      "ms": 4000,
+      "label": "Wait for hotel listings page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[data-test-target='property-card'], .property_title, .listing_title, [class*='HotelCard']",
+      "timeout": 15000,
+      "label": "Wait for hotel cards to load"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1500,
+      "label": "Scroll to load more hotels"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1500,
+      "label": "Scroll further"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1500,
+      "label": "Scroll for more results"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const hotels = []; const cards = document.querySelectorAll('[data-test-target=\"property-card\"], .prw_rup, [class*=\"HotelCard\"], [class*=\"listItem\"], div[data-automation=\"hotel-card\"]'); for (let i = 0; i < Math.min(cards.length, 15); i++) { const el = cards[i]; const nameEl = el.querySelector('.listing_title a, .property_title a, a[class*=\"property_title\"], [data-test-target=\"property-title\"] a, [class*=\"hotelName\"], a[href*=\"Hotel_Review\"]'); const name = nameEl ? nameEl.textContent.trim() : ''; if (!name) continue; const url = nameEl ? (nameEl.href.startsWith('http') ? nameEl.href : 'https://www.tripadvisor.com' + nameEl.getAttribute('href')) : ''; const ratingEl = el.querySelector('svg[aria-label*=\"bubble\"], .ui_bubble_rating, [class*=\"ratingValue\"]'); const rating = ratingEl ? (ratingEl.getAttribute('aria-label') || ratingEl.textContent.trim() || '') : ''; const reviewCountEl = el.querySelector('[class*=\"reviewCount\"], a[href*=\"#REVIEWS\"] span, [class*=\"review_count\"]'); const reviewCount = reviewCountEl ? reviewCountEl.textContent.trim() : ''; const priceEl = el.querySelector('[data-test-target=\"price-summary\"], [class*=\"price\"], .price, [class*=\"priceValue\"]'); const price = priceEl ? priceEl.textContent.trim() : ''; const starsEl = el.querySelector('[class*=\"hotelClass\"], [class*=\"starRating\"], svg[aria-label*=\"star\"], .ui_star_rating'); const stars = starsEl ? (starsEl.getAttribute('aria-label') || starsEl.textContent.trim() || '') : ''; const amenityEls = el.querySelectorAll('[class*=\"amenity\"] span, [class*=\"tag\"] span'); const amenities = []; for (const a of amenityEls) { const text = a.textContent.trim(); if (text && text.length < 40 && !amenities.includes(text)) amenities.push(text); } const imgEl = el.querySelector('img[src*=\"photo\"], img[src*=\"media\"], img[data-lazyurl]'); const image = imgEl ? (imgEl.getAttribute('src') || imgEl.getAttribute('data-lazyurl') || '') : ''; hotels.push({ name: name, price: price, rating: rating, review_count: reviewCount, star_class: stars, amenity_highlights: amenities.slice(0, 5), image: image, url: url }); } return { destination: `{{destination}}`, hotel_count: hotels.length, hotels: hotels }",
+      "name": "comparison_results",
+      "label": "Extract hotel comparison data"
+    }
+  ]
+}

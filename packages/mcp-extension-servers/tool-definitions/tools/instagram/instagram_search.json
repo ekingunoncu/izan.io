@@ -1,0 +1,66 @@
+{
+  "id": "instagram-search",
+  "name": "instagram_search",
+  "description": "Search for users, hashtags, or places on Instagram. Returns up to 10 results with usernames, full names, follower counts, and profile pictures. You must be logged in to Instagram.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "query",
+      "type": "string",
+      "description": "Search query (e.g. 'nasa', '#photography', 'New York')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://www.instagram.com/",
+      "label": "Open Instagram"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "svg[aria-label='Search'], a[href*='explore'], nav a[href='/']",
+      "timeout": 15000,
+      "label": "Wait for Instagram to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let app fully initialize"
+    },
+    {
+      "action": "code",
+      "code": "const searchLink = document.querySelector('a[href=\"/explore/\"]') || document.querySelector('svg[aria-label=\"Search\"]')?.closest('a') || document.querySelector('svg[aria-label=\"Search\"]')?.closest('div[role=\"button\"]') || Array.from(document.querySelectorAll('svg')).find(s => s.getAttribute('aria-label') === 'Search')?.closest('a, div[role=\"button\"]'); if (searchLink) { searchLink.click(); } return { clicked: !!searchLink }",
+      "name": "open_search",
+      "label": "Click search icon"
+    },
+    {
+      "action": "wait",
+      "ms": 1500,
+      "label": "Wait for search panel to open"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "input[aria-label='Search input'], input[placeholder='Search']",
+      "timeout": 10000,
+      "label": "Wait for search input"
+    },
+    {
+      "action": "code",
+      "code": "const searchInput = document.querySelector('input[aria-label=\"Search input\"]') || document.querySelector('input[placeholder=\"Search\"]'); if (searchInput) { searchInput.focus(); searchInput.click(); await new Promise(r => setTimeout(r, 300)); searchInput.value = ''; searchInput.dispatchEvent(new Event('input', { bubbles: true })); document.execCommand('insertText', false, `{{query}}`); searchInput.dispatchEvent(new Event('input', { bubbles: true })); } return { typed: !!searchInput }",
+      "name": "type_query",
+      "label": "Type search query"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Wait for search results to load"
+    },
+    {
+      "action": "code",
+      "code": "const results = []; const resultItems = document.querySelectorAll('a[href^=\"/\"][role=\"link\"], div[class*=\"SearchResult\"] a, div[role=\"none\"] a[href^=\"/\"]'); const seen = new Set(); for (const item of resultItems) { if (results.length >= 10) break; const href = item.getAttribute('href') || ''; if (!href || href === '/' || href.startsWith('/explore') || href.startsWith('/accounts') || seen.has(href)) continue; seen.add(href); const imgEl = item.querySelector('img'); const spans = item.querySelectorAll('span'); let username = ''; let fullName = ''; let subtitle = ''; const textParts = []; for (const span of spans) { const text = span.textContent.trim(); if (text && !textParts.includes(text)) textParts.push(text); } if (textParts.length >= 1) username = textParts[0]; if (textParts.length >= 2) fullName = textParts[1]; if (textParts.length >= 3) subtitle = textParts.slice(2).join(' '); if (!username && href) username = href.replace(/\\//g, ''); results.push({ username: username, full_name: fullName, subtitle: subtitle, profile_pic: imgEl ? imgEl.src : '', url: 'https://www.instagram.com' + href }); } return { query: `{{query}}`, result_count: results.length, results: results }",
+      "name": "search_results",
+      "label": "Extract search results"
+    }
+  ]
+}

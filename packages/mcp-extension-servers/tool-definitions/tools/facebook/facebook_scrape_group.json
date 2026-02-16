@@ -1,0 +1,68 @@
+{
+  "id": "facebook-scrape-group",
+  "name": "facebook_scrape_group",
+  "description": "Scrape a Facebook group page. Returns group name, description, member count, privacy setting, and recent posts with author and content.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "group_url",
+      "type": "string",
+      "description": "Facebook group URL (e.g. 'https://www.facebook.com/groups/reactjs')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{group_url}}",
+      "label": "Open Facebook group"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[role='main'], [role='feed'], h1",
+      "timeout": 15000,
+      "label": "Wait for group page to load"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Let group page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 800,
+      "label": "Scroll to load group info"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1200,
+      "label": "Scroll to load group posts"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll further for more posts"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const nameEl = document.querySelector('h1'); const groupName = nameEl ? nameEl.textContent.trim() : ''; let description = ''; let memberCount = ''; let privacy = ''; const allSpans = document.querySelectorAll('span, div[dir=\"auto\"]'); for (const span of allSpans) { const text = span.textContent.trim().toLowerCase(); if (text.includes('member') && /[\\d,.]+[kmb]?\\s*member/i.test(text)) { memberCount = span.textContent.trim(); } if ((text.includes('private') || text.includes('public')) && text.length < 50) { if (!privacy) privacy = span.textContent.trim(); } } const descEls = document.querySelectorAll('[role=\"main\"] div[dir=\"auto\"]'); for (const el of descEls) { const text = el.textContent.trim(); if (text.length > 30 && text.length < 2000 && text !== groupName && !text.toLowerCase().includes('member')) { description = text.substring(0, 500); break; } } const posts = []; const postEls = document.querySelectorAll('[role=\"article\"]'); for (let i = 0; i < Math.min(postEls.length, 10); i++) { const post = postEls[i]; let postAuthor = ''; const authorEl = post.querySelector('h2 a, h3 a, strong a, a[role=\"link\"] span'); if (authorEl) { postAuthor = authorEl.textContent.trim(); } let postContent = ''; const textEls = post.querySelectorAll('div[dir=\"auto\"]'); for (const t of textEls) { const txt = t.textContent.trim(); if (txt.length > 15 && txt !== postAuthor && txt !== groupName) { postContent = txt.substring(0, 500); break; } } let postTime = ''; const timeEl = post.querySelector('abbr, a[href*=\"/posts/\"] span'); if (timeEl) { postTime = timeEl.textContent.trim(); } let postLink = ''; const linkEl = post.querySelector('a[href*=\"/posts/\"], a[href*=\"/permalink/\"]'); if (linkEl) { postLink = linkEl.getAttribute('href') || ''; } if (postContent) { posts.push({ author: postAuthor, content: postContent, time: postTime, url: postLink }); } } return { group_name: groupName, description: description, member_count: memberCount, privacy: privacy, recent_posts_count: posts.length, recent_posts: posts, group_url: window.location.href }",
+      "name": "group_data",
+      "label": "Extract group info and posts"
+    }
+  ]
+}

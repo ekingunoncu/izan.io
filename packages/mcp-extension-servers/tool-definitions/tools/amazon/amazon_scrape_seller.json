@@ -1,0 +1,48 @@
+{
+  "id": "amazon-scrape-seller",
+  "name": "amazon_scrape_seller",
+  "description": "Scrape seller information from an Amazon seller page. Returns seller name, rating, review count, location, and about section.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "seller_url",
+      "type": "string",
+      "description": "Amazon seller page URL (e.g. 'https://www.amazon.com/sp?seller=A2LHGC0YVHFL7')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{seller_url}}",
+      "label": "Open seller page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "#page-section-detail-seller-info, #seller-profile-container, .a-box-inner",
+      "timeout": 15000,
+      "label": "Wait for seller page to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page fully render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 800,
+      "label": "Scroll to load more info"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const nameEl = document.querySelector('#seller-name, #page-section-detail-seller-info h1, .a-box-inner h1, #sellerName'); const ratingEl = document.querySelector('#seller-feedback-summary .a-icon-star .a-icon-alt, #effective-timeperiod-rating-year .a-icon-alt, i.a-icon-star .a-icon-alt'); const reviewSections = document.querySelectorAll('#feedback-summary-table tr, .feedback-detail-list tr'); const feedbackStats = []; reviewSections.forEach(function(row) { const label = row.querySelector('td:first-child, .a-text-left'); const values = row.querySelectorAll('td:not(:first-child), .a-text-center'); if (label && values.length > 0) { const stats = []; values.forEach(function(v) { stats.push(v.textContent.trim()); }); feedbackStats.push({ period: label.textContent.trim(), values: stats }); } }); const ratingCountEl = document.querySelector('#seller-feedback-count, .feedback-detail-description, #effective-timeperiod-rating-count-year'); const locationEl = document.querySelector('#page-section-detail-seller-info .a-row:nth-child(2) span, #seller-info-address, .seller-address'); const aboutEl = document.querySelector('#page-section-detail-seller-info .a-section:last-of-type, #seller-blurb, .seller-description'); const detailRows = document.querySelectorAll('#page-section-detail-seller-info ul li, .a-unordered-list .a-list-item'); const details = []; detailRows.forEach(function(row) { const text = row.textContent.trim(); if (text && text.length > 3) { details.push(text); } }); const positiveRatingEl = document.querySelector('#seller-feedback-summary .a-size-extra-large, .a-size-extra-large'); const businessNameEl = document.querySelector('#page-section-detail-seller-info .a-row span.a-size-medium, .seller-business-name'); return { name: nameEl ? nameEl.textContent.trim() : '', business_name: businessNameEl ? businessNameEl.textContent.trim() : '', rating: ratingEl ? ratingEl.textContent.trim() : '', positive_rating_percentage: positiveRatingEl ? positiveRatingEl.textContent.trim() : '', review_count: ratingCountEl ? ratingCountEl.textContent.trim() : '', location: locationEl ? locationEl.textContent.trim() : '', about: aboutEl ? aboutEl.textContent.trim().substring(0, 1000) : '', feedback_stats: feedbackStats, details: details.slice(0, 10), url: window.location.href }",
+      "name": "seller_data",
+      "label": "Extract seller information"
+    }
+  ]
+}

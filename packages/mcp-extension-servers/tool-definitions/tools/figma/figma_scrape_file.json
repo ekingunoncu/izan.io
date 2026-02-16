@@ -1,0 +1,38 @@
+{
+  "id": "figma-scrape-file",
+  "name": "figma_scrape_file",
+  "description": "Scrape detailed info about a Figma file including file name, page names, frame counts, and component counts from the layers panel. You must be logged into Figma and have access to the file.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "file_url",
+      "type": "string",
+      "description": "Figma file URL (e.g. 'https://www.figma.com/design/FILEID/FileName')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{file_url}}",
+      "label": "Open Figma file"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[class*=\"layers_panel\"], .layers-panel, [class*=\"toolbar\"], [data-testid=\"canvas\"]",
+      "timeout": 20000,
+      "label": "Wait for editor to load"
+    },
+    {
+      "action": "wait",
+      "ms": 4000,
+      "label": "Let canvas and panels render"
+    },
+    {
+      "action": "code",
+      "code": "const fileName = document.querySelector('[class*=\"filename\"], [data-testid=\"filename\"], [class*=\"file_name\"], .toolbar-title input, [class*=\"toolbar\"] [class*=\"name\"]')?.textContent?.trim() || document.title.replace(' - Figma', '').trim() || ''; const pages = []; const pageItems = document.querySelectorAll('.page_item, [class*=\"page_row\"], [class*=\"pages_panel\"] [class*=\"page_name\"], [data-testid=\"page-name\"]'); pageItems.forEach(p => { pages.push(p.textContent.trim()); }); const layerItems = document.querySelectorAll('[class*=\"layers_panel\"] [class*=\"layer_row\"], [class*=\"object_row\"], [class*=\"layers-panel\"] [class*=\"item\"]'); let frameCount = 0; let componentCount = 0; layerItems.forEach(item => { const iconEl = item.querySelector('[class*=\"icon\"], svg'); const text = iconEl ? iconEl.getAttribute('class') || '' : ''; if (text.includes('frame') || text.includes('Frame')) frameCount++; if (text.includes('component') || text.includes('Component')) componentCount++; }); const totalLayers = layerItems.length; return { file_name: fileName, url: window.location.href, page_count: pages.length, pages: pages, total_layers_visible: totalLayers, frame_count: frameCount, component_count: componentCount }",
+      "name": "result",
+      "label": "Extract file details and layer info"
+    }
+  ]
+}

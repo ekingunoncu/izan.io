@@ -1,0 +1,58 @@
+{
+  "id": "walmart-scrape-product",
+  "name": "walmart_scrape_product",
+  "description": "Scrape full product details from a Walmart product page. Returns title, price, rating, description, specifications, seller info, availability, and images.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "product_url",
+      "type": "string",
+      "description": "Walmart product URL (e.g. 'https://www.walmart.com/ip/Product-Name/123456789')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{product_url}}",
+      "label": "Open product page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "h1, [data-testid='product-title'], [itemprop='name']",
+      "timeout": 15000,
+      "label": "Wait for product page to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page fully render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll to load more"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll further"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const titleEl = document.querySelector('h1, [data-testid=\"product-title\"], [itemprop=\"name\"]'); const priceEl = document.querySelector('[itemprop=\"price\"], [data-testid=\"price-wrap\"], [class*=\"price-characteristic\"]'); const ratingEl = document.querySelector('[itemprop=\"ratingValue\"], [class*=\"rating\"] [class*=\"stars\"], [data-testid=\"reviews-stars\"]'); const reviewCountEl = document.querySelector('[itemprop=\"reviewCount\"], [class*=\"review-count\"], [data-testid=\"reviews-count\"]'); const descEl = document.querySelector('[data-testid=\"product-description\"], [class*=\"about-product\"], [class*=\"product-description\"]'); const sellerEl = document.querySelector('[data-testid=\"seller-name\"], [class*=\"seller-name\"], [class*=\"sold-shipped\"]'); const availEl = document.querySelector('[data-testid=\"add-to-cart-section\"], [class*=\"availability\"], [class*=\"fulfillment-badge\"]'); const specs = {}; const specRows = document.querySelectorAll('[class*=\"specification\"] tr, [class*=\"specs\"] tr, [data-testid=\"product-specifications\"] tr'); specRows.forEach(function(row) { const cells = row.querySelectorAll('td, th'); if (cells.length >= 2) { specs[cells[0].textContent.trim()] = cells[1].textContent.trim(); } }); const images = []; const imgEls = document.querySelectorAll('[data-testid=\"hero-image\"] img, [class*=\"product-image\"] img, [class*=\"carousel\"] img'); imgEls.forEach(function(img) { const src = img.getAttribute('src') || ''; if (src && !images.includes(src)) images.push(src); }); const features = []; const featureEls = document.querySelectorAll('[class*=\"about-product\"] li, [class*=\"product-highlights\"] li, [class*=\"feature\"] li'); featureEls.forEach(function(el) { features.push(el.textContent.trim()); }); return { title: titleEl ? titleEl.textContent.trim() : '', price: priceEl ? priceEl.textContent.trim() : '', rating: ratingEl ? ratingEl.textContent.trim() : '', review_count: reviewCountEl ? reviewCountEl.textContent.trim() : '', description: descEl ? descEl.textContent.trim().substring(0, 1500) : '', seller: sellerEl ? sellerEl.textContent.trim() : '', availability: availEl ? availEl.textContent.trim().substring(0, 200) : '', features: features.slice(0, 15), specifications: specs, images: images.slice(0, 8), url: window.location.href }",
+      "name": "product_data",
+      "label": "Extract product details"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "id": "bluesky-scrape-post",
+  "name": "bluesky_scrape_post",
+  "description": "Scrape a specific Bluesky post and its thread. Returns post content, author, engagement stats, replies, and embedded content.",
+  "version": "1.0.0",
+  "parameters": [
+    { "name": "post_url", "type": "string", "description": "Bluesky post URL (e.g. 'https://bsky.app/profile/user.bsky.social/post/abc123')", "required": true }
+  ],
+  "steps": [
+    { "action": "navigate", "url": "{{post_url}}", "label": "Open post" },
+    { "action": "waitForSelector", "selector": "[data-testid='postText'], [class*='Post']", "timeout": 15000, "label": "Wait for post" },
+    { "action": "wait", "ms": 2000 },
+    { "action": "scroll", "direction": "down", "amount": 1500, "label": "Scroll for replies" },
+    { "action": "wait", "ms": 1500 },
+    {
+      "action": "code",
+      "code": "const mainPost = document.querySelector('[data-testid=\"postThreadItem\"]:first-child, [class*=\"ThreadPost\"]'); const authorEl = mainPost ? mainPost.querySelector('[data-testid=\"profileHeaderDisplayName\"], [class*=\"displayName\"]') : document.querySelector('[class*=\"displayName\"]'); const handleEl = mainPost ? mainPost.querySelector('[class*=\"handle\"]') : document.querySelector('[class*=\"handle\"]'); const contentEl = document.querySelector('[data-testid=\"postText\"]'); const likesEl = document.querySelector('[data-testid=\"likeCount\"]'); const repostsEl = document.querySelector('[data-testid=\"repostCount\"]'); const repliesCountEl = document.querySelector('[data-testid=\"replyCount\"]'); const timeEl = document.querySelector('time'); const imgEl = document.querySelector('[data-testid=\"postMedia\"] img'); const replies = []; const replyEls = document.querySelectorAll('[data-testid=\"feedItem\"], [data-testid=\"postThreadItem\"]'); for (let i = 1; i < Math.min(replyEls.length, 15); i++) { const el = replyEls[i]; const rAuthorEl = el.querySelector('[class*=\"displayName\"]'); const rContentEl = el.querySelector('[data-testid=\"postText\"]'); const rLikesEl = el.querySelector('[data-testid=\"likeCount\"]'); const rTimeEl = el.querySelector('time'); replies.push({ author: rAuthorEl ? rAuthorEl.textContent.trim() : '', content: rContentEl ? rContentEl.textContent.trim().substring(0, 300) : '', likes: rLikesEl ? rLikesEl.textContent.trim() : '', time: rTimeEl ? rTimeEl.textContent.trim() : '' }); } return { author: authorEl ? authorEl.textContent.trim() : '', handle: handleEl ? handleEl.textContent.trim() : '', content: contentEl ? contentEl.textContent.trim() : '', likes: likesEl ? likesEl.textContent.trim() : '', reposts: repostsEl ? repostsEl.textContent.trim() : '', reply_count: repliesCountEl ? repliesCountEl.textContent.trim() : '', time: timeEl ? timeEl.textContent.trim() : '', has_image: !!imgEl, image: imgEl ? imgEl.getAttribute('src') : '', replies: replies, url: window.location.href }",
+      "name": "post_data",
+      "label": "Extract post and thread"
+    }
+  ]
+}

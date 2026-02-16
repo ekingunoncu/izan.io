@@ -1,0 +1,116 @@
+{
+  "nav": {
+    "browse": "Keşfet",
+    "submit": "Gönder",
+    "signIn": "Giriş yap",
+    "signOut": "Çıkış yap",
+    "submitAgent": "Agent Gönder"
+  },
+  "hero": {
+    "badge": "Topluluk Agent Pazaryeri",
+    "title": "izan.io için AI Agent'ları Keşfet",
+    "titleBrand": "izan.io",
+    "description": "Topluluk tarafından oluşturulan agent'ları keşfedin, kendi agent'ınızı paylaşın ve izan.io'yu güçlü AI asistanlarıyla genişletin. GitHub PR ile gönderin- herkes katkıda bulunabilir.",
+    "browseAgents": "Agent'ları Keşfet",
+    "submitYourAgent": "Agent'ını Gönder",
+    "agents": "Agent",
+    "contributors": "Katkıda Bulunan"
+  },
+  "home": {
+    "featured": "Öne Çıkan Agent'lar",
+    "viewAll": "Tümünü gör",
+    "browseByCategory": "Kategoriye Göre Keşfet",
+    "shareTitle": "Agent'ını Paylaş",
+    "shareDescription": "Harika bir agent mi oluşturdunuz? GitHub pull request ile pazaryerine gönderin. Birleştirildiğinde herkes için yayında."
+  },
+  "agents": {
+    "title": "Agent'ları Keşfet",
+    "available": "{{count}} topluluk agent'ı mevcut",
+    "loading": "Agent'lar yükleniyor...",
+    "search": "Agent ara...",
+    "newest": "En yeni",
+    "alphabetical": "Alfabetik",
+    "all": "Tümü",
+    "noResults": "Aramanızla eşleşen agent bulunamadı.",
+    "notFound": "Agent Bulunamadı",
+    "notFoundDesc": "Bu agent mevcut değil veya henüz yayınlanmamış.",
+    "backToAgents": "Agent'lara dön",
+    "systemPrompt": "Sistem Prompt'u",
+    "examplePrompts": "Örnek Prompt'lar",
+    "useInIzan": "izan.io'da Kullan",
+    "downloadForIzan": "izan.io için İndir",
+    "mcpServers": "Gerekli MCP Sunucuları",
+    "macroTools": "Makro Araçları",
+    "noMCPs": "MCP sunucusu gerekmiyor",
+    "relatedIn": "{{category}} Kategorisindeki İlgili Agent'lar"
+  },
+  "submit": {
+    "title": "Agent Gönder",
+    "description": "Agent'ınızı izan.io topluluğuyla paylaşın.",
+    "signInRequired": "Agent'ınızı pazaryerine göndermek için GitHub ile giriş yapın.",
+    "signInWithGitHub": "GitHub ile Giriş Yap",
+    "steps": {
+      "basicInfo": "Temel Bilgiler",
+      "systemPrompt": "Sistem Prompt'u",
+      "mcpServers": "MCP Sunucuları",
+      "config": "Yapılandırma",
+      "preview": "Önizleme"
+    },
+    "fields": {
+      "name": "Ad",
+      "namePlaceholder": "ör. SEO Uzmanı",
+      "slug": "Slug",
+      "slugPlaceholder": "seo-uzmani",
+      "slugHint": "URL dostu tanımlayıcı. Küçük harf, sadece tire.",
+      "description": "Açıklama",
+      "descriptionPlaceholder": "Agent'ınızın ne yaptığının kısa açıklaması...",
+      "icon": "İkon (emoji)",
+      "iconPlaceholder": "ör. 🔍",
+      "category": "Kategori",
+      "systemPrompt": "Sistem Prompt'u",
+      "systemPromptPlaceholder": "Sen bir uzmansın...",
+      "characters": "{{count}} / 10.000 karakter",
+      "tags": "Etiketler",
+      "addTag": "Etiket ekle...",
+      "add": "Ekle",
+      "examplePrompts": "Örnek Prompt'lar",
+      "addAnother": "Bir tane daha ekle",
+      "mcpServers": "Gerekli MCP Sunucuları",
+      "mcpServersHint": "Bu agent'ın ihtiyaç duyduğu MCP sunucuları. Kullanıcılar agent'ı indirdiğinde otomatik olarak eklenir.",
+      "mcpName": "Sunucu Adı",
+      "mcpNamePlaceholder": "ör. Hava Durumu API",
+      "mcpUrl": "Sunucu URL'si",
+      "mcpUrlPlaceholder": "https://mcp.example.com/sse",
+      "mcpDescription": "Açıklama",
+      "mcpDescriptionPlaceholder": "Bu MCP sunucusunun sağladığı...",
+      "addMCP": "MCP Sunucusu Ekle",
+      "removeMCP": "Kaldır",
+      "macros": "Makro Araçları",
+      "macrosHint": "izan.io'dan dışa aktarılmış makro/otomasyon JSON dosyalarını yükleyin. Bu tarayıcı otomasyon araçları agent'ınızla birlikte paketlenir.",
+      "uploadMacro": "Makro JSON Yükle",
+      "macroToolCount": "araç"
+    },
+    "back": "Geri",
+    "next": "İleri",
+    "submitting": "Gönderiliyor...",
+    "submitAgent": "Agent Gönder",
+    "success": {
+      "title": "Agent Gönderildi!",
+      "description": "Pull request'iniz oluşturuldu. İncelenip birleştirildiğinde agent'ınız zihin.io'da yayında olacak.",
+      "viewPR": "Pull Request'i Görüntüle"
+    }
+  },
+  "footer": {
+    "browseAgents": "Agent'ları Keşfet",
+    "submitAgent": "Agent Gönder",
+    "tagline": "izan.io için topluluk agent pazaryeri",
+    "product": "Ürün",
+    "community": "Topluluk"
+  },
+  "auth": {
+    "completingSignIn": "Giriş tamamlanıyor...",
+    "noCode": "Yetkilendirme kodu alınamadı",
+    "failed": "Kimlik doğrulama başarısız",
+    "backToHome": "Ana sayfaya dön"
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "id": "calendar-list-calendars",
+  "name": "calendar_list_calendars",
+  "description": "List all calendars visible in Google Calendar. Returns calendar names, colors, and whether they are currently checked (visible) in the sidebar.",
+  "version": "1.0.0",
+  "parameters": [],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://calendar.google.com/calendar/r",
+      "label": "Open Google Calendar"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[role='main'], [data-eventid], .FAxxKc",
+      "timeout": 20000,
+      "label": "Wait for calendar to load"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Let calendar and sidebar fully render"
+    },
+    {
+      "action": "code",
+      "code": "const calendars = []; const sidebarItems = document.querySelectorAll('[class*=\"calendar-list\"] li, .side-panel li, [data-calendarid], [role=\"listitem\"], li[data-calendarid]'); if (sidebarItems.length > 0) { sidebarItems.forEach(item => { const label = item.getAttribute('aria-label') || item.getAttribute('data-calendarid') || ''; const nameEl = item.querySelector('span, label, .calendar-label'); const name = nameEl ? nameEl.textContent.trim() : label || item.textContent.trim(); if (!name || name.length > 100) return; const checkbox = item.querySelector('input[type=\"checkbox\"], [role=\"checkbox\"]'); const isVisible = checkbox ? (checkbox.checked || checkbox.getAttribute('aria-checked') === 'true') : true; const colorEl = item.querySelector('[style*=\"background\"], .calendar-color-bullet, svg circle, [class*=\"color\"]'); let color = ''; if (colorEl) { const style = window.getComputedStyle(colorEl); color = style.backgroundColor || colorEl.getAttribute('fill') || ''; } const calId = item.getAttribute('data-calendarid') || ''; calendars.push({ name: name.substring(0, 100), calendar_id: calId, visible: isVisible, color: color }); }); } if (calendars.length === 0) { const allLabels = document.querySelectorAll('[aria-label*=\"calendar\" i], [data-calendarid]'); allLabels.forEach(el => { const name = el.getAttribute('aria-label') || el.getAttribute('data-calendarid') || el.textContent.trim(); if (!name) return; const calId = el.getAttribute('data-calendarid') || ''; const style = window.getComputedStyle(el); calendars.push({ name: name.substring(0, 100), calendar_id: calId, visible: true, color: style.backgroundColor || '' }); }); } const uniqueCalendars = []; const seenNames = new Set(); calendars.forEach(c => { const key = c.name.toLowerCase(); if (!seenNames.has(key)) { seenNames.add(key); uniqueCalendars.push(c); } }); return { calendar_count: uniqueCalendars.length, calendars: uniqueCalendars }",
+      "name": "calendars_result",
+      "label": "Scrape sidebar calendar list"
+    }
+  ]
+}

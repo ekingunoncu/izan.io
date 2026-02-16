@@ -1,0 +1,48 @@
+{
+  "id": "shopify-scrape-product",
+  "name": "shopify_scrape_product",
+  "description": "Scrape detailed product information from a Shopify product page including title, price, variants, images, description, and availability.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "product_url",
+      "type": "string",
+      "description": "Shopify product URL (e.g. 'https://example.myshopify.com/products/product-handle')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{product_url}}",
+      "label": "Open product page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "body",
+      "timeout": 15000,
+      "label": "Wait for product page to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll to load images and content"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const titleEl = document.querySelector('.product__title h1, .product-single__title, h1.product__title, [class*=\"ProductTitle\"], h1[itemprop=\"name\"], .product_title'); const title = titleEl ? titleEl.textContent.trim() : document.title; const priceEl = document.querySelector('.price-item--regular, .product__price, .product-single__price, [class*=\"ProductPrice\"], .price .money, [itemprop=\"price\"]'); const price = priceEl ? priceEl.textContent.trim() : ''; const comparePriceEl = document.querySelector('.price-item--sale, .product__price--compare, .product-single__price--compare-at, s .money, .price--compare'); const comparePrice = comparePriceEl ? comparePriceEl.textContent.trim() : ''; const descEl = document.querySelector('.product__description, .product-single__description, [class*=\"ProductDescription\"], .product-description, [itemprop=\"description\"]'); const description = descEl ? descEl.textContent.trim().substring(0, 1500) : ''; const images = []; document.querySelectorAll('.product__media img, .product-single__photo img, .product__photo img, [class*=\"ProductImage\"] img, .product-images img, .product-gallery img').forEach(function(img) { const src = img.src || img.dataset.src || ''; if (src && !images.includes(src)) images.push(src); }); if (images.length === 0) { document.querySelectorAll('img[src*=\"/products/\"], img[srcset*=\"/products/\"]').forEach(function(img) { const src = img.src || ''; if (src && !images.includes(src)) images.push(src); }); } const variants = []; document.querySelectorAll('.product-form__input select option, .single-option-selector option, [class*=\"variant\"] option').forEach(function(opt) { if (opt.value && opt.textContent.trim()) { variants.push({ value: opt.value, label: opt.textContent.trim(), available: !opt.disabled }); } }); const vendorEl = document.querySelector('.product__vendor, .product-single__vendor, [class*=\"ProductVendor\"], [itemprop=\"brand\"]'); const vendor = vendorEl ? vendorEl.textContent.trim() : ''; const typeEl = document.querySelector('.product__type, [class*=\"ProductType\"]'); const productType = typeEl ? typeEl.textContent.trim() : ''; const skuEl = document.querySelector('[class*=\"sku\"], [itemprop=\"sku\"]'); const sku = skuEl ? skuEl.textContent.trim() : ''; const availabilityEl = document.querySelector('[class*=\"availability\"], .product-form__submit, button[name=\"add\"], .add-to-cart'); let availability = 'unknown'; if (availabilityEl) { const text = availabilityEl.textContent.trim().toLowerCase(); if (text.includes('sold out') || text.includes('unavailable')) availability = 'out_of_stock'; else availability = 'in_stock'; } const ratingEl = document.querySelector('[class*=\"rating\"], .spr-badge-starrating, .shopify-product-reviews-badge'); const rating = ratingEl ? ratingEl.textContent.trim() : ''; return { title: title, price: price, compare_at_price: comparePrice, description: description, vendor: vendor, product_type: productType, sku: sku, availability: availability, rating: rating, image_count: images.length, images: images.slice(0, 10), variant_count: variants.length, variants: variants.slice(0, 20), url: window.location.href }",
+      "name": "product_data",
+      "label": "Extract product details"
+    }
+  ]
+}

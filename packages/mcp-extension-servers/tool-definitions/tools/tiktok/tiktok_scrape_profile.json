@@ -1,0 +1,48 @@
+{
+  "id": "tiktok-scrape-profile",
+  "name": "tiktok_scrape_profile",
+  "description": "Scrape a TikTok user's profile. Returns username, display name, bio, follower/following/likes counts, and a list of recent videos.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "username",
+      "type": "string",
+      "description": "TikTok username without @ (e.g. 'charlidamelio', 'khaby.lame')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://www.tiktok.com/@{{username}}",
+      "label": "Open user profile"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[data-e2e=\"user-subtitle\"], [data-e2e=\"followers-count\"]",
+      "timeout": 15000,
+      "label": "Wait for profile to load"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Let profile fully render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 800,
+      "label": "Scroll to load recent videos"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const displayNameEl = document.querySelector('[data-e2e=\"user-title\"], h1[data-e2e=\"user-title\"], .share-title'); const usernameEl = document.querySelector('[data-e2e=\"user-subtitle\"], h2[data-e2e=\"user-subtitle\"], .share-sub-title'); const bioEl = document.querySelector('[data-e2e=\"user-bio\"], .share-desc'); const followingEl = document.querySelector('[data-e2e=\"following-count\"], strong[title]'); const followersEl = document.querySelector('[data-e2e=\"followers-count\"]'); const likesEl = document.querySelector('[data-e2e=\"likes-count\"]'); const avatarEl = document.querySelector('[data-e2e=\"user-avatar\"] img, .avatar img, img[class*=\"avatar\"]'); const verifiedEl = document.querySelector('[data-e2e=\"verify-badge\"], svg[class*=\"verified\"]'); const videos = []; const videoItems = document.querySelectorAll('[data-e2e=\"user-post-item\"], [data-e2e=\"user-post-item-list\"] > div, .video-feed-item'); for (let i = 0; i < Math.min(videoItems.length, 12); i++) { const item = videoItems[i]; const linkEl = item.querySelector('a[href*=\"/video/\"]'); const descEl = item.querySelector('[data-e2e=\"user-post-item-desc\"] a, a[title]'); const viewsEl = item.querySelector('[data-e2e=\"video-views\"], strong.video-count, .view-count'); const thumbEl = item.querySelector('img[src*=\"tiktokcdn\"], img.poster, picture img'); videos.push({ description: descEl ? (descEl.getAttribute('title') || descEl.textContent.trim()).substring(0, 200) : '', views: viewsEl ? viewsEl.textContent.trim() : '', thumbnail: thumbEl ? thumbEl.src : '', url: linkEl ? linkEl.href : '' }); } return { display_name: displayNameEl ? displayNameEl.textContent.trim() : '', username: usernameEl ? usernameEl.textContent.trim() : '@{{username}}', bio: bioEl ? bioEl.textContent.trim().substring(0, 500) : '', following_count: followingEl ? followingEl.textContent.trim() : '', followers_count: followersEl ? followersEl.textContent.trim() : '', likes_count: likesEl ? likesEl.textContent.trim() : '', is_verified: !!verifiedEl, avatar: avatarEl ? avatarEl.src : '', video_count: videos.length, recent_videos: videos }",
+      "name": "profile_data",
+      "label": "Extract profile info and recent videos"
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "id": "quora-scrape-question",
+  "name": "quora_scrape_question",
+  "description": "Scrape a Quora question page. Returns the question, answer count, top answers with authors, upvotes, and content.",
+  "version": "1.0.0",
+  "parameters": [
+    { "name": "question_url", "type": "string", "description": "Quora question URL (e.g. 'https://www.quora.com/What-is-artificial-intelligence')", "required": true }
+  ],
+  "steps": [
+    { "action": "navigate", "url": "{{question_url}}", "label": "Open question page" },
+    { "action": "waitForSelector", "selector": "[class*='Question'], h1, [class*='question']", "timeout": 15000, "label": "Wait for page" },
+    { "action": "wait", "ms": 2000 },
+    { "action": "scroll", "direction": "down", "amount": 1500, "label": "Scroll through answers" },
+    { "action": "wait", "ms": 2000 },
+    { "action": "scroll", "direction": "down", "amount": 1500, "label": "Scroll further" },
+    { "action": "wait", "ms": 1500 },
+    {
+      "action": "code",
+      "code": "const questionEl = document.querySelector('[class*=\"question_text\"], [class*=\"Question\"] span, h1'); const answerCountEl = document.querySelector('[class*=\"answer-count\"], [class*=\"AnswerCount\"]'); const answers = []; const answerEls = document.querySelectorAll('[class*=\"Answer\"], [class*=\"answer\"][class*=\"base\"]'); for (let i = 0; i < Math.min(answerEls.length, 10); i++) { const el = answerEls[i]; const authorEl = el.querySelector('[class*=\"user\"] a, [class*=\"author\"] a, a[class*=\"name\"]'); const credentialEl = el.querySelector('[class*=\"credential\"], [class*=\"description\"]'); const contentEl = el.querySelector('[class*=\"inline\"], [class*=\"answer-content\"], [class*=\"formatted_q_text\"]'); const upvotesEl = el.querySelector('[class*=\"upvote\"] [class*=\"count\"], [class*=\"VoteButton\"]'); const dateEl = el.querySelector('[class*=\"date\"], time, a[href*=\"/answer/\"]'); answers.push({ author: authorEl ? authorEl.textContent.trim() : '', credential: credentialEl ? credentialEl.textContent.trim() : '', content: contentEl ? contentEl.textContent.trim().substring(0, 1500) : '', upvotes: upvotesEl ? upvotesEl.textContent.trim() : '', date: dateEl ? dateEl.textContent.trim() : '' }); } const relatedQuestions = []; document.querySelectorAll('[class*=\"related\"] a, [class*=\"Related\"] a').forEach(function(el) { const text = el.textContent.trim(); if (text.length > 10 && text.length < 200) relatedQuestions.push(text); }); return { question: questionEl ? questionEl.textContent.trim() : '', answer_count: answerCountEl ? answerCountEl.textContent.trim() : '', answers: answers, related_questions: relatedQuestions.slice(0, 10), url: window.location.href }",
+      "name": "question_data",
+      "label": "Extract question and answers"
+    }
+  ]
+}

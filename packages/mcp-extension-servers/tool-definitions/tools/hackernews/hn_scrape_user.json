@@ -1,0 +1,60 @@
+{
+  "id": "hn-scrape-user",
+  "name": "hn_scrape_user",
+  "description": "Scrape a Hacker News user profile. Returns username, karma, about text, account creation date, and their recent submissions.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "username",
+      "type": "string",
+      "description": "Hacker News username (e.g. 'dang', 'pg')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://news.ycombinator.com/user?id={{username}}",
+      "label": "Open user profile"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "table",
+      "timeout": 15000,
+      "label": "Wait for profile to load"
+    },
+    {
+      "action": "wait",
+      "ms": 1500,
+      "label": "Let page settle"
+    },
+    {
+      "action": "code",
+      "code": "const rows = document.querySelectorAll('table table tr'); let username = ''; let karma = ''; let about = ''; let created = ''; for (const row of rows) { const label = row.querySelector('td:first-child'); const value = row.querySelector('td:nth-child(2)'); if (!label || !value) continue; const labelText = label.textContent.trim().toLowerCase(); if (labelText.includes('user')) username = value.textContent.trim(); else if (labelText.includes('karma')) karma = value.textContent.trim(); else if (labelText.includes('about')) about = value.textContent.trim().slice(0, 1000); else if (labelText.includes('created')) created = value.textContent.trim(); } return { username: username || '{{username}}', karma: karma, about: about, created: created, profile_url: window.location.href }",
+      "name": "user_profile",
+      "label": "Extract user profile"
+    },
+    {
+      "action": "navigate",
+      "url": "https://news.ycombinator.com/submitted?id={{username}}",
+      "label": "Open user submissions"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".athing",
+      "timeout": 15000,
+      "label": "Wait for submissions"
+    },
+    {
+      "action": "wait",
+      "ms": 1500,
+      "label": "Let submissions load"
+    },
+    {
+      "action": "code",
+      "code": "const submissions = []; const storyRows = document.querySelectorAll('.athing'); for (let i = 0; i < Math.min(storyRows.length, 15); i++) { const row = storyRows[i]; const subtext = row.nextElementSibling; const titleEl = row.querySelector('.titleline > a'); const scoreEl = subtext ? subtext.querySelector('.score') : null; const ageEl = subtext ? subtext.querySelector('.age a') : null; let commentCount = '0'; if (subtext) { const links = subtext.querySelectorAll('a'); for (const link of links) { const text = link.textContent.trim(); if (text.includes('comment')) { commentCount = text.split('\\u00a0')[0] || text.split(' ')[0]; break; } } } submissions.push({ title: titleEl ? titleEl.textContent.trim() : '', url: titleEl ? titleEl.href : '', score: scoreEl ? scoreEl.textContent.trim() : '0 points', comment_count: commentCount, age: ageEl ? ageEl.textContent.trim() : '' }); } return { username: '{{username}}', submission_count: submissions.length, submissions: submissions }",
+      "name": "user_submissions",
+      "label": "Extract recent submissions"
+    }
+  ]
+}

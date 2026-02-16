@@ -1,0 +1,48 @@
+{
+  "id": "cmc-scrape-coin",
+  "name": "cmc_scrape_coin",
+  "description": "Scrape detailed information about a specific cryptocurrency from CoinMarketCap. Returns price, market cap, volume, circulating supply, price changes, description, and key stats.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "coin_slug",
+      "type": "string",
+      "description": "CoinMarketCap coin slug (e.g. 'bitcoin', 'ethereum', 'solana')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://coinmarketcap.com/currencies/{{coin_slug}}/",
+      "label": "Open coin page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[data-role='coin-name'], h1, h2",
+      "timeout": 15000,
+      "label": "Wait for coin page to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Let page data render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll for more content"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const nameEl = document.querySelector('[data-role=\"coin-name\"], h1 span, h2[class*=\"name\"]'); const symbolEl = document.querySelector('[data-role=\"coin-symbol\"], .nameSymbol, small, span[class*=\"symbol\"]'); const priceEl = document.querySelector('[data-test=\"text-cdp-price-display\"], .priceValue span, [class*=\"priceValue\"] span, div[class*=\"price\"] span'); const statsEls = document.querySelectorAll('[data-test=\"statsBlock\"] dt, [class*=\"statsBlock\"] dt, [class*=\"StatsBlock\"]'); const statsData = {}; const statItems = document.querySelectorAll('[data-test=\"statsBlock\"], [class*=\"statsItem\"], dl div, [class*=\"stat\"]'); statItems.forEach(function(item) { const label = item.querySelector('dt, .label, [class*=\"label\"], small'); const value = item.querySelector('dd, .value, [class*=\"value\"], span:not(small)'); if (label && value) { statsData[label.textContent.trim().toLowerCase().replace(/[^a-z0-9]/g, '_')] = value.textContent.trim(); } }); const changeEls = document.querySelectorAll('[class*=\"change\"], [data-test*=\"change\"], [class*=\"Change\"]'); const changes = {}; changeEls.forEach(function(el) { const text = el.textContent.trim(); if (text.includes('%')) { const parent = el.closest('[class*=\"1h\"], [class*=\"24h\"], [class*=\"7d\"], [class*=\"30d\"]'); if (parent) { const className = parent.className || ''; if (className.includes('1h')) changes['1h'] = text; else if (className.includes('24h')) changes['24h'] = text; else if (className.includes('7d')) changes['7d'] = text; else if (className.includes('30d')) changes['30d'] = text; } } }); const descEl = document.querySelector('[class*=\"description\"] p, .about-coin p, [data-test=\"coin-description\"] p, section p'); const description = descEl ? descEl.textContent.trim().substring(0, 1000) : ''; const tagEls = document.querySelectorAll('[class*=\"tag\"] a, [class*=\"badge\"] a, .coin-tags a'); const tags = []; tagEls.forEach(function(el) { const t = el.textContent.trim(); if (t && t.length < 50) tags.push(t); }); const linksEls = document.querySelectorAll('[class*=\"link\"] a, [data-test=\"coin-link\"] a, .coin-links a'); const links = []; linksEls.forEach(function(el) { links.push({ text: el.textContent.trim(), url: el.href }); }); const allTextContent = document.body.innerText; const marketCapMatch = allTextContent.match(/Market [Cc]ap[\\s\\S]*?\\$[\\d,.]+[BMTK]?/); const volumeMatch = allTextContent.match(/Volume \\(24h\\)[\\s\\S]*?\\$[\\d,.]+[BMTK]?/); return { name: nameEl ? nameEl.textContent.trim() : '{{coin_slug}}', symbol: symbolEl ? symbolEl.textContent.trim() : '', price: priceEl ? priceEl.textContent.trim() : '', stats: statsData, price_changes: changes, description: description, tags: tags.slice(0, 10), links: links.slice(0, 10), url: window.location.href }",
+      "name": "coin_data",
+      "label": "Extract coin details"
+    }
+  ]
+}

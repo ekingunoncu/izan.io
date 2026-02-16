@@ -1,0 +1,38 @@
+{
+  "id": "twitch-scrape-chat",
+  "name": "twitch_scrape_chat",
+  "description": "Scrape recent chat messages from a live Twitch stream. Returns chat messages with usernames, badges, message content, and timestamps.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "channel_name",
+      "type": "string",
+      "description": "Twitch channel name (e.g. 'shroud', 'pokimane')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://www.twitch.tv/{{channel_name}}",
+      "label": "Open stream page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[class*='chat-line'], [data-a-target='chat-line-message'], [class*='chat-scrollable']",
+      "timeout": 15000,
+      "label": "Wait for chat to load"
+    },
+    {
+      "action": "wait",
+      "ms": 5000,
+      "label": "Wait for chat messages to accumulate"
+    },
+    {
+      "action": "code",
+      "code": "const messages = []; const chatLines = document.querySelectorAll('[data-a-target=\"chat-line-message\"], [class*=\"chat-line__message\"], [class*=\"chat-line\"]'); for (let i = Math.max(0, chatLines.length - 50); i < chatLines.length; i++) { const el = chatLines[i]; const usernameEl = el.querySelector('[data-a-target=\"chat-message-username\"], [class*=\"chat-author\"], button[data-a-user]'); const messageEl = el.querySelector('[data-a-target=\"chat-message-text\"], [class*=\"text-fragment\"], span[class*=\"message\"]'); const badges = []; el.querySelectorAll('[class*=\"badge\"] img, [data-a-target=\"chat-badge\"]').forEach(function(badge) { const alt = badge.getAttribute('alt') || badge.getAttribute('aria-label') || ''; if (alt) badges.push(alt); }); if (usernameEl || messageEl) { messages.push({ username: usernameEl ? usernameEl.textContent.trim() : '', message: messageEl ? messageEl.textContent.trim() : el.textContent.trim().substring(0, 500), badges: badges }); } } const isLive = !!document.querySelector('[class*=\"live-indicator\"]'); const viewersEl = document.querySelector('[data-a-target=\"animated-channel-viewers-count\"]'); return { channel_name: '{{channel_name}}', is_live: isLive, viewer_count: viewersEl ? viewersEl.textContent.trim() : '', message_count: messages.length, messages: messages, url: window.location.href }",
+      "name": "chat_data",
+      "label": "Extract chat messages"
+    }
+  ]
+}

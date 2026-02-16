@@ -1,0 +1,48 @@
+{
+  "id": "tripadvisor-scrape-attraction",
+  "name": "tripadvisor_scrape_attraction",
+  "description": "Scrape attraction details from TripAdvisor. Returns attraction name, rating, review count, category, address, suggested duration, description, and tips.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "attraction_url",
+      "type": "string",
+      "description": "Full TripAdvisor attraction URL (e.g. 'https://www.tripadvisor.com/Attraction_Review-g187147-d...')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{attraction_url}}",
+      "label": "Open attraction page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "h1#HEADING, [data-test-target='attraction-detail-info'], [class*='AttractionHeader']",
+      "timeout": 15000,
+      "label": "Wait for attraction page to load"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Let page fully render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1200,
+      "label": "Scroll to load more content"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const nameEl = document.querySelector('h1#HEADING, h1[data-test-target=\"top-info-header\"], h1[class*=\"attraction\"]'); const name = nameEl ? nameEl.textContent.trim() : ''; const ratingEl = document.querySelector('svg[aria-label*=\"bubble\"], .ui_bubble_rating, [class*=\"ratingValue\"]'); const rating = ratingEl ? (ratingEl.getAttribute('aria-label') || ratingEl.textContent.trim() || '') : ''; const reviewCountEl = document.querySelector('a[href*=\"#REVIEWS\"] span, [class*=\"reviewCount\"], [data-test-target=\"review-count\"]'); const reviewCount = reviewCountEl ? reviewCountEl.textContent.trim() : ''; const rankEl = document.querySelector('[class*=\"ranking\"], [data-test-target=\"attraction-ranking\"], .popRanking'); const ranking = rankEl ? rankEl.textContent.trim() : ''; const addressEl = document.querySelector('[class*=\"address\"], [data-test-target=\"attraction-address\"], span[class*=\"street\"], .address'); const address = addressEl ? addressEl.textContent.trim() : ''; const categoryEls = document.querySelectorAll('[class*=\"tag\"] a, [class*=\"category\"] a, .header_links a, [data-test-target=\"attraction-detail-info\"] a'); const categories = []; for (const el of categoryEls) { const text = el.textContent.trim(); if (text && text.length < 50 && !categories.includes(text)) categories.push(text); } const durationEl = document.querySelector('[class*=\"duration\"], [class*=\"suggestedDuration\"], [data-test-target=\"suggested-duration\"]'); const duration = durationEl ? durationEl.textContent.trim() : ''; const descEl = document.querySelector('[class*=\"description\"], [data-test-target=\"about-description\"], .attractionDescription, [class*=\"aboutText\"]'); const description = descEl ? descEl.textContent.trim().substring(0, 500) : ''; const hoursEl = document.querySelector('[class*=\"hours\"], [data-test-target=\"attraction-hours\"], .operatingHours'); const hours = hoursEl ? hoursEl.textContent.trim().substring(0, 200) : ''; const priceEl = document.querySelector('[class*=\"price\"], [class*=\"ticket\"], [data-test-target=\"attraction-price\"]'); const price = priceEl ? priceEl.textContent.trim() : ''; const imgEl = document.querySelector('img[class*=\"photo\"], [class*=\"heroPhoto\"] img, .attractions-detail-hero img'); const image = imgEl ? imgEl.src : ''; return { name: name, rating: rating, review_count: reviewCount, ranking: ranking, categories: categories.slice(0, 10), address: address, suggested_duration: duration, hours: hours, price: price, description: description, image: image, url: window.location.href }",
+      "name": "result",
+      "label": "Extract attraction details"
+    }
+  ]
+}

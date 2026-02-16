@@ -1,0 +1,58 @@
+{
+  "id": "expedia-scrape-reviews",
+  "name": "expedia_scrape_reviews",
+  "description": "Scrape reviews from an Expedia hotel page. Returns guest reviews with rating, title, content, date, traveler type, and positive/negative highlights.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "hotel_url",
+      "type": "string",
+      "description": "Expedia hotel URL (e.g. 'https://www.expedia.com/Hotel-Name.h12345.Hotel-Information')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{hotel_url}}",
+      "label": "Open hotel page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "h1, [data-stid='content-hotel-title']",
+      "timeout": 15000,
+      "label": "Wait for page to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 4000,
+      "label": "Scroll to reviews section"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 2000,
+      "label": "Scroll to load more reviews"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const reviews = []; const reviewEls = document.querySelectorAll('[data-stid*=\"review\"], [class*=\"review-card\"], [class*=\"ReviewCard\"], [itemprop=\"review\"]'); for (let i = 0; i < Math.min(reviewEls.length, 20); i++) { const el = reviewEls[i]; const ratingEl = el.querySelector('[class*=\"rating\"] span, [class*=\"score\"]'); const titleEl = el.querySelector('h3, h4, [class*=\"review-title\"], [class*=\"title\"]'); const contentEl = el.querySelector('[class*=\"review-text\"], [class*=\"review-body\"], p'); const dateEl = el.querySelector('time, [class*=\"date\"], [class*=\"timestamp\"]'); const authorEl = el.querySelector('[class*=\"author\"], [class*=\"reviewer\"]'); const travelerTypeEl = el.querySelector('[class*=\"traveler\"], [class*=\"trip-type\"]'); const positiveEl = el.querySelector('[class*=\"positive\"], [class*=\"liked\"]'); const negativeEl = el.querySelector('[class*=\"negative\"], [class*=\"disliked\"]'); reviews.push({ rating: ratingEl ? ratingEl.textContent.trim() : '', title: titleEl ? titleEl.textContent.trim() : '', content: contentEl ? contentEl.textContent.trim().substring(0, 500) : '', date: dateEl ? (dateEl.getAttribute('datetime') || dateEl.textContent.trim()) : '', author: authorEl ? authorEl.textContent.trim() : '', traveler_type: travelerTypeEl ? travelerTypeEl.textContent.trim() : '', positive: positiveEl ? positiveEl.textContent.trim().substring(0, 200) : '', negative: negativeEl ? negativeEl.textContent.trim().substring(0, 200) : '' }); } const overallEl = document.querySelector('[class*=\"overall-rating\"], [class*=\"guest-rating\"] span'); const totalEl = document.querySelector('[class*=\"review-count\"], [class*=\"total-reviews\"]'); return { overall_rating: overallEl ? overallEl.textContent.trim() : '', total_reviews: totalEl ? totalEl.textContent.trim() : '', scraped_count: reviews.length, reviews: reviews, url: window.location.href }",
+      "name": "reviews_data",
+      "label": "Extract reviews"
+    }
+  ]
+}

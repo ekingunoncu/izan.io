@@ -1,0 +1,48 @@
+{
+  "id": "shopify-scrape-store",
+  "name": "shopify_scrape_store",
+  "description": "Scrape a Shopify store's homepage to extract store name, description, product count, featured products, and general store information.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "store_url",
+      "type": "string",
+      "description": "Shopify store URL (e.g. 'https://example.myshopify.com' or 'https://shop.example.com')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{store_url}}",
+      "label": "Open Shopify store"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "body",
+      "timeout": 15000,
+      "label": "Wait for store page to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1500,
+      "label": "Scroll to load more content"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const titleEl = document.querySelector('meta[property=\"og:site_name\"]') || document.querySelector('title'); const storeName = titleEl ? (titleEl.content || titleEl.textContent || '').trim() : document.title; const descEl = document.querySelector('meta[name=\"description\"]') || document.querySelector('meta[property=\"og:description\"]'); const description = descEl ? (descEl.content || '').trim() : ''; const logoEl = document.querySelector('.header__heading-logo img, .site-header__logo img, header img[src*=\"logo\"], .header img'); const logoUrl = logoEl ? logoEl.src : ''; const productLinks = document.querySelectorAll('a[href*=\"/products/\"]'); const uniqueProducts = new Set(); productLinks.forEach(function(a) { const href = a.getAttribute('href'); if (href) { const match = href.match(/\\/products\\/([^?#\\/]+)/); if (match) uniqueProducts.add(match[1]); } }); const featuredProducts = []; const productCards = document.querySelectorAll('.product-card, .grid__item .card, .product-item, .collection-product-card, [class*=\"ProductCard\"], [class*=\"product-card\"]'); for (let i = 0; i < Math.min(productCards.length, 8); i++) { const card = productCards[i]; const nameEl = card.querySelector('.card__heading a, .product-card__title, .product-item__title, h3 a, h2 a, .card__text a'); const priceEl = card.querySelector('.price-item, .product-card__price, .product-item__price, .price .money, [class*=\"price\"] span'); const imgEl = card.querySelector('img'); featuredProducts.push({ name: nameEl ? nameEl.textContent.trim() : '', price: priceEl ? priceEl.textContent.trim() : '', image: imgEl ? imgEl.src : '' }); } const navLinks = []; document.querySelectorAll('nav a, .header__menu a, .site-nav a').forEach(function(a) { const text = a.textContent.trim(); if (text && text.length < 50) navLinks.push({ text: text, href: a.href }); }); const currencyEl = document.querySelector('[data-currency], .currency-selector option[selected], meta[itemprop=\"priceCurrency\"]'); const currency = currencyEl ? (currencyEl.content || currencyEl.value || currencyEl.textContent || '').trim() : ''; return { store_name: storeName, description: description, logo_url: logoUrl, url: window.location.href, visible_product_count: uniqueProducts.size, featured_products: featuredProducts, navigation: navLinks.slice(0, 15), currency: currency }",
+      "name": "store_data",
+      "label": "Extract store information"
+    }
+  ]
+}

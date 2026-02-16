@@ -1,0 +1,58 @@
+{
+  "id": "udemy-scrape-curriculum",
+  "name": "udemy_scrape_curriculum",
+  "description": "Scrape the full curriculum/content outline from a Udemy course. Returns all sections and lectures with duration and content type.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "course_url",
+      "type": "string",
+      "description": "Udemy course URL (e.g. 'https://www.udemy.com/course/the-web-developer-bootcamp/')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{course_url}}",
+      "label": "Open course page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "h1, [data-purpose='lead-title']",
+      "timeout": 15000,
+      "label": "Wait for page to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 2000,
+      "label": "Scroll to curriculum section"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1500,
+      "label": "Scroll to show more"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const expandBtns = document.querySelectorAll('[data-purpose=\"expand-toggle\"], button[class*=\"expand\"], [class*=\"show-more\"]'); expandBtns.forEach(function(btn) { try { btn.click(); } catch(e) {} }); return new Promise(function(resolve) { setTimeout(function() { const titleEl = document.querySelector('h1, [data-purpose=\"lead-title\"]'); const statsEl = document.querySelector('[data-purpose=\"curriculum-stats\"], [class*=\"content-length\"]'); const sections = []; const sectionEls = document.querySelectorAll('[data-purpose=\"curriculum-section-container\"], [class*=\"section--section\"], [class*=\"curriculum-section\"]'); for (let i = 0; i < Math.min(sectionEls.length, 30); i++) { const sec = sectionEls[i]; const secTitleEl = sec.querySelector('[class*=\"section-title\"], button span, h3'); const secLectureCountEl = sec.querySelector('[class*=\"section-content\"], [class*=\"lecture-count\"]'); const lectures = []; const lectureEls = sec.querySelectorAll('[class*=\"curriculum-item\"], [class*=\"lecture\"], li'); for (let j = 0; j < Math.min(lectureEls.length, 20); j++) { const lec = lectureEls[j]; const lecTitleEl = lec.querySelector('[class*=\"item-title\"], span[class*=\"title\"], [class*=\"lecture-name\"]'); const lecDurationEl = lec.querySelector('[class*=\"content-summary\"], [class*=\"duration\"], span:last-child'); const lecTypeEl = lec.querySelector('[class*=\"item-icon\"], [class*=\"type\"]'); if (lecTitleEl) { lectures.push({ title: lecTitleEl.textContent.trim(), duration: lecDurationEl ? lecDurationEl.textContent.trim() : '', type: lecTypeEl ? lecTypeEl.textContent.trim() : 'lecture' }); } } sections.push({ title: secTitleEl ? secTitleEl.textContent.trim() : '', lecture_count: lectures.length, info: secLectureCountEl ? secLectureCountEl.textContent.trim() : '', lectures: lectures }); } resolve({ course_title: titleEl ? titleEl.textContent.trim() : '', stats: statsEl ? statsEl.textContent.trim() : '', section_count: sections.length, sections: sections, url: window.location.href }); }, 1000); })",
+      "name": "curriculum_data",
+      "label": "Extract curriculum"
+    }
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "id": "booking-compare-prices",
+  "name": "booking_compare_prices",
+  "description": "Compare room prices for a Booking.com hotel across different dates. Navigates to the hotel page with specified check-in and check-out dates and scrapes all available room options with prices, room types, meal plans, and cancellation policies.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "hotel_url",
+      "type": "string",
+      "description": "Booking.com hotel URL (e.g. 'https://www.booking.com/hotel/fr/example-paris.html')",
+      "required": true
+    },
+    {
+      "name": "checkin",
+      "type": "string",
+      "description": "Check-in date in YYYY-MM-DD format (e.g. '2025-06-15')",
+      "required": true
+    },
+    {
+      "name": "checkout",
+      "type": "string",
+      "description": "Check-out date in YYYY-MM-DD format (e.g. '2025-06-18')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{hotel_url}}?checkin={{checkin}}&checkout={{checkout}}",
+      "label": "Open hotel page with dates"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "h2.pp-header__title, [data-testid='header-title'], .hp__hotel-name, #hp_hotel_name",
+      "timeout": 15000,
+      "label": "Wait for hotel page to load"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Let page and prices render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1500,
+      "label": "Scroll to room availability section"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll further for all rooms"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const nameEl = document.querySelector('h2.pp-header__title, [data-testid=\"header-title\"], .hp__hotel-name, #hp_hotel_name'); const hotelName = nameEl ? nameEl.textContent.trim() : ''; const rooms = []; const roomBlocks = document.querySelectorAll('.hprt-table tr, [data-testid=\"availability-row\"], table.hprt-table tbody tr, .js-rt-block-row'); roomBlocks.forEach(function(el, idx) { if (idx >= 20) return; const roomNameEl = el.querySelector('.hprt-roomtype-icon-link, [data-testid=\"room-type-link\"], a.hprt-roomtype-link, .room_link strong'); const priceEl = el.querySelector('.hprt-price-price, [data-testid=\"price-and-discounted-price\"], .bui-price-display__value, .prco-valign-middle-helper'); const originalPriceEl = el.querySelector('.hprt-price-price-original, .bui-price-display__original, .prco-text-nowrap-helper del'); const occupancyEl = el.querySelector('.hprt-occupancy-occupancy-info, [data-testid=\"occupancy-popup\"], .hprt-occupancy-occupancy-info .invisible_spoken'); const mealEl = el.querySelector('.hprt-mealplan, [data-testid=\"meal-plan\"], .hprt-board-type'); const cancellationEl = el.querySelector('.hprt-conditions, [data-testid=\"cancellation-policy\"], .room-info__cancellation'); const bedEl = el.querySelector('.hprt-roomtype-bed, .hprt-bedcell, [data-testid=\"bed-type\"]'); if (roomNameEl || priceEl) { rooms.push({ room_type: roomNameEl ? roomNameEl.textContent.trim() : '', price: priceEl ? priceEl.textContent.trim() : '', original_price: originalPriceEl ? originalPriceEl.textContent.trim() : '', bed_type: bedEl ? bedEl.textContent.trim() : '', occupancy: occupancyEl ? occupancyEl.textContent.trim() : '', meal_plan: mealEl ? mealEl.textContent.trim() : '', cancellation: cancellationEl ? cancellationEl.textContent.trim().substring(0, 200) : '' }); } }); const taxInfoEl = document.querySelector('.hprt-price-tax-rate, [data-testid=\"taxes-and-charges\"], .prd-taxes-and-fees-under-price'); return { hotel_name: hotelName, checkin: `{{checkin}}`, checkout: `{{checkout}}`, tax_info: taxInfoEl ? taxInfoEl.textContent.trim() : '', room_count: rooms.length, rooms: rooms, url: window.location.href }",
+      "name": "price_comparison",
+      "label": "Extract room prices for dates"
+    }
+  ]
+}

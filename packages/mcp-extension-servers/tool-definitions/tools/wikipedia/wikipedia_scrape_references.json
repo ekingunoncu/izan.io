@@ -1,0 +1,58 @@
+{
+  "id": "wikipedia-scrape-references",
+  "name": "wikipedia_scrape_references",
+  "description": "Scrape references and citations from a Wikipedia article. Returns reference list with citation text, URLs, authors, and publication details.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "article_url",
+      "type": "string",
+      "description": "Wikipedia article URL (e.g. 'https://en.wikipedia.org/wiki/Machine_learning')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{article_url}}",
+      "label": "Open article page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "#firstHeading, h1",
+      "timeout": 15000,
+      "label": "Wait for article to load"
+    },
+    {
+      "action": "wait",
+      "ms": 1500,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 5000,
+      "label": "Scroll to references section"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 3000,
+      "label": "Scroll further through references"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const titleEl = document.querySelector('#firstHeading, h1'); const references = []; const refEls = document.querySelectorAll('.references li, .reflist li, ol.references > li'); for (let i = 0; i < Math.min(refEls.length, 30); i++) { const el = refEls[i]; const text = el.textContent.trim(); const linkEl = el.querySelector('a.external, a[href^=\"http\"]'); const citeEl = el.querySelector('.citation, cite'); references.push({ index: i + 1, text: text.substring(0, 500), url: linkEl ? linkEl.href : '', citation: citeEl ? citeEl.textContent.trim().substring(0, 300) : '' }); } const furtherReadingEls = []; const frSection = document.querySelector('#Further_reading, #Bibliography'); if (frSection) { let sibling = frSection.closest('h2') ? frSection.closest('h2').nextElementSibling : null; while (sibling && !sibling.matches('h2')) { if (sibling.matches('ul, ol')) { const items = sibling.querySelectorAll('li'); items.forEach(function(item) { furtherReadingEls.push(item.textContent.trim().substring(0, 300)); }); } sibling = sibling.nextElementSibling; } } return { title: titleEl ? titleEl.textContent.trim() : '', reference_count: references.length, references: references, further_reading: furtherReadingEls.slice(0, 10), url: window.location.href }",
+      "name": "references_data",
+      "label": "Extract references"
+    }
+  ]
+}

@@ -1,0 +1,48 @@
+{
+  "id": "figma-scrape-components",
+  "name": "figma_scrape_components",
+  "description": "List components in a Figma file from the assets panel. Returns component names and descriptions. You must be logged into Figma and have access to the file.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "file_url",
+      "type": "string",
+      "description": "Figma file URL (e.g. 'https://www.figma.com/design/FILEID/FileName')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{file_url}}",
+      "label": "Open Figma file"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[class*=\"toolbar\"], [data-testid=\"canvas\"]",
+      "timeout": 20000,
+      "label": "Wait for editor to load"
+    },
+    {
+      "action": "wait",
+      "ms": 4000,
+      "label": "Let canvas and panels render"
+    },
+    {
+      "action": "click",
+      "selector": "[class*=\"assets_panel\"] [class*=\"tab\"], [data-testid=\"assets-tab\"], button[aria-label*=\"Assets\"], [class*=\"left_panel\"] [class*=\"assets\"], [class*=\"panel_tab\"][class*=\"asset\"]",
+      "label": "Open assets panel"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let assets panel load"
+    },
+    {
+      "action": "code",
+      "code": "const components = []; const items = document.querySelectorAll('[class*=\"assets_panel\"] [class*=\"component\"], .assets-panel [class*=\"item\"], [class*=\"asset_row\"], [class*=\"component_item\"], [data-testid=\"asset-item\"]'); items.forEach((item, i) => { if (i >= 50) return; const nameEl = item.querySelector('[class*=\"name\"], [class*=\"label\"], [class*=\"title\"]'); const descEl = item.querySelector('[class*=\"description\"], [class*=\"desc\"]'); const thumbEl = item.querySelector('img, [class*=\"thumbnail\"], [class*=\"preview\"]'); components.push({ name: nameEl ? nameEl.textContent.trim() : item.textContent.trim().substring(0, 100), description: descEl ? descEl.textContent.trim() : '', has_thumbnail: !!thumbEl }); }); const groups = []; const groupHeaders = document.querySelectorAll('[class*=\"assets_panel\"] [class*=\"group_header\"], [class*=\"assets_panel\"] [class*=\"section_header\"], [class*=\"component_group\"]'); groupHeaders.forEach(g => { groups.push(g.textContent.trim()); }); return { file_url: window.location.href, component_count: components.length, component_groups: groups, components: components }",
+      "name": "result",
+      "label": "Extract components from assets panel"
+    }
+  ]
+}

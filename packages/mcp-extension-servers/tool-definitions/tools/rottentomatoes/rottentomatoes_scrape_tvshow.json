@@ -1,0 +1,58 @@
+{
+  "id": "rottentomatoes-scrape-tvshow",
+  "name": "rottentomatoes_scrape_tvshow",
+  "description": "Scrape TV show details from a Rotten Tomatoes TV page. Returns title, Tomatometer, audience score, seasons, synopsis, network, genre, cast, and critics consensus.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "show_url",
+      "type": "string",
+      "description": "Rotten Tomatoes TV show URL (e.g. 'https://www.rottentomatoes.com/tv/breaking_bad')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{show_url}}",
+      "label": "Open TV show page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "h1, [data-qa='score-panel'], [class*='scoreboard'], rt-button",
+      "timeout": 15000,
+      "label": "Wait for show page to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll to load content"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll further"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const titleEl = document.querySelector('h1, [class*=\"scoreboard\"] h1'); const tomatometerEl = document.querySelector('rt-button[slot=\"criticsScore\"] rt-text, [data-qa=\"tomatometer\"]'); const audienceEl = document.querySelector('rt-button[slot=\"audienceScore\"] rt-text, [data-qa=\"audience-score\"]'); const consensusEl = document.querySelector('[data-qa=\"critics-consensus\"], [class*=\"consensus\"], p[data-qa=\"what-to-know\"]'); const synopsisEl = document.querySelector('[data-qa=\"series-info-synopsis\"], [class*=\"synopsis\"], [data-qa=\"section:media-scorecard\"] p'); const imgEl = document.querySelector('[data-qa=\"poster-image\"] img, .posterImage img'); const infoEls = document.querySelectorAll('[data-qa=\"series-info-item\"], li[class*=\"info-item\"], [class*=\"category-wrap\"]'); const info = {}; infoEls.forEach(function(el) { const labelEl = el.querySelector('[data-qa=\"series-info-item-label\"], b, [class*=\"label\"]'); const valueEl = el.querySelector('[data-qa=\"series-info-item-value\"], span, [class*=\"value\"]'); if (labelEl && valueEl) { info[labelEl.textContent.trim().replace(':', '')] = valueEl.textContent.trim(); } }); const seasonEls = document.querySelectorAll('[data-qa=\"season-item\"], a[href*=\"/s\"], [class*=\"season\"] a'); const seasons = []; seasonEls.forEach(function(el) { const text = el.textContent.trim(); if (text && text.length < 50) seasons.push(text); }); const castEls = document.querySelectorAll('[data-qa=\"cast-item\"], [class*=\"cast-item\"] a'); const cast = []; castEls.forEach(function(el, idx) { if (idx < 10) { const nameEl = el.querySelector('[data-qa=\"cast-item-name\"], [class*=\"name\"]'); const charEl = el.querySelector('[data-qa=\"cast-item-character\"], [class*=\"character\"]'); cast.push({ name: nameEl ? nameEl.textContent.trim() : el.textContent.trim(), character: charEl ? charEl.textContent.trim() : '' }); } }); return { title: titleEl ? titleEl.textContent.trim() : '', tomatometer: tomatometerEl ? tomatometerEl.textContent.trim() : '', audience_score: audienceEl ? audienceEl.textContent.trim() : '', critics_consensus: consensusEl ? consensusEl.textContent.trim().substring(0, 500) : '', synopsis: synopsisEl ? synopsisEl.textContent.trim().substring(0, 1000) : '', info: info, seasons: seasons.slice(0, 20), cast: cast, image: imgEl ? imgEl.getAttribute('src') : '', url: window.location.href }",
+      "name": "tvshow_data",
+      "label": "Extract TV show details"
+    }
+  ]
+}

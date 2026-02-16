@@ -1,0 +1,58 @@
+{
+  "id": "substack-scrape-post",
+  "name": "substack_scrape_post",
+  "description": "Scrape full post details from a Substack article. Returns title, author, newsletter, content preview, like count, comment count, date, and tags.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "post_url",
+      "type": "string",
+      "description": "Substack post URL (e.g. 'https://newsletter.substack.com/p/article-title')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{post_url}}",
+      "label": "Open post page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "h1, [class*='post-title'], article",
+      "timeout": 15000,
+      "label": "Wait for post to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page fully render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1500,
+      "label": "Scroll to load content"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1500,
+      "label": "Scroll further"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const titleEl = document.querySelector('h1, [class*=\"post-title\"], [class*=\"headline\"]'); const subtitleEl = document.querySelector('[class*=\"subtitle\"], h2[class*=\"subtitle\"]'); const authorEl = document.querySelector('[class*=\"author\"] a, [class*=\"byline\"] a, a[class*=\"author-name\"]'); const newsletterEl = document.querySelector('[class*=\"publication-name\"], [class*=\"pub-name\"], a[class*=\"navbar-title\"]'); const dateEl = document.querySelector('time, [class*=\"post-date\"], [class*=\"date\"]'); const likesEl = document.querySelector('[class*=\"like-count\"], [class*=\"heart\"] span, [class*=\"reaction-count\"]'); const commentsEl = document.querySelector('[class*=\"comment-count\"], a[href*=\"comments\"] span, [class*=\"response-count\"]'); const contentEls = document.querySelectorAll('[class*=\"body\"] p, article p, [class*=\"post-content\"] p'); let content = ''; for (let i = 0; i < contentEls.length; i++) { content += contentEls[i].textContent.trim() + '\\n'; if (content.length > 2000) break; } const imgEl = document.querySelector('[class*=\"post\"] img[src*=\"substackcdn\"], article img, [class*=\"cover\"] img'); const tagEls = document.querySelectorAll('[class*=\"tag\"] a, [class*=\"topic\"] a'); const tags = []; tagEls.forEach(function(el) { const t = el.textContent.trim(); if (t && t.length < 50 && !tags.includes(t)) tags.push(t); }); return { title: titleEl ? titleEl.textContent.trim() : '', subtitle: subtitleEl ? subtitleEl.textContent.trim() : '', author: authorEl ? authorEl.textContent.trim() : '', newsletter: newsletterEl ? newsletterEl.textContent.trim() : '', date: dateEl ? (dateEl.getAttribute('datetime') || dateEl.textContent.trim()) : '', likes: likesEl ? likesEl.textContent.trim() : '', comments: commentsEl ? commentsEl.textContent.trim() : '', content_preview: content.substring(0, 2000), tags: tags.slice(0, 10), image: imgEl ? imgEl.getAttribute('src') : '', url: window.location.href }",
+      "name": "post_data",
+      "label": "Extract post details"
+    }
+  ]
+}

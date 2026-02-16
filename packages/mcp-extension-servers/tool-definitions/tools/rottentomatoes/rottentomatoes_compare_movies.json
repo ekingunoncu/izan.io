@@ -1,0 +1,50 @@
+{
+  "id": "rottentomatoes-compare-movies",
+  "name": "rottentomatoes_compare_movies",
+  "description": "Compare Rotten Tomatoes scores for multiple movies by searching and extracting their Tomatometer and audience scores side by side.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "movies",
+      "type": "string",
+      "description": "Comma-separated movie titles (e.g. 'The Matrix,Inception,Interstellar')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{movies}}`.split(',').map(m => ({ url: 'https://www.rottentomatoes.com/search?search=' + encodeURIComponent(m.trim()), movie: m.trim() }))",
+      "name": "items",
+      "label": "Build search URL list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 3,
+      "maxItems": 10,
+      "waitUntil": "load",
+      "label": "Search each movie in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": "search-page-media-row, [class*='search-result'], [data-qa='search-result']",
+          "timeout": 15000,
+          "label": "Wait for results"
+        },
+        {
+          "action": "wait",
+          "ms": 2000
+        },
+        {
+          "action": "code",
+          "code": "const first = document.querySelector('search-page-media-row, [class*=\"search-result\"]:first-child, [data-qa=\"search-result\"]:first-child'); if (!first) return { title: '', tomatometer: '', audience_score: '', year: '', url: '' }; const titleEl = first.querySelector('a[data-qa=\"info-name\"], [class*=\"title\"] a, a[slot=\"title\"]'); const yearEl = first.querySelector('[data-qa=\"info-year\"], span[slot=\"year\"]'); const tomatometerEl = first.querySelector('rt-text[slot=\"criticsScore\"], [data-qa=\"tomatometer\"]'); const audienceEl = first.querySelector('rt-text[slot=\"audienceScore\"], [data-qa=\"audience-score\"]'); const linkEl = first.querySelector('a[data-qa=\"info-name\"], a[href*=\"/m/\"]'); return { title: titleEl ? titleEl.textContent.trim() : '', year: yearEl ? yearEl.textContent.trim() : '', tomatometer: tomatometerEl ? tomatometerEl.textContent.trim() : '', audience_score: audienceEl ? audienceEl.textContent.trim() : '', url: linkEl ? (linkEl.href.startsWith('http') ? linkEl.href : 'https://www.rottentomatoes.com' + linkEl.getAttribute('href')) : '' }",
+          "name": "movie_score",
+          "label": "Extract top result score"
+        }
+      ]
+    }
+  ]
+}

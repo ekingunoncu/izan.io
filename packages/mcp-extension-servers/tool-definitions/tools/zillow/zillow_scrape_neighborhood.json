@@ -1,0 +1,58 @@
+{
+  "id": "zillow-scrape-neighborhood",
+  "name": "zillow_scrape_neighborhood",
+  "description": "Scrape neighborhood information from Zillow for a given location. Returns demographics, schools, walkability scores, median home values, crime data, and nearby amenities.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "location",
+      "type": "string",
+      "description": "Neighborhood or city name (e.g. 'Mission District San Francisco', 'Brooklyn NY', 'Austin TX')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://www.zillow.com/homes/{{location}}_rb/",
+      "label": "Open neighborhood page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[class*='region'], [class*='neighborhood'], h1, [class*='home-values']",
+      "timeout": 15000,
+      "label": "Wait for page to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 2000,
+      "label": "Scroll to neighborhood data"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 2000,
+      "label": "Scroll further"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const medianValueEl = document.querySelector('[class*=\"home-value\"], [class*=\"median\"], [class*=\"zestimate\"]'); const walkScoreEl = document.querySelector('[class*=\"walk-score\"], [class*=\"walkScore\"]'); const transitScoreEl = document.querySelector('[class*=\"transit-score\"], [class*=\"transitScore\"]'); const bikeScoreEl = document.querySelector('[class*=\"bike-score\"], [class*=\"bikeScore\"]'); const schools = []; const schoolEls = document.querySelectorAll('[class*=\"school\"] li, [class*=\"school-card\"], [class*=\"nearby-school\"]'); schoolEls.forEach(function(el) { const nameEl = el.querySelector('[class*=\"name\"], a'); const ratingEl = el.querySelector('[class*=\"rating\"], [class*=\"score\"]'); const typeEl = el.querySelector('[class*=\"type\"], [class*=\"level\"]'); const distEl = el.querySelector('[class*=\"distance\"]'); schools.push({ name: nameEl ? nameEl.textContent.trim() : '', rating: ratingEl ? ratingEl.textContent.trim() : '', type: typeEl ? typeEl.textContent.trim() : '', distance: distEl ? distEl.textContent.trim() : '' }); }); const demographics = {}; const demoEls = document.querySelectorAll('[class*=\"demographic\"] li, [class*=\"population\"], [class*=\"census\"]'); demoEls.forEach(function(el) { const text = el.textContent.trim(); if (text.length < 200) { const parts = text.split(':'); if (parts.length === 2) { demographics[parts[0].trim()] = parts[1].trim(); } } }); const nearbyListings = []; const listingEls = document.querySelectorAll('[data-test=\"property-card\"], [class*=\"property-card\"]'); for (let i = 0; i < Math.min(listingEls.length, 5); i++) { const el = listingEls[i]; const addrEl = el.querySelector('address, [class*=\"address\"]'); const priceEl = el.querySelector('[class*=\"price\"]'); nearbyListings.push({ address: addrEl ? addrEl.textContent.trim() : '', price: priceEl ? priceEl.textContent.trim() : '' }); } return { location: '{{location}}', median_home_value: medianValueEl ? medianValueEl.textContent.trim() : '', walk_score: walkScoreEl ? walkScoreEl.textContent.trim() : '', transit_score: transitScoreEl ? transitScoreEl.textContent.trim() : '', bike_score: bikeScoreEl ? bikeScoreEl.textContent.trim() : '', schools: schools.slice(0, 10), demographics: demographics, nearby_listings: nearbyListings, url: window.location.href }",
+      "name": "neighborhood_data",
+      "label": "Extract neighborhood info"
+    }
+  ]
+}

@@ -1,0 +1,58 @@
+{
+  "id": "soundcloud-scrape-playlist",
+  "name": "soundcloud_scrape_playlist",
+  "description": "Scrape a SoundCloud playlist/set page. Returns playlist name, creator, track count, total duration, like count, and all tracks with details.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "playlist_url",
+      "type": "string",
+      "description": "SoundCloud playlist URL (e.g. 'https://soundcloud.com/artist/sets/playlist-name')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{playlist_url}}",
+      "label": "Open playlist page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".soundTitle__title, h1, [class*='listenDetails'], [class*='playlist']",
+      "timeout": 15000,
+      "label": "Wait for playlist to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1500,
+      "label": "Scroll to load tracks"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1500,
+      "label": "Scroll further"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const titleEl = document.querySelector('.soundTitle__title span, h1 span, [class*=\"listenDetails\"] h1'); const creatorEl = document.querySelector('.soundTitle__username, a[class*=\"soundTitle__username\"]'); const likesEl = document.querySelector('[class*=\"likeCount\"], button[class*=\"like\"] span'); const repostsEl = document.querySelector('[class*=\"repostCount\"], button[class*=\"repost\"] span'); const descEl = document.querySelector('[class*=\"truncatedAudioInfo__content\"], [class*=\"description\"]'); const imgEl = document.querySelector('.image__full, .sc-artwork img'); const dateEl = document.querySelector('time, [class*=\"relativeTime\"]'); const tracks = []; const trackEls = document.querySelectorAll('.trackList__item, [class*=\"trackList__item\"], [class*=\"compactTrackList\"] li'); for (let i = 0; i < Math.min(trackEls.length, 30); i++) { const el = trackEls[i]; const trackTitleEl = el.querySelector('.trackItem__trackTitle, a[class*=\"trackTitle\"], [class*=\"title\"]'); const trackArtistEl = el.querySelector('.trackItem__username, [class*=\"username\"]'); const durationEl = el.querySelector('[class*=\"duration\"], .playbackTimeline__duration'); const linkEl = el.querySelector('a[href*=\"/\"]'); tracks.push({ title: trackTitleEl ? trackTitleEl.textContent.trim() : '', artist: trackArtistEl ? trackArtistEl.textContent.trim() : '', duration: durationEl ? durationEl.textContent.trim() : '', url: linkEl ? linkEl.href : '' }); } return { name: titleEl ? titleEl.textContent.trim() : '', creator: creatorEl ? creatorEl.textContent.trim() : '', likes: likesEl ? likesEl.textContent.trim() : '', reposts: repostsEl ? repostsEl.textContent.trim() : '', description: descEl ? descEl.textContent.trim().substring(0, 500) : '', date: dateEl ? (dateEl.getAttribute('datetime') || dateEl.textContent.trim()) : '', image: imgEl ? imgEl.getAttribute('src') : '', track_count: tracks.length, tracks: tracks, url: window.location.href }",
+      "name": "playlist_data",
+      "label": "Extract playlist details"
+    }
+  ]
+}

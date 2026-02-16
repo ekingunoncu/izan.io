@@ -49,3 +49,6 @@ npm-debug.log*
 
 # Testing
 coverage/
+
+# zihin.io seed data (lives in separate repo: ekingunoncu/zihin.io)
+apps/zihin.io/seed/

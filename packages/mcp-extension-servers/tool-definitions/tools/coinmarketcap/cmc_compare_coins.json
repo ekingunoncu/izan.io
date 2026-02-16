@@ -1,0 +1,50 @@
+{
+  "id": "cmc-compare-coins",
+  "name": "cmc_compare_coins",
+  "description": "Compare multiple cryptocurrencies side by side by scraping their CoinMarketCap pages in parallel. Returns price, market cap, volume, and price changes for each coin.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "coin_slugs",
+      "type": "string",
+      "description": "Comma-separated CoinMarketCap coin slugs (e.g. 'bitcoin,ethereum,solana,cardano')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{coin_slugs}}`.split(',').map(s => ({ url: 'https://coinmarketcap.com/currencies/' + s.trim() + '/', slug: s.trim() }))",
+      "name": "items",
+      "label": "Build coin URL list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 3,
+      "maxItems": 10,
+      "waitUntil": "load",
+      "label": "Scrape each coin in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": "[data-test='text-cdp-price-display'], [class*='priceValue'], [class*='price'], h1, h2",
+          "timeout": 15000,
+          "label": "Wait for coin page"
+        },
+        {
+          "action": "wait",
+          "ms": 2500
+        },
+        {
+          "action": "code",
+          "code": "const nameEl = document.querySelector('[data-role=\"coin-name\"], h1 span, h2[class*=\"name\"]'); const symbolEl = document.querySelector('[data-role=\"coin-symbol\"], .nameSymbol, small, span[class*=\"symbol\"]'); const priceEl = document.querySelector('[data-test=\"text-cdp-price-display\"], [class*=\"priceValue\"] span, .priceValue span'); const changeEl = document.querySelector('[data-test=\"text-cdp-price-change\"], [class*=\"priceChange\"], [class*=\"change24h\"]'); const bodyText = document.body.innerText; const mcMatch = bodyText.match(/Market [Cc]ap[^$]*?(\\$[\\d,.]+[BMTK]?)/); const volMatch = bodyText.match(/Volume \\(24h\\)[^$]*?(\\$[\\d,.]+[BMTK]?)/); const supMatch = bodyText.match(/Circulating Supply[^\\d]*([\\d,.]+\\s*[A-Z]*)/); const rankMatch = bodyText.match(/Rank\\s*#?(\\d+)/i); return { name: nameEl ? nameEl.textContent.trim() : '', symbol: symbolEl ? symbolEl.textContent.trim() : '', price: priceEl ? priceEl.textContent.trim() : '', change_24h: changeEl ? changeEl.textContent.trim() : '', market_cap: mcMatch ? mcMatch[1] : '', volume_24h: volMatch ? volMatch[1] : '', circulating_supply: supMatch ? supMatch[1] : '', rank: rankMatch ? '#' + rankMatch[1] : '', url: window.location.href }",
+          "name": "coin_data",
+          "label": "Extract coin data"
+        }
+      ]
+    }
+  ]
+}

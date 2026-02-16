@@ -1,0 +1,58 @@
+{
+  "id": "shopify-scrape-reviews",
+  "name": "shopify_scrape_reviews",
+  "description": "Scrape product reviews from a Shopify product page. Extracts review author, rating, title, content, date, and overall rating summary. Supports common Shopify review apps (Judge.me, Loox, Stamped, SPR).",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "product_url",
+      "type": "string",
+      "description": "Shopify product URL (e.g. 'https://example.myshopify.com/products/product-handle')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{product_url}}",
+      "label": "Open product page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "body",
+      "timeout": 15000,
+      "label": "Wait for product page to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 3000,
+      "label": "Scroll down to reviews section"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 2000,
+      "label": "Scroll further to load more reviews"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const reviews = []; const reviewSelectors = [ '.spr-review', '.jdgm-rev', '.loox-review', '.stamped-review', '.yotpo-review', '[class*=\"review-card\"]', '[class*=\"ReviewCard\"]', '.review-item', '.review' ]; let reviewEls = []; for (const sel of reviewSelectors) { const found = document.querySelectorAll(sel); if (found.length > 0) { reviewEls = found; break; } } for (let i = 0; i < Math.min(reviewEls.length, 20); i++) { const el = reviewEls[i]; const authorEl = el.querySelector('.spr-review-header-byline, .jdgm-rev__author, .loox-review-author, .stamped-review-author, .yotpo-user-name, [class*=\"author\"], [class*=\"reviewer\"], .review-author'); const ratingEl = el.querySelector('.spr-icon-star, .jdgm-star, .loox-rating, .stamped-review-rating, .yotpo-review-stars, [class*=\"star-rating\"], [class*=\"StarRating\"]'); const titleEl = el.querySelector('.spr-review-header-title, .jdgm-rev__title, .loox-review-title, .stamped-review-header-title, .yotpo-review-title, [class*=\"review-title\"], .review-title'); const bodyEl = el.querySelector('.spr-review-content-body, .jdgm-rev__body, .loox-review-content, .stamped-review-content-body, .yotpo-review-content, [class*=\"review-body\"], [class*=\"review-content\"], .review-body, .review-content'); const dateEl = el.querySelector('.spr-review-header-byline, .jdgm-rev__timestamp, .loox-review-date, .stamped-review-date, .yotpo-review-date, [class*=\"review-date\"], time'); let starCount = 0; const starEls = el.querySelectorAll('.spr-icon-star, .jdgm-star.jdgm--on, .stamped-fa-star, [class*=\"star-filled\"], [class*=\"star\"][class*=\"active\"]'); if (starEls.length > 0) starCount = starEls.length; const ratingAttr = el.querySelector('[data-rating], [data-score]'); if (ratingAttr) starCount = parseInt(ratingAttr.dataset.rating || ratingAttr.dataset.score || '0'); reviews.push({ author: authorEl ? authorEl.textContent.trim().replace(/^by\\s*/i, '') : 'Anonymous', rating: starCount > 0 ? starCount + '/5' : (ratingEl ? ratingEl.textContent.trim() : ''), title: titleEl ? titleEl.textContent.trim() : '', content: bodyEl ? bodyEl.textContent.trim().substring(0, 800) : '', date: dateEl ? dateEl.textContent.trim() : '' }); } const overallEl = document.querySelector('.spr-summary-starrating, .jdgm-prev-badge, .stamped-badge, .yotpo-bottomline .yotpo-stars, [class*=\"average-rating\"], [class*=\"overall-rating\"]'); const overallCountEl = document.querySelector('.spr-summary-actions-togglereviews, .jdgm-prev-badge__text, .stamped-badge-caption, .yotpo-sum-reviews, [class*=\"review-count\"], [class*=\"total-reviews\"]'); return { overall_rating: overallEl ? overallEl.textContent.trim() : '', total_reviews: overallCountEl ? overallCountEl.textContent.trim() : '', scraped_count: reviews.length, reviews: reviews, url: window.location.href }",
+      "name": "reviews_data",
+      "label": "Extract reviews"
+    }
+  ]
+}

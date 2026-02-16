@@ -200,6 +200,711 @@
         "trello_bulk_create_cards",
         "trello_bulk_move_cards"
       ]
+    },
+    {
+      "id": "telegram",
+      "name": "Telegram Automation",
+      "description": "Automate Telegram Web: search chats, scrape messages, send messages, manage contacts, and export conversations",
+      "category": "social_media",
+      "tools": [
+        "telegram_search_chats",
+        "telegram_scrape_chat",
+        "telegram_send_message",
+        "telegram_scrape_contacts",
+        "telegram_scrape_channel",
+        "telegram_bulk_send",
+        "telegram_export_chat"
+      ]
+    },
+    {
+      "id": "google-sheets",
+      "name": "Google Sheets Automation",
+      "description": "Automate Google Sheets: open spreadsheets, read and write cells, create new sheets, search Drive, and export CSV",
+      "category": "productivity",
+      "tools": [
+        "sheets_open",
+        "sheets_read_range",
+        "sheets_write_cell",
+        "sheets_create",
+        "sheets_search",
+        "sheets_export_csv",
+        "sheets_bulk_read"
+      ]
+    },
+    {
+      "id": "youtube",
+      "name": "YouTube Automation",
+      "description": "Automate YouTube: search videos, scrape video details, channels, comments, playlists, and bulk operations",
+      "category": "web_search",
+      "tools": [
+        "youtube_search",
+        "youtube_scrape_video",
+        "youtube_scrape_channel",
+        "youtube_scrape_comments",
+        "youtube_scrape_playlist",
+        "youtube_bulk_search",
+        "youtube_bulk_scrape_videos"
+      ]
+    },
+    {
+      "id": "spotify",
+      "name": "Spotify Automation",
+      "description": "Automate Spotify: search music, scrape playlists, artists, albums, play tracks, and create playlists",
+      "category": "social_media",
+      "tools": [
+        "spotify_search",
+        "spotify_scrape_playlist",
+        "spotify_scrape_artist",
+        "spotify_scrape_album",
+        "spotify_play_track",
+        "spotify_create_playlist",
+        "spotify_bulk_search"
+      ]
+    },
+    {
+      "id": "airtable",
+      "name": "Airtable Automation",
+      "description": "Automate Airtable: list bases, scrape tables, create and update records, search, and manage views",
+      "category": "productivity",
+      "tools": [
+        "airtable_list_bases",
+        "airtable_scrape_table",
+        "airtable_create_record",
+        "airtable_update_record",
+        "airtable_search",
+        "airtable_scrape_views",
+        "airtable_bulk_create_records"
+      ]
+    },
+    {
+      "id": "figma",
+      "name": "Figma Automation",
+      "description": "Automate Figma: list files, scrape designs, read and add comments, search projects, and browse components",
+      "category": "productivity",
+      "tools": [
+        "figma_list_files",
+        "figma_scrape_file",
+        "figma_scrape_comments",
+        "figma_add_comment",
+        "figma_search",
+        "figma_scrape_components",
+        "figma_bulk_scrape_files"
+      ]
+    },
+    {
+      "id": "instagram",
+      "name": "Instagram Automation",
+      "description": "Automate Instagram: search users, scrape profiles, browse feeds, view stories, send DMs, and like posts",
+      "category": "social_media",
+      "tools": [
+        "instagram_search",
+        "instagram_scrape_profile",
+        "instagram_scrape_feed",
+        "instagram_scrape_post",
+        "instagram_like_post",
+        "instagram_send_dm",
+        "instagram_bulk_scrape_profiles"
+      ]
+    },
+    {
+      "id": "tiktok",
+      "name": "TikTok Automation",
+      "description": "Automate TikTok: search videos, scrape profiles, browse trending, read comments, and discover hashtags",
+      "category": "social_media",
+      "tools": [
+        "tiktok_search",
+        "tiktok_scrape_profile",
+        "tiktok_scrape_video",
+        "tiktok_scrape_trending",
+        "tiktok_scrape_comments",
+        "tiktok_scrape_hashtag",
+        "tiktok_bulk_search"
+      ]
+    },
+    {
+      "id": "google-calendar",
+      "name": "Google Calendar Automation",
+      "description": "Automate Google Calendar: view events, create events, search calendar, edit events, list calendars, and delete events",
+      "category": "productivity",
+      "tools": [
+        "calendar_list_events",
+        "calendar_create_event",
+        "calendar_search",
+        "calendar_edit_event",
+        "calendar_list_calendars",
+        "calendar_delete_event",
+        "calendar_bulk_create_events"
+      ]
+    },
+    {
+      "id": "gmail",
+      "name": "Gmail Automation",
+      "description": "Automate Gmail: read emails, send emails, search inbox, manage labels, archive messages, and bulk operations",
+      "category": "productivity",
+      "tools": [
+        "gmail_read_inbox",
+        "gmail_read_email",
+        "gmail_send_email",
+        "gmail_search",
+        "gmail_archive",
+        "gmail_label",
+        "gmail_bulk_archive"
+      ]
+    },
+    {
+      "id": "amazon",
+      "name": "Amazon Automation",
+      "description": "Automate Amazon: search products, scrape details, read reviews, compare prices, track deals, and bulk search",
+      "category": "web_search",
+      "tools": [
+        "amazon_search",
+        "amazon_scrape_product",
+        "amazon_scrape_reviews",
+        "amazon_compare_prices",
+        "amazon_scrape_deals",
+        "amazon_scrape_seller",
+        "amazon_bulk_search"
+      ]
+    },
+    {
+      "id": "hackernews",
+      "name": "Hacker News Automation",
+      "description": "Automate Hacker News: browse front page, search stories, read comments, scrape user profiles, and browse new/best",
+      "category": "web_search",
+      "tools": [
+        "hn_scrape_frontpage",
+        "hn_scrape_story",
+        "hn_search",
+        "hn_scrape_user",
+        "hn_scrape_new",
+        "hn_scrape_best",
+        "hn_bulk_scrape_stories"
+      ]
+    },
+    {
+      "id": "facebook",
+      "name": "Facebook Automation",
+      "description": "Automate Facebook: search posts, scrape profiles, browse Marketplace, manage Groups, and track Events",
+      "category": "social_media",
+      "tools": [
+        "facebook_search",
+        "facebook_scrape_profile",
+        "facebook_scrape_post",
+        "facebook_scrape_marketplace",
+        "facebook_scrape_group",
+        "facebook_scrape_events",
+        "facebook_bulk_search"
+      ]
+    },
+    {
+      "id": "indeed",
+      "name": "Indeed Automation",
+      "description": "Automate Indeed: search jobs, scrape listings, read company reviews, compare salaries, and save jobs",
+      "category": "productivity",
+      "tools": [
+        "indeed_search_jobs",
+        "indeed_scrape_job",
+        "indeed_scrape_company",
+        "indeed_scrape_salaries",
+        "indeed_scrape_reviews",
+        "indeed_save_job",
+        "indeed_bulk_search"
+      ]
+    },
+    {
+      "id": "google-flights",
+      "name": "Google Flights Automation",
+      "description": "Automate Google Flights: search flights, compare prices, track deals, explore destinations, and find cheapest dates",
+      "category": "web_search",
+      "tools": [
+        "flights_search",
+        "flights_scrape_details",
+        "flights_price_graph",
+        "flights_explore_destinations",
+        "flights_scrape_cheapest_dates",
+        "flights_track_price",
+        "flights_bulk_search"
+      ]
+    },
+    {
+      "id": "booking",
+      "name": "Booking.com Automation",
+      "description": "Automate Booking.com: search hotels, scrape details, read reviews, compare prices, and find deals",
+      "category": "web_search",
+      "tools": [
+        "booking_search",
+        "booking_scrape_hotel",
+        "booking_scrape_reviews",
+        "booking_compare_prices",
+        "booking_scrape_deals",
+        "booking_scrape_availability",
+        "booking_bulk_search"
+      ]
+    },
+    {
+      "id": "airbnb",
+      "name": "Airbnb Automation",
+      "description": "Automate Airbnb: search listings, scrape details, read reviews, compare prices, and browse experiences",
+      "category": "web_search",
+      "tools": [
+        "airbnb_search",
+        "airbnb_scrape_listing",
+        "airbnb_scrape_reviews",
+        "airbnb_scrape_host",
+        "airbnb_scrape_experiences",
+        "airbnb_compare_prices",
+        "airbnb_bulk_search"
+      ]
+    },
+    {
+      "id": "pinterest",
+      "name": "Pinterest Automation",
+      "description": "Automate Pinterest: search pins, scrape boards, discover ideas, browse profiles, and save pins",
+      "category": "social_media",
+      "tools": [
+        "pinterest_search",
+        "pinterest_scrape_pin",
+        "pinterest_scrape_board",
+        "pinterest_scrape_profile",
+        "pinterest_scrape_ideas",
+        "pinterest_save_pin",
+        "pinterest_bulk_search"
+      ]
+    },
+    {
+      "id": "ebay",
+      "name": "eBay Automation",
+      "description": "Automate eBay: search products, scrape listings, track auctions, read reviews, and compare prices",
+      "category": "web_search",
+      "tools": [
+        "ebay_search",
+        "ebay_scrape_listing",
+        "ebay_scrape_seller",
+        "ebay_track_auction",
+        "ebay_scrape_deals",
+        "ebay_compare_prices",
+        "ebay_bulk_search"
+      ]
+    },
+    {
+      "id": "shopify",
+      "name": "Shopify Automation",
+      "description": "Automate Shopify stores: search products, scrape store details, read reviews, track prices, and discover collections",
+      "category": "web_search",
+      "tools": [
+        "shopify_scrape_store",
+        "shopify_scrape_product",
+        "shopify_search_products",
+        "shopify_scrape_collections",
+        "shopify_scrape_reviews",
+        "shopify_compare_prices",
+        "shopify_bulk_scrape_stores"
+      ]
+    },
+    {
+      "id": "coinmarketcap",
+      "name": "CoinMarketCap Automation",
+      "description": "Automate CoinMarketCap: browse rankings, scrape coin details, track prices, read news, and compare exchanges",
+      "category": "web_search",
+      "tools": [
+        "cmc_scrape_rankings",
+        "cmc_scrape_coin",
+        "cmc_scrape_exchanges",
+        "cmc_scrape_news",
+        "cmc_track_price",
+        "cmc_compare_coins",
+        "cmc_bulk_scrape_coins"
+      ]
+    },
+    {
+      "id": "google-news",
+      "name": "Google News Automation",
+      "description": "Automate Google News: search articles, browse topics, scrape headlines, read full stories, and track trending",
+      "category": "web_search",
+      "tools": [
+        "news_search",
+        "news_scrape_headlines",
+        "news_scrape_topic",
+        "news_scrape_article",
+        "news_scrape_trending",
+        "news_scrape_local",
+        "news_bulk_search"
+      ]
+    },
+    {
+      "id": "glassdoor",
+      "name": "Glassdoor Automation",
+      "description": "Automate Glassdoor: search jobs, scrape company reviews, compare salaries, read interviews, and browse ratings",
+      "category": "web_search",
+      "tools": [
+        "glassdoor_search_jobs",
+        "glassdoor_scrape_company",
+        "glassdoor_scrape_reviews",
+        "glassdoor_scrape_salaries",
+        "glassdoor_scrape_interviews",
+        "glassdoor_compare_companies",
+        "glassdoor_bulk_search"
+      ]
+    },
+    {
+      "id": "tripadvisor",
+      "name": "TripAdvisor Automation",
+      "description": "Automate TripAdvisor: search destinations, scrape hotel reviews, browse restaurants, discover attractions, and compare prices",
+      "category": "web_search",
+      "tools": [
+        "tripadvisor_search",
+        "tripadvisor_scrape_hotel",
+        "tripadvisor_scrape_restaurant",
+        "tripadvisor_scrape_attraction",
+        "tripadvisor_scrape_reviews",
+        "tripadvisor_compare_hotels",
+        "tripadvisor_bulk_search"
+      ]
+    },
+    {
+      "id": "threads",
+      "name": "Threads Automation",
+      "description": "Automate Threads: search posts, scrape profiles, browse feeds, read replies, and track trending",
+      "category": "social_media",
+      "tools": [
+        "threads_search",
+        "threads_scrape_profile",
+        "threads_scrape_post",
+        "threads_scrape_feed",
+        "threads_scrape_replies",
+        "threads_like_post",
+        "threads_bulk_scrape_profiles"
+      ]
+    },
+    {
+      "id": "google-scholar",
+      "name": "Google Scholar Automation",
+      "description": "Automate Google Scholar: search papers, scrape citations, browse authors, read abstracts, and track publications",
+      "category": "web_search",
+      "tools": [
+        "scholar_search",
+        "scholar_scrape_paper",
+        "scholar_scrape_author",
+        "scholar_scrape_citations",
+        "scholar_scrape_related",
+        "scholar_scrape_profiles",
+        "scholar_bulk_search"
+      ]
+    },
+    {
+      "id": "etsy",
+      "name": "Etsy Automation",
+      "description": "Automate Etsy: search products, scrape listings, read reviews, browse shops, and compare prices",
+      "category": "web_search",
+      "tools": [
+        "etsy_search",
+        "etsy_scrape_listing",
+        "etsy_scrape_shop",
+        "etsy_scrape_reviews",
+        "etsy_scrape_categories",
+        "etsy_compare_prices",
+        "etsy_bulk_search"
+      ]
+    },
+    {
+      "id": "yahoo-finance",
+      "name": "Yahoo Finance Automation",
+      "description": "Automate Yahoo Finance: search stocks, scrape quotes, read news, analyze financials, track holders, and compare tickers",
+      "category": "web_search",
+      "tools": [
+        "yahoofinance_search",
+        "yahoofinance_scrape_quote",
+        "yahoofinance_scrape_news",
+        "yahoofinance_scrape_financials",
+        "yahoofinance_scrape_holders",
+        "yahoofinance_compare_stocks",
+        "yahoofinance_bulk_search"
+      ]
+    },
+    {
+      "id": "zillow",
+      "name": "Zillow Automation",
+      "description": "Automate Zillow: search homes, scrape listings, browse agents, analyze neighborhoods, track price history, and compare properties",
+      "category": "web_search",
+      "tools": [
+        "zillow_search",
+        "zillow_scrape_listing",
+        "zillow_scrape_agent",
+        "zillow_scrape_neighborhood",
+        "zillow_scrape_price_history",
+        "zillow_compare_listings",
+        "zillow_bulk_search"
+      ]
+    },
+    {
+      "id": "wikipedia",
+      "name": "Wikipedia Automation",
+      "description": "Automate Wikipedia: search articles, scrape pages, read summaries, browse categories, track references, and view edit history",
+      "category": "web_search",
+      "tools": [
+        "wikipedia_search",
+        "wikipedia_scrape_article",
+        "wikipedia_scrape_summary",
+        "wikipedia_scrape_categories",
+        "wikipedia_scrape_references",
+        "wikipedia_scrape_history",
+        "wikipedia_bulk_search"
+      ]
+    },
+    {
+      "id": "walmart",
+      "name": "Walmart Automation",
+      "description": "Automate Walmart: search products, scrape details, read reviews, browse sellers, track deals, and compare prices",
+      "category": "web_search",
+      "tools": [
+        "walmart_search",
+        "walmart_scrape_product",
+        "walmart_scrape_reviews",
+        "walmart_scrape_seller",
+        "walmart_scrape_deals",
+        "walmart_compare_prices",
+        "walmart_bulk_search"
+      ]
+    },
+    {
+      "id": "twitch",
+      "name": "Twitch Automation",
+      "description": "Automate Twitch: search streams, scrape channels, browse categories, read chat, discover clips, and track viewers",
+      "category": "social_media",
+      "tools": [
+        "twitch_search",
+        "twitch_scrape_channel",
+        "twitch_scrape_stream",
+        "twitch_scrape_categories",
+        "twitch_scrape_clips",
+        "twitch_scrape_chat",
+        "twitch_bulk_search"
+      ]
+    },
+    {
+      "id": "imdb",
+      "name": "IMDb Automation",
+      "description": "Automate IMDb: search movies, scrape title details, read reviews, browse cast, track ratings, and compare films",
+      "category": "web_search",
+      "tools": [
+        "imdb_search",
+        "imdb_scrape_title",
+        "imdb_scrape_reviews",
+        "imdb_scrape_cast",
+        "imdb_scrape_ratings",
+        "imdb_compare_titles",
+        "imdb_bulk_search"
+      ]
+    },
+    {
+      "id": "yelp",
+      "name": "Yelp Automation",
+      "description": "Automate Yelp: search businesses, scrape listings, read reviews, browse photos, discover nearby, and compare ratings",
+      "category": "web_search",
+      "tools": [
+        "yelp_search",
+        "yelp_scrape_business",
+        "yelp_scrape_reviews",
+        "yelp_scrape_photos",
+        "yelp_scrape_nearby",
+        "yelp_compare_businesses",
+        "yelp_bulk_search"
+      ]
+    },
+    {
+      "id": "aliexpress",
+      "name": "AliExpress Automation",
+      "description": "Automate AliExpress: search products, scrape listings, read reviews, browse stores, track deals, and compare prices",
+      "category": "web_search",
+      "tools": [
+        "aliexpress_search",
+        "aliexpress_scrape_product",
+        "aliexpress_scrape_reviews",
+        "aliexpress_scrape_store",
+        "aliexpress_scrape_deals",
+        "aliexpress_compare_prices",
+        "aliexpress_bulk_search"
+      ]
+    },
+    {
+      "id": "quora",
+      "name": "Quora Automation",
+      "description": "Automate Quora: search questions, scrape answers, browse topics, read profiles, track spaces, and compare responses",
+      "category": "web_search",
+      "tools": [
+        "quora_search",
+        "quora_scrape_question",
+        "quora_scrape_answers",
+        "quora_scrape_profile",
+        "quora_scrape_topic",
+        "quora_scrape_space",
+        "quora_bulk_search"
+      ]
+    },
+    {
+      "id": "bluesky",
+      "name": "Bluesky Automation",
+      "description": "Automate Bluesky: search posts, scrape profiles, browse feeds, read replies, post content, and track trending",
+      "category": "social_media",
+      "tools": [
+        "bluesky_search",
+        "bluesky_scrape_profile",
+        "bluesky_scrape_post",
+        "bluesky_scrape_feed",
+        "bluesky_scrape_replies",
+        "bluesky_post",
+        "bluesky_bulk_search"
+      ]
+    },
+    {
+      "id": "medium",
+      "name": "Medium Automation",
+      "description": "Automate Medium: search articles, scrape stories, browse publications, read authors, track topics, and discover trending",
+      "category": "web_search",
+      "tools": [
+        "medium_search",
+        "medium_scrape_article",
+        "medium_scrape_author",
+        "medium_scrape_publication",
+        "medium_scrape_topic",
+        "medium_scrape_trending",
+        "medium_bulk_search"
+      ]
+    },
+    {
+      "id": "substack",
+      "name": "Substack Automation",
+      "description": "Automate Substack: search newsletters, scrape posts, browse publications, read authors, track archives, and discover leaderboard",
+      "category": "web_search",
+      "tools": [
+        "substack_search",
+        "substack_scrape_post",
+        "substack_scrape_publication",
+        "substack_scrape_author",
+        "substack_scrape_archive",
+        "substack_scrape_leaderboard",
+        "substack_bulk_search"
+      ]
+    },
+    {
+      "id": "stackoverflow",
+      "name": "Stack Overflow Automation",
+      "description": "Automate Stack Overflow: search questions, scrape answers, browse tags, read user profiles, track trending, and compare solutions",
+      "category": "web_search",
+      "tools": [
+        "stackoverflow_search",
+        "stackoverflow_scrape_question",
+        "stackoverflow_scrape_answers",
+        "stackoverflow_scrape_user",
+        "stackoverflow_scrape_tags",
+        "stackoverflow_scrape_trending",
+        "stackoverflow_bulk_search"
+      ]
+    },
+    {
+      "id": "expedia",
+      "name": "Expedia Automation",
+      "description": "Automate Expedia: search hotels, search flights, scrape hotel details, read reviews, browse packages, and compare deals",
+      "category": "web_search",
+      "tools": [
+        "expedia_search_hotels",
+        "expedia_search_flights",
+        "expedia_scrape_hotel",
+        "expedia_scrape_reviews",
+        "expedia_scrape_packages",
+        "expedia_compare_deals",
+        "expedia_bulk_search"
+      ]
+    },
+    {
+      "id": "soundcloud",
+      "name": "SoundCloud Automation",
+      "description": "Automate SoundCloud: search tracks, scrape artists, browse playlists, read comments, discover trending, and track plays",
+      "category": "social_media",
+      "tools": [
+        "soundcloud_search",
+        "soundcloud_scrape_track",
+        "soundcloud_scrape_artist",
+        "soundcloud_scrape_playlist",
+        "soundcloud_scrape_comments",
+        "soundcloud_scrape_trending",
+        "soundcloud_bulk_search"
+      ]
+    },
+    {
+      "id": "rottentomatoes",
+      "name": "Rotten Tomatoes Automation",
+      "description": "Automate Rotten Tomatoes: search movies, scrape ratings, read reviews, browse cast, track audience scores, and compare films",
+      "category": "web_search",
+      "tools": [
+        "rottentomatoes_search",
+        "rottentomatoes_scrape_movie",
+        "rottentomatoes_scrape_reviews",
+        "rottentomatoes_scrape_cast",
+        "rottentomatoes_scrape_audience",
+        "rottentomatoes_compare_movies",
+        "rottentomatoes_bulk_search"
+      ]
+    },
+    {
+      "id": "canva",
+      "name": "Canva Automation",
+      "description": "Automate Canva: search templates, scrape designs, browse categories, discover elements, track trending, and explore features",
+      "category": "productivity",
+      "tools": [
+        "canva_search",
+        "canva_scrape_template",
+        "canva_scrape_category",
+        "canva_scrape_elements",
+        "canva_scrape_trending",
+        "canva_scrape_features",
+        "canva_bulk_search"
+      ]
+    },
+    {
+      "id": "producthunt",
+      "name": "Product Hunt Automation",
+      "description": "Automate Product Hunt: search products, scrape launches, browse collections, read reviews, track trending, and discover upvotes",
+      "category": "web_search",
+      "tools": [
+        "producthunt_search",
+        "producthunt_scrape_product",
+        "producthunt_scrape_launches",
+        "producthunt_scrape_collection",
+        "producthunt_scrape_reviews",
+        "producthunt_scrape_trending",
+        "producthunt_bulk_search"
+      ]
+    },
+    {
+      "id": "coursera",
+      "name": "Coursera Automation",
+      "description": "Automate Coursera: search courses, scrape syllabi, browse specializations, read reviews, track instructors, and compare programs",
+      "category": "web_search",
+      "tools": [
+        "coursera_search",
+        "coursera_scrape_course",
+        "coursera_scrape_specialization",
+        "coursera_scrape_reviews",
+        "coursera_scrape_instructor",
+        "coursera_compare_courses",
+        "coursera_bulk_search"
+      ]
+    },
+    {
+      "id": "udemy",
+      "name": "Udemy Automation",
+      "description": "Automate Udemy: search courses, scrape details, browse categories, read reviews, track instructors, and compare prices",
+      "category": "web_search",
+      "tools": [
+        "udemy_search",
+        "udemy_scrape_course",
+        "udemy_scrape_reviews",
+        "udemy_scrape_instructor",
+        "udemy_scrape_category",
+        "udemy_compare_courses",
+        "udemy_bulk_search"
+      ]
     }
   ]
 }

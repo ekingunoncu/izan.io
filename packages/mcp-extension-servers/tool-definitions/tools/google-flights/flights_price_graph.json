@@ -1,0 +1,65 @@
+{
+  "id": "flights-price-graph",
+  "name": "flights_price_graph",
+  "description": "View the price graph/calendar for a flight route on Google Flights. Shows price trends over time to help find the cheapest travel dates.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "from",
+      "type": "string",
+      "description": "Origin city or airport code (e.g. 'New York', 'JFK')",
+      "required": true
+    },
+    {
+      "name": "to",
+      "type": "string",
+      "description": "Destination city or airport code (e.g. 'London', 'LHR')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://www.google.com/travel/flights?q={{from}}+to+{{to}}",
+      "label": "Search Google Flights"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "li.pIav2d, div[data-resultid], ul[role='list'] li",
+      "timeout": 20000,
+      "label": "Wait for flight results"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Let page render"
+    },
+    {
+      "action": "code",
+      "code": "const priceGraphBtn = document.querySelector('button[aria-label*=\"Price graph\"], button[aria-label*=\"price graph\"], button[jsaction*=\"price_graph\"], div[data-flt-ve=\"price_graph\"] button'); if (priceGraphBtn) { priceGraphBtn.click(); return { clicked: true }; } const dateBtns = document.querySelectorAll('button[aria-label*=\"Date grid\"], button[aria-label*=\"date grid\"]'); if (dateBtns.length > 0) { dateBtns[0].click(); return { clicked: true, type: 'date_grid' }; } return { clicked: false }",
+      "name": "open_price_graph",
+      "label": "Open price graph view"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Wait for price graph to load"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 600,
+      "label": "Scroll to see price graph"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const pricePoints = []; const graphBars = document.querySelectorAll('div[data-flt-ve=\"price_graph\"] div[role=\"button\"], div.JRwjBf div[role=\"button\"], g[role=\"listitem\"], div[class*=\"price-graph\"] div[role=\"button\"]'); graphBars.forEach((bar, i) => { if (i >= 30) return; const label = bar.getAttribute('aria-label') || bar.textContent.trim(); if (label) pricePoints.push(label); }); const calendarCells = document.querySelectorAll('td[data-value], div[class*=\"calendar\"] button[aria-label*=\"$\"], div[class*=\"calendar\"] button[aria-label*=\"EUR\"]'); const calendarPrices = []; calendarCells.forEach((cell, i) => { if (i >= 60) return; const label = cell.getAttribute('aria-label') || cell.textContent.trim(); if (label && label.match(/\\d/)) calendarPrices.push(label); }); const tipEl = document.querySelector('div[class*=\"tip\"], div[class*=\"advice\"], div.CQYfx, div[class*=\"price-insight\"]'); return { from: `{{from}}`, to: `{{to}}`, price_graph_points: pricePoints, calendar_prices: calendarPrices, travel_tip: tipEl ? tipEl.textContent.trim() : '', data_points_count: pricePoints.length + calendarPrices.length, url: window.location.href }",
+      "name": "price_graph_data",
+      "label": "Extract price graph data"
+    }
+  ]
+}

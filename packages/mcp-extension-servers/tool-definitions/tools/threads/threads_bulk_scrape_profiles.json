@@ -1,0 +1,50 @@
+{
+  "id": "threads-bulk-scrape-profiles",
+  "name": "threads_bulk_scrape_profiles",
+  "description": "Scrape multiple Threads user profiles in parallel using concurrent browser tabs. Pass all usernames as a single comma-separated string. Returns profile data for each user including display name, bio, followers, and recent posts. You must be logged in to Threads.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "usernames",
+      "type": "string",
+      "description": "Comma-separated Threads usernames without @ (e.g. 'zuck,mosseri,nasa')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{usernames}}`.split(',').map(u => ({ username: u.trim(), url: 'https://www.threads.net/@' + u.trim() }))",
+      "name": "items",
+      "label": "Build username list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 2,
+      "maxItems": 10,
+      "waitUntil": "load",
+      "label": "Scrape each profile in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": "[class*='ProfileHeader'], [class*='profile'], header, [class*='UserProfile']",
+          "timeout": 15000,
+          "label": "Wait for profile page to load"
+        },
+        {
+          "action": "wait",
+          "ms": 3000
+        },
+        {
+          "action": "code",
+          "code": "const currentUsername = `{{@item.username}}`; const nameEl = document.querySelector('[class*=\"ProfileHeader\"] h1, [class*=\"profile\"] h1, h1[dir=\"auto\"], [class*=\"userName\"], header h2'); const displayName = nameEl ? nameEl.textContent.trim() : currentUsername; const bioEl = document.querySelector('[class*=\"bio\"], [class*=\"ProfileBio\"], [class*=\"biography\"], [class*=\"profile\"] span[dir=\"auto\"]'); let bio = ''; if (bioEl) { bio = bioEl.textContent.trim(); } else { const spans = document.querySelectorAll('span[dir=\"auto\"]'); for (const span of spans) { const text = span.textContent.trim(); if (text.length > 20 && text !== displayName && !text.includes('followers') && !text.includes('threads')) { bio = text; break; } } } const followerEl = document.querySelector('[class*=\"follower\"], [class*=\"Follower\"], a[href*=\"followers\"], [class*=\"count\"]'); let followers = ''; if (followerEl) { followers = followerEl.textContent.trim(); } else { const allSpans = document.querySelectorAll('span'); for (const span of allSpans) { const text = span.textContent.trim().toLowerCase(); if (text.includes('follower')) { followers = text; break; } } } const profilePicEl = document.querySelector('img[alt*=\"profile\"], img[alt*=\"' + currentUsername + '\"], [class*=\"ProfilePic\"] img, [class*=\"avatar\"] img, header img'); const profilePic = profilePicEl ? profilePicEl.src : ''; const verifiedEl = document.querySelector('svg[aria-label*=\"Verified\"], [class*=\"verified\"], [class*=\"badge\"]'); const isVerified = !!verifiedEl; const recentPosts = []; const postEls = document.querySelectorAll('[class*=\"ThreadItem\"], article, div[role=\"article\"], [data-pressable-container=\"true\"]'); for (let i = 0; i < Math.min(postEls.length, 5); i++) { const el = postEls[i]; const contentEl = el.querySelector('[class*=\"text\"], [class*=\"content\"], [dir=\"auto\"] span, [class*=\"TextContent\"]'); let content = ''; if (contentEl) { content = contentEl.textContent.trim().substring(0, 150); } else { const spans = el.querySelectorAll('span[dir=\"auto\"]'); for (const span of spans) { const text = span.textContent.trim(); if (text.length > content.length && text !== displayName && text !== currentUsername) content = text.substring(0, 150); } } const timeEl = el.querySelector('time, [class*=\"time\"]'); const timestamp = timeEl ? (timeEl.getAttribute('datetime') || timeEl.textContent.trim()) : ''; if (content) { recentPosts.push({ content: content, timestamp: timestamp }); } } return { username: currentUsername, display_name: displayName, bio: bio, followers: followers, is_verified: isVerified, profile_pic: profilePic, recent_posts: recentPosts, profile_url: window.location.href }",
+          "name": "profile_data",
+          "label": "Extract profile data"
+        }
+      ]
+    }
+  ]
+}

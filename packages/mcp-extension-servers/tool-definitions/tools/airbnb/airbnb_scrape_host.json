@@ -1,0 +1,68 @@
+{
+  "id": "airbnb-scrape-host",
+  "name": "airbnb_scrape_host",
+  "description": "Scrape host profile from an Airbnb host page. Returns host name, superhost status, about section, verification info, response rate, response time, and their active listings.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "host_url",
+      "type": "string",
+      "description": "Airbnb host profile URL (e.g. 'https://www.airbnb.com/users/show/12345678')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{host_url}}",
+      "label": "Open host profile page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "h1, [data-testid='host-profile'], .t1pxe1a4, [data-section-id='HOST_PROFILE']",
+      "timeout": 15000,
+      "label": "Wait for host profile to load"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Let page fully render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll to load more content"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll to see listings"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll further for all listings"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const nameEl = document.querySelector('h1, [data-testid=\"host-profile-name\"], .t1pxe1a4'); const imgEl = document.querySelector('[data-testid=\"host-avatar\"] img, .i1m3ueba img, [data-section-id=\"HOST_PROFILE\"] img'); const isSuperhost = !!document.querySelector('[aria-label*=\"Superhost\"], [data-testid*=\"superhost\"], span:contains(\"Superhost\")'); const aboutEl = document.querySelector('[data-testid=\"host-profile-about\"], [data-section-id=\"HOST_PROFILE\"] div span, .cjv5pxl'); const stats = []; const statEls = document.querySelectorAll('[data-testid=\"host-stats\"] li, .l14wscnf div, .f19g2zq0 li, [data-section-id=\"HOST_PROFILE\"] li'); statEls.forEach(function(el) { const text = el.textContent.trim(); if (text && text.length > 2 && text.length < 100) { stats.push(text); } }); const verifications = []; const verifyEls = document.querySelectorAll('[data-testid=\"host-verification\"] span, .s1l21dve span, [data-section-id=\"HOST_PROFILE\"] [class*=\"verify\"] span'); verifyEls.forEach(function(el) { const text = el.textContent.trim(); if (text && text.length > 2) { verifications.push(text); } }); const responseRateEl = document.querySelector('[data-testid=\"response-rate\"], [class*=\"response\"] span'); const responseTimeEl = document.querySelector('[data-testid=\"response-time\"], [class*=\"response-time\"] span'); const joinedEl = document.querySelector('[data-testid=\"joined-date\"], [class*=\"joined\"] span'); const listings = []; const listingEls = document.querySelectorAll('[data-testid=\"listing-card\"], [data-testid=\"card-container\"], [itemprop=\"itemListElement\"]'); listingEls.forEach(function(el, idx) { if (idx >= 10) return; const titleEl = el.querySelector('[data-testid=\"listing-card-title\"], [id^=\"title_\"], h3'); const priceEl = el.querySelector('span._tyxjp1, span[class*=\"price\"], [data-testid=\"price-availability-row\"] span span'); const ratingEl = el.querySelector('[aria-label*=\"rating\"], span[class*=\"rating\"]'); const linkEl = el.querySelector('a[href*=\"/rooms/\"]'); const imgEl = el.querySelector('img'); const title = titleEl ? titleEl.textContent.trim() : ''; if (title) { listings.push({ title: title, price: priceEl ? priceEl.textContent.trim() : '', rating: ratingEl ? ratingEl.textContent.trim() : '', image: imgEl ? imgEl.getAttribute('src') : '', url: linkEl ? (linkEl.href.startsWith('http') ? linkEl.href : 'https://www.airbnb.com' + linkEl.getAttribute('href')) : '' }); } }); return { name: nameEl ? nameEl.textContent.trim() : '', image: imgEl ? imgEl.getAttribute('src') : '', is_superhost: isSuperhost, about: aboutEl ? aboutEl.textContent.trim().substring(0, 1000) : '', stats: [...new Set(stats)].slice(0, 10), verifications: [...new Set(verifications)].slice(0, 5), response_rate: responseRateEl ? responseRateEl.textContent.trim() : '', response_time: responseTimeEl ? responseTimeEl.textContent.trim() : '', joined: joinedEl ? joinedEl.textContent.trim() : '', listing_count: listings.length, listings: listings, url: window.location.href }",
+      "name": "host_data",
+      "label": "Extract host profile and listings"
+    }
+  ]
+}

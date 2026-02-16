@@ -1,0 +1,48 @@
+{
+  "id": "soundcloud-scrape-track",
+  "name": "soundcloud_scrape_track",
+  "description": "Scrape full track details from a SoundCloud track page. Returns title, artist, play count, like count, repost count, comment count, description, genre, tags, and waveform.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "track_url",
+      "type": "string",
+      "description": "SoundCloud track URL (e.g. 'https://soundcloud.com/artist/track-name')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{track_url}}",
+      "label": "Open track page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".soundTitle__title, h1, [class*='listenDetails'], [class*='soundTitle']",
+      "timeout": 15000,
+      "label": "Wait for track to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 800,
+      "label": "Scroll to load content"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const titleEl = document.querySelector('.soundTitle__title span, h1 span, [class*=\"listenDetails\"] h1'); const artistEl = document.querySelector('.soundTitle__username, a[class*=\"soundTitle__username\"], [class*=\"listenDetails\"] a'); const playsEl = document.querySelector('[class*=\"playbackCount\"], [title*=\"plays\"], [class*=\"listenCount\"]'); const likesEl = document.querySelector('[class*=\"likeCount\"], button[class*=\"like\"] span'); const repostsEl = document.querySelector('[class*=\"repostCount\"], button[class*=\"repost\"] span'); const commentsCountEl = document.querySelector('[class*=\"commentCount\"], [class*=\"comment\"] span'); const descEl = document.querySelector('[class*=\"truncatedAudioInfo__content\"], [class*=\"description\"]'); const genreEl = document.querySelector('[class*=\"genre\"], a[href*=\"/tags/\"]'); const dateEl = document.querySelector('time, [class*=\"relativeTime\"], [class*=\"uploadTime\"]'); const imgEl = document.querySelector('.image__full, .sc-artwork img, span[style*=\"background-image\"]'); const tagEls = document.querySelectorAll('a[href*=\"/tags/\"], [class*=\"soundTagList\"] a'); const tags = []; tagEls.forEach(function(el) { const t = el.textContent.trim(); if (t && t.length < 50 && !tags.includes(t)) tags.push(t); }); let imgSrc = ''; if (imgEl) { imgSrc = imgEl.getAttribute('src') || ''; if (!imgSrc) { const style = imgEl.getAttribute('style') || ''; const match = style.match(/url\\([\"']?([^\"')]+)/); if (match) imgSrc = match[1]; } } return { title: titleEl ? titleEl.textContent.trim() : '', artist: artistEl ? artistEl.textContent.trim() : '', plays: playsEl ? playsEl.textContent.trim() : '', likes: likesEl ? likesEl.textContent.trim() : '', reposts: repostsEl ? repostsEl.textContent.trim() : '', comments: commentsCountEl ? commentsCountEl.textContent.trim() : '', description: descEl ? descEl.textContent.trim().substring(0, 1000) : '', genre: genreEl ? genreEl.textContent.trim() : '', date: dateEl ? (dateEl.getAttribute('datetime') || dateEl.textContent.trim()) : '', tags: tags.slice(0, 10), image: imgSrc, url: window.location.href }",
+      "name": "track_data",
+      "label": "Extract track details"
+    }
+  ]
+}

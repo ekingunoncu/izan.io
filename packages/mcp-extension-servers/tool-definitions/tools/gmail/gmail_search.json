@@ -1,0 +1,49 @@
+{
+  "id": "gmail-search",
+  "name": "gmail_search",
+  "description": "Search for emails in Gmail using a query. Navigates to Gmail, enters the search query, and scrapes matching email results with sender, subject, date, and preview text. Supports Gmail search operators like from:, to:, has:attachment, etc. You must be logged in to Gmail.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "query",
+      "type": "string",
+      "description": "Search query (supports Gmail operators like from:, to:, subject:, has:attachment, is:unread, etc.)",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://mail.google.com/mail/u/0/#inbox",
+      "label": "Open Gmail"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "input[aria-label='Search mail']",
+      "timeout": 15000,
+      "label": "Wait for Gmail to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let Gmail fully initialize"
+    },
+    {
+      "action": "code",
+      "code": "const searchInput = document.querySelector('input[aria-label=\"Search mail\"]'); if (searchInput) { searchInput.focus(); searchInput.click(); await new Promise(r => setTimeout(r, 300)); searchInput.value = ''; searchInput.dispatchEvent(new Event('input', { bubbles: true })); document.execCommand('insertText', false, `{{query}}`); await new Promise(r => setTimeout(r, 300)); searchInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true })); } return { searched: true }",
+      "name": "execute_search",
+      "label": "Enter search query and submit"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Wait for search results"
+    },
+    {
+      "action": "code",
+      "code": "const rows = document.querySelectorAll('tr.zA'); const results = []; for (let i = 0; i < Math.min(rows.length, 25); i++) { const row = rows[i]; const senderEl = row.querySelector('.yX .yW span[email], .zF'); const subjectEl = row.querySelector('.bog span, .y6 span'); const previewEl = row.querySelector('.y2'); const dateEl = row.querySelector('.xW span[title], .xW span'); const isUnread = row.classList.contains('zE'); const starEl = row.querySelector('.T-KT'); const isStarred = starEl ? starEl.classList.contains('T-KT-Jp') : false; results.push({ sender: senderEl ? (senderEl.getAttribute('email') || senderEl.getAttribute('name') || senderEl.textContent.trim()) : '', subject: subjectEl ? subjectEl.textContent.trim() : '', preview: previewEl ? previewEl.textContent.trim().replace(/^\\s*-\\s*/, '') : '', date: dateEl ? (dateEl.getAttribute('title') || dateEl.textContent.trim()) : '', unread: isUnread, starred: isStarred }); } return { query: `{{query}}`, result_count: results.length, results: results }",
+      "name": "search_results",
+      "label": "Scrape search results"
+    }
+  ]
+}

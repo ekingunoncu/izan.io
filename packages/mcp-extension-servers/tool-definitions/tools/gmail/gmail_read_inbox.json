@@ -1,0 +1,39 @@
+{
+  "id": "gmail-read-inbox",
+  "name": "gmail_read_inbox",
+  "description": "Read messages from the Gmail inbox. Navigates to Gmail, waits for the inbox to load, and scrapes the top N messages with sender, subject, preview, date, unread status, and starred status. You must be logged in to Gmail.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "count",
+      "type": "string",
+      "description": "Number of inbox messages to read (default: 10)",
+      "required": false,
+      "default": "10"
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://mail.google.com/mail/u/0/#inbox",
+      "label": "Open Gmail inbox"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "tr.zA, [data-message-id], .yO",
+      "timeout": 15000,
+      "label": "Wait for inbox to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let inbox fully render"
+    },
+    {
+      "action": "code",
+      "code": "const count = parseInt(`{{count}}`) || 10; const rows = document.querySelectorAll('tr.zA'); const messages = []; for (let i = 0; i < Math.min(rows.length, count); i++) { const row = rows[i]; const senderEl = row.querySelector('.yX .yW span[email], .zF'); const subjectEl = row.querySelector('.bog span, .y6 span'); const previewEl = row.querySelector('.y2'); const dateEl = row.querySelector('.xW span[title], .xW span'); const isUnread = row.classList.contains('zE'); const starEl = row.querySelector('.T-KT'); const isStarred = starEl ? starEl.classList.contains('T-KT-Jp') : false; messages.push({ sender: senderEl ? (senderEl.getAttribute('email') || senderEl.getAttribute('name') || senderEl.textContent.trim()) : '', subject: subjectEl ? subjectEl.textContent.trim() : '', preview: previewEl ? previewEl.textContent.trim().replace(/^\\s*-\\s*/, '') : '', date: dateEl ? (dateEl.getAttribute('title') || dateEl.textContent.trim()) : '', unread: isUnread, starred: isStarred }); } return { inbox_count: messages.length, messages: messages }",
+      "name": "inbox_messages",
+      "label": "Scrape inbox messages"
+    }
+  ]
+}

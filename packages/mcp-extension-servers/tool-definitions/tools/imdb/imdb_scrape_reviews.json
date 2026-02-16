@@ -1,0 +1,58 @@
+{
+  "id": "imdb-scrape-reviews",
+  "name": "imdb_scrape_reviews",
+  "description": "Scrape user reviews from an IMDb title page. Returns reviews with author, rating, title, content, date, and helpfulness votes.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "title_id",
+      "type": "string",
+      "description": "IMDb title ID (e.g. 'tt0468569' for The Dark Knight)",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://www.imdb.com/title/{{title_id}}/reviews/",
+      "label": "Open reviews page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[class*='review'], [data-testid='review-card'], article",
+      "timeout": 15000,
+      "label": "Wait for reviews"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 2000,
+      "label": "Scroll through reviews"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 2000,
+      "label": "Scroll further"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const reviews = []; const reviewEls = document.querySelectorAll('[class*=\"review-container\"], [data-testid=\"review-card\"], .lister-item, [class*=\"UserReview\"]'); for (let i = 0; i < Math.min(reviewEls.length, 20); i++) { const el = reviewEls[i]; const titleEl = el.querySelector('a.title, [class*=\"title\"] a, h3'); const ratingEl = el.querySelector('[class*=\"rating\"] span, [class*=\"ipl-ratings-bar\"] span, [class*=\"score\"]'); const authorEl = el.querySelector('[class*=\"display-name\"], [class*=\"author\"] a, a[href*=\"/user/\"]'); const dateEl = el.querySelector('[class*=\"review-date\"], [class*=\"date\"], time'); const contentEl = el.querySelector('[class*=\"content\"] div, [class*=\"text\"], [class*=\"review-body\"]'); const helpfulEl = el.querySelector('[class*=\"actions\"], [class*=\"helpful\"]'); reviews.push({ title: titleEl ? titleEl.textContent.trim() : '', rating: ratingEl ? ratingEl.textContent.trim() : '', author: authorEl ? authorEl.textContent.trim() : '', date: dateEl ? dateEl.textContent.trim() : '', content: contentEl ? contentEl.textContent.trim().substring(0, 1000) : '', helpful: helpfulEl ? helpfulEl.textContent.trim() : '' }); } const overallRatingEl = document.querySelector('[data-testid=\"hero-rating-bar__aggregate-rating__score\"] span'); return { title_id: '{{title_id}}', overall_rating: overallRatingEl ? overallRatingEl.textContent.trim() : '', review_count: reviews.length, reviews: reviews, url: window.location.href }",
+      "name": "reviews_data",
+      "label": "Extract reviews"
+    }
+  ]
+}

@@ -1,0 +1,48 @@
+{
+  "id": "wikipedia-scrape-categories",
+  "name": "wikipedia_scrape_categories",
+  "description": "Scrape categories from a Wikipedia article or browse a Wikipedia category page. Returns the list of categories an article belongs to, or subcategories and pages within a category.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "article_url",
+      "type": "string",
+      "description": "Wikipedia article or category URL (e.g. 'https://en.wikipedia.org/wiki/Python_(programming_language)' or 'https://en.wikipedia.org/wiki/Category:Programming_languages')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{article_url}}",
+      "label": "Open Wikipedia page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "#firstHeading, h1, #catlinks, #mw-subcategories, #mw-pages",
+      "timeout": 15000,
+      "label": "Wait for page to load"
+    },
+    {
+      "action": "wait",
+      "ms": 1500,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 3000,
+      "label": "Scroll to categories"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const titleEl = document.querySelector('#firstHeading, h1'); const categories = []; const catLinks = document.querySelectorAll('#catlinks li a, #mw-normal-catlinks li a'); catLinks.forEach(function(a) { categories.push({ name: a.textContent.trim(), url: a.href }); }); const subcategories = []; const subcatEls = document.querySelectorAll('#mw-subcategories li a, .CategoryTreeItem a'); subcatEls.forEach(function(a) { subcategories.push({ name: a.textContent.trim(), url: a.href }); }); const pages = []; const pageEls = document.querySelectorAll('#mw-pages li a'); pageEls.forEach(function(a) { pages.push({ title: a.textContent.trim(), url: a.href }); }); const pagesCountEl = document.querySelector('#mw-pages p, #mw-pages h2 + p'); return { title: titleEl ? titleEl.textContent.trim() : '', category_count: categories.length, categories: categories.slice(0, 30), subcategory_count: subcategories.length, subcategories: subcategories.slice(0, 30), pages_in_category: pages.slice(0, 30), pages_info: pagesCountEl ? pagesCountEl.textContent.trim() : '', url: window.location.href }",
+      "name": "categories_data",
+      "label": "Extract categories"
+    }
+  ]
+}

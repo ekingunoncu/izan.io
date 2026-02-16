@@ -1,0 +1,58 @@
+{
+  "id": "ebay-scrape-seller",
+  "name": "ebay_scrape_seller",
+  "description": "Scrape seller profile information from an eBay seller page. Returns seller name, feedback score, positive feedback percentage, member since date, top-rated status, and recent feedback details.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "seller_url",
+      "type": "string",
+      "description": "eBay seller profile URL (e.g. 'https://www.ebay.com/usr/sellername' or 'https://www.ebay.com/fdbk/feedback_profile/sellername')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{seller_url}}",
+      "label": "Open seller profile page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".str-seller-card, .fdbk-overall-rating, .str-about-description, h1[class*='seller'], .seller-persona",
+      "timeout": 15000,
+      "label": "Wait for seller page to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page fully render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll to load more seller info"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll further"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const nameEl = document.querySelector('.str-seller-card__store-name h1, .fdbk-overall-rating__header h2, .seller-persona h1, h1.str-seller-card__store-name span, [class*=\"seller-name\"]'); const feedbackScoreEl = document.querySelector('.str-seller-card__feedback-link span, .fdbk-overall-rating__score span, [class*=\"feedback-score\"], .str-seller-card__feedback span'); const positivePctEl = document.querySelector('.str-seller-card__feedback-link .str-seller-card__feedback-link__percentage, .fdbk-overall-rating__positive span, [class*=\"positive-feedback\"]'); const memberSinceEl = document.querySelector('.str-seller-card__member-info span, .fdbk-overall-rating__details span, [class*=\"member-since\"]'); const locationEl = document.querySelector('.str-seller-card__store-location span, .fdbk-overall-rating__location span, [class*=\"seller-location\"]'); const topRatedEl = document.querySelector('.str-seller-card__top-rated, .x-sellercard-atf__top-rated, [class*=\"top-rated\"] img, [class*=\"TopRated\"]'); const descriptionEl = document.querySelector('.str-about-description, .str-seller-card__about, [class*=\"seller-about\"], [class*=\"store-description\"]'); const detailedRatings = []; const ratingRows = document.querySelectorAll('.fdbk-detail-seller-rating__row, .dsr-rating, [class*=\"detailed-rating\"] tr'); ratingRows.forEach(function(row) { const labelEl = row.querySelector('.fdbk-detail-seller-rating__label span, .dsr-label, td:first-child'); const starsEl = row.querySelector('.fdbk-detail-seller-rating__stars .star-lit, .dsr-star-count, td:nth-child(2)'); if (labelEl) { detailedRatings.push({ category: labelEl.textContent.trim(), rating: starsEl ? starsEl.textContent.trim() : '' }); } }); const feedbackHistory = []; const historyRows = document.querySelectorAll('.fdbk-detail-list__item, .fdbk-main-detail tr, [class*=\"feedback-history\"] tr'); historyRows.forEach(function(row, idx) { if (idx >= 15) return; const periodEl = row.querySelector('.fdbk-detail-list__item__period, td:first-child'); const positiveEl = row.querySelector('.fdbk-detail-list__item__positive, td:nth-child(2)'); const neutralEl = row.querySelector('.fdbk-detail-list__item__neutral, td:nth-child(3)'); const negativeEl = row.querySelector('.fdbk-detail-list__item__negative, td:nth-child(4)'); if (periodEl) { feedbackHistory.push({ period: periodEl.textContent.trim(), positive: positiveEl ? positiveEl.textContent.trim() : '', neutral: neutralEl ? neutralEl.textContent.trim() : '', negative: negativeEl ? negativeEl.textContent.trim() : '' }); } }); const recentFeedback = []; const feedbackItems = document.querySelectorAll('.fdbk-container__details__comment, .card--feedback, [class*=\"feedback-item\"]'); feedbackItems.forEach(function(el, idx) { if (idx >= 10) return; const commentEl = el.querySelector('.fdbk-container__details__comment__text span, .card--feedback__comment, [class*=\"feedback-text\"]'); const ratingEl = el.querySelector('.fdbk-container__details__comment__icon, [class*=\"feedback-type\"]'); const dateEl = el.querySelector('.fdbk-container__details__comment__date, [class*=\"feedback-date\"]'); if (commentEl) { recentFeedback.push({ comment: commentEl.textContent.trim(), type: ratingEl ? ratingEl.textContent.trim() : '', date: dateEl ? dateEl.textContent.trim() : '' }); } }); const itemCountEl = document.querySelector('.str-seller-card__items-for-sale span, [class*=\"items-for-sale\"] span'); return { name: nameEl ? nameEl.textContent.trim() : '', feedback_score: feedbackScoreEl ? feedbackScoreEl.textContent.trim() : '', positive_feedback_percentage: positivePctEl ? positivePctEl.textContent.trim() : '', member_since: memberSinceEl ? memberSinceEl.textContent.trim() : '', location: locationEl ? locationEl.textContent.trim() : '', is_top_rated: !!topRatedEl, items_for_sale: itemCountEl ? itemCountEl.textContent.trim() : '', description: descriptionEl ? descriptionEl.textContent.trim().substring(0, 1000) : '', detailed_seller_ratings: detailedRatings, feedback_history: feedbackHistory, recent_feedback: recentFeedback, url: window.location.href }",
+      "name": "seller_data",
+      "label": "Extract seller profile information"
+    }
+  ]
+}

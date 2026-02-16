@@ -1,0 +1,68 @@
+{
+  "id": "youtube-scrape-comments",
+  "name": "youtube_scrape_comments",
+  "description": "Scrape comments from a YouTube video. Returns up to 20 top comments with author, content, likes, and time posted.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "video_url",
+      "type": "string",
+      "description": "YouTube video URL (e.g. 'https://www.youtube.com/watch?v=dQw4w9WgXcQ')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{video_url}}",
+      "label": "Open video page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "#title h1, h1.ytd-watch-metadata yt-formatted-string",
+      "timeout": 15000,
+      "label": "Wait for video to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1200,
+      "label": "Scroll down to trigger comments loading"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Wait for comments section to load"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll more to load additional comments"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll for even more comments"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const comments = []; const commentEls = document.querySelectorAll('ytd-comment-thread-renderer'); for (let i = 0; i < Math.min(commentEls.length, 20); i++) { const el = commentEls[i]; const authorEl = el.querySelector('#author-text span, #author-text'); const contentEl = el.querySelector('#content-text, yt-attributed-string#content-text'); const likesEl = el.querySelector('#vote-count-middle, span.vote-count-middle'); const timeEl = el.querySelector('#header-author .published-time-text a, yt-formatted-string.published-time-text a'); const pinnedEl = el.querySelector('#pinned-comment-badge'); const heartEl = el.querySelector('#creator-heart-button ytd-creator-heart-renderer[is-hearted]'); comments.push({ author: authorEl ? authorEl.textContent.trim() : 'Anonymous', content: contentEl ? contentEl.textContent.trim().substring(0, 500) : '', likes: likesEl ? likesEl.textContent.trim() : '0', time: timeEl ? timeEl.textContent.trim() : '', is_pinned: !!pinnedEl, has_heart: !!heartEl }); } const commentCountEl = document.querySelector('#count yt-formatted-string span, h2#count yt-formatted-string'); return { total_comment_count: commentCountEl ? commentCountEl.textContent.trim() : '', scraped_count: comments.length, comments: comments }",
+      "name": "comments_data",
+      "label": "Extract comments"
+    }
+  ]
+}

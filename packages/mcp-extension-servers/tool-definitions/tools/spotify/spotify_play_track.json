@@ -1,0 +1,48 @@
+{
+  "id": "spotify-play-track",
+  "name": "spotify_play_track",
+  "description": "Play a track on Spotify Web Player. Navigates to the track page and clicks the play button. You must be logged in with an active Spotify session.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "track_url",
+      "type": "string",
+      "description": "Spotify track URL (e.g. 'https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{track_url}}",
+      "label": "Open Spotify track page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[data-testid=\"play-button\"], button[aria-label=\"Play\"], [data-testid=\"action-bar-row\"] button",
+      "timeout": 15000,
+      "label": "Wait for play button to appear"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let track page fully load"
+    },
+    {
+      "action": "click",
+      "selector": "[data-testid=\"play-button\"], button[aria-label=\"Play\"]",
+      "label": "Click play button"
+    },
+    {
+      "action": "wait",
+      "ms": 1500,
+      "label": "Wait for playback to start"
+    },
+    {
+      "action": "code",
+      "code": "const titleEl = document.querySelector('[data-testid=\"entityTitle\"] h1, [data-testid=\"entityTitle\"], h1'); const artistEl = document.querySelector('[data-testid=\"creator-link\"], a[href^=\"/artist\"]'); const nowPlaying = document.querySelector('[data-testid=\"now-playing-widget\"], [data-testid=\"CoverSlotExpanded__container\"]'); return { success: true, track_name: titleEl ? titleEl.textContent.trim() : '', artist: artistEl ? artistEl.textContent.trim() : '', is_playing: !!nowPlaying, url: window.location.href }",
+      "name": "play_result",
+      "label": "Confirm playback started"
+    }
+  ]
+}

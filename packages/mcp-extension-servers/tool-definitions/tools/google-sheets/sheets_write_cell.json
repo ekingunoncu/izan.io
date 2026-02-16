@@ -1,0 +1,61 @@
+{
+  "id": "sheets-write-cell",
+  "name": "sheets_write_cell",
+  "description": "Write a value to a specific cell in a Google Spreadsheet. Uses the Name Box to navigate to the cell and then types the value into it.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "spreadsheet_url",
+      "type": "string",
+      "description": "Full Google Sheets URL (e.g. https://docs.google.com/spreadsheets/d/SPREADSHEET_ID/edit)",
+      "required": true
+    },
+    {
+      "name": "cell",
+      "type": "string",
+      "description": "Target cell reference in A1 notation (e.g. 'A1', 'B5', 'C12')",
+      "required": true
+    },
+    {
+      "name": "value",
+      "type": "string",
+      "description": "Value to write into the cell",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{spreadsheet_url}}",
+      "label": "Open spreadsheet"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "table.waffle, .waffle",
+      "timeout": 20000,
+      "label": "Wait for spreadsheet grid to load"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Let spreadsheet fully initialize"
+    },
+    {
+      "action": "code",
+      "code": "const nameBox = document.querySelector('#t-name-box input, .jfk-textinput[aria-label*=\"Name\"]'); if (!nameBox) return { error: 'Could not find Name Box input' }; nameBox.focus(); nameBox.click(); await new Promise(r => setTimeout(r, 500)); const nativeSet = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set; nativeSet.call(nameBox, `{{cell}}`); nameBox.dispatchEvent(new Event('input', { bubbles: true })); nameBox.dispatchEvent(new Event('change', { bubbles: true })); await new Promise(r => setTimeout(r, 300)); nameBox.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', keyCode: 13, code: 'Enter', bubbles: true })); nameBox.dispatchEvent(new KeyboardEvent('keypress', { key: 'Enter', keyCode: 13, code: 'Enter', bubbles: true })); nameBox.dispatchEvent(new KeyboardEvent('keyup', { key: 'Enter', keyCode: 13, code: 'Enter', bubbles: true })); await new Promise(r => setTimeout(r, 1000)); return { navigated: true, cell: `{{cell}}` }",
+      "name": "navigate_to_cell",
+      "label": "Navigate to the target cell using Name Box"
+    },
+    {
+      "action": "wait",
+      "ms": 500,
+      "label": "Brief pause before typing"
+    },
+    {
+      "action": "code",
+      "code": "const cellInput = document.querySelector('#formula_bar_edit, .cell-input, [contenteditable=\"true\"].cell-input'); const activeCell = document.querySelector('.active-cell-border, .selection'); if (cellInput) { cellInput.focus(); } const valueToType = `{{value}}`; for (const char of valueToType) { document.dispatchEvent(new KeyboardEvent('keydown', { key: char, bubbles: true })); document.dispatchEvent(new KeyboardEvent('keypress', { key: char, bubbles: true })); document.dispatchEvent(new KeyboardEvent('keyup', { key: char, bubbles: true })); } await new Promise(r => setTimeout(r, 500)); document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', keyCode: 13, code: 'Enter', bubbles: true })); document.dispatchEvent(new KeyboardEvent('keypress', { key: 'Enter', keyCode: 13, code: 'Enter', bubbles: true })); document.dispatchEvent(new KeyboardEvent('keyup', { key: 'Enter', keyCode: 13, code: 'Enter', bubbles: true })); await new Promise(r => setTimeout(r, 1000)); return { success: true, cell: `{{cell}}`, value: `{{value}}`, url: window.location.href }",
+      "name": "write_result",
+      "label": "Type value into the cell and confirm with Enter"
+    }
+  ]
+}

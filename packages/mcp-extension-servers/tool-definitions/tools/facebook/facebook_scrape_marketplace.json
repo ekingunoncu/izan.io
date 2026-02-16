@@ -1,0 +1,58 @@
+{
+  "id": "facebook-scrape-marketplace",
+  "name": "facebook_scrape_marketplace",
+  "description": "Browse and scrape Facebook Marketplace listings. Returns up to 15 listings with title, price, location, image, and URL.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "query",
+      "type": "string",
+      "description": "Search query for Marketplace (e.g. 'used iphone', 'furniture', 'cars under 5000')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://www.facebook.com/marketplace/search/?query={{query}}",
+      "label": "Search Facebook Marketplace"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[role='main'], a[href*='/marketplace/item/']",
+      "timeout": 15000,
+      "label": "Wait for Marketplace results"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Let listings render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll to load more listings"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll further down"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const results = []; const itemLinks = document.querySelectorAll('a[href*=\"/marketplace/item/\"]'); const seen = new Set(); for (let i = 0; i < itemLinks.length && results.length < 15; i++) { const link = itemLinks[i]; const href = link.getAttribute('href') || ''; const itemId = href.match(/\\/marketplace\\/item\\/(\\d+)/); if (itemId && seen.has(itemId[1])) continue; if (itemId) seen.add(itemId[1]); const container = link.closest('div') || link; const spans = container.querySelectorAll('span'); let title = ''; let price = ''; let location = ''; for (const span of spans) { const text = span.textContent.trim(); if (!price && (text.startsWith('$') || text.startsWith('Free') || /^[\\d,.]+\\s*(USD|EUR|GBP|\\$)/.test(text) || text === 'Free')) { price = text; } else if (!title && text.length > 5 && text.length < 200 && !text.startsWith('$')) { title = text; } else if (!location && text.length > 2 && text.length < 100 && text !== title && !text.startsWith('$') && title) { location = text; } } const imgEl = container.querySelector('img'); const image = imgEl ? imgEl.getAttribute('src') || '' : ''; const fullUrl = href.startsWith('http') ? href : 'https://www.facebook.com' + href; if (title || price) { results.push({ title: title, price: price, location: location, image: image, url: fullUrl }); } } return { query: `{{query}}`, result_count: results.length, results: results }",
+      "name": "marketplace_results",
+      "label": "Extract Marketplace listings"
+    }
+  ]
+}

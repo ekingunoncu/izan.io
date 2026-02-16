@@ -1,0 +1,59 @@
+{
+  "id": "airbnb-bulk-search",
+  "name": "airbnb_bulk_search",
+  "description": "Search Airbnb listings across multiple locations in parallel using concurrent browser tabs. Use this instead of calling airbnb_search multiple times - it is faster and more efficient. Pass all locations as a single comma-separated string. Example: 'Paris,Tokyo,New York'.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "locations",
+      "type": "string",
+      "description": "Comma-separated locations to search (e.g. 'Paris,Tokyo,Barcelona')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{locations}}`.split(',').map(l => ({ url: 'https://www.airbnb.com/s/' + encodeURIComponent(l.trim()) + '/homes', location: l.trim() }))",
+      "name": "items",
+      "label": "Build search URL list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 3,
+      "maxItems": 10,
+      "waitUntil": "load",
+      "label": "Search each location in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": "[itemprop='itemListElement'], [data-testid='card-container'], [data-testid='listing-card-title']",
+          "timeout": 15000,
+          "label": "Wait for results"
+        },
+        {
+          "action": "wait",
+          "ms": 3000
+        },
+        {
+          "action": "scroll",
+          "direction": "down",
+          "amount": 1000
+        },
+        {
+          "action": "wait",
+          "ms": 2000
+        },
+        {
+          "action": "code",
+          "code": "const results = []; const cards = document.querySelectorAll('[itemprop=\"itemListElement\"], [data-testid=\"card-container\"], [aria-labelledby]'); for (let i = 0; i < Math.min(cards.length, 5); i++) { const el = cards[i]; const titleEl = el.querySelector('[data-testid=\"listing-card-title\"], [id^=\"title_\"]'); const priceEl = el.querySelector('[data-testid=\"price-availability-row\"] span span, span._tyxjp1, span._14y1168'); const ratingEl = el.querySelector('[aria-label*=\"rating\"], .t1a9j9y7 span'); const linkEl = el.querySelector('a[href*=\"/rooms/\"]'); const imgEl = el.querySelector('img[src*=\"images\"]'); const subtitleEl = el.querySelector('[data-testid=\"listing-card-subtitle\"]'); const url = linkEl ? (linkEl.href.startsWith('http') ? linkEl.href : 'https://www.airbnb.com' + linkEl.getAttribute('href')) : ''; const title = titleEl ? titleEl.textContent.trim() : ''; if (title) { results.push({ title: title, subtitle: subtitleEl ? subtitleEl.textContent.trim() : '', price: priceEl ? priceEl.textContent.trim() : '', rating: ratingEl ? ratingEl.textContent.trim() : '', image: imgEl ? imgEl.getAttribute('src') : '', url: url }); } } const pathParts = window.location.pathname.split('/'); const locationFromUrl = decodeURIComponent(pathParts[2] || ''); return { location: locationFromUrl, result_count: results.length, results: results }",
+          "name": "search_results",
+          "label": "Extract results"
+        }
+      ]
+    }
+  ]
+}

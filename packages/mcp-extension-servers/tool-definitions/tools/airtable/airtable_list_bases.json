@@ -1,0 +1,31 @@
+{
+  "id": "airtable-list-bases",
+  "name": "airtable_list_bases",
+  "description": "List all bases from the Airtable dashboard. Returns base names, icons, and URLs visible on the home screen.",
+  "version": "1.0.0",
+  "parameters": [],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://airtable.com",
+      "label": "Open Airtable dashboard"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".baseContainer, [data-testid=\"base-card\"], .base-card",
+      "timeout": 15000,
+      "label": "Wait for bases to load"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Let dashboard fully render"
+    },
+    {
+      "action": "code",
+      "code": "const bases = []; const cards = document.querySelectorAll('[data-testid=\"base-card\"], .baseContainer, .base-card'); for (let i = 0; i < Math.min(cards.length, 50); i++) { const card = cards[i]; const nameEl = card.querySelector('[data-testid=\"base-name\"], .baseCardName, .base-name, h3, span'); const name = nameEl?.textContent?.trim() || card.textContent?.trim()?.substring(0, 60) || ''; const link = card.closest('a') || card.querySelector('a'); const url = link?.href || ''; const iconEl = card.querySelector('.baseIcon, [data-testid=\"base-icon\"], svg, img'); const icon = iconEl?.getAttribute('aria-label') || iconEl?.getAttribute('alt') || ''; if (name && name.length > 0) { bases.push({ name: name.substring(0, 100), url: url, icon: icon }); } } return { result_count: bases.length, bases: bases }",
+      "name": "result",
+      "label": "Extract base names, icons, and URLs"
+    }
+  ]
+}

@@ -1,0 +1,58 @@
+{
+  "id": "substack-search",
+  "name": "substack_search",
+  "description": "Search for newsletters and posts on Substack. Returns up to 15 results with title, author, newsletter name, like count, date, and URL.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "query",
+      "type": "string",
+      "description": "Search query (e.g. 'tech newsletter', 'finance writing', 'culture essays')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://substack.com/search/{{query}}",
+      "label": "Search Substack"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[class*='post'], [class*='search-result'], article, a[href*='/p/']",
+      "timeout": 15000,
+      "label": "Wait for search results"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let results render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll to load more results"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll further down"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const results = []; const items = document.querySelectorAll('[class*=\"search-result\"], [class*=\"post-preview\"], article, [class*=\"SearchResult\"]'); for (let i = 0; i < Math.min(items.length, 15); i++) { const el = items[i]; const titleEl = el.querySelector('h2, h3, [class*=\"title\"] a, [class*=\"post-title\"]'); const authorEl = el.querySelector('[class*=\"author\"] a, [class*=\"byline\"] a, [class*=\"pub-name\"]'); const newsletterEl = el.querySelector('[class*=\"publication\"], [class*=\"newsletter\"]'); const likesEl = el.querySelector('[class*=\"like\"] span, [class*=\"heart\"] span, [class*=\"reaction\"]'); const dateEl = el.querySelector('time, [class*=\"date\"], [class*=\"timestamp\"]'); const previewEl = el.querySelector('[class*=\"subtitle\"], [class*=\"preview\"], [class*=\"body-text\"] p'); const linkEl = el.querySelector('a[href*=\"/p/\"], a[href*=\".substack.com\"], h2 a, h3 a'); const imgEl = el.querySelector('img[src*=\"substackcdn\"], img[src*=\"substack\"], img'); results.push({ title: titleEl ? titleEl.textContent.trim() : '', author: authorEl ? authorEl.textContent.trim() : '', newsletter: newsletterEl ? newsletterEl.textContent.trim() : '', preview: previewEl ? previewEl.textContent.trim().substring(0, 200) : '', likes: likesEl ? likesEl.textContent.trim() : '', date: dateEl ? (dateEl.getAttribute('datetime') || dateEl.textContent.trim()) : '', url: linkEl ? linkEl.href : '', image: imgEl ? imgEl.getAttribute('src') : '' }); } return { query: `{{query}}`, result_count: results.length, results: results }",
+      "name": "search_results",
+      "label": "Extract search results"
+    }
+  ]
+}

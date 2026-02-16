@@ -1,0 +1,89 @@
+{
+  "id": "airbnb-scrape-reviews",
+  "name": "airbnb_scrape_reviews",
+  "description": "Scrape reviews from an Airbnb listing page. Navigates to the reviews section and returns reviews with author, rating, content, date, and response from host.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "listing_url",
+      "type": "string",
+      "description": "Airbnb listing URL (e.g. 'https://www.airbnb.com/rooms/12345678')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{listing_url}}",
+      "label": "Open listing page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[data-section-id='TITLE_DEFAULT'], h1",
+      "timeout": 15000,
+      "label": "Wait for listing page to load"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 4000,
+      "label": "Scroll down to reviews section"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 2000,
+      "label": "Scroll further to reviews"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const showAllBtn = document.querySelector('[data-section-id=\"REVIEWS_DEFAULT\"] button[aria-label*=\"Show all\"], [data-section-id=\"REVIEWS_DEFAULT\"] button[aria-label*=\"reviews\"], a[href=\"#reviews\"]'); if (showAllBtn) { showAllBtn.click(); } return { clicked: !!showAllBtn }",
+      "name": "show_all_result",
+      "label": "Click Show All Reviews button"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Wait for reviews modal to open"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1500,
+      "label": "Scroll within reviews"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1500,
+      "label": "Scroll for more reviews"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const reviews = []; const reviewEls = document.querySelectorAll('[data-review-id], [role=\"listitem\"][class*=\"review\"], [data-testid=\"pdp-reviews-modal-scrollable-panel\"] > div > div, [data-section-id=\"REVIEWS_DEFAULT\"] [role=\"listitem\"], [data-section-id=\"REVIEWS_DEFAULT\"] > div > div > div'); const processedAuthors = new Set(); reviewEls.forEach(function(el, idx) { if (idx >= 25) return; const authorEl = el.querySelector('h2, h3, [data-testid=\"review-author\"], .t1pxe1a4, .hpipapi'); const dateEl = el.querySelector('[data-testid=\"review-date\"], .s78n3tv, .f19g2zq0 span'); const contentEl = el.querySelector('[data-testid=\"review-comment\"], span[class*=\"comment\"], .cjv5pxl, .r1bctolv span'); const ratingEl = el.querySelector('[aria-label*=\"Rating\"], [aria-label*=\"star\"]'); const responseEl = el.querySelector('[data-testid=\"host-response\"], .ll4r2nl span'); const authorName = authorEl ? authorEl.textContent.trim() : ''; const content = contentEl ? contentEl.textContent.trim() : ''; if (content && content.length > 5 && !processedAuthors.has(authorName + content.substring(0, 50))) { processedAuthors.add(authorName + content.substring(0, 50)); reviews.push({ author: authorName, date: dateEl ? dateEl.textContent.trim() : '', rating: ratingEl ? ratingEl.getAttribute('aria-label') : '', content: content.substring(0, 1000), host_response: responseEl ? responseEl.textContent.trim().substring(0, 500) : '' }); } }); const overallRatingEl = document.querySelector('[data-testid=\"pdp-reviews-highlight-banner-host-rating\"] span, .a1g1kt6h span, [data-section-id=\"REVIEWS_DEFAULT\"] span[class*=\"rating\"]'); const totalReviewsEl = document.querySelector('[data-section-id=\"REVIEWS_DEFAULT\"] h2 span, [data-section-id=\"REVIEWS_DEFAULT\"] button span, .hpipapi span'); const categoryRatings = []; const categoryEls = document.querySelectorAll('[data-testid=\"pdp-reviews-highlight-banner-host-rating\"] ~ div div, .c10gg0lp, .s78n3tv'); categoryEls.forEach(function(el) { const label = el.querySelector('span:first-child, .s1l21dve'); const score = el.querySelector('span:last-child, ._4oybiu'); if (label && score) { categoryRatings.push({ category: label.textContent.trim(), score: score.textContent.trim() }); } }); return { overall_rating: overallRatingEl ? overallRatingEl.textContent.trim() : '', total_reviews: totalReviewsEl ? totalReviewsEl.textContent.trim() : '', category_ratings: categoryRatings.slice(0, 6), scraped_count: reviews.length, reviews: reviews }",
+      "name": "reviews_data",
+      "label": "Extract reviews"
+    }
+  ]
+}

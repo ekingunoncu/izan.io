@@ -1,0 +1,66 @@
+{
+  "id": "calendar-search",
+  "name": "calendar_search",
+  "description": "Search for events in Google Calendar by keyword. Returns matching events with their title, date, and time.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "query",
+      "type": "string",
+      "description": "Search query to find events by title or content",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://calendar.google.com/calendar/r",
+      "label": "Open Google Calendar"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[role='main'], [data-eventid], .FAxxKc",
+      "timeout": 20000,
+      "label": "Wait for calendar to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let calendar fully render"
+    },
+    {
+      "action": "code",
+      "code": "const searchBtn = document.querySelector('[aria-label=\"Search\"], #sb_cb50, button[data-tooltip=\"Search\"], [jsname=\"LwgnTb\"]'); if (searchBtn) { searchBtn.click(); await new Promise(r => setTimeout(r, 1500)); } else { return { error: 'Could not find search button' }; } return { search_opened: true }",
+      "name": "open_search",
+      "label": "Click the search icon"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "input[aria-label='Search'], input[aria-label='Search for people, events'], input#sb_cb50, input[type='search']",
+      "timeout": 10000,
+      "label": "Wait for search input field"
+    },
+    {
+      "action": "wait",
+      "ms": 500,
+      "label": "Brief pause"
+    },
+    {
+      "action": "code",
+      "code": "const searchInput = document.querySelector('input[aria-label=\"Search\"], input[aria-label=\"Search for people, events\"], input#sb_cb50, input[type=\"search\"]'); if (!searchInput) return { error: 'Could not find search input' }; searchInput.focus(); searchInput.click(); await new Promise(r => setTimeout(r, 300)); const nativeSet = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set; nativeSet.call(searchInput, `{{query}}`); searchInput.dispatchEvent(new Event('input', { bubbles: true })); searchInput.dispatchEvent(new Event('change', { bubbles: true })); await new Promise(r => setTimeout(r, 500)); searchInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', keyCode: 13, code: 'Enter', bubbles: true })); searchInput.dispatchEvent(new KeyboardEvent('keypress', { key: 'Enter', keyCode: 13, code: 'Enter', bubbles: true })); searchInput.dispatchEvent(new KeyboardEvent('keyup', { key: 'Enter', keyCode: 13, code: 'Enter', bubbles: true })); return { query_submitted: true }",
+      "name": "submit_search",
+      "label": "Type search query and press Enter"
+    },
+    {
+      "action": "wait",
+      "ms": 4000,
+      "label": "Wait for search results to load"
+    },
+    {
+      "action": "code",
+      "code": "const results = []; const eventElements = document.querySelectorAll('[data-eventid], [data-eventchip], .FAxxKc, [data-searchresultid], [role=\"listitem\"]'); const seen = new Set(); eventElements.forEach(el => { if (results.length >= 30) return; const eventId = el.getAttribute('data-eventid') || el.getAttribute('data-eventchip') || el.getAttribute('data-searchresultid') || ''; if (eventId && seen.has(eventId)) return; if (eventId) seen.add(eventId); const ariaLabel = el.getAttribute('aria-label') || ''; let title = ''; let date = ''; let time = ''; if (ariaLabel) { title = ariaLabel; const dateMatch = ariaLabel.match(/(\\w+day,\\s+\\w+\\s+\\d{1,2}(?:,\\s+\\d{4})?)/i); if (dateMatch) date = dateMatch[1]; const timeMatch = ariaLabel.match(/(\\d{1,2}(?::\\d{2})?\\s*(?:AM|PM|am|pm)(?:\\s*[-\u2013]\\s*\\d{1,2}(?::\\d{2})?\\s*(?:AM|PM|am|pm)?)?)/); if (timeMatch) time = timeMatch[1]; } else { title = (el.textContent || '').trim(); } if (!title) return; const link = el.querySelector('a[href]') || (el.tagName === 'A' ? el : null); const url = link ? link.href : ''; results.push({ title: title.substring(0, 200), date: date, time: time, event_id: eventId, url: url }); }); return { query: `{{query}}`, result_count: results.length, results: results }",
+      "name": "search_results",
+      "label": "Scrape search results"
+    }
+  ]
+}

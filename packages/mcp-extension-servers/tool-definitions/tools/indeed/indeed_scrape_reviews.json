@@ -1,0 +1,58 @@
+{
+  "id": "indeed-scrape-reviews",
+  "name": "indeed_scrape_reviews",
+  "description": "Scrape company reviews from Indeed. Returns overall rating, rating breakdown by category, and individual reviews with title, rating, pros, cons, and date.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "company",
+      "type": "string",
+      "description": "Company name or Indeed company slug (e.g. 'Google' or 'Google-Inc')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://www.indeed.com/cmp/{{company}}/reviews",
+      "label": "Open company reviews page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[itemprop=\"review\"], .cmp-Review, [data-testid=\"review-card\"], .css-1dbjc4n",
+      "timeout": 15000,
+      "label": "Wait for reviews to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page settle"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll to load more reviews"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll further"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const overallRatingEl = document.querySelector('[data-testid=\"rating-value\"], .css-1unnuiz, .cmp-OverallRating-value, [itemprop=\"ratingValue\"]'); const reviewCountEl = document.querySelector('[data-testid=\"review-count\"], .css-1yh6bo3, .cmp-OverallRating-reviewCount'); const ratingCategories = []; const categoryEls = document.querySelectorAll('.cmp-RatingBreakdown-item, [data-testid=\"rating-breakdown-item\"], .css-1bdln1k'); categoryEls.forEach(function(el) { const label = el.querySelector('.css-1rk87ix, .cmp-RatingBreakdown-label, span:first-child'); const value = el.querySelector('.css-1unnuiz, .cmp-RatingBreakdown-value, span:last-child'); if (label && value) ratingCategories.push({ category: label.textContent.trim(), rating: value.textContent.trim() }); }); const reviews = []; const reviewEls = document.querySelectorAll('[itemprop=\"review\"], .cmp-Review, [data-testid=\"review-card\"], [data-tn-entitytype=\"reviewCard\"]'); for (let i = 0; i < Math.min(reviewEls.length, 20); i++) { const el = reviewEls[i]; const titleEl = el.querySelector('[itemprop=\"name\"], .cmp-Review-title, [data-testid=\"review-title\"], a[data-tn-element=\"reviewTitle\"]'); const ratingEl = el.querySelector('[itemprop=\"ratingValue\"], .cmp-Review-rating .css-1unnuiz, [data-testid=\"review-rating\"], .ratingNumber span'); const authorEl = el.querySelector('.cmp-Review-author, [data-testid=\"review-author\"], .cmp-ReviewAuthor'); const dateEl = el.querySelector('[itemprop=\"datePublished\"], .cmp-Review-date, [data-testid=\"review-date\"], span.css-xvmbff'); const jobTitleEl = el.querySelector('.cmp-Review-authorJobTitle, [data-testid=\"review-job-title\"], .css-1r0wrwl'); const locationEl = el.querySelector('.cmp-Review-authorLocation, [data-testid=\"review-location\"]'); const prosEl = el.querySelector('.cmp-Review-pros, [data-testid=\"review-pros\"], [data-tn-component=\"reviewPros\"] span'); const consEl = el.querySelector('.cmp-Review-cons, [data-testid=\"review-cons\"], [data-tn-component=\"reviewCons\"] span'); const ratingVal = ratingEl ? ratingEl.textContent.trim() : ''; reviews.push({ title: titleEl ? titleEl.textContent.trim() : '', rating: ratingVal, author: authorEl ? authorEl.textContent.trim() : '', job_title: jobTitleEl ? jobTitleEl.textContent.trim() : '', location: locationEl ? locationEl.textContent.trim() : '', date: dateEl ? (dateEl.getAttribute('content') || dateEl.textContent.trim()) : '', pros: prosEl ? prosEl.textContent.trim().slice(0, 500) : '', cons: consEl ? consEl.textContent.trim().slice(0, 500) : '' }); } return { company: '{{company}}', overall_rating: overallRatingEl ? overallRatingEl.textContent.trim() : '', total_reviews: reviewCountEl ? reviewCountEl.textContent.trim() : '', rating_categories: ratingCategories, review_count: reviews.length, reviews: reviews, url: window.location.href }",
+      "name": "reviews_data",
+      "label": "Extract review data"
+    }
+  ]
+}

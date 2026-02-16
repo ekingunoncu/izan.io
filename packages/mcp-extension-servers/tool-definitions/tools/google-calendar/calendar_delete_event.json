@@ -1,0 +1,66 @@
+{
+  "id": "calendar-delete-event",
+  "name": "calendar_delete_event",
+  "description": "Delete an event from Google Calendar. Searches for the event by title, opens it, and deletes it with confirmation.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "event_title",
+      "type": "string",
+      "description": "Title of the event to find and delete",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://calendar.google.com/calendar/r",
+      "label": "Open Google Calendar"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[role='main'], [data-eventid], .FAxxKc",
+      "timeout": 20000,
+      "label": "Wait for calendar to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let calendar fully render"
+    },
+    {
+      "action": "code",
+      "code": "const searchBtn = document.querySelector('[aria-label=\"Search\"], #sb_cb50, button[data-tooltip=\"Search\"]'); if (searchBtn) { searchBtn.click(); await new Promise(r => setTimeout(r, 1500)); } return { search_opened: !!searchBtn }",
+      "name": "open_search",
+      "label": "Open search"
+    },
+    {
+      "action": "code",
+      "code": "const searchInput = document.querySelector('input[aria-label=\"Search\"], input[aria-label=\"Search for people, events\"], input#sb_cb50, input[type=\"search\"]'); if (!searchInput) return { error: 'Could not find search input' }; searchInput.focus(); const nativeSet = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set; nativeSet.call(searchInput, `{{event_title}}`); searchInput.dispatchEvent(new Event('input', { bubbles: true })); searchInput.dispatchEvent(new Event('change', { bubbles: true })); await new Promise(r => setTimeout(r, 500)); searchInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', keyCode: 13, code: 'Enter', bubbles: true })); await new Promise(r => setTimeout(r, 3000)); return { searched: true }",
+      "name": "search_event",
+      "label": "Search for the event by title"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Wait for search results"
+    },
+    {
+      "action": "code",
+      "code": "const query = `{{event_title}}`.toLowerCase(); const eventElements = document.querySelectorAll('[data-eventid], [data-eventchip], .FAxxKc, [data-searchresultid]'); let target = null; eventElements.forEach(el => { if (target) return; const text = (el.getAttribute('aria-label') || el.textContent || '').toLowerCase(); if (text.includes(query)) target = el; }); if (!target) return { error: 'Event not found: {{event_title}}' }; target.click(); await new Promise(r => setTimeout(r, 2000)); return { event_clicked: true }",
+      "name": "click_event",
+      "label": "Click on the matching event"
+    },
+    {
+      "action": "wait",
+      "ms": 1500,
+      "label": "Wait for event detail popup"
+    },
+    {
+      "action": "code",
+      "code": "const deleteBtn = document.querySelector('[aria-label=\"Delete event\"], [data-tooltip=\"Delete event\"], button[aria-label*=\"Delete\"], [aria-label=\"Remove event\"], [jsname=\"ViaHrd\"][aria-label*=\"elete\"]'); if (deleteBtn) { deleteBtn.click(); await new Promise(r => setTimeout(r, 2000)); const confirmBtns = document.querySelectorAll('button, [role=\"button\"]'); let confirmed = false; confirmBtns.forEach(btn => { const text = (btn.textContent || '').trim().toLowerCase(); if (text === 'delete' || text === 'ok' || text === 'confirm' || text === 'delete event') { btn.click(); confirmed = true; } }); await new Promise(r => setTimeout(r, 2000)); return { success: true, deleted: `{{event_title}}`, confirmed: confirmed }; } const trashIcon = document.querySelector('[data-tooltip*=\"Delete\"], [aria-label*=\"Trash\"], [aria-label*=\"delete\" i]'); if (trashIcon) { trashIcon.click(); await new Promise(r => setTimeout(r, 2000)); const confirmBtns = document.querySelectorAll('button, [role=\"button\"]'); confirmBtns.forEach(btn => { const text = (btn.textContent || '').trim().toLowerCase(); if (text === 'delete' || text === 'ok') btn.click(); }); await new Promise(r => setTimeout(r, 2000)); return { success: true, deleted: `{{event_title}}` }; } return { error: 'Could not find delete button' }",
+      "name": "delete_result",
+      "label": "Click delete and confirm deletion"
+    }
+  ]
+}

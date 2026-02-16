@@ -1,0 +1,60 @@
+{
+  "id": "tripadvisor-bulk-search",
+  "name": "tripadvisor_bulk_search",
+  "description": "Bulk search multiple destinations on TripAdvisor in parallel using concurrent browser tabs. Pass all queries as a single comma-separated string. Returns search results for each destination.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "queries",
+      "type": "string",
+      "description": "Comma-separated search queries (e.g. 'hotels in Paris,restaurants in Rome,things to do Tokyo')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{queries}}`.split(',').map(q => ({ query: q.trim(), url: 'https://www.tripadvisor.com/Search?q=' + encodeURIComponent(q.trim()) }))",
+      "name": "items",
+      "label": "Build query list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 2,
+      "maxItems": 10,
+      "waitUntil": "load",
+      "label": "Search each destination in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": "[data-test-target='search-result'], .result-title, .search-results-list, .ui_columns",
+          "timeout": 15000,
+          "label": "Wait for search results"
+        },
+        {
+          "action": "wait",
+          "ms": 3000
+        },
+        {
+          "action": "scroll",
+          "direction": "down",
+          "amount": 1200,
+          "label": "Scroll to load more"
+        },
+        {
+          "action": "wait",
+          "ms": 2000
+        },
+        {
+          "action": "code",
+          "code": "const currentQuery = `{{@item.query}}`; const results = []; const cards = document.querySelectorAll('[data-test-target=\"search-result\"], .result-title, .search-result, .result, [class*=\"search_result\"], [class*=\"SearchResult\"]'); const seen = new Set(); for (let i = 0; i < cards.length && results.length < 10; i++) { const el = cards[i]; const titleEl = el.querySelector('a[onclick], a[href*=\"-Reviews-\"], a[href*=\"Attraction_Review\"], a[href*=\"Restaurant_Review\"], a[href*=\"Hotel_Review\"], .result-title span, [class*=\"title\"] a, h3 a'); const linkEl = titleEl || el.querySelector('a[href*=\"tripadvisor\"]'); const ratingEl = el.querySelector('svg[aria-label*=\"bubble\"], .ui_bubble_rating, [class*=\"bubble\"]'); const reviewCountEl = el.querySelector('[class*=\"review_count\"], [class*=\"reviewCount\"], span[class*=\"count\"]'); const typeEl = el.querySelector('[class*=\"search-result-badge\"], [class*=\"type\"], [class*=\"category\"]'); const name = titleEl ? titleEl.textContent.trim() : ''; const url = linkEl ? (linkEl.href.startsWith('http') ? linkEl.href : 'https://www.tripadvisor.com' + linkEl.getAttribute('href')) : ''; if (name && !seen.has(name)) { seen.add(name); results.push({ name: name, type: typeEl ? typeEl.textContent.trim() : '', rating: ratingEl ? (ratingEl.getAttribute('aria-label') || '') : '', review_count: reviewCountEl ? reviewCountEl.textContent.trim() : '', url: url }); } } return { query: currentQuery, result_count: results.length, results: results }",
+          "name": "search_data",
+          "label": "Extract search results"
+        }
+      ]
+    }
+  ]
+}

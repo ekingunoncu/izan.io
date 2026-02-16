@@ -44,15 +44,24 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_DEFAULT_REGION || 'eu-central-1' }}
 
-      - name: Deploy to AWS
+      - name: Deploy IzanStack to AWS
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION || 'eu-central-1' }}
-          # Namecheap MCP - optional, only if using domain check
           NAMECHEAP_API_USER: ${{ secrets.NAMECHEAP_API_USER }}
           NAMECHEAP_API_KEY: ${{ secrets.NAMECHEAP_API_KEY }}
           NAMECHEAP_CLIENT_IP: ${{ secrets.NAMECHEAP_CLIENT_IP }}
           NAMECHEAP_API_URL: ${{ secrets.NAMECHEAP_API_URL }}
           IZAN_DOMAIN_CERTIFICATE_ARN: ${{ secrets.IZAN_DOMAIN_CERTIFICATE_ARN }}
-        run: cd packages/infra && npx cdk deploy --require-approval never
+        run: cd packages/infra && npx cdk deploy IzanStack --require-approval never
+
+      - name: Deploy ZihinStack to AWS
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION || 'eu-central-1' }}
+          VITE_GITHUB_CLIENT_ID: ${{ secrets.VITE_GITHUB_CLIENT_ID }}
+          GITHUB_CLIENT_SECRET: ${{ secrets.GITHUB_CLIENT_SECRET }}
+          ZIHIN_DOMAIN_CERTIFICATE_ARN: ${{ secrets.ZIHIN_DOMAIN_CERTIFICATE_ARN }}
+        run: cd packages/infra && npx cdk deploy ZihinStack --require-approval never

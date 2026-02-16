@@ -1,0 +1,51 @@
+{
+  "id": "tiktok-scrape-trending",
+  "name": "tiktok_scrape_trending",
+  "description": "Browse the TikTok Explore/Discover page to find trending videos. Returns trending videos with title, creator, views, and music/sound info.",
+  "version": "1.0.0",
+  "parameters": [],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://www.tiktok.com/explore",
+      "label": "Open TikTok Explore page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[data-e2e=\"explore-item\"], .explore-video-card, div[class*=\"DivVideoCard\"]",
+      "timeout": 15000,
+      "label": "Wait for trending content"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Let page fully render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1200,
+      "label": "Scroll to load more trending videos"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll for additional content"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const videos = []; const items = document.querySelectorAll('[data-e2e=\"explore-item\"], .explore-video-card, div[class*=\"DivVideoCardBody\"], div[class*=\"DivWrapper\"] > div[class*=\"DivVideoCard\"]'); for (let i = 0; i < Math.min(items.length, 20); i++) { const el = items[i]; const descEl = el.querySelector('[data-e2e=\"explore-item-desc\"], a[title], .card-desc'); const creatorEl = el.querySelector('[data-e2e=\"explore-item-user-unique-id\"], [data-e2e=\"creator-uniqueid\"], .author-uniqueid, p[class*=\"PAuthorTitle\"]'); const viewsEl = el.querySelector('[data-e2e=\"video-views\"], strong.video-count, .view-count, span[class*=\"SpanCount\"]'); const musicEl = el.querySelector('.music-title, [data-e2e=\"explore-music\"]'); const thumbEl = el.querySelector('img[src*=\"tiktokcdn\"], img.poster, picture img'); const linkEl = el.querySelector('a[href*=\"/video/\"], a[href*=\"/@\"]'); videos.push({ description: descEl ? (descEl.getAttribute('title') || descEl.textContent.trim()).substring(0, 300) : '', creator: creatorEl ? creatorEl.textContent.trim() : '', views: viewsEl ? viewsEl.textContent.trim() : '', music: musicEl ? musicEl.textContent.trim() : '', thumbnail: thumbEl ? thumbEl.src : '', url: linkEl ? linkEl.href : '' }); } return { trending_count: videos.length, trending_videos: videos }",
+      "name": "trending_data",
+      "label": "Extract trending videos"
+    }
+  ]
+}

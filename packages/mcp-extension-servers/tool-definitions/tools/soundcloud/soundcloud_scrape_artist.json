@@ -1,0 +1,58 @@
+{
+  "id": "soundcloud-scrape-artist",
+  "name": "soundcloud_scrape_artist",
+  "description": "Scrape a SoundCloud artist profile page. Returns name, bio, follower count, track count, recent tracks, and location.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "artist_url",
+      "type": "string",
+      "description": "SoundCloud artist URL (e.g. 'https://soundcloud.com/artist-name')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{artist_url}}",
+      "label": "Open artist page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".profileHeaderInfo__userName, h3[class*='profileHeader'], [class*='userInfoBar']",
+      "timeout": 15000,
+      "label": "Wait for profile to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll to load tracks"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll further"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const nameEl = document.querySelector('.profileHeaderInfo__userName, h3[class*=\"profileHeader\"], h1'); const bioEl = document.querySelector('[class*=\"userInfoBar__description\"], [class*=\"bio\"], [class*=\"about\"]'); const followersEl = document.querySelector('a[href*=\"followers\"] span, [class*=\"followers\"] span, [class*=\"followersCount\"]'); const followingEl = document.querySelector('a[href*=\"following\"] span, [class*=\"following\"] span'); const trackCountEl = document.querySelector('a[href*=\"tracks\"] span, [class*=\"trackCount\"]'); const locationEl = document.querySelector('[class*=\"location\"], [class*=\"city\"]'); const avatarEl = document.querySelector('.profileHeaderInfo__avatar img, .image__full, .sc-artwork img'); const verifiedEl = document.querySelector('[class*=\"verified\"], [class*=\"pro\"]'); const tracks = []; const trackEls = document.querySelectorAll('.soundList__item, [class*=\"soundList__item\"], [class*=\"trackItem\"]'); for (let i = 0; i < Math.min(trackEls.length, 10); i++) { const el = trackEls[i]; const titleEl = el.querySelector('.soundTitle__title span, a[class*=\"soundTitle\"] span'); const playsEl = el.querySelector('[class*=\"playbackCount\"], [title*=\"plays\"]'); const likesEl = el.querySelector('[class*=\"likeCount\"]'); const linkEl = el.querySelector('a[class*=\"soundTitle__title\"], a.soundTitle__title'); tracks.push({ title: titleEl ? titleEl.textContent.trim() : '', plays: playsEl ? playsEl.textContent.trim() : '', likes: likesEl ? likesEl.textContent.trim() : '', url: linkEl ? linkEl.href : '' }); } return { name: nameEl ? nameEl.textContent.trim() : '', bio: bioEl ? bioEl.textContent.trim().substring(0, 500) : '', followers: followersEl ? followersEl.textContent.trim() : '', following: followingEl ? followingEl.textContent.trim() : '', track_count: trackCountEl ? trackCountEl.textContent.trim() : '', location: locationEl ? locationEl.textContent.trim() : '', avatar: avatarEl ? avatarEl.getAttribute('src') : '', is_verified: !!verifiedEl, recent_tracks: tracks, profile_url: window.location.href }",
+      "name": "artist_data",
+      "label": "Extract artist profile"
+    }
+  ]
+}

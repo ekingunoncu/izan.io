@@ -1,0 +1,38 @@
+{
+  "id": "tiktok-scrape-video",
+  "name": "tiktok_scrape_video",
+  "description": "Scrape detailed information about a TikTok video: description, creator, likes, comments, shares, music/sound used, and hashtags.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "video_url",
+      "type": "string",
+      "description": "TikTok video URL (e.g. 'https://www.tiktok.com/@user/video/1234567890')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{video_url}}",
+      "label": "Open video page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[data-e2e=\"like-count\"], [data-e2e=\"browse-like-count\"]",
+      "timeout": 15000,
+      "label": "Wait for video to load"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Let page fully render"
+    },
+    {
+      "action": "code",
+      "code": "const descEl = document.querySelector('[data-e2e=\"browse-video-desc\"], [data-e2e=\"video-desc\"], .video-meta-caption, span.video-caption'); const creatorEl = document.querySelector('[data-e2e=\"creator-uniqueid\"], [data-e2e=\"browse-username\"], a[data-e2e=\"video-author-uniqueid\"]'); const creatorNameEl = document.querySelector('[data-e2e=\"creator-nickname\"], [data-e2e=\"browse-user-name\"], span[data-e2e=\"video-author-nickname\"]'); const likesEl = document.querySelector('[data-e2e=\"like-count\"], [data-e2e=\"browse-like-count\"]'); const commentsEl = document.querySelector('[data-e2e=\"comment-count\"], [data-e2e=\"browse-comment-count\"]'); const sharesEl = document.querySelector('[data-e2e=\"share-count\"], [data-e2e=\"browse-share-count\"]'); const bookmarkEl = document.querySelector('[data-e2e=\"undefined-count\"], [data-e2e=\"browse-save-count\"]'); const musicEl = document.querySelector('[data-e2e=\"browse-music\"], [data-e2e=\"video-music\"], .music-title-decoration, h4.music-title'); const dateEl = document.querySelector('[data-e2e=\"browser-nickname\"] + span, span[data-e2e=\"video-create-time\"], .video-create-time'); const avatarEl = document.querySelector('[data-e2e=\"browse-user-avatar\"] img, .avatar img'); const hashtagEls = document.querySelectorAll('[data-e2e=\"browse-video-desc\"] a[href*=\"/tag/\"], [data-e2e=\"video-desc\"] a[href*=\"/tag/\"], a.video-tag, a[data-e2e=\"search-common-link\"]'); const hashtags = []; hashtagEls.forEach(el => { const tag = el.textContent.trim(); if (tag.startsWith('#')) hashtags.push(tag); }); const mentionEls = document.querySelectorAll('[data-e2e=\"browse-video-desc\"] a[href*=\"/@\"], [data-e2e=\"video-desc\"] a[href*=\"/@\"]'); const mentions = []; mentionEls.forEach(el => { const mention = el.textContent.trim(); if (mention.startsWith('@')) mentions.push(mention); }); return { description: descEl ? descEl.textContent.trim().substring(0, 1000) : '', creator_username: creatorEl ? creatorEl.textContent.trim() : '', creator_name: creatorNameEl ? creatorNameEl.textContent.trim() : '', likes: likesEl ? likesEl.textContent.trim() : '', comments: commentsEl ? commentsEl.textContent.trim() : '', shares: sharesEl ? sharesEl.textContent.trim() : '', bookmarks: bookmarkEl ? bookmarkEl.textContent.trim() : '', music: musicEl ? musicEl.textContent.trim() : '', date: dateEl ? dateEl.textContent.trim() : '', hashtags: hashtags, mentions: mentions, avatar: avatarEl ? avatarEl.src : '', url: window.location.href }",
+      "name": "video_details",
+      "label": "Extract video details"
+    }
+  ]
+}

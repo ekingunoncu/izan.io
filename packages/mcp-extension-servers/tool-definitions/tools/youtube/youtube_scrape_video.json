@@ -1,0 +1,48 @@
+{
+  "id": "youtube-scrape-video",
+  "name": "youtube_scrape_video",
+  "description": "Scrape detailed information about a YouTube video: title, description, views, likes, channel name, upload date, and subscriber count.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "video_url",
+      "type": "string",
+      "description": "YouTube video URL (e.g. 'https://www.youtube.com/watch?v=dQw4w9WgXcQ')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{video_url}}",
+      "label": "Open video page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "#title h1, h1.ytd-watch-metadata yt-formatted-string",
+      "timeout": 15000,
+      "label": "Wait for video to load"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Let page fully render"
+    },
+    {
+      "action": "code",
+      "code": "const expandBtn = document.querySelector('#description-inline-expander tp-yt-paper-button#expand, ytd-text-inline-expander #expand'); if (expandBtn) expandBtn.click(); return { clicked: true }",
+      "name": "expand_desc",
+      "label": "Expand description"
+    },
+    {
+      "action": "wait",
+      "ms": 1000
+    },
+    {
+      "action": "code",
+      "code": "const titleEl = document.querySelector('#title h1 yt-formatted-string, h1.ytd-watch-metadata yt-formatted-string'); const channelEl = document.querySelector('#channel-name ytd-channel-name a, ytd-channel-name #text a'); const subscriberEl = document.querySelector('#owner-sub-count, yt-formatted-string#owner-sub-count'); const viewsEl = document.querySelector('#info-strings yt-formatted-string span, ytd-watch-info-text .view-count, #info-strings yt-formatted-string'); const dateEl = document.querySelector('#info-strings yt-formatted-string:last-child, ytd-watch-info-text .date'); const likeBtnEl = document.querySelector('like-button-view-model button, #top-level-buttons-computed button'); const likeLabel = likeBtnEl ? (likeBtnEl.getAttribute('aria-label') || likeBtnEl.textContent.trim()) : ''; const descEl = document.querySelector('#description-inline-expander yt-attributed-string, ytd-text-inline-expander yt-attributed-string, #description yt-attributed-string'); const descText = descEl ? descEl.textContent.trim().substring(0, 2000) : ''; return { title: titleEl ? titleEl.textContent.trim() : 'Unknown', channel: channelEl ? channelEl.textContent.trim() : '', subscriber_count: subscriberEl ? subscriberEl.textContent.trim() : '', views: viewsEl ? viewsEl.textContent.trim() : '', upload_date: dateEl ? dateEl.textContent.trim() : '', likes: likeLabel, description: descText, url: window.location.href }",
+      "name": "video_details",
+      "label": "Extract video details"
+    }
+  ]
+}

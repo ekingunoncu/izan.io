@@ -1,0 +1,38 @@
+{
+  "id": "cmc-track-price",
+  "name": "cmc_track_price",
+  "description": "Track a specific coin's current price data from CoinMarketCap. Returns the current price, 24h high/low, price changes across timeframes, market cap, and volume.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "coin_slug",
+      "type": "string",
+      "description": "CoinMarketCap coin slug (e.g. 'bitcoin', 'ethereum', 'cardano')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://coinmarketcap.com/currencies/{{coin_slug}}/",
+      "label": "Open coin price page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[data-test='text-cdp-price-display'], [class*='priceValue'], [class*='price']",
+      "timeout": 15000,
+      "label": "Wait for price data to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Let price data render"
+    },
+    {
+      "action": "code",
+      "code": "const priceEl = document.querySelector('[data-test=\"text-cdp-price-display\"], [class*=\"priceValue\"] span, .priceValue span'); const price = priceEl ? priceEl.textContent.trim() : ''; const statsRows = document.querySelectorAll('[class*=\"statsBlock\"] dl div, [class*=\"statsItem\"], table tr, [class*=\"stat-row\"]'); const stats = {}; statsRows.forEach(function(row) { const dt = row.querySelector('dt, th, .label, [class*=\"label\"], small'); const dd = row.querySelector('dd, td, .value, [class*=\"value\"]'); if (dt && dd) { const key = dt.textContent.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, ''); stats[key] = dd.textContent.trim(); } }); const bodyText = document.body.innerText; const priceChanges = {}; const change24hEl = document.querySelector('[data-test=\"text-cdp-price-change\"], [class*=\"priceChange\"], [class*=\"change24h\"]'); if (change24hEl) priceChanges['24h'] = change24hEl.textContent.trim(); const highLowEls = document.querySelectorAll('[class*=\"highLow\"], [class*=\"range\"], [class*=\"HighLow\"]'); const highLow = {}; highLowEls.forEach(function(el) { const text = el.textContent.trim(); if (text.includes('Low') || text.includes('High')) { const values = text.match(/\\$[\\d,.]+/g); if (values && values.length >= 2) { highLow.low_24h = values[0]; highLow.high_24h = values[1]; } } }); const marketCapRegex = /Market [Cc]ap[^$]*?(\\$[\\d,.]+[BMTK]?)/; const volumeRegex = /Volume \\(24h\\)[^$]*?(\\$[\\d,.]+[BMTK]?)/; const supplyRegex = /Circulating Supply[^\\d]*(([\\d,.]+)\\s*([A-Z]+))/; const mcMatch = bodyText.match(marketCapRegex); const volMatch = bodyText.match(volumeRegex); const supMatch = bodyText.match(supplyRegex); return { coin: '{{coin_slug}}', price: price, price_changes: priceChanges, high_low_24h: highLow, market_cap: mcMatch ? mcMatch[1] : (stats.market_cap || ''), volume_24h: volMatch ? volMatch[1] : (stats.volume_24h || stats['24h_volume'] || ''), circulating_supply: supMatch ? supMatch[1] : (stats.circulating_supply || ''), all_stats: stats, url: window.location.href, timestamp: new Date().toISOString() }",
+      "name": "price_data",
+      "label": "Extract price tracking data"
+    }
+  ]
+}

@@ -1,0 +1,104 @@
+{
+  "id": "calendar-edit-event",
+  "name": "calendar_edit_event",
+  "description": "Edit an existing Google Calendar event. Search for the event by title, then modify its title, date, or time. At least one field to change must be provided.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "event_title",
+      "type": "string",
+      "description": "Title of the event to find and edit",
+      "required": true
+    },
+    {
+      "name": "new_title",
+      "type": "string",
+      "description": "New title for the event (leave empty to keep current)",
+      "required": false,
+      "default": ""
+    },
+    {
+      "name": "new_date",
+      "type": "string",
+      "description": "New date in YYYY-MM-DD format (leave empty to keep current)",
+      "required": false,
+      "default": ""
+    },
+    {
+      "name": "new_time",
+      "type": "string",
+      "description": "New start time in HH:MM 24-hour format (leave empty to keep current)",
+      "required": false,
+      "default": ""
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://calendar.google.com/calendar/r",
+      "label": "Open Google Calendar"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[role='main'], [data-eventid], .FAxxKc",
+      "timeout": 20000,
+      "label": "Wait for calendar to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let calendar fully render"
+    },
+    {
+      "action": "code",
+      "code": "const searchBtn = document.querySelector('[aria-label=\"Search\"], #sb_cb50, button[data-tooltip=\"Search\"]'); if (searchBtn) { searchBtn.click(); await new Promise(r => setTimeout(r, 1500)); } return { search_opened: !!searchBtn }",
+      "name": "open_search",
+      "label": "Open search"
+    },
+    {
+      "action": "code",
+      "code": "const searchInput = document.querySelector('input[aria-label=\"Search\"], input[aria-label=\"Search for people, events\"], input#sb_cb50, input[type=\"search\"]'); if (!searchInput) return { error: 'Could not find search input' }; searchInput.focus(); const nativeSet = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set; nativeSet.call(searchInput, `{{event_title}}`); searchInput.dispatchEvent(new Event('input', { bubbles: true })); searchInput.dispatchEvent(new Event('change', { bubbles: true })); await new Promise(r => setTimeout(r, 500)); searchInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', keyCode: 13, code: 'Enter', bubbles: true })); await new Promise(r => setTimeout(r, 3000)); return { searched: true }",
+      "name": "search_event",
+      "label": "Search for the event by title"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Wait for search results"
+    },
+    {
+      "action": "code",
+      "code": "const query = `{{event_title}}`.toLowerCase(); const eventElements = document.querySelectorAll('[data-eventid], [data-eventchip], .FAxxKc, [data-searchresultid]'); let target = null; eventElements.forEach(el => { if (target) return; const text = (el.getAttribute('aria-label') || el.textContent || '').toLowerCase(); if (text.includes(query)) target = el; }); if (!target) return { error: 'Event not found: {{event_title}}' }; target.click(); await new Promise(r => setTimeout(r, 2000)); return { event_clicked: true }",
+      "name": "click_event",
+      "label": "Click on the matching event"
+    },
+    {
+      "action": "code",
+      "code": "const editBtn = document.querySelector('[aria-label=\"Edit event\"], [data-tooltip=\"Edit event\"], button[aria-label*=\"Edit\"], .pencil-button, [jsname=\"ViaHrd\"]'); if (editBtn) { editBtn.click(); await new Promise(r => setTimeout(r, 2500)); return { edit_opened: true }; } const detailLink = document.querySelector('a[href*=\"/eventedit/\"], a[aria-label*=\"Edit\"]'); if (detailLink) { detailLink.click(); await new Promise(r => setTimeout(r, 2500)); return { edit_opened: true }; } return { error: 'Could not find edit button' }",
+      "name": "open_edit",
+      "label": "Click edit button on event detail popup"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let edit form load"
+    },
+    {
+      "action": "code",
+      "code": "const newTitle = `{{new_title}}`; const newDate = `{{new_date}}`; const newTime = `{{new_time}}`; const nativeSet = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set; const changes = []; if (newTitle) { const titleInput = document.querySelector('input[aria-label=\"Title\"], [data-key=\"title\"] input, input[placeholder=\"Add title\"], input[aria-label=\"Add title\"]'); if (titleInput) { titleInput.focus(); titleInput.select(); await new Promise(r => setTimeout(r, 300)); nativeSet.call(titleInput, newTitle); titleInput.dispatchEvent(new Event('input', { bubbles: true })); titleInput.dispatchEvent(new Event('change', { bubbles: true })); await new Promise(r => setTimeout(r, 500)); changes.push('title'); } } if (newDate) { const dateInput = document.querySelector('input[aria-label*=\"date\" i], input[aria-label*=\"Start date\" i]'); if (dateInput) { const [y, m, d] = newDate.split('-'); const dateObj = new Date(parseInt(y), parseInt(m) - 1, parseInt(d)); const formatted = dateObj.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }); dateInput.focus(); dateInput.click(); await new Promise(r => setTimeout(r, 300)); nativeSet.call(dateInput, formatted); dateInput.dispatchEvent(new Event('input', { bubbles: true })); dateInput.dispatchEvent(new Event('change', { bubbles: true })); dateInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', keyCode: 13, bubbles: true })); await new Promise(r => setTimeout(r, 500)); changes.push('date'); } } if (newTime) { const timeInput = document.querySelector('input[aria-label*=\"Start time\" i], input[aria-label*=\"time\" i]'); if (timeInput) { const [h, min] = newTime.split(':'); const hrs = parseInt(h); const mins = parseInt(min) || 0; const ampm = hrs >= 12 ? 'PM' : 'AM'; const hr12 = hrs === 0 ? 12 : hrs > 12 ? hrs - 12 : hrs; const timeStr = hr12 + ':' + String(mins).padStart(2, '0') + ampm; timeInput.focus(); timeInput.click(); await new Promise(r => setTimeout(r, 300)); nativeSet.call(timeInput, timeStr); timeInput.dispatchEvent(new Event('input', { bubbles: true })); timeInput.dispatchEvent(new Event('change', { bubbles: true })); timeInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', keyCode: 13, bubbles: true })); await new Promise(r => setTimeout(r, 500)); changes.push('time'); } } if (changes.length === 0) return { error: 'No fields to update were provided or found' }; return { fields_updated: changes }",
+      "name": "modify_fields",
+      "label": "Modify event fields"
+    },
+    {
+      "action": "wait",
+      "ms": 1000,
+      "label": "Brief pause before saving"
+    },
+    {
+      "action": "code",
+      "code": "const saveBtn = document.querySelector('[aria-label=\"Save\"], button[data-tooltip=\"Save\"]'); if (!saveBtn) { const allButtons = [...document.querySelectorAll('button, [role=\"button\"]')]; const save = allButtons.find(b => (b.textContent || '').trim().toLowerCase() === 'save'); if (save) { save.click(); } else { return { error: 'Could not find Save button' }; } } else { saveBtn.click(); } await new Promise(r => setTimeout(r, 3000)); return { success: true, event_title: `{{event_title}}`, new_title: `{{new_title}}` || undefined, new_date: `{{new_date}}` || undefined, new_time: `{{new_time}}` || undefined, url: window.location.href }",
+      "name": "save_result",
+      "label": "Save the edited event"
+    }
+  ]
+}

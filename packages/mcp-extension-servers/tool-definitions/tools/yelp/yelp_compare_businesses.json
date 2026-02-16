@@ -1,0 +1,25 @@
+{
+  "id": "yelp-compare-businesses",
+  "name": "yelp_compare_businesses",
+  "description": "Compare businesses on Yelp for a given query and location. Extracts ratings, review counts, price ranges, and categories for easy comparison.",
+  "version": "1.0.0",
+  "parameters": [
+    { "name": "query", "type": "string", "description": "Business type to compare (e.g. 'pizza', 'dentist', 'hair salon')", "required": true },
+    { "name": "location", "type": "string", "description": "Location (e.g. 'San Francisco, CA')", "required": true }
+  ],
+  "steps": [
+    { "action": "navigate", "url": "https://www.yelp.com/search?find_desc={{query}}&find_loc={{location}}&sortby=rating", "label": "Search sorted by rating" },
+    { "action": "waitForSelector", "selector": "[class*='businessName'], [data-testid='serp-ia-card']", "timeout": 15000, "label": "Wait for results" },
+    { "action": "wait", "ms": 2000 },
+    { "action": "scroll", "direction": "down", "amount": 1200, "label": "Scroll for more" },
+    { "action": "wait", "ms": 1500 },
+    { "action": "scroll", "direction": "down", "amount": 1200, "label": "Scroll further" },
+    { "action": "wait", "ms": 1500 },
+    {
+      "action": "code",
+      "code": "const items = []; const cards = document.querySelectorAll('[data-testid=\"serp-ia-card\"], [class*=\"container\"][class*=\"hoverable\"], li[class*=\"border\"]'); for (let i = 0; i < Math.min(cards.length, 20); i++) { const el = cards[i]; const nameEl = el.querySelector('[class*=\"businessName\"] a, h3 a, a[href*=\"/biz/\"]'); const ratingEl = el.querySelector('[class*=\"star\"][aria-label], [role=\"img\"][aria-label]'); const reviewCountEl = el.querySelector('[class*=\"reviewCount\"]'); const categoryEl = el.querySelector('[class*=\"category\"] a'); const priceEl = el.querySelector('[class*=\"priceRange\"]'); const addressEl = el.querySelector('address, [class*=\"address\"]'); const linkEl = el.querySelector('a[href*=\"/biz/\"]'); items.push({ name: nameEl ? nameEl.textContent.trim() : '', rating: ratingEl ? (ratingEl.getAttribute('aria-label') || '') : '', review_count: reviewCountEl ? reviewCountEl.textContent.trim() : '', category: categoryEl ? categoryEl.textContent.trim() : '', price_range: priceEl ? priceEl.textContent.trim() : '', address: addressEl ? addressEl.textContent.trim() : '', url: linkEl ? linkEl.href : '' }); } return { query: `{{query}}`, location: '{{location}}', business_count: items.length, businesses: items }",
+      "name": "comparison_data",
+      "label": "Extract comparison data"
+    }
+  ]
+}

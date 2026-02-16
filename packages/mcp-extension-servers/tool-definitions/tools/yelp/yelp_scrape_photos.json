@@ -1,0 +1,22 @@
+{
+  "id": "yelp-scrape-photos",
+  "name": "yelp_scrape_photos",
+  "description": "Scrape photos from a Yelp business page. Returns photo URLs, captions, and uploader info.",
+  "version": "1.0.0",
+  "parameters": [
+    { "name": "business_url", "type": "string", "description": "Yelp business URL (e.g. 'https://www.yelp.com/biz/house-of-prime-rib-san-francisco')", "required": true }
+  ],
+  "steps": [
+    { "action": "navigate", "url": "{{business_url}}", "label": "Open business page" },
+    { "action": "waitForSelector", "selector": "h1, [class*='businessName']", "timeout": 15000, "label": "Wait for page" },
+    { "action": "wait", "ms": 2000 },
+    { "action": "scroll", "direction": "down", "amount": 800, "label": "Scroll to photos" },
+    { "action": "wait", "ms": 1500 },
+    {
+      "action": "code",
+      "code": "const photos = []; const photoEls = document.querySelectorAll('[class*=\"photo-box\"] img, [class*=\"biz-photos\"] img, [class*=\"gallery\"] img, [class*=\"photo-header\"] img'); photoEls.forEach(function(img) { const src = img.getAttribute('src') || ''; const alt = img.getAttribute('alt') || ''; if (src && src.includes('yelp') && !photos.find(function(p) { return p.url === src; })) { const captionEl = img.closest('[class*=\"photo\"]') ? img.closest('[class*=\"photo\"]').querySelector('[class*=\"caption\"], p') : null; photos.push({ url: src, alt: alt, caption: captionEl ? captionEl.textContent.trim() : '' }); } }); const totalPhotosEl = document.querySelector('[class*=\"photo-count\"], a[href*=\"photos\"]'); const nameEl = document.querySelector('h1'); return { business_name: nameEl ? nameEl.textContent.trim() : '', total_photos_text: totalPhotosEl ? totalPhotosEl.textContent.trim() : '', photo_count: photos.length, photos: photos.slice(0, 20), url: window.location.href }",
+      "name": "photos_data",
+      "label": "Extract photos"
+    }
+  ]
+}

@@ -1,0 +1,61 @@
+{
+  "id": "amazon-scrape-deals",
+  "name": "amazon_scrape_deals",
+  "description": "Browse and scrape today's deals from Amazon. Returns current deals with product name, original price, deal price, discount percentage, and time remaining.",
+  "version": "1.0.0",
+  "parameters": [],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://www.amazon.com/deals",
+      "label": "Open Amazon deals page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[data-testid='deal-card'], .DealCard-module, .a-section.octopus-dlp-asin-section, .dealContainer, [class*='DealCard']",
+      "timeout": 15000,
+      "label": "Wait for deals to load"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Let deals page fully render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1200,
+      "label": "Scroll to load more deals"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1200,
+      "label": "Scroll further"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1200,
+      "label": "Scroll for even more deals"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const deals = []; const dealCards = document.querySelectorAll('[data-testid=\"deal-card\"], [class*=\"DealCard\"], .a-section.octopus-dlp-asin-section, .dealContainer, [data-deal-id]'); dealCards.forEach(function(el, idx) { if (idx >= 20) return; const titleEl = el.querySelector('[class*=\"DealCard\"] a, .a-link-normal .a-text-normal, [data-testid=\"deal-card\"] a span, .dealTitle, a.a-link-normal span'); const dealPriceEl = el.querySelector('.a-price .a-offscreen, [class*=\"price\"] .a-offscreen, .a-color-price'); const originalPriceEl = el.querySelector('.a-text-price .a-offscreen, [class*=\"ListPrice\"], .a-text-strike .a-offscreen'); const discountEl = el.querySelector('[class*=\"savingsPercentage\"], .a-badge-label-inner, [data-a-badge-color] .a-badge-text, [class*=\"Savings\"]'); const imgEl = el.querySelector('img[src*=\"images\"]'); const linkEl = el.querySelector('a[href*=\"/dp/\"], a[href*=\"/deal/\"], a.a-link-normal'); const claimedEl = el.querySelector('[class*=\"claimed\"], .a-meter, [class*=\"ProgressBar\"]'); const timeEl = el.querySelector('[class*=\"timer\"], [class*=\"TimeRemaining\"], [class*=\"endDate\"]'); const url = linkEl ? (linkEl.href.startsWith('http') ? linkEl.href : 'https://www.amazon.com' + linkEl.getAttribute('href')) : ''; const title = titleEl ? titleEl.textContent.trim() : ''; if (title) { deals.push({ title: title.substring(0, 200), deal_price: dealPriceEl ? dealPriceEl.textContent.trim() : '', original_price: originalPriceEl ? originalPriceEl.textContent.trim() : '', discount: discountEl ? discountEl.textContent.trim() : '', image: imgEl ? imgEl.getAttribute('src') : '', time_remaining: timeEl ? timeEl.textContent.trim() : '', claimed: claimedEl ? claimedEl.textContent.trim() : '', url: url }); } }); return { deal_count: deals.length, deals: deals, scraped_at: new Date().toISOString() }",
+      "name": "deals_data",
+      "label": "Extract current deals"
+    }
+  ]
+}

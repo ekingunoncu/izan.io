@@ -1,0 +1,50 @@
+{
+  "id": "youtube-bulk-scrape-videos",
+  "name": "youtube_bulk_scrape_videos",
+  "description": "Scrape detailed info for multiple YouTube videos in parallel using concurrent browser tabs. Use this instead of calling youtube_scrape_video multiple times - it is faster and more efficient. Pass all video URLs as a single comma-separated string.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "video_urls",
+      "type": "string",
+      "description": "Comma-separated YouTube video URLs (e.g. 'https://www.youtube.com/watch?v=abc,https://www.youtube.com/watch?v=xyz')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{video_urls}}`.split(',').map(u => ({ url: u.trim() }))",
+      "name": "items",
+      "label": "Build video URL list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 3,
+      "maxItems": 10,
+      "waitUntil": "load",
+      "label": "Scrape each video in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": "#title h1, h1.ytd-watch-metadata yt-formatted-string",
+          "timeout": 15000,
+          "label": "Wait for video"
+        },
+        {
+          "action": "wait",
+          "ms": 3000
+        },
+        {
+          "action": "code",
+          "code": "const titleEl = document.querySelector('#title h1 yt-formatted-string, h1.ytd-watch-metadata yt-formatted-string'); const channelEl = document.querySelector('#channel-name ytd-channel-name a, ytd-channel-name #text a'); const subscriberEl = document.querySelector('#owner-sub-count, yt-formatted-string#owner-sub-count'); const viewsEl = document.querySelector('#info-strings yt-formatted-string span, ytd-watch-info-text .view-count, #info-strings yt-formatted-string'); const dateEl = document.querySelector('#info-strings yt-formatted-string:last-child, ytd-watch-info-text .date'); const likeBtnEl = document.querySelector('like-button-view-model button, #top-level-buttons-computed button'); const likeLabel = likeBtnEl ? (likeBtnEl.getAttribute('aria-label') || likeBtnEl.textContent.trim()) : ''; const descEl = document.querySelector('#description-inline-expander yt-attributed-string, ytd-text-inline-expander yt-attributed-string'); return { title: titleEl ? titleEl.textContent.trim() : 'Unknown', channel: channelEl ? channelEl.textContent.trim() : '', subscriber_count: subscriberEl ? subscriberEl.textContent.trim() : '', views: viewsEl ? viewsEl.textContent.trim() : '', upload_date: dateEl ? dateEl.textContent.trim() : '', likes: likeLabel, description: descEl ? descEl.textContent.trim().substring(0, 500) : '', url: window.location.href }",
+          "name": "video_details",
+          "label": "Extract video details"
+        }
+      ]
+    }
+  ]
+}

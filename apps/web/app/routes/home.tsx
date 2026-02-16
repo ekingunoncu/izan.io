@@ -875,92 +875,6 @@ export default function Home() {
           </div>
         </section>
 
-        {/* ========== AGENT SHOWCASE - Dark section ========== */}
-        <section className="relative py-12 sm:py-16 md:py-20 section-dark text-white overflow-hidden">
-          {/* Decorative glowing orbs */}
-          <div className="absolute top-20 left-10 w-64 h-64 rounded-full bg-violet-600/20 blur-[100px]" aria-hidden />
-          <div className="absolute bottom-10 right-10 w-48 h-48 rounded-full bg-blue-600/20 blur-[80px]" aria-hidden />
-
-          <div className="container mx-auto px-4 sm:px-6 relative">
-            <div className="text-center mb-10 sm:mb-12">
-              <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-white/80 mb-4">
-                <Star className="h-3.5 w-3.5 text-amber-400" />
-                {t("home.agentShowcaseTitle")}
-              </span>
-              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3">
-                {t("home.agentShowcaseTitle")}
-              </h2>
-              <p className="text-sm sm:text-base text-white/60 max-w-2xl mx-auto">
-                {t("home.agentShowcaseDesc")}
-              </p>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 items-stretch">
-              {AGENTS.map((agent) => {
-                const Icon = agent.icon;
-                const content = (
-                  <div
-                    className={`group relative flex flex-col rounded-2xl border transition-all duration-300 p-5 sm:p-6 h-full min-h-[200px] ${
-                      agent.active
-                        ? "border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 hover:shadow-2xl hover:shadow-white/5 cursor-pointer hover:-translate-y-1"
-                        : "border-white/5 bg-white/[0.02] opacity-60"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-4 shrink-0">
-                      <div
-                        className={`flex h-10 w-10 items-center justify-center rounded-xl shrink-0 ${agent.color}`}
-                      >
-                        <Icon className="h-5 w-5" />
-                      </div>
-                      <span
-                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold shrink-0 ${
-                          agent.active
-                            ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-                            : "bg-white/5 text-white/40 border border-white/10"
-                        }`}
-                      >
-                        {agent.active
-                          ? t("home.agentActive")
-                          : t("home.agentComingSoon")}
-                      </span>
-                    </div>
-                    <h3 className="text-base font-bold mb-1.5 text-white shrink-0">
-                      {t(agent.titleKey)}
-                    </h3>
-                    <p className="text-sm leading-relaxed text-white/50 flex-1 min-h-0">
-                      {t(agent.descKey)}
-                    </p>
-                    <div className="mt-4 shrink-0 h-5 flex items-center">
-                      {agent.active ? (
-                        <span className="flex items-center gap-1.5 text-xs font-medium text-white/70 group-hover:text-white transition-colors">
-                          {t("home.agentActive")}
-                          <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-1 transition-transform" />
-                        </span>
-                      ) : null}
-                    </div>
-                  </div>
-                );
-
-                if (agent.active && agent.agentId) {
-                  return (
-                    <Link
-                      key={agent.titleKey}
-                      to={`/${lang}/agents/${agent.agentId}`}
-                      className="block h-full"
-                    >
-                      {content}
-                    </Link>
-                  );
-                }
-                return (
-                  <div key={agent.titleKey} className="h-full">
-                    {content}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-
         {/* ========== ROADMAP - Timeline ========== */}
         <section className="py-12 sm:py-16 md:py-20 bg-muted/30 dark:bg-muted/10 section-muted-fade">
           <div className="container mx-auto px-4 sm:px-6">
@@ -1138,6 +1052,130 @@ export default function Home() {
                 </Button>
               </Link>
             </div>
+          </div>
+        </section>
+
+        {/* ========== AGENT SHOWCASE - Dark section ========== */}
+        <section className="relative py-12 sm:py-16 md:py-20 section-dark text-white overflow-hidden">
+          <div className="absolute top-20 left-10 w-64 h-64 rounded-full bg-violet-600/20 blur-[100px]" aria-hidden />
+          <div className="absolute bottom-10 right-10 w-48 h-48 rounded-full bg-blue-600/20 blur-[80px]" aria-hidden />
+
+          <div className="container mx-auto px-4 sm:px-6 relative">
+            <div className="text-center mb-10 sm:mb-12">
+              <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-white/80 mb-4">
+                <Star className="h-3.5 w-3.5 text-amber-400" />
+                {t("home.agentShowcaseTitle")}
+              </span>
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3">
+                {t("home.agentShowcaseTitle")}
+              </h2>
+              <p className="text-sm sm:text-base text-white/60 max-w-2xl mx-auto">
+                {t("home.agentShowcaseDesc")}
+              </p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 items-stretch">
+              {AGENTS.map((agent) => {
+                const Icon = agent.icon;
+                const content = (
+                  <div
+                    className={`group relative flex flex-col rounded-2xl border transition-all duration-300 p-5 sm:p-6 h-full min-h-[200px] ${
+                      agent.active
+                        ? "border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 hover:shadow-2xl hover:shadow-white/5 cursor-pointer hover:-translate-y-1"
+                        : "border-white/5 bg-white/[0.02] opacity-60"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-4 shrink-0">
+                      <div
+                        className={`flex h-10 w-10 items-center justify-center rounded-xl shrink-0 ${agent.color}`}
+                      >
+                        <Icon className="h-5 w-5" />
+                      </div>
+                      <span
+                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold shrink-0 ${
+                          agent.active
+                            ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                            : "bg-white/5 text-white/40 border border-white/10"
+                        }`}
+                      >
+                        {agent.active
+                          ? t("home.agentActive")
+                          : t("home.agentComingSoon")}
+                      </span>
+                    </div>
+                    <h3 className="text-base font-bold mb-1.5 text-white shrink-0">
+                      {t(agent.titleKey)}
+                    </h3>
+                    <p className="text-sm leading-relaxed text-white/50 flex-1 min-h-0">
+                      {t(agent.descKey)}
+                    </p>
+                    <div className="mt-4 shrink-0 h-5 flex items-center">
+                      {agent.active ? (
+                        <span className="flex items-center gap-1.5 text-xs font-medium text-white/70 group-hover:text-white transition-colors">
+                          {t("home.agentActive")}
+                          <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-1 transition-transform" />
+                        </span>
+                      ) : null}
+                    </div>
+                  </div>
+                );
+
+                if (agent.active && agent.agentId) {
+                  return (
+                    <Link
+                      key={agent.titleKey}
+                      to={`/${lang}/agents/${agent.agentId}`}
+                      className="block h-full"
+                    >
+                      {content}
+                    </Link>
+                  );
+                }
+                return (
+                  <div key={agent.titleKey} className="h-full">
+                    {content}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        {/* ========== ZIHIN.IO - Agent Marketplace CTA ========== */}
+        <section className="py-12 sm:py-16 md:py-20 relative overflow-hidden">
+          <div className="container mx-auto px-4 sm:px-6">
+            <a
+              href="https://zihin.io"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block group relative rounded-3xl overflow-hidden transition-all duration-500 hover:shadow-2xl hover:shadow-white/5"
+            >
+              <div className="absolute inset-0 bg-zinc-900 dark:bg-zinc-800/80" />
+              <div className="relative px-6 py-12 sm:px-12 sm:py-16 md:py-20 text-center text-white">
+                <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-white/10 backdrop-blur-sm mb-6">
+                  <Store className="h-8 w-8" />
+                </div>
+                <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3">
+                  {t("home.zihinTitle")}
+                </h2>
+                <p className="text-base sm:text-lg text-white/80 max-w-2xl mx-auto mb-8">
+                  {t("home.zihinDesc")}
+                </p>
+                <div className="flex flex-wrap items-center justify-center gap-3">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 backdrop-blur-sm px-4 py-2 text-sm font-medium">
+                    <Bot className="h-4 w-4" />
+                    {t("home.zihinBrowse")}
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 backdrop-blur-sm px-4 py-2 text-sm font-medium">
+                    <Users className="h-4 w-4" />
+                    {t("home.zihinSubmit")}
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 backdrop-blur-sm px-4 py-2 text-sm font-medium">
+                    <Download className="h-4 w-4" />
+                    {t("home.zihinImport")}
+                  </span>
+                </div>
+              </div>
+            </a>
           </div>
         </section>
       </main>

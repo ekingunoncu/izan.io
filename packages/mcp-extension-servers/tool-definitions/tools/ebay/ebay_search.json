@@ -1,0 +1,58 @@
+{
+  "id": "ebay-search",
+  "name": "ebay_search",
+  "description": "Search for products on eBay. Returns up to 15 results with title, price, shipping, condition, bids, seller, and URL.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "query",
+      "type": "string",
+      "description": "Search query (e.g. 'vintage watches', 'gaming laptop', 'nike air max')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://www.ebay.com/sch/i.html?_nkw={{query}}",
+      "label": "Search eBay"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".srp-results .s-item, .srp-river-results .s-item, li.s-item",
+      "timeout": 15000,
+      "label": "Wait for search results"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let results render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll to load more results"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll further down"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const results = []; const items = document.querySelectorAll('.srp-results .s-item, .srp-river-results .s-item, li.s-item'); for (let i = 0; i < Math.min(items.length, 15); i++) { const el = items[i]; const titleEl = el.querySelector('.s-item__title, .s-item__title span'); const linkEl = el.querySelector('.s-item__link, a.s-item__link'); const priceEl = el.querySelector('.s-item__price, .s-item__price span.POSITIVE, .s-item__price span.BOLD'); const shippingEl = el.querySelector('.s-item__shipping, .s-item__freeXDays, .s-item__logisticsCost'); const conditionEl = el.querySelector('.SECONDARY_INFO, .s-item__subtitle span'); const bidsEl = el.querySelector('.s-item__bidCount, .s-item__bids'); const timeLeftEl = el.querySelector('.s-item__time-left, .s-item__time'); const imgEl = el.querySelector('.s-item__image-wrapper img, .s-item__image img'); const sellerEl = el.querySelector('.s-item__seller-info-text, .s-item__seller-info a'); const formatEl = el.querySelector('.s-item__purchase-options, .s-item__detail--primary .BOLD'); const title = titleEl ? titleEl.textContent.trim() : ''; if (!title || title === 'Shop on eBay' || title === 'Results matching fewer words') continue; results.push({ title: title, price: priceEl ? priceEl.textContent.trim() : '', shipping: shippingEl ? shippingEl.textContent.trim() : '', condition: conditionEl ? conditionEl.textContent.trim() : '', bids: bidsEl ? bidsEl.textContent.trim() : '', time_left: timeLeftEl ? timeLeftEl.textContent.trim() : '', format: formatEl ? formatEl.textContent.trim() : '', seller: sellerEl ? sellerEl.textContent.trim() : '', image: imgEl ? imgEl.getAttribute('src') : '', url: linkEl ? linkEl.href : '' }); } return { query: `{{query}}`, result_count: results.length, results: results }",
+      "name": "search_results",
+      "label": "Extract search results"
+    }
+  ]
+}

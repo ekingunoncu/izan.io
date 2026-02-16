@@ -1,0 +1,58 @@
+{
+  "id": "canva-scrape-template",
+  "name": "canva_scrape_template",
+  "description": "Scrape full template details from a Canva template page. Returns template name, description, dimensions, category, creator, related templates, and usage count.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "template_url",
+      "type": "string",
+      "description": "Canva template URL (e.g. 'https://www.canva.com/templates/EAF1234/template-name/')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{template_url}}",
+      "label": "Open template page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "h1, [class*='template-title'], [class*='heading']",
+      "timeout": 15000,
+      "label": "Wait for template page to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 800,
+      "label": "Scroll to load content"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 800,
+      "label": "Scroll further"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const titleEl = document.querySelector('h1, [class*=\"template-title\"], [class*=\"heading\"]'); const descEl = document.querySelector('[class*=\"description\"] p, [class*=\"about\"], [class*=\"template-description\"]'); const dimensionsEl = document.querySelector('[class*=\"dimensions\"], [class*=\"size\"]'); const categoryEl = document.querySelector('[class*=\"category\"], [class*=\"breadcrumb\"] a:last-child'); const creatorEl = document.querySelector('[class*=\"creator\"], [class*=\"author\"] a, [class*=\"designer\"]'); const imgEl = document.querySelector('[class*=\"template\"] img, [class*=\"preview\"] img, main img'); const proEl = document.querySelector('[class*=\"pro\"], [class*=\"premium\"]'); const tagEls = document.querySelectorAll('[class*=\"tag\"] a, [class*=\"keyword\"] a'); const tags = []; tagEls.forEach(function(el) { const t = el.textContent.trim(); if (t && t.length < 50 && !tags.includes(t)) tags.push(t); }); const relatedEls = document.querySelectorAll('[class*=\"related\"] a[href*=\"/templates/\"], [class*=\"similar\"] a'); const related = []; relatedEls.forEach(function(el, idx) { if (idx < 6) { const tEl = el.querySelector('[class*=\"title\"], h3, h4'); const iEl = el.querySelector('img'); related.push({ title: tEl ? tEl.textContent.trim() : (el.getAttribute('aria-label') || ''), url: el.href || '', image: iEl ? iEl.getAttribute('src') : '' }); } }); return { title: titleEl ? titleEl.textContent.trim() : '', description: descEl ? descEl.textContent.trim().substring(0, 1000) : '', dimensions: dimensionsEl ? dimensionsEl.textContent.trim() : '', category: categoryEl ? categoryEl.textContent.trim() : '', creator: creatorEl ? creatorEl.textContent.trim() : '', is_premium: !!proEl, tags: tags.slice(0, 10), image: imgEl ? imgEl.getAttribute('src') : '', related_templates: related, url: window.location.href }",
+      "name": "template_data",
+      "label": "Extract template details"
+    }
+  ]
+}

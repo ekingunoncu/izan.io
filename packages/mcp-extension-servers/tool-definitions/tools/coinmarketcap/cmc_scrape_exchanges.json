@@ -1,0 +1,48 @@
+{
+  "id": "cmc-scrape-exchanges",
+  "name": "cmc_scrape_exchanges",
+  "description": "Scrape the top cryptocurrency exchanges from CoinMarketCap's exchanges ranking page. Returns exchange name, trading volume, number of markets, and trust score.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "limit",
+      "type": "string",
+      "description": "Number of exchanges to scrape (default '20', max '50')",
+      "required": false
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://coinmarketcap.com/rankings/exchanges/",
+      "label": "Open exchanges ranking page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "table tbody tr",
+      "timeout": 15000,
+      "label": "Wait for exchanges table to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Let table render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1500,
+      "label": "Scroll to load more exchanges"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const limit = parseInt('{{limit}}') || 20; const exchanges = []; const rows = document.querySelectorAll('table tbody tr'); for (let i = 0; i < Math.min(rows.length, limit); i++) { const row = rows[i]; const cells = row.querySelectorAll('td'); if (cells.length < 4) continue; const rank = cells[0] ? cells[0].textContent.trim() : String(i + 1); const nameCell = cells[1] || cells[2]; const nameEl = nameCell ? nameCell.querySelector('a, p, [class*=\"name\"]') : null; const linkEl = nameCell ? nameCell.querySelector('a[href*=\"/exchanges/\"]') : null; const volumeCell = cells[2] || cells[3]; const volume = volumeCell ? volumeCell.textContent.trim() : ''; const marketsCell = cells[3] || cells[4]; const markets = marketsCell ? marketsCell.textContent.trim() : ''; const coinsCell = cells[4] || cells[5]; const coins = coinsCell ? coinsCell.textContent.trim() : ''; const scoreCell = cells[5] || cells[6]; const score = scoreCell ? scoreCell.textContent.trim() : ''; exchanges.push({ rank: rank, name: nameEl ? nameEl.textContent.trim() : '', volume_24h: volume, markets: markets, coins: coins, exchange_score: score, url: linkEl ? linkEl.href : '' }); } return { scraped_count: exchanges.length, exchanges: exchanges }",
+      "name": "exchanges_data",
+      "label": "Extract exchange rankings"
+    }
+  ]
+}

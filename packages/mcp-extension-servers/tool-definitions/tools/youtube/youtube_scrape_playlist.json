@@ -1,0 +1,58 @@
+{
+  "id": "youtube-scrape-playlist",
+  "name": "youtube_scrape_playlist",
+  "description": "Scrape the contents of a YouTube playlist. Returns playlist title, video count, channel, and a list of videos with title, channel, and duration.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "playlist_url",
+      "type": "string",
+      "description": "YouTube playlist URL (e.g. 'https://www.youtube.com/playlist?list=PLRqwX-V7Uu6ZiZxtDDRCi6uhfTH4FilpH')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{playlist_url}}",
+      "label": "Open playlist page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "ytd-playlist-video-renderer",
+      "timeout": 15000,
+      "label": "Wait for playlist videos to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let playlist render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1500,
+      "label": "Scroll to load more playlist items"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1500,
+      "label": "Continue scrolling for more items"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const titleEl = document.querySelector('yt-formatted-string.ytd-playlist-header-renderer, h1#title yt-formatted-string, .metadata-wrapper yt-formatted-string'); const channelEl = document.querySelector('#owner-text a, ytd-playlist-header-renderer #owner-text a'); const statsEls = document.querySelectorAll('.metadata-stats yt-formatted-string, .byline-item-container .byline-item'); const videoCountText = statsEls[0] ? statsEls[0].textContent.trim() : ''; const viewsText = statsEls[1] ? statsEls[1].textContent.trim() : ''; const descEl = document.querySelector('#description-text, .playlist-description yt-formatted-string'); const videos = []; const videoRenderers = document.querySelectorAll('ytd-playlist-video-renderer'); for (let i = 0; i < Math.min(videoRenderers.length, 50); i++) { const el = videoRenderers[i]; const vidTitleEl = el.querySelector('#video-title'); const vidChannelEl = el.querySelector('#channel-name #text a, #byline a'); const durationEl = el.querySelector('badge-shape .badge-shape-wiz__text, ytd-thumbnail-overlay-time-status-renderer span'); const indexEl = el.querySelector('#index'); const linkEl = el.querySelector('a#video-title'); const href = linkEl ? linkEl.getAttribute('href') : ''; videos.push({ index: indexEl ? indexEl.textContent.trim() : String(i + 1), title: vidTitleEl ? vidTitleEl.textContent.trim() : 'Unknown', channel: vidChannelEl ? vidChannelEl.textContent.trim() : '', duration: durationEl ? durationEl.textContent.trim() : '', url: href ? 'https://www.youtube.com' + href : '' }); } return { playlist_title: titleEl ? titleEl.textContent.trim() : 'Unknown', playlist_channel: channelEl ? channelEl.textContent.trim() : '', video_count: videoCountText, total_views: viewsText, description: descEl ? descEl.textContent.trim().substring(0, 500) : '', scraped_count: videos.length, videos: videos }",
+      "name": "playlist_data",
+      "label": "Extract playlist contents"
+    }
+  ]
+}

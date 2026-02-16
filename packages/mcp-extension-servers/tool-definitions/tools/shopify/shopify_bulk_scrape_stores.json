@@ -1,0 +1,59 @@
+{
+  "id": "shopify-bulk-scrape-stores",
+  "name": "shopify_bulk_scrape_stores",
+  "description": "Bulk scrape multiple Shopify stores in parallel. Returns store name, description, product count, and featured products for each store. Use this instead of calling shopify_scrape_store multiple times.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "store_urls",
+      "type": "string",
+      "description": "Comma-separated Shopify store URLs (e.g. 'https://store1.myshopify.com,https://store2.com,https://store3.com')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{store_urls}}`.split(',').map(u => ({ url: u.trim().replace(/\\/$/, ''), store: u.trim().replace(/\\/$/, '') }))",
+      "name": "items",
+      "label": "Build store URL list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 3,
+      "maxItems": 10,
+      "waitUntil": "load",
+      "label": "Scrape each store in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": "body",
+          "timeout": 15000,
+          "label": "Wait for store page"
+        },
+        {
+          "action": "wait",
+          "ms": 2000
+        },
+        {
+          "action": "scroll",
+          "direction": "down",
+          "amount": 1000
+        },
+        {
+          "action": "wait",
+          "ms": 1000
+        },
+        {
+          "action": "code",
+          "code": "const titleEl = document.querySelector('meta[property=\"og:site_name\"]') || document.querySelector('title'); const storeName = titleEl ? (titleEl.content || titleEl.textContent || '').trim() : document.title; const descEl = document.querySelector('meta[name=\"description\"]') || document.querySelector('meta[property=\"og:description\"]'); const description = descEl ? (descEl.content || '').trim() : ''; const productLinks = document.querySelectorAll('a[href*=\"/products/\"]'); const uniqueProducts = new Set(); productLinks.forEach(function(a) { const href = a.getAttribute('href'); if (href) { const match = href.match(/\\/products\\/([^?#\\/]+)/); if (match) uniqueProducts.add(match[1]); } }); const featuredProducts = []; const productCards = document.querySelectorAll('.product-card, .grid__item .card, .product-item, [class*=\"ProductCard\"], [class*=\"product-card\"]'); for (let i = 0; i < Math.min(productCards.length, 5); i++) { const card = productCards[i]; const nameEl = card.querySelector('.card__heading a, .product-card__title, h3 a, h2 a, .card__text a'); const priceEl = card.querySelector('.price-item, .product-card__price, .price .money, [class*=\"price\"] span'); featuredProducts.push({ name: nameEl ? nameEl.textContent.trim() : '', price: priceEl ? priceEl.textContent.trim() : '' }); } return { store_name: storeName, description: description.substring(0, 300), visible_product_count: uniqueProducts.size, featured_products: featuredProducts, url: window.location.href }",
+          "name": "store_data",
+          "label": "Extract store data"
+        }
+      ]
+    }
+  ]
+}

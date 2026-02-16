@@ -1,0 +1,38 @@
+{
+  "id": "spotify-scrape-artist",
+  "name": "spotify_scrape_artist",
+  "description": "Scrape artist information from Spotify including artist name, monthly listeners, top tracks, and popular releases.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "artist_url",
+      "type": "string",
+      "description": "Spotify artist URL (e.g. 'https://open.spotify.com/artist/06HL4z0CvFAxyc27GXpf02')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{artist_url}}",
+      "label": "Open Spotify artist page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[data-testid=\"artist-header\"], .artist-header, [data-testid=\"entityTitle\"], h1",
+      "timeout": 15000,
+      "label": "Wait for artist page to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Let artist page fully render"
+    },
+    {
+      "action": "code",
+      "code": "const nameEl = document.querySelector('[data-testid=\"entityTitle\"] h1, [data-testid=\"artist-header\"] h1, h1 span, h1'); const artistName = nameEl ? nameEl.textContent.trim() : ''; let monthlyListeners = ''; const listenersEl = document.querySelector('[data-testid=\"monthly-listeners\"], .monthly-listeners'); if (listenersEl) { monthlyListeners = listenersEl.textContent.trim(); } else { const allSpans = document.querySelectorAll('span'); for (const s of allSpans) { if (s.textContent.match(/monthly listener/i)) { monthlyListeners = s.textContent.trim(); break; } } } const topTracks = []; const trackRows = document.querySelectorAll('[data-testid=\"tracklist-row\"]'); for (let i = 0; i < Math.min(trackRows.length, 10); i++) { const row = trackRows[i]; const trackNameEl = row.querySelector('[data-testid=\"internal-track-link\"] div, [data-testid=\"internal-track-link\"], a[href^=\"/track\"] div'); const playsEl = row.querySelector('span.encore-text'); let plays = ''; const allSpans = row.querySelectorAll('span.encore-text'); for (const s of allSpans) { if (s.textContent.match(/^[\\d,\\.]+$/)) { plays = s.textContent.trim(); break; } } let duration = ''; for (const s of allSpans) { if (s.textContent.match(/^\\d+:\\d+$/)) { duration = s.textContent.trim(); break; } } topTracks.push({ position: i + 1, name: trackNameEl ? trackNameEl.textContent.trim() : '', plays: plays, duration: duration }); } const releases = []; const releaseCards = document.querySelectorAll('section a[href^=\"/album\"]'); const seenReleases = new Set(); for (let i = 0; i < Math.min(releaseCards.length, 10); i++) { const card = releaseCards[i]; const title = card.textContent.trim(); if (title && !seenReleases.has(title)) { seenReleases.add(title); releases.push({ title: title, link: card.href || '' }); } } return { artist_name: artistName, monthly_listeners: monthlyListeners, top_tracks_count: topTracks.length, top_tracks: topTracks, popular_releases_count: releases.length, popular_releases: releases }",
+      "name": "artist_data",
+      "label": "Extract artist information"
+    }
+  ]
+}

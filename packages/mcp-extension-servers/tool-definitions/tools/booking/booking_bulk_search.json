@@ -1,0 +1,59 @@
+{
+  "id": "booking-bulk-search",
+  "name": "booking_bulk_search",
+  "description": "Search multiple destinations on Booking.com in parallel using concurrent browser tabs. Use this instead of calling booking_search multiple times - it is faster and more efficient. Pass all destinations as a single comma-separated string. Example: 'Paris,London,Tokyo'.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "destinations",
+      "type": "string",
+      "description": "Comma-separated destination names (e.g. 'Paris,London,Barcelona')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{destinations}}`.split(',').map(d => ({ url: 'https://www.booking.com/searchresults.html?ss=' + encodeURIComponent(d.trim()), destination: d.trim() }))",
+      "name": "items",
+      "label": "Build search URL list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 3,
+      "maxItems": 10,
+      "waitUntil": "load",
+      "label": "Search each destination in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": "[data-testid='property-card'], .sr_property_block, .c066246e13",
+          "timeout": 15000,
+          "label": "Wait for results"
+        },
+        {
+          "action": "wait",
+          "ms": 3000
+        },
+        {
+          "action": "scroll",
+          "direction": "down",
+          "amount": 1000
+        },
+        {
+          "action": "wait",
+          "ms": 2000
+        },
+        {
+          "action": "code",
+          "code": "const results = []; const cards = document.querySelectorAll('[data-testid=\"property-card\"], .sr_property_block'); for (let i = 0; i < Math.min(cards.length, 5); i++) { const el = cards[i]; const nameEl = el.querySelector('[data-testid=\"title\"], .sr-hotel__name, a[data-testid=\"title-link\"] div'); const linkEl = el.querySelector('a[data-testid=\"title-link\"], a.hotel_name_link'); const priceEl = el.querySelector('[data-testid=\"price-and-discounted-price\"], .bui-price-display__value, .prco-valign-middle-helper'); const ratingEl = el.querySelector('[data-testid=\"review-score\"] div:first-child, .bui-review-score__badge'); const ratingTextEl = el.querySelector('[data-testid=\"review-score\"] div:nth-child(2) div:first-child, .bui-review-score__text'); const locationEl = el.querySelector('[data-testid=\"address\"], .sr_card_address_line, span[data-testid=\"distance\"]'); const imgEl = el.querySelector('img[data-testid=\"image\"], img.hotel_image'); const url = linkEl ? (linkEl.href.startsWith('http') ? linkEl.href : 'https://www.booking.com' + linkEl.getAttribute('href')) : ''; const name = nameEl ? nameEl.textContent.trim() : ''; if (name) { results.push({ name: name, price: priceEl ? priceEl.textContent.trim() : '', rating_score: ratingEl ? ratingEl.textContent.trim() : '', rating_text: ratingTextEl ? ratingTextEl.textContent.trim() : '', location: locationEl ? locationEl.textContent.trim() : '', image: imgEl ? imgEl.getAttribute('src') : '', url: url }); } } const params = new URLSearchParams(window.location.search); return { destination: params.get('ss') || '', result_count: results.length, results: results }",
+          "name": "search_results",
+          "label": "Extract results"
+        }
+      ]
+    }
+  ]
+}

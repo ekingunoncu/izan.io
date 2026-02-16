@@ -1,0 +1,58 @@
+{
+  "id": "substack-scrape-author",
+  "name": "substack_scrape_author",
+  "description": "Scrape a Substack author profile page. Returns name, bio, subscriber count, publications, and recent posts.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "author_handle",
+      "type": "string",
+      "description": "Author handle or profile URL slug (e.g. 'casey-newton', 'mattlevine')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://substack.com/@{{author_handle}}",
+      "label": "Open author profile"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "h1, h2, [class*='profile'], [class*='author'], [class*='name']",
+      "timeout": 15000,
+      "label": "Wait for profile to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll to load content"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll further"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const nameEl = document.querySelector('h1, h2[class*=\"name\"], [class*=\"profile\"] h1, [class*=\"author-name\"]'); const bioEl = document.querySelector('[class*=\"bio\"], [class*=\"about\"] p, [class*=\"description\"]'); const subscribersEl = document.querySelector('[class*=\"subscriber\"], [class*=\"follower\"]'); const avatarEl = document.querySelector('img[class*=\"avatar\"], img[class*=\"profile\"], [class*=\"photo\"] img'); const publications = []; const pubEls = document.querySelectorAll('[class*=\"publication\"] a, [class*=\"newsletter\"] a'); pubEls.forEach(function(el) { const t = el.textContent.trim(); const href = el.getAttribute('href') || ''; if (t && t.length < 100) publications.push({ name: t, url: href.startsWith('http') ? href : 'https://substack.com' + href }); }); const posts = []; const postEls = document.querySelectorAll('[class*=\"post-preview\"], article, [class*=\"post-item\"]'); for (let i = 0; i < Math.min(postEls.length, 10); i++) { const el = postEls[i]; const titleEl = el.querySelector('h2, h3, [class*=\"title\"]'); const dateEl = el.querySelector('time, [class*=\"date\"]'); const likesEl = el.querySelector('[class*=\"like\"] span, [class*=\"heart\"] span'); const linkEl = el.querySelector('a[href*=\"/p/\"]'); posts.push({ title: titleEl ? titleEl.textContent.trim() : '', date: dateEl ? (dateEl.getAttribute('datetime') || dateEl.textContent.trim()) : '', likes: likesEl ? likesEl.textContent.trim() : '', url: linkEl ? linkEl.href : '' }); } return { name: nameEl ? nameEl.textContent.trim() : '{{author_handle}}', bio: bioEl ? bioEl.textContent.trim().substring(0, 500) : '', subscribers: subscribersEl ? subscribersEl.textContent.trim() : '', avatar: avatarEl ? avatarEl.getAttribute('src') : '', publications: publications.slice(0, 10), post_count: posts.length, posts: posts, profile_url: window.location.href }",
+      "name": "author_data",
+      "label": "Extract author profile"
+    }
+  ]
+}

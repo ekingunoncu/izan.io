@@ -1,0 +1,58 @@
+{
+  "id": "zillow-scrape-estimates",
+  "name": "zillow_scrape_estimates",
+  "description": "Scrape Zestimate and home value estimates from Zillow for a specific address. Returns estimated value, rent estimate, value range, price history, and comparable homes.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "address",
+      "type": "string",
+      "description": "Property address (e.g. '123 Main St San Francisco CA')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://www.zillow.com/homes/{{address}}_rb/",
+      "label": "Search for property"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[class*='zestimate'], [class*='home-value'], [data-testid='price'], h1",
+      "timeout": 15000,
+      "label": "Wait for estimates to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1500,
+      "label": "Scroll to value section"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1500,
+      "label": "Scroll further"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const addressEl = document.querySelector('h1, [data-testid=\"bdp-address\"], [class*=\"address\"]'); const zestimateEl = document.querySelector('[class*=\"zestimate\"] [class*=\"value\"], [class*=\"Zestimate\"], [data-testid=\"zestimate-value\"]'); const rentEl = document.querySelector('[class*=\"rent-zestimate\"], [class*=\"rentZestimate\"]'); const rangeEl = document.querySelector('[class*=\"zestimate-range\"], [class*=\"value-range\"]'); const priceEl = document.querySelector('[data-testid=\"price\"], [class*=\"price\"] span'); const priceHistory = []; const historyRows = document.querySelectorAll('[class*=\"price-history\"] tr, [class*=\"priceHistory\"] tr'); historyRows.forEach(function(row) { const cells = row.querySelectorAll('td'); if (cells.length >= 3) { priceHistory.push({ date: cells[0] ? cells[0].textContent.trim() : '', event: cells[1] ? cells[1].textContent.trim() : '', price: cells[2] ? cells[2].textContent.trim() : '' }); } }); const taxEl = document.querySelector('[class*=\"tax\"], [class*=\"property-tax\"]'); const comparables = []; const compEls = document.querySelectorAll('[class*=\"comparable\"] [class*=\"card\"], [class*=\"comps\"] [class*=\"card\"]'); compEls.forEach(function(el) { const addrEl = el.querySelector('[class*=\"address\"], address'); const prEl = el.querySelector('[class*=\"price\"]'); const detailEl = el.querySelector('[class*=\"detail\"], [class*=\"beds\"]'); comparables.push({ address: addrEl ? addrEl.textContent.trim() : '', price: prEl ? prEl.textContent.trim() : '', details: detailEl ? detailEl.textContent.trim() : '' }); }); return { address: addressEl ? addressEl.textContent.trim() : '{{address}}', zestimate: zestimateEl ? zestimateEl.textContent.trim() : '', rent_estimate: rentEl ? rentEl.textContent.trim() : '', value_range: rangeEl ? rangeEl.textContent.trim() : '', list_price: priceEl ? priceEl.textContent.trim() : '', property_tax: taxEl ? taxEl.textContent.trim() : '', price_history: priceHistory.slice(0, 10), comparables: comparables.slice(0, 5), url: window.location.href }",
+      "name": "estimate_data",
+      "label": "Extract value estimates"
+    }
+  ]
+}

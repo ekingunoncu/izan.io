@@ -1,0 +1,59 @@
+{
+  "id": "producthunt-bulk-search",
+  "name": "producthunt_bulk_search",
+  "description": "Search multiple products on Product Hunt in parallel using concurrent browser tabs. Use this instead of calling producthunt_search multiple times - it is faster and more efficient. Pass all queries as a single comma-separated string.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "queries",
+      "type": "string",
+      "description": "Comma-separated search queries (e.g. 'AI writing,project management,design tool')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{queries}}`.split(',').map(q => ({ url: 'https://www.producthunt.com/search?q=' + encodeURIComponent(q.trim()), query: q.trim() }))",
+      "name": "items",
+      "label": "Build search URL list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 3,
+      "maxItems": 10,
+      "waitUntil": "load",
+      "label": "Search each query in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": "[class*='post'], [data-test='post-item'], a[href*='/posts/']",
+          "timeout": 15000,
+          "label": "Wait for results"
+        },
+        {
+          "action": "wait",
+          "ms": 2000
+        },
+        {
+          "action": "scroll",
+          "direction": "down",
+          "amount": 800
+        },
+        {
+          "action": "wait",
+          "ms": 1500
+        },
+        {
+          "action": "code",
+          "code": "const results = []; const items = document.querySelectorAll('[data-test=\"post-item\"], [class*=\"post-item\"], a[href*=\"/posts/\"]'); const seen = new Set(); for (let i = 0; i < items.length && results.length < 5; i++) { const el = items[i]; const nameEl = el.querySelector('h3, strong, [class*=\"title\"]'); const href = el.getAttribute('href') || (el.querySelector('a[href*=\"/posts/\"]') ? el.querySelector('a[href*=\"/posts/\"]').href : ''); if (seen.has(href) || !href) continue; seen.add(href); const taglineEl = el.querySelector('p, [class*=\"tagline\"]'); const upvotesEl = el.querySelector('[class*=\"vote\"] span'); results.push({ name: nameEl ? nameEl.textContent.trim() : '', tagline: taglineEl ? taglineEl.textContent.trim() : '', upvotes: upvotesEl ? upvotesEl.textContent.trim() : '', url: href.startsWith('http') ? href : 'https://www.producthunt.com' + href }); } const params = new URLSearchParams(window.location.search); return { query: params.get('q') || '', result_count: results.length, results: results }",
+          "name": "search_results",
+          "label": "Extract results"
+        }
+      ]
+    }
+  ]
+}

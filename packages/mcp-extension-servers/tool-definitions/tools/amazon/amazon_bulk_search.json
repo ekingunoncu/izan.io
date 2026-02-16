@@ -1,0 +1,59 @@
+{
+  "id": "amazon-bulk-search",
+  "name": "amazon_bulk_search",
+  "description": "Search multiple products on Amazon in parallel using concurrent browser tabs. Use this instead of calling amazon_search multiple times - it is faster and more efficient. Pass all queries as a single comma-separated string. Example: 'wireless headphones,mechanical keyboard,usb hub'.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "queries",
+      "type": "string",
+      "description": "Comma-separated search queries (e.g. 'laptop stand,mouse pad,webcam')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{queries}}`.split(',').map(q => ({ url: 'https://www.amazon.com/s?k=' + encodeURIComponent(q.trim()), query: q.trim() }))",
+      "name": "items",
+      "label": "Build search URL list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 3,
+      "maxItems": 10,
+      "waitUntil": "load",
+      "label": "Search each query in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": ".s-result-item[data-asin], [data-component-type='s-search-result']",
+          "timeout": 15000,
+          "label": "Wait for results"
+        },
+        {
+          "action": "wait",
+          "ms": 2000
+        },
+        {
+          "action": "scroll",
+          "direction": "down",
+          "amount": 800
+        },
+        {
+          "action": "wait",
+          "ms": 1500
+        },
+        {
+          "action": "code",
+          "code": "const results = []; const items = document.querySelectorAll('.s-result-item[data-asin]'); for (let i = 0; i < Math.min(items.length, 5); i++) { const el = items[i]; const asin = el.getAttribute('data-asin'); if (!asin) continue; const titleEl = el.querySelector('h2 a span, h2 span.a-text-normal'); const linkEl = el.querySelector('h2 a.a-link-normal'); const priceEl = el.querySelector('.a-price .a-offscreen'); const ratingEl = el.querySelector('.a-icon-star-small .a-icon-alt'); const reviewCountEl = el.querySelector('a[href*=\"#customerReviews\"] span.a-size-base'); const primeEl = el.querySelector('.a-icon-prime, .s-prime'); const imgEl = el.querySelector('img.s-image'); const url = linkEl ? 'https://www.amazon.com' + linkEl.getAttribute('href') : ''; results.push({ title: titleEl ? titleEl.textContent.trim() : '', price: priceEl ? priceEl.textContent.trim() : '', rating: ratingEl ? ratingEl.textContent.trim() : '', review_count: reviewCountEl ? reviewCountEl.textContent.trim() : '', has_prime: !!primeEl, image: imgEl ? imgEl.getAttribute('src') : '', url: url, asin: asin }); } const params = new URLSearchParams(window.location.search); return { query: params.get('k') || '', result_count: results.length, results: results }",
+          "name": "search_results",
+          "label": "Extract results"
+        }
+      ]
+    }
+  ]
+}

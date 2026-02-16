@@ -1,0 +1,58 @@
+{
+  "id": "udemy-scrape-instructor",
+  "name": "udemy_scrape_instructor",
+  "description": "Scrape a Udemy instructor profile page. Returns name, headline, bio, rating, student count, course count, review count, and course list.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "instructor_url",
+      "type": "string",
+      "description": "Udemy instructor URL (e.g. 'https://www.udemy.com/user/caborahul/')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{instructor_url}}",
+      "label": "Open instructor page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "h1, [class*='instructor'], [class*='profile'], [class*='user-profile']",
+      "timeout": 15000,
+      "label": "Wait for profile to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll to load courses"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll further"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const nameEl = document.querySelector('h1, [class*=\"instructor\"] h1, [class*=\"user-profile\"] h1'); const headlineEl = document.querySelector('[class*=\"headline\"], h1 + div, [class*=\"tagline\"]'); const bioEl = document.querySelector('[class*=\"bio\"], [class*=\"about\"] p, [class*=\"description\"]'); const avatarEl = document.querySelector('[class*=\"avatar\"] img, [class*=\"profile\"] img'); const ratingEl = document.querySelector('[class*=\"rating\"] span, [class*=\"instructor-rating\"]'); const studentsEl = document.querySelector('[class*=\"students\"] span, [class*=\"total-students\"]'); const courseCountEl = document.querySelector('[class*=\"courses\"] span, [class*=\"total-courses\"]'); const reviewCountEl = document.querySelector('[class*=\"reviews\"] span, [class*=\"total-reviews\"]'); const courses = []; const courseEls = document.querySelectorAll('[class*=\"course-card\"], a[href*=\"/course/\"], [class*=\"CourseCard\"]'); const seen = new Set(); for (let i = 0; i < courseEls.length && courses.length < 10; i++) { const el = courseEls[i]; const href = el.getAttribute('href') || (el.querySelector('a') ? el.querySelector('a').href : ''); if (seen.has(href)) continue; seen.add(href); const courseNameEl = el.querySelector('h3, [class*=\"title\"], div[class*=\"title\"]'); const courseRatingEl = el.querySelector('[class*=\"rating\"] span'); const coursePriceEl = el.querySelector('[class*=\"price\"] span'); const courseImgEl = el.querySelector('img'); courses.push({ name: courseNameEl ? courseNameEl.textContent.trim() : '', rating: courseRatingEl ? courseRatingEl.textContent.trim() : '', price: coursePriceEl ? coursePriceEl.textContent.trim() : '', image: courseImgEl ? courseImgEl.getAttribute('src') : '', url: href.startsWith('http') ? href : 'https://www.udemy.com' + href }); } const socialEls = document.querySelectorAll('a[href*=\"twitter\"], a[href*=\"linkedin\"], a[href*=\"github\"], a[href*=\"youtube\"]'); const socials = []; socialEls.forEach(function(el) { socials.push(el.href); }); return { name: nameEl ? nameEl.textContent.trim() : '', headline: headlineEl ? headlineEl.textContent.trim() : '', bio: bioEl ? bioEl.textContent.trim().substring(0, 500) : '', avatar: avatarEl ? avatarEl.getAttribute('src') : '', rating: ratingEl ? ratingEl.textContent.trim() : '', total_students: studentsEl ? studentsEl.textContent.trim() : '', total_courses: courseCountEl ? courseCountEl.textContent.trim() : '', total_reviews: reviewCountEl ? reviewCountEl.textContent.trim() : '', courses: courses, social_links: socials.slice(0, 5), profile_url: window.location.href }",
+      "name": "instructor_data",
+      "label": "Extract instructor profile"
+    }
+  ]
+}

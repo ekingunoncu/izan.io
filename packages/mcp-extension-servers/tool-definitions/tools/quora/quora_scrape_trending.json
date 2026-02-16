@@ -1,0 +1,22 @@
+{
+  "id": "quora-scrape-trending",
+  "name": "quora_scrape_trending",
+  "description": "Scrape trending questions and content from Quora homepage. Returns trending questions, popular answers, and featured content.",
+  "version": "1.0.0",
+  "parameters": [],
+  "steps": [
+    { "action": "navigate", "url": "https://www.quora.com/", "label": "Open Quora homepage" },
+    { "action": "waitForSelector", "selector": "[class*='Question'], [class*='question'], [class*='feed']", "timeout": 15000, "label": "Wait for feed" },
+    { "action": "wait", "ms": 2000 },
+    { "action": "scroll", "direction": "down", "amount": 1500, "label": "Scroll feed" },
+    { "action": "wait", "ms": 2000 },
+    { "action": "scroll", "direction": "down", "amount": 1500, "label": "Scroll more" },
+    { "action": "wait", "ms": 1500 },
+    {
+      "action": "code",
+      "code": "const trending = []; const feedItems = document.querySelectorAll('[class*=\"feed\"] > div, [class*=\"Question\"], [class*=\"pagedList\"] > div'); for (let i = 0; i < Math.min(feedItems.length, 20); i++) { const el = feedItems[i]; const questionEl = el.querySelector('[class*=\"question_text\"], [class*=\"Question\"] a span'); const answerEl = el.querySelector('[class*=\"answer\"], [class*=\"inline\"]'); const authorEl = el.querySelector('[class*=\"user\"] a, [class*=\"author\"]'); const upvotesEl = el.querySelector('[class*=\"upvote\"]'); const linkEl = el.querySelector('a[href*=\"/\"]'); if (questionEl) { trending.push({ question: questionEl.textContent.trim(), answer_preview: answerEl ? answerEl.textContent.trim().substring(0, 300) : '', author: authorEl ? authorEl.textContent.trim() : '', upvotes: upvotesEl ? upvotesEl.textContent.trim() : '', url: linkEl ? linkEl.href : '' }); } } return { trending_count: trending.length, trending: trending, url: window.location.href }",
+      "name": "trending_data",
+      "label": "Extract trending content"
+    }
+  ]
+}

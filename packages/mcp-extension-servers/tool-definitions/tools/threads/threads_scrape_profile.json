@@ -1,0 +1,48 @@
+{
+  "id": "threads-scrape-profile",
+  "name": "threads_scrape_profile",
+  "description": "Scrape a Threads user profile. Returns username, display name, bio, follower count, and recent posts. You must be logged in to Threads.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "username",
+      "type": "string",
+      "description": "Threads username without @ (e.g. 'zuck', 'mosseri', 'nasa')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://www.threads.net/@{{username}}",
+      "label": "Open Threads profile"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[class*='ProfileHeader'], [class*='profile'], header, [class*='UserProfile']",
+      "timeout": 15000,
+      "label": "Wait for profile page to load"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Let profile fully render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1200,
+      "label": "Scroll to load posts"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const username = '{{username}}'; const nameEl = document.querySelector('[class*=\"ProfileHeader\"] h1, [class*=\"profile\"] h1, h1[dir=\"auto\"], [class*=\"userName\"], header h2'); const displayName = nameEl ? nameEl.textContent.trim() : username; const bioEl = document.querySelector('[class*=\"bio\"], [class*=\"ProfileBio\"], [class*=\"biography\"], [class*=\"profile\"] span[dir=\"auto\"]'); let bio = ''; if (bioEl) { bio = bioEl.textContent.trim(); } else { const spans = document.querySelectorAll('span[dir=\"auto\"]'); for (const span of spans) { const text = span.textContent.trim(); if (text.length > 20 && text !== displayName && !text.includes('followers') && !text.includes('threads')) { bio = text; break; } } } const followerEl = document.querySelector('[class*=\"follower\"], [class*=\"Follower\"], a[href*=\"followers\"], [class*=\"count\"]'); let followers = ''; if (followerEl) { followers = followerEl.textContent.trim(); } else { const allSpans = document.querySelectorAll('span'); for (const span of allSpans) { const text = span.textContent.trim().toLowerCase(); if (text.includes('follower')) { followers = text; break; } } } const profilePicEl = document.querySelector('img[alt*=\"profile\"], img[alt*=\"' + username + '\"], [class*=\"ProfilePic\"] img, [class*=\"avatar\"] img, header img'); const profilePic = profilePicEl ? profilePicEl.src : ''; const verifiedEl = document.querySelector('svg[aria-label*=\"Verified\"], [class*=\"verified\"], [class*=\"badge\"]'); const isVerified = !!verifiedEl; const recentPosts = []; const postEls = document.querySelectorAll('[class*=\"ThreadItem\"], article, div[role=\"article\"], [data-pressable-container=\"true\"]'); for (let i = 0; i < Math.min(postEls.length, 10); i++) { const el = postEls[i]; const contentEl = el.querySelector('[class*=\"text\"], [class*=\"content\"], [dir=\"auto\"] span, [class*=\"TextContent\"]'); let content = ''; if (contentEl) { content = contentEl.textContent.trim().substring(0, 200); } else { const spans = el.querySelectorAll('span[dir=\"auto\"]'); for (const span of spans) { const text = span.textContent.trim(); if (text.length > content.length && text !== displayName && text !== username) content = text.substring(0, 200); } } const timeEl = el.querySelector('time, [class*=\"time\"]'); const timestamp = timeEl ? (timeEl.getAttribute('datetime') || timeEl.textContent.trim()) : ''; const likesEl = el.querySelector('[class*=\"like\"] span, [aria-label*=\"like\"]'); const likes = likesEl ? (likesEl.getAttribute('aria-label') || likesEl.textContent.trim()) : ''; const postLink = el.querySelector('a[href*=\"/post/\"], a[href*=\"/t/\"]'); const postUrl = postLink ? (postLink.href.startsWith('http') ? postLink.href : 'https://www.threads.net' + postLink.getAttribute('href')) : ''; if (content) { recentPosts.push({ content: content, likes: likes, timestamp: timestamp, post_url: postUrl }); } } return { username: username, display_name: displayName, bio: bio, followers: followers, is_verified: isVerified, profile_pic: profilePic, recent_posts: recentPosts, profile_url: window.location.href }",
+      "name": "result",
+      "label": "Extract profile data"
+    }
+  ]
+}

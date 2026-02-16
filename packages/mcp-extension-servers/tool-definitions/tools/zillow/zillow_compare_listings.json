@@ -1,0 +1,58 @@
+{
+  "id": "zillow-compare-listings",
+  "name": "zillow_compare_listings",
+  "description": "Compare property listings on Zillow for a given search query. Extracts pricing, size, and feature details from multiple listings sorted by price for easy comparison.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "query",
+      "type": "string",
+      "description": "Location search query to compare properties (e.g. 'San Francisco 2 bedroom', 'Austin TX condos')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://www.zillow.com/homes/{{query}}_rb/?sortSelection=pricea",
+      "label": "Search Zillow sorted by price"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[data-test='property-card'], article[class*='property'], [class*='ListItem']",
+      "timeout": 15000,
+      "label": "Wait for results"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let results render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1200,
+      "label": "Scroll to load more"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1200,
+      "label": "Scroll further"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const items = []; const cards = document.querySelectorAll('[data-test=\"property-card\"], article[class*=\"property\"], [class*=\"ListItem\"] article, [class*=\"StyledPropertyCard\"]'); for (let i = 0; i < Math.min(cards.length, 20); i++) { const el = cards[i]; const addressEl = el.querySelector('[data-test=\"property-card-addr\"], address, [class*=\"address\"]'); const priceEl = el.querySelector('[data-test=\"property-card-price\"], [class*=\"price\"]'); const linkEl = el.querySelector('a[href*=\"/homedetails/\"], a'); const detailText = el.textContent || ''; const bdMatch = detailText.match(/(\\d+)\\s*bd/i); const baMatch = detailText.match(/(\\d+)\\s*ba/i); const sqftMatch = detailText.match(/([\\d,]+)\\s*sqft/i); const statusEl = el.querySelector('[class*=\"status\"], [class*=\"cardStatus\"]'); const brokerEl = el.querySelector('[class*=\"broker\"], [class*=\"agent\"]'); items.push({ address: addressEl ? addressEl.textContent.trim() : '', price: priceEl ? priceEl.textContent.trim() : '', beds: bdMatch ? bdMatch[1] : '', baths: baMatch ? baMatch[1] : '', sqft: sqftMatch ? sqftMatch[1] : '', status: statusEl ? statusEl.textContent.trim() : '', broker: brokerEl ? brokerEl.textContent.trim() : '', url: linkEl ? linkEl.href : '' }); } const prices = items.map(function(item) { return parseFloat(item.price.replace(/[^0-9.]/g, '')) || 0; }).filter(function(p) { return p > 0; }); const avgPrice = prices.length > 0 ? (prices.reduce(function(a, b) { return a + b; }, 0) / prices.length).toFixed(0) : '0'; const minPrice = prices.length > 0 ? Math.min.apply(null, prices).toFixed(0) : '0'; const maxPrice = prices.length > 0 ? Math.max.apply(null, prices).toFixed(0) : '0'; return { query: `{{query}}`, listing_count: items.length, price_summary: { average: '$' + Number(avgPrice).toLocaleString(), lowest: '$' + Number(minPrice).toLocaleString(), highest: '$' + Number(maxPrice).toLocaleString() }, listings: items }",
+      "name": "comparison_data",
+      "label": "Extract and compare listings"
+    }
+  ]
+}

@@ -1,0 +1,58 @@
+{
+  "id": "facebook-scrape-events",
+  "name": "facebook_scrape_events",
+  "description": "Search and scrape Facebook events. Returns up to 15 events with title, date, location, description snippet, and URL.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "query",
+      "type": "string",
+      "description": "Search query for events (e.g. 'music festival', 'tech meetup', 'yoga class')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://www.facebook.com/events/search/?q={{query}}",
+      "label": "Search Facebook events"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[role='main'], a[href*='/events/']",
+      "timeout": 15000,
+      "label": "Wait for event results"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Let events render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll to load more events"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll further down"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const results = []; const eventLinks = document.querySelectorAll('a[href*=\"/events/\"]'); const seen = new Set(); for (let i = 0; i < eventLinks.length && results.length < 15; i++) { const link = eventLinks[i]; const href = link.getAttribute('href') || ''; const eventMatch = href.match(/\\/events\\/(\\d+)/); if (!eventMatch) continue; if (seen.has(eventMatch[1])) continue; seen.add(eventMatch[1]); const container = link.closest('div[class]') || link.parentElement || link; const spans = container.querySelectorAll('span, div[dir=\"auto\"]'); let title = ''; let date = ''; let location = ''; let description = ''; for (const span of spans) { const text = span.textContent.trim(); if (!title && text.length > 5 && text.length < 200) { title = text; } else if (!date && (text.match(/\\b(Mon|Tue|Wed|Thu|Fri|Sat|Sun|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|AM|PM|\\d{1,2}:\\d{2})\\b/i) || text.match(/\\b\\d{1,2}[\\/\\-]\\d{1,2}[\\/\\-]\\d{2,4}\\b/))) { date = text; } else if (!location && text.length > 3 && text.length < 150 && text !== title && !text.match(/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun)/)) { location = text; } else if (!description && text.length > 20 && text.length < 500 && text !== title) { description = text.substring(0, 300); } } const imgEl = container.querySelector('img'); const image = imgEl ? imgEl.getAttribute('src') || '' : ''; const fullUrl = href.startsWith('http') ? href : 'https://www.facebook.com' + href; if (title) { results.push({ title: title, date: date, location: location, description: description, image: image, url: fullUrl }); } } return { query: `{{query}}`, result_count: results.length, results: results }",
+      "name": "events_results",
+      "label": "Extract event listings"
+    }
+  ]
+}

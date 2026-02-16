@@ -1,0 +1,55 @@
+{
+  "id": "airtable-bulk-create-records",
+  "name": "airtable_bulk_create_records",
+  "description": "Create multiple records across Airtable tables in parallel using concurrent browser tabs. Pass comma-separated table URLs and a JSON array of field value objects. Each URL gets one record created.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "table_urls",
+      "type": "string",
+      "description": "Comma-separated Airtable table URLs (e.g. 'https://airtable.com/appXXX/tblXXX,https://airtable.com/appYYY/tblYYY')",
+      "required": true
+    },
+    {
+      "name": "field_values",
+      "type": "string",
+      "description": "JSON array of field:value objects, one per URL (e.g. '[{\"Name\":\"Record A\"},{\"Name\":\"Record B\"}]'). If a single object is provided, it is used for all URLs.",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "const urls = `{{table_urls}}`.split(',').map(u => u.trim()).filter(u => u.length > 0); let valuesArr; try { valuesArr = JSON.parse(`{{field_values}}`); } catch(e) { throw new Error('field_values must be valid JSON: ' + e.message); } if (!Array.isArray(valuesArr)) valuesArr = [valuesArr]; return urls.map((url, i) => ({ url: url, fields: valuesArr[i] || valuesArr[0] || {} }))",
+      "name": "items",
+      "label": "Build items list from URLs and field values"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 3,
+      "maxItems": 20,
+      "waitUntil": "load",
+      "label": "Create record in each table in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": ".dataRow, [data-rowindex], .headerRow",
+          "timeout": 15000
+        },
+        {
+          "action": "wait",
+          "ms": 2000
+        },
+        {
+          "action": "code",
+          "code": "const addBtn = document.querySelector('.addRowButton, [aria-label=\"Add row\"], [data-testid=\"add-row-button\"], .newRowButton'); if (addBtn) { addBtn.click(); await new Promise(r => setTimeout(r, 1500)); } else { throw new Error('Could not find add row button'); } const item = window.__currentItem || {}; const fields = item.fields || {}; const headers = []; document.querySelectorAll('.headerRow .header, .columnHeader, [data-columnid] .header, [role=\"columnheader\"]').forEach(h => { headers.push(h.textContent?.trim() || ''); }); const lastRow = document.querySelector('.dataRow:last-child, [data-rowindex]:last-child, [role=\"row\"]:last-child'); if (!lastRow) throw new Error('Could not find newly created row'); const filledFields = []; for (const [fieldName, value] of Object.entries(fields)) { const colIndex = headers.findIndex(h => h.toLowerCase() === fieldName.toLowerCase()); if (colIndex === -1) { filledFields.push({ field: fieldName, status: 'column_not_found' }); continue; } const cells = lastRow.querySelectorAll('.cell, [data-columnid], [role=\"gridcell\"]'); const targetCell = cells[colIndex]; if (!targetCell) { filledFields.push({ field: fieldName, status: 'cell_not_found' }); continue; } targetCell.click(); await new Promise(r => setTimeout(r, 500)); const input = targetCell.querySelector('.cellInput, [contenteditable=\"true\"], input, textarea') || document.activeElement; if (input) { if (input.contentEditable === 'true') { input.textContent = String(value); input.dispatchEvent(new Event('input', { bubbles: true })); } else { input.value = String(value); input.dispatchEvent(new Event('input', { bubbles: true })); input.dispatchEvent(new Event('change', { bubbles: true })); } filledFields.push({ field: fieldName, status: 'filled', value: String(value) }); } else { filledFields.push({ field: fieldName, status: 'no_input_found' }); } await new Promise(r => setTimeout(r, 300)); } document.activeElement?.blur(); return { success: true, table_url: window.location.href, fields_processed: filledFields.length, fields: filledFields }",
+          "name": "create_result",
+          "label": "Create record in table"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,58 @@
+{
+  "id": "coursera-scrape-course",
+  "name": "coursera_scrape_course",
+  "description": "Scrape full course details from a Coursera course page. Returns title, provider, description, rating, enrollment count, syllabus, skills, level, and instructor info.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "course_url",
+      "type": "string",
+      "description": "Coursera course URL (e.g. 'https://www.coursera.org/learn/machine-learning')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{course_url}}",
+      "label": "Open course page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "h1, [class*='course-title'], [class*='banner'], [data-testid='course-title']",
+      "timeout": 15000,
+      "label": "Wait for course page to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1200,
+      "label": "Scroll to load content"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1200,
+      "label": "Scroll further"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const titleEl = document.querySelector('h1, [class*=\"course-title\"], [data-testid=\"course-title\"]'); const providerEl = document.querySelector('[class*=\"partner\"] a, [class*=\"institution\"] a, img[alt] + span, a[data-testid=\"partner-name\"]'); const descEl = document.querySelector('[class*=\"description\"], [class*=\"about\"] p, [data-testid=\"course-description\"]'); const ratingEl = document.querySelector('[class*=\"rating\"] span, [class*=\"stars\"] span, [data-testid=\"rating\"]'); const enrollmentEl = document.querySelector('[class*=\"enrollment\"], [class*=\"students\"], [data-testid=\"enrollment\"]'); const levelEl = document.querySelector('[class*=\"level\"], [class*=\"difficulty\"], [data-testid=\"difficulty\"]'); const durationEl = document.querySelector('[class*=\"duration\"], [data-testid=\"duration\"]'); const imgEl = document.querySelector('[class*=\"banner\"] img, [class*=\"hero\"] img'); const skillEls = document.querySelectorAll('[class*=\"skill\"] span, [class*=\"skill\"] li, [data-testid=\"skill\"]'); const skills = []; skillEls.forEach(function(el) { const t = el.textContent.trim(); if (t && t.length < 50 && !skills.includes(t)) skills.push(t); }); const syllabusEls = document.querySelectorAll('[class*=\"syllabus\"] h3, [class*=\"module\"] h3, [class*=\"week\"] h3, [data-testid=\"module-title\"]'); const syllabus = []; syllabusEls.forEach(function(el) { const t = el.textContent.trim(); if (t) syllabus.push(t); }); const instructorEls = document.querySelectorAll('[class*=\"instructor\"] a, [data-testid=\"instructor-name\"]'); const instructors = []; instructorEls.forEach(function(el) { const t = el.textContent.trim(); if (t && t.length < 80 && !instructors.includes(t)) instructors.push(t); }); const priceEl = document.querySelector('[class*=\"price\"], [data-testid=\"price\"]'); const certificateEl = document.querySelector('[class*=\"certificate\"], [data-testid=\"certificate\"]'); return { title: titleEl ? titleEl.textContent.trim() : '', provider: providerEl ? providerEl.textContent.trim() : '', description: descEl ? descEl.textContent.trim().substring(0, 1000) : '', rating: ratingEl ? ratingEl.textContent.trim() : '', enrollment: enrollmentEl ? enrollmentEl.textContent.trim() : '', level: levelEl ? levelEl.textContent.trim() : '', duration: durationEl ? durationEl.textContent.trim() : '', price: priceEl ? priceEl.textContent.trim() : '', certificate: certificateEl ? certificateEl.textContent.trim() : '', skills: skills.slice(0, 10), syllabus: syllabus.slice(0, 12), instructors: instructors.slice(0, 5), image: imgEl ? imgEl.getAttribute('src') : '', url: window.location.href }",
+      "name": "course_data",
+      "label": "Extract course details"
+    }
+  ]
+}

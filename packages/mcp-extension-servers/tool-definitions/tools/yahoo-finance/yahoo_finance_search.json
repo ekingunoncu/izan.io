@@ -1,0 +1,48 @@
+{
+  "id": "yahoo-finance-search",
+  "name": "yahoo_finance_search",
+  "description": "Search for stocks, ETFs, mutual funds, and other financial instruments on Yahoo Finance. Returns up to 15 results with symbol, name, price, change, market cap, and exchange.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "query",
+      "type": "string",
+      "description": "Search query (e.g. 'AAPL', 'Tesla', 'tech ETF', 'S&P 500')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://finance.yahoo.com/lookup?s={{query}}",
+      "label": "Search Yahoo Finance"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "table tbody tr, [class*='lookup'] table, [data-testid='table-container']",
+      "timeout": 15000,
+      "label": "Wait for search results"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let results render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 800,
+      "label": "Scroll to load more results"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const results = []; const rows = document.querySelectorAll('table tbody tr, [data-testid=\"table-container\"] tbody tr'); for (let i = 0; i < Math.min(rows.length, 15); i++) { const row = rows[i]; const cells = row.querySelectorAll('td'); if (cells.length >= 2) { const symbolEl = cells[0] ? cells[0].querySelector('a') || cells[0] : null; const nameEl = cells[1]; const priceEl = cells.length > 2 ? cells[2] : null; const changeEl = cells.length > 3 ? cells[3] : null; const typeEl = cells.length > 4 ? cells[4] : null; const exchangeEl = cells.length > 5 ? cells[5] : null; results.push({ symbol: symbolEl ? symbolEl.textContent.trim() : '', name: nameEl ? nameEl.textContent.trim() : '', last_price: priceEl ? priceEl.textContent.trim() : '', change: changeEl ? changeEl.textContent.trim() : '', type: typeEl ? typeEl.textContent.trim() : '', exchange: exchangeEl ? exchangeEl.textContent.trim() : '', url: symbolEl && symbolEl.href ? symbolEl.href : '' }); } } return { query: `{{query}}`, result_count: results.length, results: results }",
+      "name": "search_results",
+      "label": "Extract search results"
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "id": "sheets-open",
+  "name": "sheets_open",
+  "description": "Open a Google Spreadsheet and retrieve its metadata: title, sheet tab names, row count, column count, and dimensions for each sheet.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "spreadsheet_url",
+      "type": "string",
+      "description": "Full Google Sheets URL (e.g. https://docs.google.com/spreadsheets/d/SPREADSHEET_ID/edit)",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{spreadsheet_url}}",
+      "label": "Open spreadsheet"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "table.waffle, .waffle",
+      "timeout": 20000,
+      "label": "Wait for spreadsheet grid to load"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Let all sheet tabs and content render"
+    },
+    {
+      "action": "code",
+      "code": "const titleEl = document.querySelector('.docs-title-input, input.docs-title-input, .docs-titlebar-text'); const title = titleEl ? (titleEl.value || titleEl.textContent || '').trim() : document.title.replace(/ - Google Sheets$/, '').trim(); const sheetTabs = document.querySelectorAll('.docs-sheet-tab, [id^=\"sheet-button\"]'); const sheets = []; sheetTabs.forEach((tab, i) => { const nameEl = tab.querySelector('.docs-sheet-tab-name, [data-sheet-name]'); const name = nameEl ? nameEl.textContent.trim() : tab.textContent.trim(); const isActive = tab.classList.contains('docs-sheet-active-tab') || tab.getAttribute('aria-selected') === 'true'; sheets.push({ index: i, name: name, active: isActive }); }); const waffle = document.querySelector('table.waffle'); let rowCount = 0; let colCount = 0; if (waffle) { const rows = waffle.querySelectorAll('tbody tr, tr'); rowCount = rows.length; if (rows.length > 0) { const firstRow = rows[0]; colCount = firstRow.querySelectorAll('td, th').length; } } if (sheets.length === 0) { sheets.push({ index: 0, name: 'Sheet1', active: true }); } return { title: title, url: window.location.href, sheet_count: sheets.length, sheets: sheets, active_sheet_dimensions: { rows: rowCount, columns: colCount } }",
+      "name": "spreadsheet_info",
+      "label": "Extract spreadsheet metadata"
+    }
+  ]
+}

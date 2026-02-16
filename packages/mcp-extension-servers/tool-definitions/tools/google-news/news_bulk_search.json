@@ -1,0 +1,50 @@
+{
+  "id": "news-bulk-search",
+  "name": "news_bulk_search",
+  "description": "Search multiple queries on Google News in parallel using concurrent browser tabs. Use this instead of calling news_search multiple times - it is faster and more efficient. Pass all queries as a single comma-separated string. Example: 'AI regulation,climate summit,tech layoffs'.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "queries",
+      "type": "string",
+      "description": "Comma-separated search queries (e.g. 'artificial intelligence,quantum computing,space exploration')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{queries}}`.split(',').map(q => ({ url: 'https://news.google.com/search?q=' + encodeURIComponent(q.trim()), query: q.trim() }))",
+      "name": "items",
+      "label": "Build search URL list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 3,
+      "maxItems": 10,
+      "waitUntil": "load",
+      "label": "Search each query in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": "article, c-wiz article, [data-n-tid]",
+          "timeout": 15000,
+          "label": "Wait for results"
+        },
+        {
+          "action": "wait",
+          "ms": 2000
+        },
+        {
+          "action": "code",
+          "code": "const articles = []; const items = document.querySelectorAll('article, c-wiz article'); for (let i = 0; i < Math.min(items.length, 10); i++) { const item = items[i]; const linkEl = item.querySelector('a[href*=\"./articles/\"], a[href*=\"./read/\"], a[href^=\"https\"]'); const titleEl = linkEl ? linkEl.querySelector('h3, h4, .JtKRv') || linkEl : null; const sourceEl = item.querySelector('.vr1PYe, [data-n-tid], .wsn2rd, div > div > a[data-n-tid]'); const timeEl = item.querySelector('time, .hvbAAd, datetime'); let url = ''; if (linkEl) { const href = linkEl.getAttribute('href') || ''; if (href.startsWith('./')) { url = 'https://news.google.com/' + href.slice(2); } else if (href.startsWith('http')) { url = href; } else { url = 'https://news.google.com/' + href; } } articles.push({ title: titleEl ? titleEl.textContent.trim() : '', source: sourceEl ? sourceEl.textContent.trim() : '', time: timeEl ? (timeEl.getAttribute('datetime') || timeEl.textContent.trim()) : '', url: url }); } const urlParams = new URLSearchParams(window.location.search); return { query: urlParams.get('q') || '', article_count: articles.length, articles: articles }",
+          "name": "search_results",
+          "label": "Extract results"
+        }
+      ]
+    }
+  ]
+}

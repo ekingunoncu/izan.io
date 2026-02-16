@@ -1,0 +1,68 @@
+{
+  "id": "threads-scrape-replies",
+  "name": "threads_scrape_replies",
+  "description": "Scrape replies to a Threads post. Returns up to 20 replies with author, content, likes, and timestamp. You must be logged in to Threads.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "post_url",
+      "type": "string",
+      "description": "Full URL of the Threads post to scrape replies from (e.g. 'https://www.threads.net/@username/post/ABC123')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{post_url}}",
+      "label": "Open Threads post"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[class*='ThreadItem'], article, div[role='article'], [data-pressable-container='true']",
+      "timeout": 15000,
+      "label": "Wait for post and replies to load"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Let post and replies render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 2000,
+      "label": "Scroll to load replies"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 2000,
+      "label": "Scroll for more replies"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 2000,
+      "label": "Scroll further for more replies"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const postEls = document.querySelectorAll('[class*=\"ThreadItem\"], article, div[role=\"article\"], [data-pressable-container=\"true\"]'); const mainPost = postEls[0]; let originalAuthor = ''; let originalContent = ''; if (mainPost) { const authorEl = mainPost.querySelector('a[href^=\"/@\"] span, [class*=\"username\"]'); originalAuthor = authorEl ? authorEl.textContent.trim() : ''; const contentEl = mainPost.querySelector('[class*=\"text\"], [class*=\"content\"], [class*=\"TextContent\"]'); if (contentEl) { originalContent = contentEl.textContent.trim().substring(0, 200); } else { const spans = mainPost.querySelectorAll('span[dir=\"auto\"]'); for (const span of spans) { const text = span.textContent.trim(); if (text.length > originalContent.length && text !== originalAuthor) originalContent = text.substring(0, 200); } } } const replies = []; for (let i = 1; i < Math.min(postEls.length, 21); i++) { const el = postEls[i]; const authorEl = el.querySelector('a[href^=\"/@\"] span, a[href*=\"threads.net/@\"] span, [class*=\"username\"]'); const author = authorEl ? authorEl.textContent.trim() : ''; const authorLink = el.querySelector('a[href^=\"/@\"], a[href*=\"threads.net/@\"]'); const authorUrl = authorLink ? (authorLink.href.startsWith('http') ? authorLink.href : 'https://www.threads.net' + authorLink.getAttribute('href')) : ''; const contentEl = el.querySelector('[class*=\"text\"], [class*=\"content\"], [dir=\"auto\"] span, [class*=\"TextContent\"]'); let content = ''; if (contentEl) { content = contentEl.textContent.trim().substring(0, 500); } else { const spans = el.querySelectorAll('span[dir=\"auto\"]'); for (const span of spans) { const text = span.textContent.trim(); if (text.length > content.length && text !== author) content = text.substring(0, 500); } } const timeEl = el.querySelector('time, [class*=\"time\"]'); const timestamp = timeEl ? (timeEl.getAttribute('datetime') || timeEl.textContent.trim()) : ''; const likesEl = el.querySelector('[class*=\"like\"] span, [aria-label*=\"like\"]'); const likes = likesEl ? (likesEl.getAttribute('aria-label') || likesEl.textContent.trim()) : ''; const repliesEl = el.querySelector('[class*=\"reply\"] span, [aria-label*=\"repl\"]'); const replyCount = repliesEl ? (repliesEl.getAttribute('aria-label') || repliesEl.textContent.trim()) : ''; const avatarEl = el.querySelector('[class*=\"avatar\"] img, img[alt*=\"profile\"]'); const avatar = avatarEl ? avatarEl.src : ''; const replyLink = el.querySelector('a[href*=\"/post/\"], a[href*=\"/t/\"]'); const replyUrl = replyLink ? (replyLink.href.startsWith('http') ? replyLink.href : 'https://www.threads.net' + replyLink.getAttribute('href')) : ''; if (content) { replies.push({ author: author, author_url: authorUrl, avatar: avatar, content: content, likes: likes, replies: replyCount, timestamp: timestamp, reply_url: replyUrl }); } } return { original_author: originalAuthor, original_content: originalContent, reply_count: replies.length, replies: replies, post_url: `{{post_url}}` }",
+      "name": "result",
+      "label": "Extract replies"
+    }
+  ]
+}

@@ -1,0 +1,58 @@
+{
+  "id": "yahoo-finance-scrape-history",
+  "name": "yahoo_finance_scrape_history",
+  "description": "Scrape historical price data from Yahoo Finance for a given stock. Returns date, open, high, low, close, adjusted close, and volume for past trading days.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "symbol",
+      "type": "string",
+      "description": "Stock ticker symbol (e.g. 'AAPL', 'GOOGL', 'MSFT')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://finance.yahoo.com/quote/{{symbol}}/history/",
+      "label": "Open historical data page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "table tbody tr, [data-testid='history-table'], [class*='historical']",
+      "timeout": 15000,
+      "label": "Wait for history table to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let table render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll to load more rows"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll further down"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const history = []; const rows = document.querySelectorAll('table tbody tr'); for (let i = 0; i < Math.min(rows.length, 30); i++) { const row = rows[i]; const cells = row.querySelectorAll('td'); if (cells.length >= 6) { history.push({ date: cells[0] ? cells[0].textContent.trim() : '', open: cells[1] ? cells[1].textContent.trim() : '', high: cells[2] ? cells[2].textContent.trim() : '', low: cells[3] ? cells[3].textContent.trim() : '', close: cells[4] ? cells[4].textContent.trim() : '', adj_close: cells[5] ? cells[5].textContent.trim() : '', volume: cells[6] ? cells[6].textContent.trim() : '' }); } } const nameEl = document.querySelector('h1, [class*=\"quote-header\"] h1'); return { symbol: '{{symbol}}', name: nameEl ? nameEl.textContent.trim() : '', data_points: history.length, history: history, url: window.location.href }",
+      "name": "history_data",
+      "label": "Extract historical price data"
+    }
+  ]
+}

@@ -1,0 +1,58 @@
+{
+  "id": "canva-scrape-design",
+  "name": "canva_scrape_design",
+  "description": "Scrape a Canva design type page (e.g. presentations, social media, videos). Returns available templates, features, and popular designs for that category.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "design_type",
+      "type": "string",
+      "description": "Design type slug (e.g. 'presentations', 'social-media', 'videos', 'logos', 'flyers', 'posters')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://www.canva.com/{{design_type}}/",
+      "label": "Open design type page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "h1, [class*='hero'], [class*='heading'], [class*='template']",
+      "timeout": 15000,
+      "label": "Wait for page to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1200,
+      "label": "Scroll to load content"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1200,
+      "label": "Scroll further"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const titleEl = document.querySelector('h1, [class*=\"hero\"] h1, [class*=\"heading\"]'); const descEl = document.querySelector('[class*=\"hero\"] p, [class*=\"subtitle\"], [class*=\"description\"]'); const templates = []; const templateEls = document.querySelectorAll('a[href*=\"/templates/\"], [class*=\"template\"] a, [class*=\"card\"] a'); for (let i = 0; i < Math.min(templateEls.length, 12); i++) { const el = templateEls[i]; const nameEl = el.querySelector('[class*=\"title\"], h3, h4, [aria-label]'); const imgEl = el.querySelector('img'); const proEl = el.querySelector('[class*=\"pro\"], [class*=\"premium\"]'); templates.push({ title: nameEl ? (nameEl.getAttribute('aria-label') || nameEl.textContent.trim()) : (el.getAttribute('aria-label') || ''), is_premium: !!proEl, image: imgEl ? imgEl.getAttribute('src') : '', url: el.href || '' }); } const featureEls = document.querySelectorAll('[class*=\"feature\"] h3, [class*=\"benefit\"] h3, [class*=\"feature-item\"]'); const features = []; featureEls.forEach(function(el) { const t = el.textContent.trim(); if (t && t.length < 100) features.push(t); }); const subcategoryEls = document.querySelectorAll('[class*=\"category\"] a, [class*=\"subcategory\"] a, nav a[href*=\"/templates/\"]'); const subcategories = []; subcategoryEls.forEach(function(el) { const t = el.textContent.trim(); if (t && t.length < 80 && !subcategories.includes(t)) subcategories.push(t); }); return { design_type: `{{design_type}}`, title: titleEl ? titleEl.textContent.trim() : '', description: descEl ? descEl.textContent.trim().substring(0, 500) : '', features: features.slice(0, 10), subcategories: subcategories.slice(0, 10), template_count: templates.length, templates: templates, url: window.location.href }",
+      "name": "design_data",
+      "label": "Extract design type details"
+    }
+  ]
+}

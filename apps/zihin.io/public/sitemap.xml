@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+
+  <url>
+    <loc>https://zihin.io/tr</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://zihin.io/tr" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://zihin.io/en" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://zihin.io/de" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://zihin.io/en" />
+    <priority>1</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://zihin.io/en</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://zihin.io/tr" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://zihin.io/en" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://zihin.io/de" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://zihin.io/en" />
+    <priority>1</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://zihin.io/de</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://zihin.io/tr" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://zihin.io/en" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://zihin.io/de" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://zihin.io/en" />
+    <priority>1</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://zihin.io/tr/agents</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://zihin.io/tr/agents" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://zihin.io/en/agents" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://zihin.io/de/agents" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://zihin.io/en/agents" />
+    <priority>0.8</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://zihin.io/en/agents</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://zihin.io/tr/agents" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://zihin.io/en/agents" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://zihin.io/de/agents" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://zihin.io/en/agents" />
+    <priority>0.8</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://zihin.io/de/agents</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://zihin.io/tr/agents" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://zihin.io/en/agents" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://zihin.io/de/agents" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://zihin.io/en/agents" />
+    <priority>0.8</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://zihin.io/tr/submit</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://zihin.io/tr/submit" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://zihin.io/en/submit" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://zihin.io/de/submit" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://zihin.io/en/submit" />
+    <priority>0.7</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://zihin.io/en/submit</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://zihin.io/tr/submit" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://zihin.io/en/submit" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://zihin.io/de/submit" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://zihin.io/en/submit" />
+    <priority>0.7</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://zihin.io/de/submit</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://zihin.io/tr/submit" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://zihin.io/en/submit" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://zihin.io/de/submit" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://zihin.io/en/submit" />
+    <priority>0.7</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+
+</urlset>

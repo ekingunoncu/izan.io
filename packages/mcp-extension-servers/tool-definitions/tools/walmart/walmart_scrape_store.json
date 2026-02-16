@@ -1,0 +1,48 @@
+{
+  "id": "walmart-scrape-store",
+  "name": "walmart_scrape_store",
+  "description": "Scrape Walmart store information for a given location. Returns nearby stores with address, phone, hours, services available, and distance.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "location",
+      "type": "string",
+      "description": "Location to find stores (e.g. 'Austin TX', '90210', 'Chicago IL')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://www.walmart.com/store/finder?location={{location}}",
+      "label": "Search for stores"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[class*='store-card'], [class*='store-list'], [data-testid='store-card']",
+      "timeout": 15000,
+      "label": "Wait for store results"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll to see more stores"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const stores = []; const storeEls = document.querySelectorAll('[data-testid=\"store-card\"], [class*=\"store-card\"], [class*=\"store-list\"] > div, [class*=\"store-item\"]'); for (let i = 0; i < Math.min(storeEls.length, 10); i++) { const el = storeEls[i]; const nameEl = el.querySelector('[class*=\"store-name\"], h2, h3, [class*=\"title\"]'); const addressEl = el.querySelector('[class*=\"address\"], address'); const phoneEl = el.querySelector('[class*=\"phone\"], a[href^=\"tel:\"]'); const hoursEl = el.querySelector('[class*=\"hours\"], [class*=\"open-until\"]'); const distEl = el.querySelector('[class*=\"distance\"]'); const typeEl = el.querySelector('[class*=\"store-type\"], [class*=\"badge\"]'); const services = []; const serviceEls = el.querySelectorAll('[class*=\"service\"] li, [class*=\"feature\"] li, [class*=\"amenity\"]'); serviceEls.forEach(function(s) { services.push(s.textContent.trim()); }); const linkEl = el.querySelector('a[href*=\"/store/\"]'); stores.push({ name: nameEl ? nameEl.textContent.trim() : '', address: addressEl ? addressEl.textContent.trim() : '', phone: phoneEl ? phoneEl.textContent.trim() : '', hours: hoursEl ? hoursEl.textContent.trim() : '', distance: distEl ? distEl.textContent.trim() : '', store_type: typeEl ? typeEl.textContent.trim() : '', services: services.slice(0, 10), url: linkEl ? linkEl.href : '' }); } return { location: '{{location}}', store_count: stores.length, stores: stores, url: window.location.href }",
+      "name": "store_data",
+      "label": "Extract store information"
+    }
+  ]
+}

@@ -1,0 +1,48 @@
+{
+  "id": "stackoverflow-scrape-user",
+  "name": "stackoverflow_scrape_user",
+  "description": "Scrape a Stack Overflow user profile. Returns display name, reputation, badges, about, location, top tags, and recent activity.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "user_id",
+      "type": "string",
+      "description": "Stack Overflow user ID (e.g. '22656', '1144035')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://stackoverflow.com/users/{{user_id}}",
+      "label": "Open user profile"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".profile-user--name, h1, [class*='user-card'], .s-page-title",
+      "timeout": 15000,
+      "label": "Wait for profile to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll to load content"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const nameEl = document.querySelector('.profile-user--name h1, h1, [class*=\"user-card\"] [class*=\"name\"]'); const reputationEl = document.querySelector('[title*=\"reputation\"], .reputation, [class*=\"reputation\"] span'); const aboutEl = document.querySelector('.profile-user--about, [class*=\"about-me\"], .js-about-me-content'); const locationEl = document.querySelector('[class*=\"location\"], .profile-user--location, [title=\"Location\"] + span'); const memberSinceEl = document.querySelector('[class*=\"member-since\"], [title*=\"Member\"]'); const avatarEl = document.querySelector('.profile-user--avatar img, .user-avatar img, .avatar img'); const goldEl = document.querySelector('.badge1 + .badgecount, [title*=\"gold\"] + span'); const silverEl = document.querySelector('.badge2 + .badgecount, [title*=\"silver\"] + span'); const bronzeEl = document.querySelector('.badge3 + .badgecount, [title*=\"bronze\"] + span'); const answersEl = document.querySelector('[href*=\"?tab=answers\"] .s-navigation--item-count, [class*=\"answers-count\"]'); const questionsEl = document.querySelector('[href*=\"?tab=questions\"] .s-navigation--item-count, [class*=\"questions-count\"]'); const tagEls = document.querySelectorAll('.s-tag, .post-tag, [class*=\"top-tags\"] a'); const topTags = []; tagEls.forEach(function(el, idx) { if (idx < 10) topTags.push(el.textContent.trim()); }); return { name: nameEl ? nameEl.textContent.trim() : '', reputation: reputationEl ? reputationEl.textContent.trim() : '', about: aboutEl ? aboutEl.textContent.trim().substring(0, 500) : '', location: locationEl ? locationEl.textContent.trim() : '', member_since: memberSinceEl ? memberSinceEl.textContent.trim() : '', avatar: avatarEl ? avatarEl.getAttribute('src') : '', badges: { gold: goldEl ? goldEl.textContent.trim() : '0', silver: silverEl ? silverEl.textContent.trim() : '0', bronze: bronzeEl ? bronzeEl.textContent.trim() : '0' }, answers: answersEl ? answersEl.textContent.trim() : '', questions: questionsEl ? questionsEl.textContent.trim() : '', top_tags: topTags, profile_url: window.location.href }",
+      "name": "user_data",
+      "label": "Extract user profile"
+    }
+  ]
+}

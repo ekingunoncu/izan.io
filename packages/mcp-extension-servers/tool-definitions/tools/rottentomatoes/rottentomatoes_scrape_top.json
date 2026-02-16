@@ -1,0 +1,58 @@
+{
+  "id": "rottentomatoes-scrape-top",
+  "name": "rottentomatoes_scrape_top",
+  "description": "Scrape top-rated or certified fresh movies from Rotten Tomatoes. Returns the best-rated movies currently listed with Tomatometer, audience score, and consensus.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "category",
+      "type": "string",
+      "description": "Category to browse (e.g. 'movies_at_home', 'movies_in_theaters', 'tv_series_browse'). Defaults to 'movies_at_home'.",
+      "required": false
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://www.rottentomatoes.com/browse/{{category}}?minTomato=70&maxTomato=100&sortBy=sort%3Atomatometer",
+      "label": "Open top-rated page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[data-qa='discovery-media-list-item'], [class*='media-list'], [class*='discovery'], [class*='tile']",
+      "timeout": 15000,
+      "label": "Wait for results to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1200,
+      "label": "Scroll to load more"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1200,
+      "label": "Scroll further"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const movies = []; const items = document.querySelectorAll('[data-qa=\"discovery-media-list-item\"], [class*=\"media-list\"] a, [class*=\"discovery\"] [class*=\"tile\"], [class*=\"flex-container\"] a[href*=\"/m/\"]'); for (let i = 0; i < Math.min(items.length, 20); i++) { const el = items[i]; const titleEl = el.querySelector('[data-qa=\"discovery-media-list-item-title\"], span[class*=\"title\"], [class*=\"p--small\"]'); const tomatometerEl = el.querySelector('rt-text[slot=\"criticsScore\"], [data-qa=\"tomatometer\"], [class*=\"tomatometer\"]'); const audienceEl = el.querySelector('rt-text[slot=\"audienceScore\"], [data-qa=\"audience-score\"]'); const imgEl = el.querySelector('rt-img img, img'); const linkEl = el.tagName === 'A' ? el : el.querySelector('a[href*=\"/m/\"], a[href*=\"/tv/\"]'); movies.push({ rank: i + 1, title: titleEl ? titleEl.textContent.trim() : '', tomatometer: tomatometerEl ? tomatometerEl.textContent.trim() : '', audience_score: audienceEl ? audienceEl.textContent.trim() : '', image: imgEl ? imgEl.getAttribute('src') : '', url: linkEl ? (linkEl.href.startsWith('http') ? linkEl.href : 'https://www.rottentomatoes.com' + linkEl.getAttribute('href')) : '' }); } return { category: `{{category}}` || 'movies_at_home', movie_count: movies.length, movies: movies, url: window.location.href }",
+      "name": "top_data",
+      "label": "Extract top-rated movies"
+    }
+  ]
+}

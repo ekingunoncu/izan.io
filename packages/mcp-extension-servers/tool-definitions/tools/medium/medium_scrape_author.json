@@ -1,0 +1,58 @@
+{
+  "id": "medium-scrape-author",
+  "name": "medium_scrape_author",
+  "description": "Scrape a Medium author profile page. Returns name, bio, follower count, following count, recent articles, and social links.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "username",
+      "type": "string",
+      "description": "Medium username (e.g. 'elonmusk', 'towards-data-science')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://medium.com/@{{username}}",
+      "label": "Open author profile"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "h1, h2, [class*='profile'], [class*='hero']",
+      "timeout": 15000,
+      "label": "Wait for profile page to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page fully render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll to load articles"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll further down"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const nameEl = document.querySelector('h1, h2[class*=\"name\"], [class*=\"profile\"] h1, [class*=\"hero\"] h1'); const bioEl = document.querySelector('[class*=\"bio\"], [class*=\"profile\"] p, [class*=\"about\"] p, [class*=\"description\"]'); const followersEl = document.querySelector('a[href*=\"followers\"] span, [class*=\"follower\"] span, [class*=\"followerCount\"]'); const followingEl = document.querySelector('a[href*=\"following\"] span, [class*=\"following\"] span'); const avatarEl = document.querySelector('img[class*=\"avatar\"], img[class*=\"profile\"], [class*=\"hero\"] img'); const articles = []; const articleEls = document.querySelectorAll('article, [data-testid=\"postPreview\"], div[class*=\"postArticle\"]'); for (let i = 0; i < Math.min(articleEls.length, 10); i++) { const el = articleEls[i]; const titleEl = el.querySelector('h2, h3, [class*=\"title\"]'); const clapsEl = el.querySelector('[class*=\"clap\"] span, button[data-testid=\"clap\"] span'); const dateEl = el.querySelector('time, span[class*=\"date\"]'); const readTimeEl = el.querySelector('[class*=\"readingTime\"], span[class*=\"read-time\"]'); const linkEl = el.querySelector('a[href*=\"/p/\"], a[data-testid=\"postPreview-title\"], h2 a, h3 a'); articles.push({ title: titleEl ? titleEl.textContent.trim() : '', claps: clapsEl ? clapsEl.textContent.trim() : '', date: dateEl ? (dateEl.getAttribute('datetime') || dateEl.textContent.trim()) : '', read_time: readTimeEl ? readTimeEl.textContent.trim() : '', url: linkEl ? linkEl.href : '' }); } return { name: nameEl ? nameEl.textContent.trim() : '{{username}}', bio: bioEl ? bioEl.textContent.trim().substring(0, 500) : '', followers: followersEl ? followersEl.textContent.trim() : '', following: followingEl ? followingEl.textContent.trim() : '', avatar: avatarEl ? avatarEl.getAttribute('src') : '', article_count: articles.length, articles: articles, profile_url: window.location.href }",
+      "name": "author_data",
+      "label": "Extract author profile"
+    }
+  ]
+}

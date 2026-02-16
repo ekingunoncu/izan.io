@@ -1,0 +1,39 @@
+{
+  "id": "calendar-list-events",
+  "name": "calendar_list_events",
+  "description": "List upcoming events from Google Calendar. Scrapes visible events from the current calendar view including event title, time, location, and color. Optionally specify how many days ahead to look.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "days",
+      "type": "string",
+      "description": "Number of days ahead to show events for (default '7' for week view)",
+      "required": false,
+      "default": "7"
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://calendar.google.com/calendar/r/week",
+      "label": "Open Google Calendar week view"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[data-eventid], [data-eventchip], .FAxxKc, [role='main']",
+      "timeout": 20000,
+      "label": "Wait for calendar grid to load"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Let calendar events fully render"
+    },
+    {
+      "action": "code",
+      "code": "const days = parseInt(`{{days}}`) || 7; const events = []; const eventElements = document.querySelectorAll('[data-eventid], [data-eventchip], .FAxxKc'); const seen = new Set(); eventElements.forEach(el => { const eventId = el.getAttribute('data-eventid') || el.getAttribute('data-eventchip') || ''; if (eventId && seen.has(eventId)) return; if (eventId) seen.add(eventId); const titleEl = el.querySelector('[data-eventchip] span, .FAxxKc, [aria-label]') || el; let title = ''; const ariaLabel = el.getAttribute('aria-label') || ''; if (ariaLabel) { title = ariaLabel; } else { title = (titleEl.textContent || '').trim(); } if (!title) return; const style = window.getComputedStyle(el); const bgColor = style.backgroundColor || ''; let time = ''; let location = ''; if (ariaLabel) { const timeMatch = ariaLabel.match(/(\\d{1,2}(?::\\d{2})?\\s*(?:AM|PM|am|pm)?(?:\\s*[-\u2013]\\s*\\d{1,2}(?::\\d{2})?\\s*(?:AM|PM|am|pm)?)?)/); if (timeMatch) time = timeMatch[1]; const locMatch = ariaLabel.match(/,\\s*([^,]+)\\s*$/); if (locMatch && !locMatch[1].match(/^\\d/)) location = locMatch[1].trim(); } const timeEl = el.querySelector('.gVNoLb, .EfQccc, [data-datekey]'); if (!time && timeEl) time = timeEl.textContent.trim(); events.push({ title: title.substring(0, 200), time: time, location: location, color: bgColor, event_id: eventId }); }); const now = new Date(); const cutoff = new Date(now.getTime() + days * 24 * 60 * 60 * 1000); return { days_requested: days, event_count: events.length, current_date: now.toISOString().split('T')[0], cutoff_date: cutoff.toISOString().split('T')[0], events: events.slice(0, 50) }",
+      "name": "events_result",
+      "label": "Scrape visible calendar events"
+    }
+  ]
+}

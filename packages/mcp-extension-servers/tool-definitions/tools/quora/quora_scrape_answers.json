@@ -1,0 +1,26 @@
+{
+  "id": "quora-scrape-answers",
+  "name": "quora_scrape_answers",
+  "description": "Scrape all answers from a Quora question page with full content. Returns detailed answers with author credentials, upvotes, and complete text.",
+  "version": "1.0.0",
+  "parameters": [
+    { "name": "question_url", "type": "string", "description": "Quora question URL", "required": true }
+  ],
+  "steps": [
+    { "action": "navigate", "url": "{{question_url}}", "label": "Open question" },
+    { "action": "waitForSelector", "selector": "[class*='Answer'], [class*='answer']", "timeout": 15000, "label": "Wait for answers" },
+    { "action": "wait", "ms": 2000 },
+    { "action": "scroll", "direction": "down", "amount": 2000, "label": "Scroll for answers" },
+    { "action": "wait", "ms": 2000 },
+    { "action": "scroll", "direction": "down", "amount": 2000, "label": "Scroll more" },
+    { "action": "wait", "ms": 2000 },
+    { "action": "scroll", "direction": "down", "amount": 2000, "label": "Scroll further" },
+    { "action": "wait", "ms": 1500 },
+    {
+      "action": "code",
+      "code": "const questionEl = document.querySelector('[class*=\"question_text\"], h1'); const answers = []; const answerEls = document.querySelectorAll('[class*=\"Answer\"], [class*=\"answer\"][class*=\"base\"]'); for (let i = 0; i < Math.min(answerEls.length, 15); i++) { const el = answerEls[i]; const authorEl = el.querySelector('[class*=\"user\"] a, [class*=\"author\"] a'); const credentialEl = el.querySelector('[class*=\"credential\"]'); const contentEl = el.querySelector('[class*=\"inline\"], [class*=\"answer-content\"]'); const upvotesEl = el.querySelector('[class*=\"upvote\"] [class*=\"count\"]'); const commentsEl = el.querySelector('[class*=\"comment\"] [class*=\"count\"]'); const sharesEl = el.querySelector('[class*=\"share\"] [class*=\"count\"]'); answers.push({ author: authorEl ? authorEl.textContent.trim() : '', credential: credentialEl ? credentialEl.textContent.trim() : '', content: contentEl ? contentEl.textContent.trim().substring(0, 2000) : '', upvotes: upvotesEl ? upvotesEl.textContent.trim() : '', comments: commentsEl ? commentsEl.textContent.trim() : '', shares: sharesEl ? sharesEl.textContent.trim() : '' }); } return { question: questionEl ? questionEl.textContent.trim() : '', answer_count: answers.length, answers: answers, url: window.location.href }",
+      "name": "answers_data",
+      "label": "Extract detailed answers"
+    }
+  ]
+}

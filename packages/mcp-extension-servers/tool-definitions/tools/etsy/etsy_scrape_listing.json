@@ -1,0 +1,58 @@
+{
+  "id": "etsy-scrape-listing",
+  "name": "etsy_scrape_listing",
+  "description": "Scrape full listing details from an Etsy product page. Returns title, price, rating, review count, description, images, shop name, shipping info, and item details.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "listing_url",
+      "type": "string",
+      "description": "Etsy listing URL (e.g. 'https://www.etsy.com/listing/1234567890/handmade-ring')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{listing_url}}",
+      "label": "Open listing page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[data-listing-page-title], h1, [class*='listing-page'] h1, [class*='ListingPage']",
+      "timeout": 15000,
+      "label": "Wait for listing page to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page fully render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 800,
+      "label": "Scroll to load additional content"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 800,
+      "label": "Scroll further down"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const titleEl = document.querySelector('h1, [data-listing-page-title], [class*=\"listing-page\"] h1'); const priceEl = document.querySelector('[data-buy-box-listing-price] p, [class*=\"price\"] [data-currency-value], .wt-text-title-03[data-buy-box-listing-price], p[class*=\"price\"]'); const ratingEl = document.querySelector('[class*=\"rating\"] input, [data-rating], [class*=\"stars\"] [class*=\"screen-reader\"]'); const reviewCountEl = document.querySelector('a[href*=\"reviews\"] span, [class*=\"review-count\"], [class*=\"reviews\"] span'); const descriptionEl = document.querySelector('[data-product-details-description-text-content], [class*=\"description\"] p, #wt-content-toggle-product-details-read-more p, [class*=\"listing-page-description\"]'); const shopNameEl = document.querySelector('[class*=\"shop-name\"] a, a[href*=\"/shop/\"][class*=\"wt-text-link\"], [data-shop-name]'); const shopLocationEl = document.querySelector('[class*=\"shop-location\"], [class*=\"shopLocation\"]'); const images = []; const imageEls = document.querySelectorAll('[data-listing-page-image-carousel] img, [class*=\"carousel\"] img, [class*=\"listing-page\"] img[src*=\"etsystatic\"]'); imageEls.forEach(function(img) { const src = img.getAttribute('src') || ''; if (src && src.includes('etsystatic') && !images.includes(src)) { images.push(src); } }); const shippingEl = document.querySelector('[class*=\"shipping\"] [class*=\"text-body\"], [data-estimated-delivery], [class*=\"delivery-info\"]'); const materialsEls = document.querySelectorAll('[class*=\"materials\"] li, [class*=\"attribute-list\"] li'); const materials = []; materialsEls.forEach(function(el) { const text = el.textContent.trim(); if (text) materials.push(text); }); const detailRows = document.querySelectorAll('[class*=\"product-details\"] tr, [class*=\"item-overview\"] tr, table[class*=\"details\"] tr'); const details = {}; detailRows.forEach(function(row) { const labelEl = row.querySelector('th, td:first-child'); const valueEl = row.querySelector('td:last-child, td:nth-child(2)'); if (labelEl && valueEl) { details[labelEl.textContent.trim()] = valueEl.textContent.trim(); } }); const favoritesEl = document.querySelector('[class*=\"favorite\"] span[class*=\"text\"], [data-favorite-count]'); const quantityEl = document.querySelector('[class*=\"quantity\"] select, [class*=\"inventory\"]'); const variationEls = document.querySelectorAll('[class*=\"variation\"] select option, [class*=\"variation-selector\"] option'); const variations = []; variationEls.forEach(function(el) { const text = el.textContent.trim(); if (text && text !== 'Select an option') variations.push(text); }); return { title: titleEl ? titleEl.textContent.trim() : '', price: priceEl ? priceEl.textContent.trim() : '', rating: ratingEl ? (ratingEl.getAttribute('value') || ratingEl.textContent.trim()) : '', review_count: reviewCountEl ? reviewCountEl.textContent.trim() : '', description: descriptionEl ? descriptionEl.textContent.trim().substring(0, 1500) : '', shop_name: shopNameEl ? shopNameEl.textContent.trim() : '', shop_location: shopLocationEl ? shopLocationEl.textContent.trim() : '', shipping: shippingEl ? shippingEl.textContent.trim() : '', materials: materials.slice(0, 10), details: details, variations: variations.slice(0, 20), favorites: favoritesEl ? favoritesEl.textContent.trim() : '', images: images.slice(0, 8), url: window.location.href }",
+      "name": "listing_data",
+      "label": "Extract listing details"
+    }
+  ]
+}

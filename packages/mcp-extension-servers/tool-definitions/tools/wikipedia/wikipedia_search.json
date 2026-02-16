@@ -1,0 +1,48 @@
+{
+  "id": "wikipedia-search",
+  "name": "wikipedia_search",
+  "description": "Search for articles on Wikipedia. Returns up to 15 results with title, snippet, URL, and word count.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "query",
+      "type": "string",
+      "description": "Search query (e.g. 'artificial intelligence', 'quantum computing', 'history of Rome')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://en.wikipedia.org/w/index.php?search={{query}}&title=Special:Search&ns0=1",
+      "label": "Search Wikipedia"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".mw-search-results li, .searchresults, .mw-search-result",
+      "timeout": 15000,
+      "label": "Wait for search results"
+    },
+    {
+      "action": "wait",
+      "ms": 1500,
+      "label": "Let results render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 800,
+      "label": "Scroll to load more results"
+    },
+    {
+      "action": "wait",
+      "ms": 1000
+    },
+    {
+      "action": "code",
+      "code": "const results = []; const items = document.querySelectorAll('.mw-search-result, .mw-search-results li'); for (let i = 0; i < Math.min(items.length, 15); i++) { const el = items[i]; const titleEl = el.querySelector('.mw-search-result-heading a, a'); const snippetEl = el.querySelector('.searchresult, .mw-search-result-data + div, .searchresult'); const dataEl = el.querySelector('.mw-search-result-data'); results.push({ title: titleEl ? titleEl.textContent.trim() : '', url: titleEl ? titleEl.href : '', snippet: snippetEl ? snippetEl.textContent.trim().substring(0, 300) : '', metadata: dataEl ? dataEl.textContent.trim() : '' }); } const totalEl = document.querySelector('.results-info, .mw-search-createlink'); return { query: `{{query}}`, result_count: results.length, total_info: totalEl ? totalEl.textContent.trim() : '', results: results }",
+      "name": "search_results",
+      "label": "Extract search results"
+    }
+  ]
+}

@@ -1,0 +1,60 @@
+{
+  "id": "gmail-bulk-archive",
+  "name": "gmail_bulk_archive",
+  "description": "Archive multiple emails in Gmail in parallel using concurrent browser tabs. Each email is found by subject, selected, and archived independently. Pass all email subjects as a single comma-separated string. Use this instead of calling gmail_archive multiple times - it is faster and more efficient. You must be logged in to Gmail.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "subjects",
+      "type": "string",
+      "description": "Comma-separated subject lines (or partial subjects) of the emails to archive",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{subjects}}`.split(',').map(s => ({ subject: s.trim(), url: 'https://mail.google.com/mail/u/0/#search/subject:' + encodeURIComponent(s.trim()) }))",
+      "name": "items",
+      "label": "Build email subject list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 2,
+      "maxItems": 10,
+      "waitUntil": "load",
+      "label": "Archive each email in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": "tr.zA, .yO, [data-message-id]",
+          "timeout": 15000,
+          "label": "Wait for search results to load"
+        },
+        {
+          "action": "wait",
+          "ms": 2000
+        },
+        {
+          "action": "code",
+          "code": "const rows = document.querySelectorAll('tr.zA'); const subject = `{{@item.subject}}`; if (rows.length === 0) return { status: 'not_found', subject: subject }; const target = subject.toLowerCase(); let bestMatch = rows[0]; for (const row of rows) { const subjectEl = row.querySelector('.bog span, .y6 span'); if (subjectEl && subjectEl.textContent.trim().toLowerCase().includes(target)) { bestMatch = row; break; } } const checkbox = bestMatch.querySelector('.oZ-jc [role=\"checkbox\"], .xY .oZ-jc'); if (checkbox) { checkbox.click(); } else { const checkArea = bestMatch.querySelector('.oZ-jc'); if (checkArea) checkArea.click(); } return { selected: true, subject: subject }",
+          "name": "select_email",
+          "label": "Select matching email"
+        },
+        {
+          "action": "wait",
+          "ms": 1000
+        },
+        {
+          "action": "code",
+          "code": "const archiveBtn = document.querySelector('[aria-label=\"Archive\"]') || document.querySelector('.ar9') || document.querySelector('[act=\"7\"]'); if (archiveBtn) { archiveBtn.click(); return { status: 'archived', subject: `{{@item.subject}}` }; } else { return { status: 'archive_button_not_found', subject: `{{@item.subject}}` }; }",
+          "name": "archive_result",
+          "label": "Click archive button"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,68 @@
+{
+  "id": "walmart-scrape-reviews",
+  "name": "walmart_scrape_reviews",
+  "description": "Scrape customer reviews from a Walmart product page. Returns reviews with author, rating, title, content, date, and verified purchase status.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "product_url",
+      "type": "string",
+      "description": "Walmart product URL (e.g. 'https://www.walmart.com/ip/Product-Name/123456789')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{product_url}}",
+      "label": "Open product page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "h1, [data-testid='product-title']",
+      "timeout": 15000,
+      "label": "Wait for page to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 3000,
+      "label": "Scroll to reviews section"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 2000,
+      "label": "Scroll through reviews"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 2000,
+      "label": "Scroll further"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const reviews = []; const reviewEls = document.querySelectorAll('[data-testid=\"review-card\"], [class*=\"review-card\"], [class*=\"customer-review\"], [itemprop=\"review\"]'); for (let i = 0; i < Math.min(reviewEls.length, 20); i++) { const el = reviewEls[i]; const authorEl = el.querySelector('[class*=\"author\"], [itemprop=\"author\"], [class*=\"reviewer\"]'); const ratingEl = el.querySelector('[class*=\"rating\"] [class*=\"stars\"], [itemprop=\"ratingValue\"]'); const titleEl = el.querySelector('[class*=\"review-title\"], h3, h4'); const contentEl = el.querySelector('[class*=\"review-text\"], [itemprop=\"reviewBody\"], [class*=\"review-body\"]'); const dateEl = el.querySelector('[class*=\"date\"], time, [itemprop=\"datePublished\"]'); const verifiedEl = el.querySelector('[class*=\"verified\"], [class*=\"badge\"]'); reviews.push({ author: authorEl ? authorEl.textContent.trim() : 'Anonymous', rating: ratingEl ? ratingEl.textContent.trim() : '', title: titleEl ? titleEl.textContent.trim() : '', content: contentEl ? contentEl.textContent.trim().substring(0, 800) : '', date: dateEl ? dateEl.textContent.trim() : '', verified_purchase: !!verifiedEl }); } const overallRatingEl = document.querySelector('[itemprop=\"ratingValue\"], [data-testid=\"reviews-stars\"]'); const totalReviewsEl = document.querySelector('[itemprop=\"reviewCount\"], [data-testid=\"reviews-count\"]'); return { overall_rating: overallRatingEl ? overallRatingEl.textContent.trim() : '', total_reviews: totalReviewsEl ? totalReviewsEl.textContent.trim() : '', scraped_count: reviews.length, reviews: reviews, url: window.location.href }",
+      "name": "reviews_data",
+      "label": "Extract reviews"
+    }
+  ]
+}

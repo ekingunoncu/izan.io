@@ -1,0 +1,38 @@
+{
+  "id": "pinterest-search",
+  "name": "pinterest_search",
+  "description": "Search Pinterest pins by query. Navigates to Pinterest search and scrapes pin results including image URLs, titles, descriptions, and links.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "query",
+      "type": "string",
+      "description": "Search query (e.g. 'home decor ideas', 'wedding dresses', 'healthy recipes')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://www.pinterest.com/search/pins/?q={{query}}",
+      "label": "Search Pinterest for pins"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[data-test-id='pin'], [data-test-id='pinWrapper'], div[data-grid-item]",
+      "timeout": 15000,
+      "label": "Wait for pin results to load"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Let results fully render"
+    },
+    {
+      "action": "code",
+      "code": "const results = []; const pins = document.querySelectorAll('[data-test-id=\"pin\"], [data-test-id=\"pinWrapper\"], div[data-grid-item]'); for (let i = 0; i < Math.min(pins.length, 20); i++) { const pin = pins[i]; const imgEl = pin.querySelector('img'); const linkEl = pin.querySelector('a[href*=\"/pin/\"]'); const titleEl = pin.querySelector('[data-test-id=\"pinTitle\"], [title]') || imgEl; const descEl = pin.querySelector('[data-test-id=\"truncated-description\"], [data-test-id=\"pin-description\"]'); results.push({ title: titleEl ? (titleEl.getAttribute('title') || titleEl.getAttribute('alt') || titleEl.textContent || '').trim().slice(0, 200) : '', image_url: imgEl ? (imgEl.getAttribute('src') || '') : '', pin_url: linkEl ? 'https://www.pinterest.com' + linkEl.getAttribute('href') : '', description: descEl ? descEl.textContent.trim().slice(0, 300) : '' }); } return { query: '{{query}}', result_count: results.length, results: results }",
+      "name": "search_results",
+      "label": "Extract pin search results"
+    }
+  ]
+}

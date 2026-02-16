@@ -1,0 +1,58 @@
+{
+  "id": "facebook-search",
+  "name": "facebook_search",
+  "description": "Search Facebook for posts, people, and pages. Returns up to 15 results with name, snippet, type, and URL.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "query",
+      "type": "string",
+      "description": "Search query (e.g. 'artificial intelligence', 'local restaurants')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://www.facebook.com/search/top/?q={{query}}",
+      "label": "Search Facebook"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[role='feed'], [role='main'], .x1yztbdb",
+      "timeout": 15000,
+      "label": "Wait for search results"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Let results render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll to load more results"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll further down"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const results = []; const feedItems = document.querySelectorAll('[role=\"feed\"] > div, [role=\"main\"] [data-ad-preview], [role=\"article\"]'); for (let i = 0; i < Math.min(feedItems.length, 15); i++) { const el = feedItems[i]; const linkEls = el.querySelectorAll('a[href]'); let profileLink = ''; let profileName = ''; let snippet = ''; let resultType = 'post'; for (const link of linkEls) { const href = link.getAttribute('href') || ''; if (href.includes('facebook.com/') && !href.includes('/search/') && !href.includes('#') && !href.includes('policies') && !href.includes('help.')) { if (!profileLink) { profileLink = href; profileName = link.textContent.trim(); } if (href.includes('/posts/') || href.includes('/photos/') || href.includes('/videos/')) { resultType = 'post'; } else if (href.includes('/groups/')) { resultType = 'group'; } else if (href.includes('/events/')) { resultType = 'event'; } else if (!href.includes('/posts/')) { resultType = 'page_or_profile'; } break; } } const textEls = el.querySelectorAll('div[dir=\"auto\"], span[dir=\"auto\"]'); for (const t of textEls) { const text = t.textContent.trim(); if (text.length > 20 && text.length < 1000) { snippet = text.substring(0, 300); break; } } if (profileName || snippet) { results.push({ name: profileName || '', snippet: snippet, type: resultType, url: profileLink }); } } return { query: `{{query}}`, result_count: results.length, results: results }",
+      "name": "search_results",
+      "label": "Extract search results"
+    }
+  ]
+}

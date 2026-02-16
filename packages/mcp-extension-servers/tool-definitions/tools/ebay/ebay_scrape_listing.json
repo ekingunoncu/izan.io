@@ -1,0 +1,48 @@
+{
+  "id": "ebay-scrape-listing",
+  "name": "ebay_scrape_listing",
+  "description": "Scrape full listing details from an eBay product page. Returns title, price, bids, condition, seller info, item specifics, description, shipping, and images.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "listing_url",
+      "type": "string",
+      "description": "eBay listing URL (e.g. 'https://www.ebay.com/itm/123456789')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{listing_url}}",
+      "label": "Open listing page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".x-item-title__mainTitle, h1.it-ttl, h1[class*='title'], .vim.x-item-title",
+      "timeout": 15000,
+      "label": "Wait for listing page to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page fully render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 800,
+      "label": "Scroll to load additional content"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const titleEl = document.querySelector('.x-item-title__mainTitle span, h1.it-ttl, h1[class*=\"title\"] span, .vim.x-item-title span'); const priceEl = document.querySelector('.x-price-primary span, .x-bin-price__content span, #prcIsum, .notranslate, [itemprop=\"price\"]'); const conditionEl = document.querySelector('.x-item-condition-text span, .d-item-condition-text span, #vi-itm-cond, .ux-icon-text--SECONDARY span'); const bidsEl = document.querySelector('.x-bid-count a, #vi-VR-bid-lnk, a[class*=\"bid-count\"]'); const timeLeftEl = document.querySelector('.x-timer__date-time, .vi-tm-left, .ux-timer__text, [data-testid=\"ux-timer\"]'); const watchersEl = document.querySelector('.x-watch-count, .vi-notify-new-cnt, [class*=\"watch-count\"]'); const sellerNameEl = document.querySelector('.x-sellercard-atf__info__about-seller a, .x-sellercard-atf a span, a.seller-persona, [data-testid=\"x-sellercard-atf__info__about-seller\"] a'); const sellerRatingEl = document.querySelector('.x-sellercard-atf__info__about-seller .SECONDARY, .x-sellercard-atf__data-item span, [class*=\"seller-feedback\"]'); const sellerFeedbackEl = document.querySelector('.x-sellercard-atf__info__about-seller .SECONDARY span, .x-sellercard-atf__data-item--feedback span'); const shippingEl = document.querySelector('.ux-labels-values--shipping .ux-textspans, .x-shipping-cost span, #fshippingCost span, [data-testid=\"ux-labels-values--shipping\"] span'); const returnsEl = document.querySelector('.ux-labels-values--returns .ux-textspans, [data-testid=\"ux-labels-values--returns\"] span, #vi-ret-accrd-txt'); const locationEl = document.querySelector('.ux-labels-values--itemLocation .ux-textspans, [data-testid=\"ux-labels-values--itemLocation\"] span, .vi-itm-stLoc'); const specifics = []; const specRows = document.querySelectorAll('.ux-layout-section-evo__row, .itemAttr tr, [class*=\"item-specifics\"] .ux-labels-values__labels-content'); specRows.forEach(function(row) { const labelEl = row.querySelector('.ux-labels-values__labels span, td.attrLabels span, .ux-textspans--BOLD'); const valueEl = row.querySelector('.ux-labels-values__values span, td.attrValuesTextCtn span, .ux-labels-values__values .ux-textspans'); if (labelEl && valueEl) { specifics.push({ label: labelEl.textContent.trim(), value: valueEl.textContent.trim() }); } }); const images = []; const imageEls = document.querySelectorAll('#vi_main_img_fs img, .ux-image-carousel-item img, img[src*=\"i.ebayimg.com\"], .x-photos__hero-image img'); imageEls.forEach(function(img) { const src = img.getAttribute('src') || ''; if (src && src.includes('ebayimg.com') && !src.includes('s-l64') && !src.includes('s-l96')) { images.push(src.replace(/s-l[0-9]+/, 's-l800')); } }); const listPriceEl = document.querySelector('.x-price-approx__price--original span, .x-additional-info__textual-display--original span, .vi-originalPrice'); const quantitySoldEl = document.querySelector('.x-quantity__availability .d-quantity__availability span:nth-child(2), .vi-qtyS-hot-red, [class*=\"quantity-sold\"]'); const quantityAvailEl = document.querySelector('.x-quantity__availability span, .qtyTxt span, [class*=\"quantity-available\"]'); return { title: titleEl ? titleEl.textContent.trim() : '', price: priceEl ? priceEl.textContent.trim() : '', list_price: listPriceEl ? listPriceEl.textContent.trim() : '', condition: conditionEl ? conditionEl.textContent.trim() : '', bids: bidsEl ? bidsEl.textContent.trim() : '', time_left: timeLeftEl ? timeLeftEl.textContent.trim() : '', watchers: watchersEl ? watchersEl.textContent.trim() : '', quantity_sold: quantitySoldEl ? quantitySoldEl.textContent.trim() : '', quantity_available: quantityAvailEl ? quantityAvailEl.textContent.trim() : '', seller: { name: sellerNameEl ? sellerNameEl.textContent.trim() : '', rating: sellerRatingEl ? sellerRatingEl.textContent.trim() : '', feedback: sellerFeedbackEl ? sellerFeedbackEl.textContent.trim() : '' }, shipping: shippingEl ? shippingEl.textContent.trim() : '', returns: returnsEl ? returnsEl.textContent.trim() : '', location: locationEl ? locationEl.textContent.trim() : '', item_specifics: specifics.slice(0, 20), images: [...new Set(images)].slice(0, 8), url: window.location.href }",
+      "name": "listing_data",
+      "label": "Extract listing details"
+    }
+  ]
+}

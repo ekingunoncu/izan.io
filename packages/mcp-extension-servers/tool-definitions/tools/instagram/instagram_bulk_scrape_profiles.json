@@ -1,0 +1,50 @@
+{
+  "id": "instagram-bulk-scrape-profiles",
+  "name": "instagram_bulk_scrape_profiles",
+  "description": "Scrape multiple Instagram user profiles in parallel using concurrent browser tabs. Pass all usernames as a single comma-separated string. Returns profile data for each user including username, full name, bio, post count, followers, following, and profile picture. You must be logged in to Instagram.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "usernames",
+      "type": "string",
+      "description": "Comma-separated Instagram usernames to scrape (e.g. 'nasa,natgeo,spacex')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{usernames}}`.split(',').map(u => ({ username: u.trim(), url: 'https://www.instagram.com/' + u.trim() + '/' }))",
+      "name": "items",
+      "label": "Build username list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 2,
+      "maxItems": 10,
+      "waitUntil": "load",
+      "label": "Scrape each profile in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": "header section, main[role='main'] header, [class*='ProfileHeader']",
+          "timeout": 15000,
+          "label": "Wait for profile page to load"
+        },
+        {
+          "action": "wait",
+          "ms": 2500
+        },
+        {
+          "action": "code",
+          "code": "const currentUsername = `{{@item.username}}`; const header = document.querySelector('header section') || document.querySelector('main header'); const displayName = document.querySelector('header h2, header h1, header span[class*=\"username\"]')?.textContent?.trim() || currentUsername; const bioContainer = document.querySelector('header section'); let fullName = ''; let bio = ''; const spans = bioContainer ? bioContainer.querySelectorAll('span[dir=\"auto\"]') : []; const textParts = []; for (const span of spans) { const text = span.textContent.trim(); if (text && text !== displayName && !textParts.includes(text)) textParts.push(text); } if (textParts.length >= 1) fullName = textParts[0]; if (textParts.length >= 2) bio = textParts[1]; const statElements = document.querySelectorAll('header section ul li, header section > ul > li'); let posts = ''; let followers = ''; let following = ''; if (statElements.length >= 3) { posts = statElements[0]?.querySelector('span span, span[class*=\"count\"]')?.textContent?.trim() || statElements[0]?.textContent?.trim() || ''; followers = statElements[1]?.querySelector('span span, span[class*=\"count\"], a span')?.textContent?.trim() || statElements[1]?.textContent?.trim() || ''; following = statElements[2]?.querySelector('span span, span[class*=\"count\"], a span')?.textContent?.trim() || statElements[2]?.textContent?.trim() || ''; } const profilePicEl = document.querySelector('header img[alt*=\"profile\"], header img[draggable=\"false\"], header canvas + img, header span[role=\"link\"] img'); const profilePic = profilePicEl ? profilePicEl.src : ''; const recentPosts = []; const postLinks = document.querySelectorAll('article a[href*=\"/p/\"], main a[href*=\"/p/\"]'); for (let i = 0; i < Math.min(postLinks.length, 6); i++) { const link = postLinks[i]; const img = link.querySelector('img'); recentPosts.push({ url: 'https://www.instagram.com' + link.getAttribute('href'), thumbnail: img ? img.src : '', alt: img ? (img.alt || '') : '' }); } return { username: currentUsername, display_name: displayName, full_name: fullName, bio: bio, posts_count: posts, followers: followers, following: following, profile_pic: profilePic, recent_posts: recentPosts, profile_url: window.location.href }",
+          "name": "profile_data",
+          "label": "Extract profile data"
+        }
+      ]
+    }
+  ]
+}

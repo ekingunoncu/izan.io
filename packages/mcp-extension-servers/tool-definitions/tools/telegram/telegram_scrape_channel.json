@@ -1,0 +1,76 @@
+{
+  "id": "telegram-scrape-channel",
+  "name": "telegram_scrape_channel",
+  "description": "Scrape channel info and recent messages from a Telegram channel. Returns channel name, subscriber count, description, and the last 20 messages.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "channel_name",
+      "type": "string",
+      "description": "Name of the Telegram channel to scrape",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://web.telegram.org/k/",
+      "label": "Open Telegram Web"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".input-search input, .chatlist-chat, .chat-list",
+      "timeout": 15000,
+      "label": "Wait for Telegram to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let app fully initialize"
+    },
+    {
+      "action": "code",
+      "code": "const searchInput = document.querySelector('.input-search input') || document.querySelector('input[type=\"text\"]'); if (searchInput) { searchInput.focus(); searchInput.click(); await new Promise(r => setTimeout(r, 300)); searchInput.value = ''; searchInput.dispatchEvent(new Event('input', { bubbles: true })); document.execCommand('insertText', false, `{{channel_name}}`); searchInput.dispatchEvent(new Event('input', { bubbles: true })); } return { searched: true }",
+      "name": "search_channel",
+      "label": "Search for the channel"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Wait for search results"
+    },
+    {
+      "action": "code",
+      "code": "const chatItems = document.querySelectorAll('.chatlist-chat, .chat-list .ListItem, .search-group .chatlist-chat'); let clicked = false; for (const item of chatItems) { const nameEl = item.querySelector('.peer-title, .user-title, .dialog-title'); if (nameEl && nameEl.textContent.trim().toLowerCase().includes(`{{channel_name}}`.toLowerCase())) { item.click(); clicked = true; break; } } if (!clicked && chatItems.length > 0) { chatItems[0].click(); clicked = true; } return { clicked: clicked }",
+      "name": "click_channel",
+      "label": "Click on the matching channel"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Wait for channel to load"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".bubble, .message, .chat-info",
+      "timeout": 10000,
+      "label": "Wait for channel content"
+    },
+    {
+      "action": "code",
+      "code": "const infoBtn = document.querySelector('.chat-info, .btn-icon.sidebar-header-btn, .chat-utils .btn-icon[class*=\"info\"]'); if (infoBtn) infoBtn.click(); await new Promise(r => setTimeout(r, 1500)); const info = {}; const titleEl = document.querySelector('.chat-info .peer-title, .profile-content .peer-title, .top .peer-title'); info.name = titleEl ? titleEl.textContent.trim() : `{{channel_name}}`; const subtitleEl = document.querySelector('.chat-info .info, .profile-content .subtitle, .chat-info-subtitle, .profile-subtitle'); info.subscribers = subtitleEl ? subtitleEl.textContent.trim() : ''; const descEl = document.querySelector('.profile-content .bio, .profile-row .row-title, .section-content .bio'); info.description = descEl ? descEl.textContent.trim() : ''; const closeBtn = document.querySelector('.sidebar-close-button, .btn-icon.sidebar-close'); if (closeBtn) closeBtn.click(); return info",
+      "name": "channel_info",
+      "label": "Extract channel info"
+    },
+    {
+      "action": "wait",
+      "ms": 1000
+    },
+    {
+      "action": "code",
+      "code": "const messages = []; const bubbles = document.querySelectorAll('.bubble:not(.is-date), .message'); const startIdx = Math.max(0, bubbles.length - 20); for (let i = startIdx; i < bubbles.length; i++) { const el = bubbles[i]; const authorEl = el.querySelector('.peer-title, .name, .bubble-name .peer-title'); const contentEl = el.querySelector('.text-content, .message-content, .message'); const timeEl = el.querySelector('.time, time, .bubble-content .time'); const viewsEl = el.querySelector('.post-views, .message-views'); const content = contentEl ? contentEl.textContent.trim() : ''; if (!content) continue; messages.push({ author: authorEl ? authorEl.textContent.trim() : '', content: content, timestamp: timeEl ? timeEl.textContent.trim() : '', views: viewsEl ? viewsEl.textContent.trim() : '' }); } return { message_count: messages.length, messages: messages }",
+      "name": "channel_messages",
+      "label": "Extract channel messages"
+    }
+  ]
+}

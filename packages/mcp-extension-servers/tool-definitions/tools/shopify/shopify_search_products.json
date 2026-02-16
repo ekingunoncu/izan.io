@@ -1,0 +1,58 @@
+{
+  "id": "shopify-search-products",
+  "name": "shopify_search_products",
+  "description": "Search for products in a Shopify store by navigating to the store's search page with a query. Returns matching products with titles, prices, and links.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "store_url",
+      "type": "string",
+      "description": "Shopify store base URL (e.g. 'https://example.myshopify.com')",
+      "required": true
+    },
+    {
+      "name": "query",
+      "type": "string",
+      "description": "Search query (e.g. 'blue t-shirt')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{store_url}}/search",
+      "urlParams": {
+        "q": "{{query}}",
+        "type": "product"
+      },
+      "label": "Search store for products"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "body",
+      "timeout": 15000,
+      "label": "Wait for search results to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Let search results render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll to load more results"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const results = []; const productCards = document.querySelectorAll('.product-card, .grid__item .card, .product-item, [class*=\"ProductCard\"], [class*=\"product-card\"], .search-result, .predictive-search__result-group .predictive-search__item'); for (let i = 0; i < Math.min(productCards.length, 15); i++) { const card = productCards[i]; const nameEl = card.querySelector('a h3, a h2, .card__heading a, .product-card__title, .product-item__title, h3 a, h2 a, .card__text a, .predictive-search__item-heading'); const priceEl = card.querySelector('.price-item, .product-card__price, .product-item__price, .price .money, [class*=\"price\"] span'); const imgEl = card.querySelector('img'); const linkEl = card.querySelector('a[href*=\"/products/\"]'); const compareEl = card.querySelector('.price-item--sale, s .money, .price--compare'); results.push({ name: nameEl ? nameEl.textContent.trim() : '', price: priceEl ? priceEl.textContent.trim() : '', compare_at_price: compareEl ? compareEl.textContent.trim() : '', image: imgEl ? (imgEl.src || imgEl.dataset.src || '') : '', url: linkEl ? linkEl.href : '' }); } if (results.length === 0) { const links = document.querySelectorAll('a[href*=\"/products/\"]'); const seen = new Set(); links.forEach(function(a) { const href = a.href; if (seen.has(href)) return; seen.add(href); const text = a.textContent.trim(); if (text && text.length > 2 && text.length < 200) { results.push({ name: text, price: '', compare_at_price: '', image: '', url: href }); } }); } return { query: '{{query}}', result_count: results.length, results: results.slice(0, 15), url: window.location.href }",
+      "name": "search_results",
+      "label": "Extract search results"
+    }
+  ]
+}

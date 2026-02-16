@@ -1,0 +1,93 @@
+{
+  "id": "gmail-label",
+  "name": "gmail_label",
+  "description": "Apply a label to an email in Gmail. Searches for the email by subject, selects it, opens the label menu, types the label name, and applies it. You must be logged in to Gmail.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "subject",
+      "type": "string",
+      "description": "Subject line (or partial subject) of the email to label",
+      "required": true
+    },
+    {
+      "name": "label",
+      "type": "string",
+      "description": "Label name to apply to the email",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://mail.google.com/mail/u/0/#inbox",
+      "label": "Open Gmail"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "input[aria-label='Search mail']",
+      "timeout": 15000,
+      "label": "Wait for Gmail to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let Gmail fully initialize"
+    },
+    {
+      "action": "code",
+      "code": "const searchInput = document.querySelector('input[aria-label=\"Search mail\"]'); if (searchInput) { searchInput.focus(); searchInput.click(); await new Promise(r => setTimeout(r, 300)); searchInput.value = ''; searchInput.dispatchEvent(new Event('input', { bubbles: true })); document.execCommand('insertText', false, `subject:{{subject}}`); await new Promise(r => setTimeout(r, 300)); searchInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true })); } return { searched: true }",
+      "name": "search_email",
+      "label": "Search for the email by subject"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Wait for search results"
+    },
+    {
+      "action": "code",
+      "code": "const rows = document.querySelectorAll('tr.zA'); if (rows.length === 0) return { error: 'No emails found matching the subject' }; const target = `{{subject}}`.toLowerCase(); let bestMatch = rows[0]; for (const row of rows) { const subjectEl = row.querySelector('.bog span, .y6 span'); if (subjectEl && subjectEl.textContent.trim().toLowerCase().includes(target)) { bestMatch = row; break; } } const checkbox = bestMatch.querySelector('.oZ-jc [role=\"checkbox\"], .xY .oZ-jc'); if (checkbox) { checkbox.click(); } else { const checkArea = bestMatch.querySelector('.oZ-jc'); if (checkArea) checkArea.click(); } return { selected: true }",
+      "name": "select_email",
+      "label": "Select the matching email checkbox"
+    },
+    {
+      "action": "wait",
+      "ms": 1000,
+      "label": "Wait for selection to register"
+    },
+    {
+      "action": "code",
+      "code": "const labelBtn = document.querySelector('[aria-label=\"Labels\"]') || document.querySelector('.ar9 + .ar9 + .ar9') || document.querySelector('[act=\"28\"]'); if (labelBtn) { labelBtn.click(); } else { throw new Error('Labels button not found'); } return { label_menu_opened: true }",
+      "name": "open_label_menu",
+      "label": "Click labels button"
+    },
+    {
+      "action": "wait",
+      "ms": 1500,
+      "label": "Wait for label menu to open"
+    },
+    {
+      "action": "code",
+      "code": "const labelSearch = document.querySelector('.aX3 input, .J-M-JJ input, input[type=\"text\"][aria-label*=\"label\" i]') || document.querySelector('.J-M .J-M-JJ input'); if (labelSearch) { labelSearch.focus(); await new Promise(r => setTimeout(r, 300)); document.execCommand('insertText', false, `{{label}}`); labelSearch.dispatchEvent(new Event('input', { bubbles: true })); await new Promise(r => setTimeout(r, 1000)); } return { label_typed: true }",
+      "name": "type_label",
+      "label": "Type label name in search"
+    },
+    {
+      "action": "wait",
+      "ms": 1000,
+      "label": "Wait for label to appear"
+    },
+    {
+      "action": "code",
+      "code": "const labelItems = document.querySelectorAll('.J-N, .J-Kh, [role=\"menuitemcheckbox\"]'); const target = `{{label}}`.toLowerCase(); let found = false; for (const item of labelItems) { const text = item.textContent.trim().toLowerCase(); if (text.includes(target)) { item.click(); found = true; break; } } if (!found && labelItems.length > 0) { labelItems[0].click(); found = true; } await new Promise(r => setTimeout(r, 500)); const applyBtn = document.querySelector('.J-at1-auR, .J-at1-auR .J-at1-atl') || document.querySelector('button[name=\"ok\"]'); if (applyBtn) { applyBtn.click(); } return { success: found, message: found ? 'Label applied' : 'Label not found', label: `{{label}}`, subject: `{{subject}}` }",
+      "name": "result",
+      "label": "Select label and apply"
+    },
+    {
+      "action": "wait",
+      "ms": 1500,
+      "label": "Wait for label to be applied"
+    }
+  ]
+}

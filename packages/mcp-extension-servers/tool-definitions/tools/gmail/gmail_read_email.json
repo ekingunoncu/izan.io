@@ -1,0 +1,66 @@
+{
+  "id": "gmail-read-email",
+  "name": "gmail_read_email",
+  "description": "Read a specific email in Gmail by searching for it by subject. Opens Gmail, searches for the email, clicks on it, and scrapes the full content including from, to, subject, date, and body text. You must be logged in to Gmail.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "subject",
+      "type": "string",
+      "description": "Subject line (or partial subject) of the email to find and read",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://mail.google.com/mail/u/0/#inbox",
+      "label": "Open Gmail"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "input[aria-label='Search mail']",
+      "timeout": 15000,
+      "label": "Wait for Gmail to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let Gmail fully initialize"
+    },
+    {
+      "action": "code",
+      "code": "const searchInput = document.querySelector('input[aria-label=\"Search mail\"]'); if (searchInput) { searchInput.focus(); searchInput.click(); await new Promise(r => setTimeout(r, 300)); searchInput.value = ''; searchInput.dispatchEvent(new Event('input', { bubbles: true })); document.execCommand('insertText', false, `subject:{{subject}}`); await new Promise(r => setTimeout(r, 300)); searchInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true })); } return { searched: true }",
+      "name": "search_email",
+      "label": "Search for the email by subject"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Wait for search results"
+    },
+    {
+      "action": "code",
+      "code": "const rows = document.querySelectorAll('tr.zA'); if (rows.length === 0) return { error: 'No emails found matching the subject' }; const target = `{{subject}}`.toLowerCase(); let bestMatch = rows[0]; for (const row of rows) { const subjectEl = row.querySelector('.bog span, .y6 span'); if (subjectEl && subjectEl.textContent.trim().toLowerCase().includes(target)) { bestMatch = row; break; } } bestMatch.click(); return { clicked: true }",
+      "name": "click_email",
+      "label": "Click on the matching email"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Wait for email to open"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".a3s, .ii.gt, [data-message-id] .a3s",
+      "timeout": 10000,
+      "label": "Wait for email body to render"
+    },
+    {
+      "action": "code",
+      "code": "const subjectEl = document.querySelector('h2.hP, .ha h2'); const fromEl = document.querySelector('.gD[email], .go .gD'); const toEl = document.querySelector('.g2 span[email], .g2 .gD'); const dateEl = document.querySelector('.g3, .gK span[title], .gK span'); const bodyEl = document.querySelector('.a3s.aiL, .a3s, .ii.gt'); return { from: fromEl ? (fromEl.getAttribute('email') || fromEl.textContent.trim()) : '', to: toEl ? (toEl.getAttribute('email') || toEl.textContent.trim()) : '', subject: subjectEl ? subjectEl.textContent.trim() : '', date: dateEl ? (dateEl.getAttribute('title') || dateEl.textContent.trim()) : '', body: bodyEl ? bodyEl.innerText.trim().substring(0, 5000) : '' }",
+      "name": "email_content",
+      "label": "Extract full email content"
+    }
+  ]
+}

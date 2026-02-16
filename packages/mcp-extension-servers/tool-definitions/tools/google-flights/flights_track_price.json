@@ -1,0 +1,71 @@
+{
+  "id": "flights-track-price",
+  "name": "flights_track_price",
+  "description": "Enable price tracking for a specific flight route on Google Flights. Activates the 'Track prices' toggle so Google will send email notifications when prices change.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "from",
+      "type": "string",
+      "description": "Origin city or airport code (e.g. 'Boston', 'BOS')",
+      "required": true
+    },
+    {
+      "name": "to",
+      "type": "string",
+      "description": "Destination city or airport code (e.g. 'Paris', 'CDG')",
+      "required": true
+    },
+    {
+      "name": "date",
+      "type": "string",
+      "description": "Departure date in YYYY-MM-DD format (optional)",
+      "required": false
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://www.google.com/travel/flights?q={{from}}+to+{{to}}",
+      "label": "Search Google Flights"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "li.pIav2d, div[data-resultid], ul[role='list'] li",
+      "timeout": 20000,
+      "label": "Wait for flight results"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Let page fully render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1200,
+      "label": "Scroll down to find price tracking toggle"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const trackToggle = document.querySelector('button[aria-label*=\"Track prices\"], button[aria-label*=\"track prices\"], div[data-flt-ve=\"track_prices\"] button, button[jsaction*=\"track\"], div[class*=\"track\"] button[role=\"switch\"], input[aria-label*=\"Track\"]'); if (trackToggle) { const isAlreadyOn = trackToggle.getAttribute('aria-checked') === 'true' || trackToggle.getAttribute('aria-pressed') === 'true' || trackToggle.classList.contains('enabled'); if (!isAlreadyOn) { trackToggle.click(); return { action: 'enabled', message: 'Price tracking has been enabled for this route' }; } else { return { action: 'already_enabled', message: 'Price tracking was already enabled for this route' }; } } const allButtons = document.querySelectorAll('button, div[role=\"button\"]'); for (const btn of allButtons) { const text = (btn.textContent || '').toLowerCase(); const label = (btn.getAttribute('aria-label') || '').toLowerCase(); if (text.includes('track') || label.includes('track')) { btn.click(); return { action: 'clicked_track_button', message: 'Clicked a tracking-related button' }; } } return { action: 'not_found', message: 'Could not find price tracking toggle. You may need to be signed into Google.' }",
+      "name": "track_result",
+      "label": "Enable price tracking"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Wait for tracking to be confirmed"
+    },
+    {
+      "action": "code",
+      "code": "const confirmation = document.querySelector('div[class*=\"snackbar\"], div[class*=\"toast\"], div[role=\"alert\"], div[class*=\"confirmation\"]'); const priceInsight = document.querySelector('div.CQYfx, div[class*=\"price-insight\"], div[class*=\"tip\"]'); return { from: `{{from}}`, to: `{{to}}`, confirmation: confirmation ? confirmation.textContent.trim() : '', price_insight: priceInsight ? priceInsight.textContent.trim() : '', url: window.location.href }",
+      "name": "tracking_status",
+      "label": "Check tracking confirmation"
+    }
+  ]
+}

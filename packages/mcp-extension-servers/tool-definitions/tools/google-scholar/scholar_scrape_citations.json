@@ -1,0 +1,48 @@
+{
+  "id": "scholar-scrape-citations",
+  "name": "scholar_scrape_citations",
+  "description": "Scrape papers that cite a given paper on Google Scholar. Uses the 'Cited by' link to find all citing papers. Returns up to 10 citing papers with title, authors, year, snippet, and URL.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "citation_url",
+      "type": "string",
+      "description": "Google Scholar 'Cited by' URL (e.g. 'https://scholar.google.com/scholar?cites=1234567890') or direct Scholar paper cluster URL",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{citation_url}}",
+      "label": "Open citations page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".gs_r.gs_or.gs_scl, #gs_res_ccl",
+      "timeout": 15000,
+      "label": "Wait for citation results"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let results render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll to load more results"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const results = []; const items = document.querySelectorAll('.gs_r.gs_or.gs_scl'); for (let i = 0; i < Math.min(items.length, 10); i++) { const el = items[i]; const titleEl = el.querySelector('.gs_rt a'); const titleFallback = el.querySelector('.gs_rt'); const snippetEl = el.querySelector('.gs_rs'); const authorEl = el.querySelector('.gs_a'); const citedByEl = el.querySelector('.gs_fl a[href*=\"cites\"]'); const relatedEl = el.querySelector('.gs_fl a[href*=\"related\"]'); const linkEl = el.querySelector('.gs_rt a'); const pdfEl = el.querySelector('.gs_or_ggsm a, a[href*=\"pdf\"]'); const yearMatch = authorEl ? authorEl.textContent.match(/(\\d{4})/) : null; results.push({ title: titleEl ? titleEl.textContent.trim() : (titleFallback ? titleFallback.textContent.trim() : ''), url: linkEl ? linkEl.href : '', pdf_url: pdfEl ? pdfEl.href : '', authors_info: authorEl ? authorEl.textContent.trim() : '', year: yearMatch ? yearMatch[1] : '', snippet: snippetEl ? snippetEl.textContent.trim().substring(0, 500) : '', cited_by: citedByEl ? citedByEl.textContent.trim() : '', related_url: relatedEl ? relatedEl.href : '' }); } const resultsStatsEl = document.querySelector('#gs_ab_md .gs_ab_mdw'); const totalResults = resultsStatsEl ? resultsStatsEl.textContent.trim() : ''; return { total_results_info: totalResults, result_count: results.length, citing_papers: results, source_url: window.location.href }",
+      "name": "citations_data",
+      "label": "Extract citing papers"
+    }
+  ]
+}

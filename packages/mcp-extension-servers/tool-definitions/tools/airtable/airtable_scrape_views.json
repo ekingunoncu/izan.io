@@ -1,0 +1,49 @@
+{
+  "id": "airtable-scrape-views",
+  "name": "airtable_scrape_views",
+  "description": "List all views for an Airtable table. Opens the views sidebar and scrapes view names and types (grid, kanban, calendar, gallery, form, etc.).",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "table_url",
+      "type": "string",
+      "description": "Airtable table URL (e.g. 'https://airtable.com/appXXX/tblXXX/viwXXX')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{table_url}}",
+      "label": "Open Airtable table"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".dataRow, [data-rowindex], .headerRow, .viewSidebar, [data-testid=\"view-sidebar\"]",
+      "timeout": 15000,
+      "label": "Wait for table to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let table fully render"
+    },
+    {
+      "action": "code",
+      "code": "const sidebar = document.querySelector('.viewSidebar, [data-testid=\"view-sidebar\"], .viewMenuPanel'); if (!sidebar) { const viewsBtn = document.querySelector('[data-testid=\"view-sidebar-toggle\"], [aria-label=\"Views\"], .viewMenuToggle, button[aria-label*=\"view\" i]'); if (viewsBtn) { viewsBtn.click(); await new Promise(r => setTimeout(r, 1500)); } } return { sidebar_opened: true }",
+      "name": "open_sidebar",
+      "label": "Open views sidebar"
+    },
+    {
+      "action": "wait",
+      "ms": 1500,
+      "label": "Wait for sidebar to render"
+    },
+    {
+      "action": "code",
+      "code": "const views = []; const viewItems = document.querySelectorAll('.viewSidebar [data-testid=\"view-item\"], [data-testid=\"view-sidebar\"] [role=\"treeitem\"], .viewMenuPanel .viewItem, .viewSidebar .viewListItem, [class*=\"ViewListItem\"], [class*=\"viewMenuItem\"]'); if (viewItems.length > 0) { viewItems.forEach(item => { const nameEl = item.querySelector('[data-testid=\"view-name\"], .viewName, span, a'); const name = nameEl?.textContent?.trim() || item.textContent?.trim() || ''; const iconEl = item.querySelector('svg, [data-testid=\"view-type-icon\"], .viewTypeIcon'); const typeAttr = item.getAttribute('data-view-type') || iconEl?.getAttribute('aria-label') || ''; let viewType = typeAttr || 'unknown'; if (!typeAttr) { const text = (item.className + ' ' + (iconEl?.outerHTML || '')).toLowerCase(); if (text.includes('grid')) viewType = 'grid'; else if (text.includes('kanban') || text.includes('board')) viewType = 'kanban'; else if (text.includes('calendar')) viewType = 'calendar'; else if (text.includes('gallery')) viewType = 'gallery'; else if (text.includes('form')) viewType = 'form'; else if (text.includes('gantt') || text.includes('timeline')) viewType = 'timeline'; else if (text.includes('list')) viewType = 'list'; } const link = item.querySelector('a'); const url = link?.href || ''; const isActive = item.classList.contains('active') || item.getAttribute('aria-selected') === 'true'; if (name && name.length > 0) { views.push({ name: name.substring(0, 100), type: viewType, url: url, is_active: isActive }); } }); } else { const viewTabs = document.querySelectorAll('.viewTab, [role=\"tab\"], .viewTabBar button, .viewBar a'); viewTabs.forEach(tab => { const name = tab.textContent?.trim() || ''; const isActive = tab.classList.contains('active') || tab.getAttribute('aria-selected') === 'true'; if (name && name.length > 0) { views.push({ name: name.substring(0, 100), type: 'unknown', url: tab.href || '', is_active: isActive }); } }); } return { result_count: views.length, views: views }",
+      "name": "result",
+      "label": "Extract view names and types"
+    }
+  ]
+}

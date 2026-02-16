@@ -1,0 +1,48 @@
+{
+  "id": "youtube-scrape-channel",
+  "name": "youtube_scrape_channel",
+  "description": "Scrape a YouTube channel's info and recent videos. Returns channel name, subscriber count, video count, description, and a list of recent video uploads.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "channel_url",
+      "type": "string",
+      "description": "YouTube channel URL (e.g. 'https://www.youtube.com/@MrBeast', 'https://www.youtube.com/c/Fireship')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{channel_url}}/videos",
+      "label": "Open channel videos page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "#channel-name, ytd-channel-name",
+      "timeout": 15000,
+      "label": "Wait for channel page to load"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Let videos tab render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 800,
+      "label": "Scroll to load more videos"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const channelNameEl = document.querySelector('#channel-name yt-formatted-string, ytd-channel-name yt-formatted-string'); const subscriberEl = document.querySelector('#subscriber-count, yt-formatted-string#subscriber-count'); const videoCountEl = document.querySelector('#videos-count yt-formatted-string, .meta-item:nth-child(2)'); const descEl = document.querySelector('#channel-tagline #tagline-container, yt-formatted-string#bio'); const bannerEl = document.querySelector('#channel-header-container .banner-visible-area img, #banner img'); const avatarEl = document.querySelector('#channel-header-container #avatar img, #channel-header yt-img-shadow img'); const videos = []; const videoRenderers = document.querySelectorAll('ytd-rich-item-renderer ytd-rich-grid-media, ytd-grid-video-renderer'); for (let i = 0; i < Math.min(videoRenderers.length, 15); i++) { const el = videoRenderers[i]; const titleEl = el.querySelector('#video-title, a#video-title-link, h3 a'); const metaItems = el.querySelectorAll('#metadata-line span, .inline-metadata-item'); const views = metaItems[0] ? metaItems[0].textContent.trim() : ''; const uploaded = metaItems[1] ? metaItems[1].textContent.trim() : ''; const durationEl = el.querySelector('badge-shape .badge-shape-wiz__text, ytd-thumbnail-overlay-time-status-renderer span'); const linkEl = el.querySelector('a#video-title-link, a#video-title, h3 a'); const href = linkEl ? linkEl.getAttribute('href') : ''; videos.push({ title: titleEl ? titleEl.textContent.trim() : 'Unknown', views: views, uploaded: uploaded, duration: durationEl ? durationEl.textContent.trim() : '', url: href ? 'https://www.youtube.com' + href : '' }); } return { channel_name: channelNameEl ? channelNameEl.textContent.trim() : 'Unknown', subscriber_count: subscriberEl ? subscriberEl.textContent.trim() : '', video_count: videoCountEl ? videoCountEl.textContent.trim() : '', description: descEl ? descEl.textContent.trim() : '', avatar: avatarEl ? avatarEl.src : '', video_list_count: videos.length, recent_videos: videos }",
+      "name": "channel_info",
+      "label": "Extract channel info and videos"
+    }
+  ]
+}

@@ -1,0 +1,75 @@
+{
+  "id": "figma-add-comment",
+  "name": "figma_add_comment",
+  "description": "Add a comment to a Figma file. You must be logged into Figma and have commenting access to the file.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "file_url",
+      "type": "string",
+      "description": "Figma file URL (e.g. 'https://www.figma.com/design/FILEID/FileName')",
+      "required": true
+    },
+    {
+      "name": "comment",
+      "type": "string",
+      "description": "Comment text to add to the file",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{file_url}}",
+      "label": "Open Figma file"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[class*=\"toolbar\"], [data-testid=\"canvas\"]",
+      "timeout": 20000,
+      "label": "Wait for editor to load"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Let editor initialize"
+    },
+    {
+      "action": "click",
+      "selector": "[class*=\"comment\"] button, [data-testid=\"comments-toggle\"], button[aria-label*=\"Comment\"], [class*=\"toolbar\"] [class*=\"comment_icon\"]",
+      "label": "Open comments panel"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let comments panel load"
+    },
+    {
+      "action": "click",
+      "selector": "[data-testid=\"comment-input\"], textarea.comment-input, [class*=\"comment_input\"], [class*=\"comment\"] textarea, [class*=\"new_comment\"] [contenteditable], [class*=\"comment_composer\"] [contenteditable]",
+      "label": "Click comment input area"
+    },
+    {
+      "action": "wait",
+      "ms": 500,
+      "label": "Let input focus"
+    },
+    {
+      "action": "code",
+      "code": "const input = document.querySelector('[data-testid=\"comment-input\"], textarea.comment-input, [class*=\"comment_input\"], [class*=\"comment\"] textarea, [class*=\"new_comment\"] [contenteditable], [class*=\"comment_composer\"] [contenteditable]'); if (!input) throw new Error('Comment input not found'); if (input.tagName === 'TEXTAREA' || input.tagName === 'INPUT') { input.value = `{{comment}}`; input.dispatchEvent(new Event('input', { bubbles: true })); } else { input.textContent = `{{comment}}`; input.dispatchEvent(new Event('input', { bubbles: true })); } return { typed: true }",
+      "name": "type_result",
+      "label": "Type comment text"
+    },
+    {
+      "action": "wait",
+      "ms": 500,
+      "label": "Let input register"
+    },
+    {
+      "action": "code",
+      "code": "const submitBtn = document.querySelector('[class*=\"comment\"] button[type=\"submit\"], [data-testid=\"comment-submit\"], [class*=\"comment_submit\"], [class*=\"comment_composer\"] button[class*=\"submit\"], [class*=\"comment\"] [class*=\"send\"]'); if (submitBtn) { submitBtn.click(); } else { const input = document.querySelector('[data-testid=\"comment-input\"], textarea.comment-input, [class*=\"comment_input\"], [class*=\"comment\"] textarea, [class*=\"comment_composer\"] [contenteditable]'); if (input) { input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13, ctrlKey: true, bubbles: true })); } } return { success: true, comment: `{{comment}}`, file_url: window.location.href }",
+      "name": "result",
+      "label": "Submit comment"
+    }
+  ]
+}

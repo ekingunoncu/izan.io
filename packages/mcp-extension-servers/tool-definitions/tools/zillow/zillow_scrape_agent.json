@@ -1,0 +1,58 @@
+{
+  "id": "zillow-scrape-agent",
+  "name": "zillow_scrape_agent",
+  "description": "Scrape a real estate agent's profile from Zillow. Returns agent name, brokerage, phone, rating, review count, active listings, past sales, and specialties.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "agent_url",
+      "type": "string",
+      "description": "Zillow agent profile URL (e.g. 'https://www.zillow.com/profile/AgentName/')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{agent_url}}",
+      "label": "Open agent profile"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[class*='agent'], [class*='profile'], h1",
+      "timeout": 15000,
+      "label": "Wait for profile to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll to load more"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll further"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const nameEl = document.querySelector('h1, [class*=\"agent-name\"], [class*=\"profile-name\"]'); const brokerEl = document.querySelector('[class*=\"brokerage\"], [class*=\"broker-name\"]'); const phoneEl = document.querySelector('[class*=\"phone\"], a[href^=\"tel:\"]'); const ratingEl = document.querySelector('[class*=\"rating\"], [class*=\"stars\"]'); const reviewCountEl = document.querySelector('[class*=\"review-count\"], [class*=\"reviews\"]'); const photoEl = document.querySelector('[class*=\"profile-photo\"] img, [class*=\"agent-photo\"] img, [class*=\"avatar\"] img'); const bioEl = document.querySelector('[class*=\"bio\"], [class*=\"about\"], [class*=\"description\"]'); const specialties = []; const specEls = document.querySelectorAll('[class*=\"specialty\"] li, [class*=\"specialization\"] li'); specEls.forEach(function(el) { specialties.push(el.textContent.trim()); }); const listings = []; const listingEls = document.querySelectorAll('[class*=\"listing-card\"], [class*=\"property-card\"]'); for (let i = 0; i < Math.min(listingEls.length, 10); i++) { const el = listingEls[i]; const addrEl = el.querySelector('[class*=\"address\"], address'); const priceEl = el.querySelector('[class*=\"price\"]'); const linkEl = el.querySelector('a'); listings.push({ address: addrEl ? addrEl.textContent.trim() : '', price: priceEl ? priceEl.textContent.trim() : '', url: linkEl ? linkEl.href : '' }); } const salesEl = document.querySelector('[class*=\"sales-count\"], [class*=\"past-sales\"]'); const activeListingsEl = document.querySelector('[class*=\"active-listings\"], [class*=\"for-sale\"]'); return { name: nameEl ? nameEl.textContent.trim() : '', brokerage: brokerEl ? brokerEl.textContent.trim() : '', phone: phoneEl ? phoneEl.textContent.trim() : '', rating: ratingEl ? ratingEl.textContent.trim() : '', review_count: reviewCountEl ? reviewCountEl.textContent.trim() : '', bio: bioEl ? bioEl.textContent.trim().substring(0, 1000) : '', photo: photoEl ? photoEl.getAttribute('src') : '', specialties: specialties.slice(0, 10), past_sales: salesEl ? salesEl.textContent.trim() : '', active_listings_count: activeListingsEl ? activeListingsEl.textContent.trim() : '', listings: listings, url: window.location.href }",
+      "name": "agent_data",
+      "label": "Extract agent profile"
+    }
+  ]
+}

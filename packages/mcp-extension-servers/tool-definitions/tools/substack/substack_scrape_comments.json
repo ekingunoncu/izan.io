@@ -1,0 +1,58 @@
+{
+  "id": "substack-scrape-comments",
+  "name": "substack_scrape_comments",
+  "description": "Scrape comments from a Substack post. Returns comments with author, content, date, and like count.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "post_url",
+      "type": "string",
+      "description": "Substack post URL (e.g. 'https://newsletter.substack.com/p/article-title')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{post_url}}",
+      "label": "Open post page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "h1, [class*='post-title'], article",
+      "timeout": 15000,
+      "label": "Wait for post to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 5000,
+      "label": "Scroll to comments section"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 3000,
+      "label": "Scroll to load more comments"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const comments = []; const commentEls = document.querySelectorAll('[class*=\"comment\"], [class*=\"Comment\"], [data-testid=\"comment\"]'); for (let i = 0; i < Math.min(commentEls.length, 20); i++) { const el = commentEls[i]; const authorEl = el.querySelector('[class*=\"author\"] a, [class*=\"name\"] a, [class*=\"commenter\"]'); const contentEl = el.querySelector('[class*=\"body\"] p, [class*=\"content\"] p, [class*=\"text\"]'); const dateEl = el.querySelector('time, [class*=\"date\"], [class*=\"timestamp\"]'); const likesEl = el.querySelector('[class*=\"like\"] span, [class*=\"heart\"] span, [class*=\"reaction\"]'); if (contentEl && contentEl.textContent.trim().length > 0) { comments.push({ author: authorEl ? authorEl.textContent.trim() : 'Anonymous', content: contentEl ? contentEl.textContent.trim().substring(0, 500) : '', date: dateEl ? (dateEl.getAttribute('datetime') || dateEl.textContent.trim()) : '', likes: likesEl ? likesEl.textContent.trim() : '' }); } } const totalEl = document.querySelector('[class*=\"comment-count\"], [class*=\"response-count\"]'); return { total_comments: totalEl ? totalEl.textContent.trim() : '', scraped_count: comments.length, comments: comments, url: window.location.href }",
+      "name": "comments_data",
+      "label": "Extract comments"
+    }
+  ]
+}

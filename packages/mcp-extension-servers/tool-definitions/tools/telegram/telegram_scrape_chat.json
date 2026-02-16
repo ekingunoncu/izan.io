@@ -1,0 +1,66 @@
+{
+  "id": "telegram-scrape-chat",
+  "name": "telegram_scrape_chat",
+  "description": "Read messages from a specific Telegram chat. Searches for the chat by name, opens it, and scrapes the last 20 messages with author, content, and timestamp.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "chat_name",
+      "type": "string",
+      "description": "Name of the chat, group, or channel to open and read messages from",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://web.telegram.org/k/",
+      "label": "Open Telegram Web"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".input-search input, .chatlist-chat, .chat-list",
+      "timeout": 15000,
+      "label": "Wait for Telegram to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let app fully initialize"
+    },
+    {
+      "action": "code",
+      "code": "const searchInput = document.querySelector('.input-search input') || document.querySelector('input[type=\"text\"]'); if (searchInput) { searchInput.focus(); searchInput.click(); await new Promise(r => setTimeout(r, 300)); searchInput.value = ''; searchInput.dispatchEvent(new Event('input', { bubbles: true })); document.execCommand('insertText', false, `{{chat_name}}`); searchInput.dispatchEvent(new Event('input', { bubbles: true })); } return { searched: true }",
+      "name": "search_chat",
+      "label": "Search for the chat"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Wait for search results"
+    },
+    {
+      "action": "code",
+      "code": "const chatItems = document.querySelectorAll('.chatlist-chat, .chat-list .ListItem, .search-group .chatlist-chat'); let clicked = false; for (const item of chatItems) { const nameEl = item.querySelector('.peer-title, .user-title, .dialog-title'); if (nameEl && nameEl.textContent.trim().toLowerCase().includes(`{{chat_name}}`.toLowerCase())) { item.click(); clicked = true; break; } } if (!clicked && chatItems.length > 0) { chatItems[0].click(); clicked = true; } return { clicked: clicked }",
+      "name": "click_chat",
+      "label": "Click on the matching chat"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Wait for messages to load"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".message, .bubble, .bubble-content",
+      "timeout": 10000,
+      "label": "Wait for message bubbles"
+    },
+    {
+      "action": "code",
+      "code": "const messages = []; const bubbles = document.querySelectorAll('.bubble:not(.is-date), .message'); const startIdx = Math.max(0, bubbles.length - 20); for (let i = startIdx; i < bubbles.length; i++) { const el = bubbles[i]; const authorEl = el.querySelector('.peer-title, .name, .bubble-name .peer-title'); const contentEl = el.querySelector('.text-content, .message-content, .message'); const timeEl = el.querySelector('.time, time, .bubble-content .time'); const content = contentEl ? contentEl.textContent.trim() : ''; if (!content) continue; messages.push({ author: authorEl ? authorEl.textContent.trim() : '', content: content, timestamp: timeEl ? timeEl.textContent.trim() : '', is_outgoing: el.classList.contains('is-out') || el.classList.contains('outgoing') }); } const chatTitle = document.querySelector('.chat-info .peer-title, .top .peer-title'); return { chat_name: chatTitle ? chatTitle.textContent.trim() : `{{chat_name}}`, message_count: messages.length, messages: messages }",
+      "name": "chat_messages",
+      "label": "Extract messages from chat"
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "id": "spotify-scrape-playlist",
+  "name": "spotify_scrape_playlist",
+  "description": "Scrape all tracks from a Spotify playlist. Returns playlist name, description, track count, and a list of tracks with title, artist, and duration.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "playlist_url",
+      "type": "string",
+      "description": "Spotify playlist URL (e.g. 'https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{playlist_url}}",
+      "label": "Open Spotify playlist"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[data-testid=\"tracklist-row\"], [data-testid=\"playlist-tracklist\"]",
+      "timeout": 15000,
+      "label": "Wait for playlist tracks to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Let playlist fully render"
+    },
+    {
+      "action": "code",
+      "code": "const titleEl = document.querySelector('[data-testid=\"entityTitle\"] h1, [data-testid=\"entityTitle\"], h1'); const playlistName = titleEl ? titleEl.textContent.trim() : ''; const descEl = document.querySelector('[data-testid=\"playlist-description\"], .encore-text[data-testid=\"entityDescription\"], span[data-testid=\"entityDescription\"]'); const description = descEl ? descEl.textContent.trim() : ''; const countEl = document.querySelector('[data-testid=\"playlist-tracklist\"] [aria-colcount], .tracklist-content-wrapper'); let trackCountText = ''; const metaEls = document.querySelectorAll('span.encore-text'); for (const el of metaEls) { if (el.textContent.match(/\\d+\\s*(song|track)/i)) { trackCountText = el.textContent.trim(); break; } } const tracks = []; const rows = document.querySelectorAll('[data-testid=\"tracklist-row\"]'); for (let i = 0; i < rows.length; i++) { const row = rows[i]; const nameEl = row.querySelector('[data-testid=\"internal-track-link\"] div, [data-testid=\"internal-track-link\"], a[href^=\"/track\"] div'); const artistEl = row.querySelector('a[href^=\"/artist\"]'); const durationEl = row.querySelector('[data-testid=\"tracklist-duration\"], .encore-text[class*=\"Type\"]'); let duration = ''; if (durationEl) { duration = durationEl.textContent.trim(); } else { const spans = row.querySelectorAll('span.encore-text'); for (const s of spans) { if (s.textContent.match(/^\\d+:\\d+$/)) { duration = s.textContent.trim(); break; } } } tracks.push({ position: i + 1, title: nameEl ? nameEl.textContent.trim() : '', artist: artistEl ? artistEl.textContent.trim() : '', duration: duration }); } return { playlist_name: playlistName, description: description, track_count_label: trackCountText, tracks_scraped: tracks.length, tracks: tracks }",
+      "name": "playlist_data",
+      "label": "Extract playlist tracks"
+    }
+  ]
+}

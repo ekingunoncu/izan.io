@@ -1,0 +1,79 @@
+{
+  "id": "booking-scrape-reviews",
+  "name": "booking_scrape_reviews",
+  "description": "Scrape guest reviews from a Booking.com hotel page. Navigates to the reviews section and returns reviews with author, score, title, positive/negative comments, date, room type, and traveler type.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "hotel_url",
+      "type": "string",
+      "description": "Booking.com hotel URL (e.g. 'https://www.booking.com/hotel/fr/example-paris.html')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{hotel_url}}",
+      "label": "Open hotel page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "h2.pp-header__title, [data-testid='header-title'], .hp__hotel-name, #hp_hotel_name",
+      "timeout": 15000,
+      "label": "Wait for hotel page to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 4000,
+      "label": "Scroll down to reviews section"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const reviewLink = document.querySelector('a[data-testid=\"read-all-reviews\"], a[href*=\"#tab-reviews\"], .show_all_reviews_btn a, a.hp-review-score__content, a[href*=\"review_score\"]'); if (reviewLink) { reviewLink.click(); } return { clicked: !!reviewLink }",
+      "name": "nav_result",
+      "label": "Open reviews panel"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Wait for reviews to load"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1500,
+      "label": "Scroll to load reviews"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1500,
+      "label": "Scroll further to load more reviews"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const reviews = []; const reviewEls = document.querySelectorAll('[data-testid=\"review-card\"], .review_item, .c-review-block, li.review_list_new_item_block'); for (let i = 0; i < Math.min(reviewEls.length, 20); i++) { const el = reviewEls[i]; const authorEl = el.querySelector('[data-testid=\"review-avatar\"] + div span, .bui-avatar-block__title, .c-review__author, .review_item_reviewer h4'); const scoreEl = el.querySelector('[data-testid=\"review-score\"], .bui-review-score__badge, .c-review__score, .review-score-badge'); const titleEl = el.querySelector('[data-testid=\"review-title\"], .c-review__title, .c-review-block__title'); const positiveEl = el.querySelector('[data-testid=\"review-positive-text\"], .c-review__body--positive, .review_pos span'); const negativeEl = el.querySelector('[data-testid=\"review-negative-text\"], .c-review__body--negative, .review_neg span'); const dateEl = el.querySelector('[data-testid=\"review-date\"], .c-review__date, .c-review-block__date, .review_item_date'); const travelerEl = el.querySelector('[data-testid=\"review-traveler-type\"], .review-panel-wide__traveller_type, .c-review__trip-type'); const roomEl = el.querySelector('[data-testid=\"review-room-type\"], .c-review__room, .room_info'); const countryEl = el.querySelector('[data-testid=\"review-country\"], .bui-avatar-block__subtitle, .reviewer_country'); reviews.push({ author: authorEl ? authorEl.textContent.trim() : 'Anonymous', score: scoreEl ? scoreEl.textContent.trim() : '', title: titleEl ? titleEl.textContent.trim() : '', positive: positiveEl ? positiveEl.textContent.trim().substring(0, 500) : '', negative: negativeEl ? negativeEl.textContent.trim().substring(0, 500) : '', date: dateEl ? dateEl.textContent.trim() : '', traveler_type: travelerEl ? travelerEl.textContent.trim() : '', room_type: roomEl ? roomEl.textContent.trim() : '', country: countryEl ? countryEl.textContent.trim() : '' }); } const overallScoreEl = document.querySelector('[data-testid=\"review-score-component\"] div:first-child, .bui-review-score__badge, .review-score-badge'); const overallTextEl = document.querySelector('[data-testid=\"review-score-component\"] div:nth-child(2) div:first-child, .bui-review-score__title'); const totalReviewsEl = document.querySelector('[data-testid=\"review-score-component\"] div:nth-child(2) div:nth-child(2), .bui-review-score__text'); const categoryScores = []; const categoryEls = document.querySelectorAll('[data-testid=\"review-subscore\"], .c-score-bar, .review_score_name + .review_score_value'); categoryEls.forEach(function(el) { const labelEl = el.querySelector('[data-testid=\"review-subscore-label\"], .c-score-bar__title'); const valueEl = el.querySelector('[data-testid=\"review-subscore-score\"], .c-score-bar__score'); if (labelEl && valueEl) { categoryScores.push({ category: labelEl.textContent.trim(), score: valueEl.textContent.trim() }); } }); return { overall_score: overallScoreEl ? overallScoreEl.textContent.trim() : '', overall_text: overallTextEl ? overallTextEl.textContent.trim() : '', total_reviews: totalReviewsEl ? totalReviewsEl.textContent.trim() : '', category_scores: categoryScores, scraped_count: reviews.length, reviews: reviews }",
+      "name": "reviews_data",
+      "label": "Extract reviews"
+    }
+  ]
+}

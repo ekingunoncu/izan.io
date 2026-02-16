@@ -1,0 +1,48 @@
+{
+  "id": "threads-scrape-post",
+  "name": "threads_scrape_post",
+  "description": "Scrape a specific Threads post. Returns author, content, likes, replies count, timestamp, and top replies. You must be logged in to Threads.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "post_url",
+      "type": "string",
+      "description": "Full URL of the Threads post (e.g. 'https://www.threads.net/@username/post/ABC123')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{post_url}}",
+      "label": "Open Threads post"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[class*='ThreadItem'], article, div[role='article'], [data-pressable-container='true']",
+      "timeout": 15000,
+      "label": "Wait for post to load"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Let post fully render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1200,
+      "label": "Scroll to load replies"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const postEls = document.querySelectorAll('[class*=\"ThreadItem\"], article, div[role=\"article\"], [data-pressable-container=\"true\"]'); const mainPost = postEls[0]; if (!mainPost) return { error: 'Post not found' }; const authorEl = mainPost.querySelector('a[href^=\"/@\"] span, a[href*=\"threads.net/@\"] span, [class*=\"username\"]'); const author = authorEl ? authorEl.textContent.trim() : ''; const authorLink = mainPost.querySelector('a[href^=\"/@\"], a[href*=\"threads.net/@\"]'); const authorUrl = authorLink ? (authorLink.href.startsWith('http') ? authorLink.href : 'https://www.threads.net' + authorLink.getAttribute('href')) : ''; const contentEl = mainPost.querySelector('[class*=\"text\"], [class*=\"content\"], [class*=\"body\"] span, [class*=\"TextContent\"]'); let content = ''; if (contentEl) { content = contentEl.textContent.trim(); } else { const spans = mainPost.querySelectorAll('span[dir=\"auto\"]'); for (const span of spans) { const text = span.textContent.trim(); if (text.length > content.length && text !== author) content = text; } } const timeEl = mainPost.querySelector('time, [class*=\"time\"], [class*=\"timestamp\"]'); const timestamp = timeEl ? (timeEl.getAttribute('datetime') || timeEl.textContent.trim()) : ''; const likesEl = mainPost.querySelector('[class*=\"like\"] span, [aria-label*=\"like\"], [class*=\"LikeCount\"]'); const likes = likesEl ? (likesEl.getAttribute('aria-label') || likesEl.textContent.trim()) : ''; const repliesCountEl = mainPost.querySelector('[class*=\"reply\"] span, [aria-label*=\"repl\"], [class*=\"ReplyCount\"]'); const repliesCount = repliesCountEl ? (repliesCountEl.getAttribute('aria-label') || repliesCountEl.textContent.trim()) : ''; const repostsEl = mainPost.querySelector('[class*=\"repost\"] span, [aria-label*=\"repost\"]'); const reposts = repostsEl ? (repostsEl.getAttribute('aria-label') || repostsEl.textContent.trim()) : ''; const imgEl = mainPost.querySelector('img[src*=\"scontent\"], img[class*=\"media\"], [class*=\"MediaContainer\"] img'); const image = imgEl ? imgEl.src : ''; const videoEl = mainPost.querySelector('video'); const hasVideo = !!videoEl; const replies = []; for (let i = 1; i < Math.min(postEls.length, 11); i++) { const replyEl = postEls[i]; const replyAuthorEl = replyEl.querySelector('a[href^=\"/@\"] span, [class*=\"username\"]'); const replyAuthor = replyAuthorEl ? replyAuthorEl.textContent.trim() : ''; const replyContentEl = replyEl.querySelector('[class*=\"text\"], [class*=\"content\"], [dir=\"auto\"] span, [class*=\"TextContent\"]'); let replyContent = ''; if (replyContentEl) { replyContent = replyContentEl.textContent.trim().substring(0, 300); } else { const spans = replyEl.querySelectorAll('span[dir=\"auto\"]'); for (const span of spans) { const text = span.textContent.trim(); if (text.length > replyContent.length && text !== replyAuthor) replyContent = text.substring(0, 300); } } const replyTimeEl = replyEl.querySelector('time, [class*=\"time\"]'); const replyTime = replyTimeEl ? (replyTimeEl.getAttribute('datetime') || replyTimeEl.textContent.trim()) : ''; const replyLikesEl = replyEl.querySelector('[class*=\"like\"] span, [aria-label*=\"like\"]'); const replyLikes = replyLikesEl ? (replyLikesEl.getAttribute('aria-label') || replyLikesEl.textContent.trim()) : ''; if (replyContent) { replies.push({ author: replyAuthor, content: replyContent, likes: replyLikes, timestamp: replyTime }); } } return { author: author, author_url: authorUrl, content: content, likes: likes, replies_count: repliesCount, reposts: reposts, timestamp: timestamp, image: image, has_video: hasVideo, top_replies: replies, post_url: window.location.href }",
+      "name": "result",
+      "label": "Extract post details"
+    }
+  ]
+}

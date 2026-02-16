@@ -1,0 +1,59 @@
+{
+  "id": "udemy-bulk-search",
+  "name": "udemy_bulk_search",
+  "description": "Search multiple topics on Udemy in parallel using concurrent browser tabs. Use this instead of calling udemy_search multiple times - it is faster and more efficient. Pass all queries as a single comma-separated string.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "queries",
+      "type": "string",
+      "description": "Comma-separated search queries (e.g. 'python,javascript,react')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{queries}}`.split(',').map(q => ({ url: 'https://www.udemy.com/courses/search/?q=' + encodeURIComponent(q.trim()), query: q.trim() }))",
+      "name": "items",
+      "label": "Build search URL list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 3,
+      "maxItems": 10,
+      "waitUntil": "load",
+      "label": "Search each query in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": "[class*='course-card'], [data-purpose='course-card-container']",
+          "timeout": 15000,
+          "label": "Wait for results"
+        },
+        {
+          "action": "wait",
+          "ms": 2000
+        },
+        {
+          "action": "scroll",
+          "direction": "down",
+          "amount": 800
+        },
+        {
+          "action": "wait",
+          "ms": 1500
+        },
+        {
+          "action": "code",
+          "code": "const results = []; const items = document.querySelectorAll('[class*=\"course-card\"], [data-purpose=\"course-card-container\"]'); for (let i = 0; i < Math.min(items.length, 5); i++) { const el = items[i]; const titleEl = el.querySelector('h3, [class*=\"title\"]'); const instructorEl = el.querySelector('[class*=\"instructor\"]'); const ratingEl = el.querySelector('[class*=\"rating\"] span'); const priceEl = el.querySelector('[class*=\"price\"] span'); const linkEl = el.querySelector('a[href*=\"/course/\"]'); results.push({ name: titleEl ? titleEl.textContent.trim() : '', instructor: instructorEl ? instructorEl.textContent.trim() : '', rating: ratingEl ? ratingEl.textContent.trim() : '', price: priceEl ? priceEl.textContent.trim() : '', url: linkEl ? linkEl.href : '' }); } const params = new URLSearchParams(window.location.search); return { query: params.get('q') || '', result_count: results.length, results: results }",
+          "name": "search_results",
+          "label": "Extract results"
+        }
+      ]
+    }
+  ]
+}

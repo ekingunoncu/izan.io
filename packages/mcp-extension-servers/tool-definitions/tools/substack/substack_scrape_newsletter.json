@@ -1,0 +1,58 @@
+{
+  "id": "substack-scrape-newsletter",
+  "name": "substack_scrape_newsletter",
+  "description": "Scrape a Substack newsletter homepage. Returns newsletter name, description, author, subscriber count, recent posts, and categories.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "newsletter_slug",
+      "type": "string",
+      "description": "Newsletter subdomain slug (e.g. 'platformer', 'thegeneralist', 'stratechery')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://{{newsletter_slug}}.substack.com",
+      "label": "Open newsletter homepage"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "h1, [class*='publication'], [class*='hero'], [class*='navbar-title']",
+      "timeout": 15000,
+      "label": "Wait for newsletter page to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page fully render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll to load posts"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll further"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const nameEl = document.querySelector('h1, [class*=\"publication-name\"], [class*=\"navbar-title\"], [class*=\"hero\"] h1'); const descEl = document.querySelector('[class*=\"hero\"] p, [class*=\"description\"], [class*=\"about\"], [class*=\"tagline\"]'); const authorEl = document.querySelector('[class*=\"author\"] a, [class*=\"byline\"] a'); const subscribersEl = document.querySelector('[class*=\"subscriber\"], [class*=\"reader-count\"]'); const imgEl = document.querySelector('[class*=\"logo\"] img, [class*=\"publication\"] img, header img'); const posts = []; const postEls = document.querySelectorAll('[class*=\"post-preview\"], article, [class*=\"post-item\"], a[href*=\"/p/\"]'); for (let i = 0; i < Math.min(postEls.length, 10); i++) { const el = postEls[i]; const titleEl = el.querySelector('h2, h3, [class*=\"post-title\"], [class*=\"title\"]'); const dateEl = el.querySelector('time, [class*=\"date\"]'); const likesEl = el.querySelector('[class*=\"like\"] span, [class*=\"heart\"] span'); const previewEl = el.querySelector('[class*=\"subtitle\"], [class*=\"preview\"], p'); const linkEl = el.tagName === 'A' ? el : el.querySelector('a[href*=\"/p/\"]'); posts.push({ title: titleEl ? titleEl.textContent.trim() : '', preview: previewEl ? previewEl.textContent.trim().substring(0, 200) : '', date: dateEl ? (dateEl.getAttribute('datetime') || dateEl.textContent.trim()) : '', likes: likesEl ? likesEl.textContent.trim() : '', url: linkEl ? linkEl.href : '' }); } const categoryEls = document.querySelectorAll('[class*=\"section\"] a, [class*=\"category\"] a, nav a[href*=\"/s/\"]'); const categories = []; categoryEls.forEach(function(el) { const t = el.textContent.trim(); if (t && t.length < 80 && !categories.includes(t)) categories.push(t); }); return { name: nameEl ? nameEl.textContent.trim() : '{{newsletter_slug}}', description: descEl ? descEl.textContent.trim().substring(0, 500) : '', author: authorEl ? authorEl.textContent.trim() : '', subscribers: subscribersEl ? subscribersEl.textContent.trim() : '', image: imgEl ? imgEl.getAttribute('src') : '', categories: categories.slice(0, 10), post_count: posts.length, posts: posts, url: window.location.href }",
+      "name": "newsletter_data",
+      "label": "Extract newsletter details"
+    }
+  ]
+}

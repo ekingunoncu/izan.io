@@ -1,0 +1,116 @@
+{
+  "id": "instagram-send-dm",
+  "name": "instagram_send_dm",
+  "description": "Send a direct message to an Instagram user. Opens the DM inbox, searches for the user, and sends the message. You must be logged in to Instagram.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "username",
+      "type": "string",
+      "description": "Instagram username to send the message to",
+      "required": true
+    },
+    {
+      "name": "message",
+      "type": "string",
+      "description": "Message text to send",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://www.instagram.com/direct/inbox/",
+      "label": "Open Instagram DM inbox"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "div[class*='inbox'], div[class*='direct'], svg[aria-label='New message'], main[role='main']",
+      "timeout": 15000,
+      "label": "Wait for DM inbox to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Let inbox fully initialize"
+    },
+    {
+      "action": "code",
+      "code": "const newMsgBtn = document.querySelector('svg[aria-label=\"New message\"]')?.closest('button') || document.querySelector('svg[aria-label=\"New message\"]')?.closest('div[role=\"button\"]') || document.querySelector('div[role=\"button\"] svg[aria-label=\"New message\"]')?.closest('div[role=\"button\"]'); if (newMsgBtn) { newMsgBtn.click(); } else { const allBtns = document.querySelectorAll('button, div[role=\"button\"]'); for (const btn of allBtns) { if (btn.querySelector('svg[aria-label=\"New message\"]') || btn.textContent.includes('New message')) { btn.click(); break; } } } return { clicked: true }",
+      "name": "open_new_message",
+      "label": "Click new message button"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Wait for new message dialog"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "input[placeholder='Search...'], input[name='queryBox'], input[aria-label='Search']",
+      "timeout": 10000,
+      "label": "Wait for recipient search input"
+    },
+    {
+      "action": "code",
+      "code": "const searchInput = document.querySelector('input[placeholder=\"Search...\"]') || document.querySelector('input[name=\"queryBox\"]') || document.querySelector('input[aria-label=\"Search\"]'); if (searchInput) { searchInput.focus(); searchInput.click(); await new Promise(r => setTimeout(r, 300)); searchInput.value = ''; searchInput.dispatchEvent(new Event('input', { bubbles: true })); document.execCommand('insertText', false, `{{username}}`); searchInput.dispatchEvent(new Event('input', { bubbles: true })); searchInput.dispatchEvent(new Event('change', { bubbles: true })); } return { typed: !!searchInput }",
+      "name": "search_user",
+      "label": "Search for recipient"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Wait for user search results"
+    },
+    {
+      "action": "code",
+      "code": "const target = `{{username}}`.toLowerCase(); const results = document.querySelectorAll('div[role=\"dialog\"] button, div[role=\"dialog\"] div[role=\"button\"], div[class*=\"result\"] button, div[class*=\"result\"] div[role=\"button\"]'); let clicked = false; for (const item of results) { const text = item.textContent.trim().toLowerCase(); if (text.includes(target)) { item.click(); clicked = true; break; } } if (!clicked) { const allClickable = document.querySelectorAll('div[role=\"dialog\"] div[class*=\"user\"], div[role=\"listbox\"] div[role=\"option\"]'); for (const item of allClickable) { const text = item.textContent.trim().toLowerCase(); if (text.includes(target)) { item.click(); clicked = true; break; } } } if (!clicked) { const firstResult = document.querySelector('div[role=\"dialog\"] div[role=\"button\"]:not([aria-label])'); if (firstResult) { firstResult.click(); clicked = true; } } return { clicked: clicked, searched_for: `{{username}}` }",
+      "name": "select_user",
+      "label": "Select recipient from results"
+    },
+    {
+      "action": "wait",
+      "ms": 1500,
+      "label": "Wait for user selection"
+    },
+    {
+      "action": "code",
+      "code": "const nextBtn = Array.from(document.querySelectorAll('div[role=\"dialog\"] button, div[role=\"dialog\"] div[role=\"button\"]')).find(b => b.textContent.trim().toLowerCase() === 'chat' || b.textContent.trim().toLowerCase() === 'next'); if (nextBtn) { nextBtn.click(); } return { clicked: !!nextBtn }",
+      "name": "click_next",
+      "label": "Click Next/Chat to open conversation"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Wait for conversation to open"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "textarea[placeholder='Message...'], div[aria-label='Message'], div[contenteditable='true'][role='textbox'], textarea[aria-label='Message']",
+      "timeout": 10000,
+      "label": "Wait for message input"
+    },
+    {
+      "action": "code",
+      "code": "const msgInput = document.querySelector('textarea[placeholder=\"Message...\"]') || document.querySelector('div[aria-label=\"Message\"]') || document.querySelector('div[contenteditable=\"true\"][role=\"textbox\"]') || document.querySelector('textarea[aria-label=\"Message\"]'); if (!msgInput) return { success: false, message: 'Message input not found' }; msgInput.focus(); await new Promise(r => setTimeout(r, 300)); if (msgInput.tagName === 'TEXTAREA') { msgInput.value = ''; msgInput.dispatchEvent(new Event('input', { bubbles: true })); document.execCommand('insertText', false, `{{message}}`); msgInput.dispatchEvent(new Event('input', { bubbles: true })); } else { msgInput.textContent = ''; msgInput.dispatchEvent(new Event('input', { bubbles: true })); document.execCommand('insertText', false, `{{message}}`); msgInput.dispatchEvent(new Event('input', { bubbles: true })); } return { typed: true }",
+      "name": "type_message",
+      "label": "Type message"
+    },
+    {
+      "action": "wait",
+      "ms": 800,
+      "label": "Wait before sending"
+    },
+    {
+      "action": "code",
+      "code": "const sendBtn = document.querySelector('button[type=\"submit\"]') || Array.from(document.querySelectorAll('div[role=\"button\"], button')).find(b => b.textContent.trim().toLowerCase() === 'send'); if (sendBtn) { sendBtn.click(); return { success: true, message: 'Message sent', recipient: `{{username}}` }; } const msgInput = document.querySelector('textarea[placeholder=\"Message...\"]') || document.querySelector('div[aria-label=\"Message\"]') || document.querySelector('div[contenteditable=\"true\"][role=\"textbox\"]'); if (msgInput) { msgInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true })); return { success: true, message: 'Message sent via Enter key', recipient: `{{username}}` }; } return { success: false, message: 'Could not find send button or message input' }",
+      "name": "result",
+      "label": "Send message"
+    },
+    {
+      "action": "wait",
+      "ms": 1500,
+      "label": "Wait for message to be delivered"
+    }
+  ]
+}

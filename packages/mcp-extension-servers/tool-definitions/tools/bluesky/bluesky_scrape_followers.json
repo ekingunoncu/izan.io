@@ -1,0 +1,24 @@
+{
+  "id": "bluesky-scrape-followers",
+  "name": "bluesky_scrape_followers",
+  "description": "Scrape followers list from a Bluesky profile. Returns follower names, handles, bios, and avatar URLs.",
+  "version": "1.0.0",
+  "parameters": [
+    { "name": "handle", "type": "string", "description": "Bluesky handle (e.g. 'user.bsky.social')", "required": true }
+  ],
+  "steps": [
+    { "action": "navigate", "url": "https://bsky.app/profile/{{handle}}/followers", "label": "Open followers page" },
+    { "action": "waitForSelector", "selector": "[data-testid='listItemMyProfileCard'], [class*='ProfileCard'], [class*='follower']", "timeout": 15000, "label": "Wait for followers list" },
+    { "action": "wait", "ms": 2000 },
+    { "action": "scroll", "direction": "down", "amount": 1500, "label": "Scroll for more" },
+    { "action": "wait", "ms": 1500 },
+    { "action": "scroll", "direction": "down", "amount": 1500, "label": "Scroll further" },
+    { "action": "wait", "ms": 1500 },
+    {
+      "action": "code",
+      "code": "const followers = []; const cards = document.querySelectorAll('[data-testid=\"listItemMyProfileCard\"], [class*=\"ProfileCard\"], [class*=\"follower-item\"]'); for (let i = 0; i < Math.min(cards.length, 30); i++) { const el = cards[i]; const nameEl = el.querySelector('[class*=\"displayName\"], [data-testid=\"profileHeaderDisplayName\"]'); const handleEl = el.querySelector('[class*=\"handle\"]'); const bioEl = el.querySelector('[class*=\"description\"], [class*=\"bio\"]'); const avatarEl = el.querySelector('[data-testid=\"userAvatarImage\"], img'); const linkEl = el.querySelector('a[href*=\"/profile/\"]'); followers.push({ name: nameEl ? nameEl.textContent.trim() : '', handle: handleEl ? handleEl.textContent.trim() : '', bio: bioEl ? bioEl.textContent.trim().substring(0, 200) : '', avatar: avatarEl ? avatarEl.getAttribute('src') : '', url: linkEl ? linkEl.href : '' }); } return { handle: '{{handle}}', follower_count: followers.length, followers: followers, url: window.location.href }",
+      "name": "followers_data",
+      "label": "Extract followers"
+    }
+  ]
+}

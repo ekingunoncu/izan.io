@@ -1,0 +1,48 @@
+{
+  "id": "imdb-scrape-cast",
+  "name": "imdb_scrape_cast",
+  "description": "Scrape the full cast and crew from an IMDb title. Returns actors with character names, plus directors, writers, and other crew members.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "title_id",
+      "type": "string",
+      "description": "IMDb title ID (e.g. 'tt0468569')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://www.imdb.com/title/{{title_id}}/fullcredits/",
+      "label": "Open full credits page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "table.cast_list, [class*='fullcredits'], [class*='Credits']",
+      "timeout": 15000,
+      "label": "Wait for credits page"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1500,
+      "label": "Scroll through credits"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const cast = []; const castRows = document.querySelectorAll('table.cast_list tr, [class*=\"CastList\"] [class*=\"CastItem\"]'); castRows.forEach(function(row) { const nameEl = row.querySelector('td:nth-child(2) a, a[href*=\"/name/\"]'); const charEl = row.querySelector('td.character, [class*=\"character\"]'); const imgEl = row.querySelector('img'); if (nameEl) { cast.push({ name: nameEl.textContent.trim(), character: charEl ? charEl.textContent.trim().replace(/\\s+/g, ' ') : '', image: imgEl ? imgEl.getAttribute('src') : '', url: nameEl.href || '' }); } }); const crew = {}; const headers = document.querySelectorAll('#fullcredits_content > h4, [class*=\"Credits\"] h4'); headers.forEach(function(h) { const role = h.textContent.trim().replace(/\\s+/g, ' '); const table = h.nextElementSibling; if (table && table.tagName === 'TABLE') { const names = []; table.querySelectorAll('tr').forEach(function(row) { const nameEl = row.querySelector('a[href*=\"/name/\"]'); if (nameEl) names.push(nameEl.textContent.trim()); }); if (names.length > 0) crew[role] = names.slice(0, 10); } }); const titleEl = document.querySelector('h3 a, [class*=\"parent\"] a'); return { title_id: '{{title_id}}', title: titleEl ? titleEl.textContent.trim() : '', cast_count: cast.length, cast: cast.slice(0, 30), crew: crew, url: window.location.href }",
+      "name": "cast_data",
+      "label": "Extract cast and crew"
+    }
+  ]
+}

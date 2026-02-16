@@ -1,0 +1,38 @@
+{
+  "id": "instagram-scrape-post",
+  "name": "instagram_scrape_post",
+  "description": "Scrape a specific Instagram post. Returns author, caption, likes, comments, timestamp, image description, and top comments. You must be logged in to Instagram.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "post_url",
+      "type": "string",
+      "description": "Full URL of the Instagram post (e.g. 'https://www.instagram.com/p/ABC123/')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{post_url}}",
+      "label": "Open Instagram post"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "article, article[role='presentation'], main[role='main'] div[role='presentation']",
+      "timeout": 15000,
+      "label": "Wait for post to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Let post fully render"
+    },
+    {
+      "action": "code",
+      "code": "const article = document.querySelector('article') || document.querySelector('main[role=\"main\"]'); if (!article) return { error: 'Post not found' }; const authorEl = article.querySelector('header a span, a[class*=\"notranslate\"] span, header span[dir=\"auto\"] a, a[role=\"link\"] span'); const author = authorEl ? authorEl.textContent.trim() : ''; const authorLink = article.querySelector('header a[href^=\"/\"]'); const authorUrl = authorLink ? 'https://www.instagram.com' + authorLink.getAttribute('href') : ''; const captionSpans = article.querySelectorAll('div[class*=\"caption\"] span[dir=\"auto\"], ul > li:first-child span[dir=\"auto\"], h1 + div span[dir=\"auto\"]'); let caption = ''; for (const span of captionSpans) { const text = span.textContent.trim(); if (text && text !== author && text.length > caption.length) { caption = text; } } const imgEl = article.querySelector('img[class*=\"x5yr21d\"], img[style*=\"object-fit\"], div[role=\"presentation\"] img, div[role=\"button\"] img'); const imageDescription = imgEl ? (imgEl.alt || '') : ''; const imageSrc = imgEl ? imgEl.src : ''; const videoEl = article.querySelector('video'); const isVideo = !!videoEl; const likesEl = article.querySelector('section span[class*=\"like\"] span, a[href*=\"liked_by\"] span, section a span, section button span'); const likes = likesEl ? likesEl.textContent.trim() : ''; const timeEl = article.querySelector('time[datetime], a time'); const timestamp = timeEl ? (timeEl.getAttribute('datetime') || timeEl.textContent.trim()) : ''; const comments = []; const commentEls = article.querySelectorAll('ul > li, div[class*=\"comment\"]'); for (const commentEl of commentEls) { if (comments.length >= 15) break; const commentAuthor = commentEl.querySelector('a span, h3 a, a[class*=\"notranslate\"]')?.textContent?.trim() || ''; const commentText = commentEl.querySelector('span[dir=\"auto\"]:not(:first-child), div > span[dir=\"auto\"]')?.textContent?.trim() || ''; const commentTime = commentEl.querySelector('time')?.textContent?.trim() || ''; const commentLikes = commentEl.querySelector('button span[class*=\"like\"], span[class*=\"count\"]')?.textContent?.trim() || ''; if (commentText && commentText !== caption && commentAuthor) { comments.push({ author: commentAuthor, text: commentText.substring(0, 300), timestamp: commentTime, likes: commentLikes }); } } return { author: author, author_url: authorUrl, caption: caption, likes: likes, timestamp: timestamp, image_description: imageDescription, image_src: imageSrc, is_video: isVideo, comment_count: comments.length, top_comments: comments, post_url: window.location.href }",
+      "name": "result",
+      "label": "Extract post details"
+    }
+  ]
+}

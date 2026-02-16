@@ -1,0 +1,69 @@
+{
+  "id": "tiktok-scrape-comments",
+  "name": "tiktok_scrape_comments",
+  "description": "Scrape comments from a TikTok video. Returns up to 20 top comments with author, content, likes, and time posted.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "video_url",
+      "type": "string",
+      "description": "TikTok video URL (e.g. 'https://www.tiktok.com/@user/video/1234567890')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{video_url}}",
+      "label": "Open video page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[data-e2e=\"like-count\"], [data-e2e=\"browse-like-count\"]",
+      "timeout": 15000,
+      "label": "Wait for video to load"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Let video and comments load"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 800,
+      "label": "Scroll to comments section"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Wait for comments to render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll to load more comments"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll for additional comments"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const comments = []; const commentEls = document.querySelectorAll('[data-e2e=\"comment-item\"], .comment-container, div[class*=\"DivCommentItemContainer\"], div[class*=\"DivCommentContentContainer\"]'); for (let i = 0; i < Math.min(commentEls.length, 20); i++) { const el = commentEls[i]; const authorEl = el.querySelector('[data-e2e=\"comment-username-1\"], a[data-e2e=\"comment-avatar-1\"] + div a, span[data-e2e=\"comment-username-1\"], a.comment-user'); const contentEl = el.querySelector('[data-e2e=\"comment-level-1\"] p, p[data-e2e=\"comment-level-1\"], .comment-text, span[class*=\"SpanCommentText\"]'); const likesEl = el.querySelector('[data-e2e=\"comment-like-count\"], span.like-count, span[class*=\"SpanCount\"]'); const timeEl = el.querySelector('[data-e2e=\"comment-time-1\"], span.comment-time, span[class*=\"SpanCreatedTime\"]'); const isCreator = !!el.querySelector('[data-e2e=\"comment-creator-badge\"], .creator-badge, div[class*=\"DivCreatorTag\"]'); const isPinned = !!el.querySelector('[data-e2e=\"comment-pinned\"], .pinned-badge, div[class*=\"DivPinnedLabel\"]'); const isLikedByCreator = !!el.querySelector('[data-e2e=\"comment-creator-like\"], .creator-liked'); comments.push({ author: authorEl ? authorEl.textContent.trim() : 'Anonymous', content: contentEl ? contentEl.textContent.trim().substring(0, 500) : '', likes: likesEl ? likesEl.textContent.trim() : '0', time: timeEl ? timeEl.textContent.trim() : '', is_creator: isCreator, is_pinned: isPinned, liked_by_creator: isLikedByCreator }); } const totalCommentsEl = document.querySelector('[data-e2e=\"comment-count\"], [data-e2e=\"browse-comment-count\"]'); return { total_comment_count: totalCommentsEl ? totalCommentsEl.textContent.trim() : '', scraped_count: comments.length, comments: comments }",
+      "name": "comments_data",
+      "label": "Extract comments"
+    }
+  ]
+}

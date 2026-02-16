@@ -1,0 +1,116 @@
+{
+  "nav": {
+    "browse": "Browse",
+    "submit": "Submit",
+    "signIn": "Sign in",
+    "signOut": "Sign out",
+    "submitAgent": "Submit Agent"
+  },
+  "hero": {
+    "badge": "Community Agent Marketplace",
+    "title": "Discover AI Agents for",
+    "titleBrand": "izan.io",
+    "description": "Browse community-created agents, share your own, and extend izan.io with powerful AI assistants. Submit via GitHub PR- anyone can contribute.",
+    "browseAgents": "Browse Agents",
+    "submitYourAgent": "Submit Your Agent",
+    "agents": "Agents",
+    "contributors": "Contributors"
+  },
+  "home": {
+    "featured": "Featured Agents",
+    "viewAll": "View all",
+    "browseByCategory": "Browse by Category",
+    "shareTitle": "Share Your Agent",
+    "shareDescription": "Built an awesome agent? Submit it to the marketplace via a GitHub pull request. Once merged, it's live for everyone."
+  },
+  "agents": {
+    "title": "Browse Agents",
+    "available": "{{count}} community agents available",
+    "loading": "Loading agents...",
+    "search": "Search agents...",
+    "newest": "Newest",
+    "alphabetical": "Alphabetical",
+    "all": "All",
+    "noResults": "No agents found matching your search.",
+    "notFound": "Agent Not Found",
+    "notFoundDesc": "This agent doesn't exist or hasn't been published yet.",
+    "backToAgents": "Back to agents",
+    "systemPrompt": "System Prompt",
+    "examplePrompts": "Example Prompts",
+    "useInIzan": "Use in izan.io",
+    "downloadForIzan": "Download for izan.io",
+    "mcpServers": "Required MCP Servers",
+    "macroTools": "Macro Tools",
+    "noMCPs": "No MCP servers required",
+    "relatedIn": "Related Agents in {{category}}"
+  },
+  "submit": {
+    "title": "Submit an Agent",
+    "description": "Share your agent with the izan.io community.",
+    "signInRequired": "Sign in with GitHub to submit your agent to the marketplace.",
+    "signInWithGitHub": "Sign in with GitHub",
+    "steps": {
+      "basicInfo": "Basic Info",
+      "systemPrompt": "System Prompt",
+      "mcpServers": "MCP Servers",
+      "config": "Config",
+      "preview": "Preview"
+    },
+    "fields": {
+      "name": "Name",
+      "namePlaceholder": "e.g. SEO Expert",
+      "slug": "Slug",
+      "slugPlaceholder": "seo-expert",
+      "slugHint": "URL-friendly identifier. Lowercase, hyphens only.",
+      "description": "Description",
+      "descriptionPlaceholder": "A brief description of what your agent does...",
+      "icon": "Icon (emoji)",
+      "iconPlaceholder": "e.g. 🔍",
+      "category": "Category",
+      "systemPrompt": "System Prompt",
+      "systemPromptPlaceholder": "You are an expert at...",
+      "characters": "{{count}} / 10,000 characters",
+      "tags": "Tags",
+      "addTag": "Add a tag...",
+      "add": "Add",
+      "examplePrompts": "Example Prompts",
+      "addAnother": "Add another",
+      "mcpServers": "Required MCP Servers",
+      "mcpServersHint": "MCP servers this agent needs. They'll be auto-imported when users download this agent.",
+      "mcpName": "Server Name",
+      "mcpNamePlaceholder": "e.g. Weather API",
+      "mcpUrl": "Server URL",
+      "mcpUrlPlaceholder": "https://mcp.example.com/sse",
+      "mcpDescription": "Description",
+      "mcpDescriptionPlaceholder": "What this MCP server provides...",
+      "addMCP": "Add MCP Server",
+      "removeMCP": "Remove",
+      "macros": "Macro Tools",
+      "macrosHint": "Upload macro/automation JSON files exported from izan.io. These browser automation tools will be bundled with your agent.",
+      "uploadMacro": "Upload Macro JSON",
+      "macroToolCount": "tool(s)"
+    },
+    "back": "Back",
+    "next": "Next",
+    "submitting": "Submitting...",
+    "submitAgent": "Submit Agent",
+    "success": {
+      "title": "Agent Submitted!",
+      "description": "Your pull request has been created. Once reviewed and merged, your agent will be live on zihin.io.",
+      "viewPR": "View Pull Request"
+    }
+  },
+  "footer": {
+    "browseAgents": "Browse Agents",
+    "submitAgent": "Submit Agent",
+    "tagline": "Community agent marketplace for izan.io",
+    "product": "Product",
+    "community": "Community"
+  },
+  "auth": {
+    "completingSignIn": "Completing sign in...",
+    "noCode": "No authorization code received",
+    "failed": "Authentication failed",
+    "backToHome": "Back to home"
+  }
+}

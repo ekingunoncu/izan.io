@@ -1,0 +1,50 @@
+{
+  "id": "coursera-compare-courses",
+  "name": "coursera_compare_courses",
+  "description": "Compare multiple courses on Coursera by searching and extracting their ratings, providers, enrollment counts, and levels side by side.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "courses",
+      "type": "string",
+      "description": "Comma-separated course names (e.g. 'machine learning,deep learning,data science')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{courses}}`.split(',').map(c => ({ url: 'https://www.coursera.org/search?query=' + encodeURIComponent(c.trim()), course: c.trim() }))",
+      "name": "items",
+      "label": "Build search URL list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 3,
+      "maxItems": 10,
+      "waitUntil": "load",
+      "label": "Search each course in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": "[class*='result'], [class*='card'], [data-testid='search-result'], li[class*='ais-']",
+          "timeout": 15000,
+          "label": "Wait for results"
+        },
+        {
+          "action": "wait",
+          "ms": 2000
+        },
+        {
+          "action": "code",
+          "code": "const first = document.querySelector('[data-testid=\"search-result\"]:first-child, [class*=\"result-card\"]:first-child, li[class*=\"ais-\"]:first-child, [class*=\"ProductCard\"]:first-child'); if (!first) { const link = document.querySelector('a[href*=\"/learn/\"]'); return { name: '', provider: '', rating: '', url: link ? link.href : '' }; } const titleEl = first.querySelector('h3, h2, [class*=\"title\"]'); const providerEl = first.querySelector('[class*=\"partner\"], [class*=\"provider\"]'); const ratingEl = first.querySelector('[class*=\"rating\"] span, [class*=\"stars\"]'); const enrollmentEl = first.querySelector('[class*=\"enrollment\"], [class*=\"students\"]'); const levelEl = first.querySelector('[class*=\"level\"], [class*=\"difficulty\"]'); const linkEl = first.querySelector('a[href*=\"/learn/\"], a[href*=\"/specializations/\"]'); return { name: titleEl ? titleEl.textContent.trim() : '', provider: providerEl ? providerEl.textContent.trim() : '', rating: ratingEl ? ratingEl.textContent.trim() : '', enrollment: enrollmentEl ? enrollmentEl.textContent.trim() : '', level: levelEl ? levelEl.textContent.trim() : '', url: linkEl ? linkEl.href : '' }",
+          "name": "course_info",
+          "label": "Extract top result"
+        }
+      ]
+    }
+  ]
+}

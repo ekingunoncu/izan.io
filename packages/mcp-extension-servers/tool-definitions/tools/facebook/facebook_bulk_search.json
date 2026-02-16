@@ -1,0 +1,59 @@
+{
+  "id": "facebook-bulk-search",
+  "name": "facebook_bulk_search",
+  "description": "Search multiple queries on Facebook in parallel using concurrent browser tabs. Use this instead of calling facebook_search multiple times - it is faster and more efficient. Pass all queries as a single comma-separated string. Example: 'AI startups,web development,machine learning'.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "queries",
+      "type": "string",
+      "description": "Comma-separated search queries (e.g. 'tech news,gaming community,cooking recipes')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{queries}}`.split(',').map(q => ({ url: 'https://www.facebook.com/search/top/?q=' + encodeURIComponent(q.trim()), query: q.trim() }))",
+      "name": "items",
+      "label": "Build search URL list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 3,
+      "maxItems": 10,
+      "waitUntil": "load",
+      "label": "Search each query in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": "[role='feed'], [role='main'], .x1yztbdb",
+          "timeout": 15000,
+          "label": "Wait for results"
+        },
+        {
+          "action": "wait",
+          "ms": 3000
+        },
+        {
+          "action": "scroll",
+          "direction": "down",
+          "amount": 1000
+        },
+        {
+          "action": "wait",
+          "ms": 2000
+        },
+        {
+          "action": "code",
+          "code": "const results = []; const feedItems = document.querySelectorAll('[role=\"feed\"] > div, [role=\"article\"]'); for (let i = 0; i < Math.min(feedItems.length, 5); i++) { const el = feedItems[i]; const linkEls = el.querySelectorAll('a[href]'); let profileLink = ''; let profileName = ''; let snippet = ''; let resultType = 'post'; for (const link of linkEls) { const href = link.getAttribute('href') || ''; if (href.includes('facebook.com/') && !href.includes('/search/') && !href.includes('#') && !href.includes('policies')) { profileLink = href; profileName = link.textContent.trim(); if (href.includes('/groups/')) resultType = 'group'; else if (href.includes('/events/')) resultType = 'event'; else resultType = 'page_or_profile'; break; } } const textEls = el.querySelectorAll('div[dir=\"auto\"], span[dir=\"auto\"]'); for (const t of textEls) { const text = t.textContent.trim(); if (text.length > 20 && text.length < 1000) { snippet = text.substring(0, 200); break; } } if (profileName || snippet) { results.push({ name: profileName, snippet: snippet, type: resultType, url: profileLink }); } } const params = new URLSearchParams(window.location.search); return { query: params.get('q') || '', result_count: results.length, results: results }",
+          "name": "search_results",
+          "label": "Extract results"
+        }
+      ]
+    }
+  ]
+}

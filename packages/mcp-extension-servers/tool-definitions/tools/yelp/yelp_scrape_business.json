@@ -1,0 +1,29 @@
+{
+  "id": "yelp-scrape-business",
+  "name": "yelp_scrape_business",
+  "description": "Scrape a Yelp business page. Returns name, rating, review count, hours, address, phone, website, categories, highlights, and photos.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "business_url",
+      "type": "string",
+      "description": "Yelp business URL (e.g. 'https://www.yelp.com/biz/house-of-prime-rib-san-francisco')",
+      "required": true
+    }
+  ],
+  "steps": [
+    { "action": "navigate", "url": "{{business_url}}", "label": "Open business page" },
+    { "action": "waitForSelector", "selector": "h1, [class*='businessName'], [class*='biz-page']", "timeout": 15000, "label": "Wait for page" },
+    { "action": "wait", "ms": 2000, "label": "Let page render" },
+    { "action": "scroll", "direction": "down", "amount": 1000, "label": "Scroll for content" },
+    { "action": "wait", "ms": 1500 },
+    { "action": "scroll", "direction": "down", "amount": 1000, "label": "Scroll further" },
+    { "action": "wait", "ms": 1500 },
+    {
+      "action": "code",
+      "code": "const nameEl = document.querySelector('h1, [class*=\"businessName\"] h1'); const ratingEl = document.querySelector('[class*=\"star\"][aria-label], [role=\"img\"][aria-label*=\"star\"]'); const reviewCountEl = document.querySelector('[class*=\"reviewCount\"], a[href*=\"#reviews\"]'); const priceEl = document.querySelector('[class*=\"priceRange\"], [class*=\"price-range\"]'); const addressEl = document.querySelector('[class*=\"map-box\"] address, address, [class*=\"address\"]'); const phoneEl = document.querySelector('[class*=\"phone\"], a[href^=\"tel:\"]'); const websiteEl = document.querySelector('[class*=\"website\"] a, a[href*=\"biz_redir\"]'); const hoursRows = document.querySelectorAll('[class*=\"hours\"] table tr, [class*=\"hours-table\"] tr'); const hours = {}; hoursRows.forEach(function(row) { const cells = row.querySelectorAll('td, th'); if (cells.length >= 2) { hours[cells[0].textContent.trim()] = cells[1].textContent.trim(); } }); const categories = []; document.querySelectorAll('[class*=\"category\"] a[href*=\"/search\"], [class*=\"categories\"] a').forEach(function(el) { categories.push(el.textContent.trim()); }); const highlights = []; document.querySelectorAll('[class*=\"highlight\"], [class*=\"amenity\"]').forEach(function(el) { const text = el.textContent.trim(); if (text && text.length < 100) highlights.push(text); }); const photos = []; document.querySelectorAll('[class*=\"photo-box\"] img, [class*=\"biz-photos\"] img, [class*=\"gallery\"] img').forEach(function(img) { const src = img.getAttribute('src') || ''; if (src && !photos.includes(src)) photos.push(src); }); return { name: nameEl ? nameEl.textContent.trim() : '', rating: ratingEl ? ratingEl.getAttribute('aria-label') || '' : '', review_count: reviewCountEl ? reviewCountEl.textContent.trim() : '', price_range: priceEl ? priceEl.textContent.trim() : '', address: addressEl ? addressEl.textContent.trim() : '', phone: phoneEl ? phoneEl.textContent.trim() : '', website: websiteEl ? websiteEl.href : '', categories: categories, hours: hours, highlights: highlights.slice(0, 15), photos: photos.slice(0, 8), url: window.location.href }",
+      "name": "business_data",
+      "label": "Extract business details"
+    }
+  ]
+}
