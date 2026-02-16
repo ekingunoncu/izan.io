@@ -35,6 +35,8 @@ jobs:
           PUBLIC_SITE_URL: ${{ secrets.PUBLIC_SITE_URL || 'https://izan.io' }}
           # Same-origin: leave empty. Separate API: set CloudFront URL + /api
           VITE_MCP_BASE_URL: ${{ secrets.VITE_MCP_BASE_URL }}
+          # zihin.io GitHub OAuth
+          VITE_GITHUB_CLIENT_ID: ${{ secrets.VITE_GITHUB_CLIENT_ID }}
         run: npm run build
 
       - name: Configure AWS credentials
