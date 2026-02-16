@@ -20,7 +20,23 @@ import {
   X,
   Star,
   TrendingUp,
+  MapPin,
+  Briefcase,
+  Store,
 } from 'lucide-react'
+import {
+  JiraIcon,
+  SlackIcon,
+  GitHubIcon,
+  NotionIcon,
+  WhatsAppIcon,
+  TrelloIcon,
+  XIcon,
+  DiscordIcon,
+  LinkedInIcon,
+  RedditIcon,
+  GoogleMapsIcon,
+} from '~/components/ui/platform-icons'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
 import { useAgentStore, useUIStore, useMCPStore } from '~/store'
@@ -44,6 +60,20 @@ const agentIconMap: Record<string, typeof Bot> = {
   'message-square': MessageSquare,
   'lightbulb': Lightbulb,
   'trending-up': TrendingUp,
+  'briefcase': Briefcase,
+  'map-pin': MapPin,
+  'twitter': XIcon,
+  'jira': JiraIcon,
+  'slack': SlackIcon,
+  'github': GitHubIcon,
+  'notion': NotionIcon,
+  'whatsapp': WhatsAppIcon,
+  'trello': TrelloIcon,
+  'discord': DiscordIcon,
+  'linkedin': LinkedInIcon,
+  'reddit': RedditIcon,
+  'google-maps': GoogleMapsIcon,
+  'store': Store,
 }
 
 export function getAgentIcon(iconId: string) {

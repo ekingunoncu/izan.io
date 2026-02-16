@@ -1,0 +1,32 @@
+{
+  "id": "trello-scrape-board",
+  "name": "trello_scrape_board",
+  "description": "Scrape all lists and cards from a Trello board. Returns organized data with list names, card titles, labels, and due dates.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "board_url",
+      "type": "string",
+      "description": "Trello board URL (e.g. 'https://trello.com/b/abc123/board-name')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{board_url}}",
+      "label": "Open Trello board"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Let board load"
+    },
+    {
+      "action": "code",
+      "code": "const boardId = window.location.pathname.split('/')[2]; const resp = await fetch('/1/boards/' + boardId + '/lists?cards=open&card_fields=name,desc,labels,due,idMembers,shortUrl', { credentials: 'same-origin' }); if (!resp.ok) throw new Error('Board API error: ' + resp.status); const lists = await resp.json(); const result = lists.map(l => ({ list_name: l.name, list_id: l.id, cards: (l.cards || []).map(c => ({ name: c.name, description: c.desc?.substring(0, 200) || '', labels: (c.labels || []).map(lb => lb.name || lb.color), due: c.due || '', url: c.shortUrl || '' })) })); const totalCards = result.reduce((sum, l) => sum + l.cards.length, 0); return { board: boardId, list_count: result.length, total_cards: totalCards, lists: result }",
+      "name": "result",
+      "label": "Fetch board data via Trello API"
+    }
+  ]
+}

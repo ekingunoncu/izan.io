@@ -1,0 +1,65 @@
+{
+  "id": "jira-create-issue",
+  "name": "jira_create_issue",
+  "description": "Create a new Jira issue. Requires project key, summary, and issue type. Optionally set description, priority, and assignee.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "jira_url",
+      "type": "string",
+      "description": "Base URL of Jira instance (e.g. 'https://company.atlassian.net')",
+      "required": true
+    },
+    {
+      "name": "project_key",
+      "type": "string",
+      "description": "Project key (e.g. 'PROJ')",
+      "required": true
+    },
+    {
+      "name": "summary",
+      "type": "string",
+      "description": "Issue summary/title",
+      "required": true
+    },
+    {
+      "name": "issue_type",
+      "type": "string",
+      "description": "Issue type: 'Task', 'Bug', 'Story', 'Epic' (default: Task)",
+      "required": false,
+      "default": "Task"
+    },
+    {
+      "name": "description",
+      "type": "string",
+      "description": "Issue description text",
+      "required": false,
+      "default": ""
+    },
+    {
+      "name": "priority",
+      "type": "string",
+      "description": "Priority: 'Highest', 'High', 'Medium', 'Low', 'Lowest' (default: Medium)",
+      "required": false,
+      "default": "Medium"
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{jira_url}}/browse",
+      "label": "Open Jira"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let Jira load"
+    },
+    {
+      "action": "code",
+      "code": "const baseUrl = `{{jira_url}}`.replace(/\\/$/, ''); const desc = `{{description}}`; const body = { fields: { project: { key: `{{project_key}}` }, summary: `{{summary}}`, issuetype: { name: `{{issue_type}}` || 'Task' } } }; if (desc) { body.fields.description = { type: 'doc', version: 1, content: [{ type: 'paragraph', content: [{ type: 'text', text: desc }] }] }; } const priority = `{{priority}}`; if (priority) { body.fields.priority = { name: priority }; } const resp = await fetch(baseUrl + '/rest/api/3/issue', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify(body) }); if (!resp.ok) { const err = await resp.text(); throw new Error('Create failed: ' + resp.status + ' ' + err); } const result = await resp.json(); return { success: true, key: result.key, id: result.id, url: baseUrl + '/browse/' + result.key }",
+      "name": "result",
+      "label": "Create issue via REST API"
+    }
+  ]
+}

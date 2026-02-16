@@ -1,0 +1,32 @@
+{
+  "id": "notion-search",
+  "name": "notion_search",
+  "description": "Search pages and databases in your Notion workspace. Returns matching pages with titles, types, and last edited times.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "query",
+      "type": "string",
+      "description": "Search query text",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://www.notion.so",
+      "label": "Open Notion"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Let Notion load"
+    },
+    {
+      "action": "code",
+      "code": "const resp = await fetch('/api/v3/search', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ query: `{{query}}`, type: 'BlocksInSpace', limit: 20, filters: { isDeletedOnly: false, navigableBlockContentOnly: true } }) }); if (!resp.ok) throw new Error('Notion search failed: ' + resp.status); const data = await resp.json(); const results = (data.results || []).map(r => { const block = data.recordMap?.block?.[r.id]?.value; return { id: r.id, title: block?.properties?.title?.flat()?.join('') || r.highlight?.text || '', type: block?.type || '', last_edited: block?.last_edited_time ? new Date(block.last_edited_time).toISOString() : '', url: 'https://www.notion.so/' + r.id.replace(/-/g, '') }; }); return { result_count: results.length, total: data.total || results.length, results: results }",
+      "name": "result",
+      "label": "Search via Notion internal API"
+    }
+  ]
+}

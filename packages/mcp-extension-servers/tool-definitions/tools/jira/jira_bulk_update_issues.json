@@ -1,0 +1,64 @@
+{
+  "id": "jira-bulk-update-issues",
+  "name": "jira_bulk_update_issues",
+  "description": "Update multiple Jira issues in parallel using concurrent browser tabs. Use this instead of calling jira_update_issue multiple times. Pass issue keys as a comma-separated string.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "jira_url",
+      "type": "string",
+      "description": "Base URL of Jira instance (e.g. 'https://company.atlassian.net')",
+      "required": true
+    },
+    {
+      "name": "issue_keys",
+      "type": "string",
+      "description": "Comma-separated Jira issue keys (e.g. 'PROJ-1,PROJ-2,PROJ-3')",
+      "required": true
+    },
+    {
+      "name": "priority",
+      "type": "string",
+      "description": "New priority for all issues: 'Highest', 'High', 'Medium', 'Low', 'Lowest' (leave empty to skip)",
+      "required": false,
+      "default": ""
+    },
+    {
+      "name": "summary_prefix",
+      "type": "string",
+      "description": "Prefix to add to each issue's summary (leave empty to skip)",
+      "required": false,
+      "default": ""
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "const baseUrl = `{{jira_url}}`.replace(/\\/$/, ''); return `{{issue_keys}}`.split(',').map(k => ({ url: baseUrl + '/browse/' + k.trim(), key: k.trim() }))",
+      "name": "items",
+      "label": "Build issue URL list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 3,
+      "maxItems": 20,
+      "waitUntil": "load",
+      "label": "Update each issue in parallel",
+      "detailSteps": [
+        {
+          "action": "wait",
+          "ms": 2000
+        },
+        {
+          "action": "code",
+          "code": "const baseUrl = `{{jira_url}}`.replace(/\\/$/, ''); const key = window.location.pathname.split('/').pop(); const fields = {}; const priority = `{{priority}}`; if (priority) fields.priority = { name: priority }; const prefix = `{{summary_prefix}}`; if (prefix) { const gResp = await fetch(baseUrl + '/rest/api/3/issue/' + key + '?fields=summary', { credentials: 'same-origin' }); if (gResp.ok) { const d = await gResp.json(); fields.summary = prefix + d.fields.summary; } } if (Object.keys(fields).length === 0) return { status: 'skipped', key: key, message: 'No fields to update' }; const resp = await fetch(baseUrl + '/rest/api/3/issue/' + key, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ fields }) }); if (!resp.ok) return { status: 'error', key: key, error: resp.status }; return { status: 'updated', key: key, updated_fields: Object.keys(fields) }",
+          "name": "update_result",
+          "label": "Update issue"
+        }
+      ]
+    }
+  ]
+}

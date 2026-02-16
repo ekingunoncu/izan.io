@@ -3,14 +3,20 @@
 import { definition as general } from '../general/definition.js'
 import { definition as discord_manager } from '../discord-manager/definition.js'
 import { definition as domain_expert } from '../domain-expert/definition.js'
+import { definition as github_manager } from '../github-manager/definition.js'
+import { definition as jira_manager } from '../jira-manager/definition.js'
 import { definition as linkedin_manager } from '../linkedin-manager/definition.js'
 import { definition as maps_scout } from '../maps-scout/definition.js'
+import { definition as notion_manager } from '../notion-manager/definition.js'
 import { definition as play_store } from '../play-store/definition.js'
 import { definition as reddit_manager } from '../reddit-manager/definition.js'
+import { definition as slack_manager } from '../slack-manager/definition.js'
+import { definition as trello_manager } from '../trello-manager/definition.js'
 import { definition as web_fetch } from '../web-fetch/definition.js'
+import { definition as whatsapp_manager } from '../whatsapp-manager/definition.js'
 import { definition as x_manager } from '../x-manager/definition.js'
 
-export const BUILTIN_AGENT_DEFINITIONS = [general, discord_manager, domain_expert, linkedin_manager, maps_scout, play_store, reddit_manager, web_fetch, x_manager]
+export const BUILTIN_AGENT_DEFINITIONS = [general, discord_manager, domain_expert, github_manager, jira_manager, linkedin_manager, maps_scout, notion_manager, play_store, reddit_manager, slack_manager, trello_manager, web_fetch, whatsapp_manager, x_manager]
 
 export const IMPLICIT_AGENT_SERVERS: Record<string, string[]> = Object.fromEntries(
   BUILTIN_AGENT_DEFINITIONS.map((a) => [a.id, a.implicitMCPIds])

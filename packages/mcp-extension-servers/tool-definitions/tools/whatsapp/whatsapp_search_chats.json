@@ -1,0 +1,38 @@
+{
+  "id": "whatsapp-search-chats",
+  "name": "whatsapp_search_chats",
+  "description": "Search conversations in WhatsApp Web. Returns matching chats with contact names and last message preview.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "query",
+      "type": "string",
+      "description": "Search query text",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://web.whatsapp.com",
+      "label": "Open WhatsApp Web"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "div[contenteditable='true'][data-tab='3'], div#side",
+      "timeout": 30000,
+      "label": "Wait for WhatsApp to load"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Let app fully render"
+    },
+    {
+      "action": "code",
+      "code": "const searchBox = document.querySelector('div[contenteditable=\"true\"][data-tab=\"3\"]'); if (!searchBox) throw new Error('Search box not found'); searchBox.focus(); searchBox.textContent = ''; document.execCommand('insertText', false, `{{query}}`); searchBox.dispatchEvent(new Event('input', { bubbles: true })); await new Promise(r => setTimeout(r, 2500)); const results = []; const chatItems = document.querySelectorAll('#pane-side [data-testid=\"list-item\"], #pane-side [data-testid=\"cell-frame-container\"], div[data-testid=\"chatlist\"] div[tabindex]'); for (let i = 0; i < Math.min(chatItems.length, 15); i++) { const item = chatItems[i]; const nameEl = item.querySelector('span[title], [data-testid=\"cell-frame-title\"] span'); const msgEl = item.querySelector('span[data-testid=\"last-msg-status\"], .matched-text, span.selectable-text'); const timeEl = item.querySelector('div._amk6, [data-testid=\"cell-frame-secondary\"]'); results.push({ name: nameEl?.getAttribute('title') || nameEl?.textContent?.trim() || '', last_message: msgEl?.textContent?.trim()?.substring(0, 150) || '', time: timeEl?.textContent?.trim() || '' }); } return { query: `{{query}}`, result_count: results.length, results: results }",
+      "name": "result",
+      "label": "Search and extract results"
+    }
+  ]
+}

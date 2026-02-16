@@ -1,0 +1,56 @@
+{
+  "id": "whatsapp-send-message",
+  "name": "whatsapp_send_message",
+  "description": "Send a message to a WhatsApp contact or group. You must be logged into WhatsApp Web.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "contact_name",
+      "type": "string",
+      "description": "Contact or group name to search for",
+      "required": true
+    },
+    {
+      "name": "message",
+      "type": "string",
+      "description": "Message text to send",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://web.whatsapp.com",
+      "label": "Open WhatsApp Web"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "div[contenteditable='true'][data-tab='3'], div#side",
+      "timeout": 30000,
+      "label": "Wait for WhatsApp to load"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Let app fully render"
+    },
+    {
+      "action": "code",
+      "code": "const searchBox = document.querySelector('div[contenteditable=\"true\"][data-tab=\"3\"]'); if (!searchBox) throw new Error('Search box not found - make sure WhatsApp Web is loaded'); searchBox.focus(); searchBox.textContent = ''; document.execCommand('insertText', false, `{{contact_name}}`); searchBox.dispatchEvent(new Event('input', { bubbles: true })); await new Promise(r => setTimeout(r, 2000)); const results = document.querySelectorAll('#pane-side span[title], div[data-testid=\"cell-frame-title\"] span'); let found = false; for (const r of results) { if (r.getAttribute('title')?.toLowerCase().includes(`{{contact_name}}`.toLowerCase()) || r.textContent?.toLowerCase().includes(`{{contact_name}}`.toLowerCase())) { r.closest('[data-testid=\"list-item\"], [data-testid=\"cell-frame-container\"], div[tabindex]')?.click(); found = true; break; } } if (!found) throw new Error('Contact not found: {{contact_name}}'); await new Promise(r => setTimeout(r, 1500)); return { found: true, contact: `{{contact_name}}` }",
+      "name": "find_contact",
+      "label": "Search and select contact"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "div[contenteditable='true'][data-tab='10'], footer div[contenteditable='true']",
+      "timeout": 10000,
+      "label": "Wait for message input"
+    },
+    {
+      "action": "code",
+      "code": "const msgBox = document.querySelector('div[contenteditable=\"true\"][data-tab=\"10\"]') || document.querySelector('footer div[contenteditable=\"true\"]'); if (!msgBox) throw new Error('Message input not found'); msgBox.focus(); document.execCommand('insertText', false, `{{message}}`); msgBox.dispatchEvent(new Event('input', { bubbles: true })); await new Promise(r => setTimeout(r, 500)); const sendBtn = document.querySelector('span[data-icon=\"send\"], button[aria-label=\"Send\"]'); if (sendBtn) { sendBtn.closest('button')?.click() || sendBtn.click(); } else { msgBox.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true })); } await new Promise(r => setTimeout(r, 1500)); return { success: true, contact: `{{contact_name}}`, message: `{{message}}` }",
+      "name": "result",
+      "label": "Type and send message"
+    }
+  ]
+}

@@ -183,6 +183,14 @@ export async function initializeDatabase(): Promise<void> {
         }
       }
 
+      // Migration: remove stale builtin agents no longer in DEFAULT_AGENTS
+      const defaultIds = new Set(DEFAULT_AGENTS.map(a => a.id))
+      for (const agent of allAgents) {
+        if (agent.source === 'builtin' && !defaultIds.has(agent.id)) {
+          await db.agents.delete(agent.id)
+        }
+      }
+
       // Migration: sync builtin agents from DEFAULT_AGENTS when not user-edited
       for (const defaultAgent of DEFAULT_AGENTS) {
         const existing = allAgents.find(a => a.id === defaultAgent.id && a.source === 'builtin')
@@ -192,6 +200,10 @@ export async function initializeDatabase(): Promise<void> {
           const defaultAuto = (defaultAgent as { automationServerIds?: string[] }).automationServerIds ?? []
           const existingAuto = (existing as { automationServerIds?: string[] }).automationServerIds ?? []
           const needsSync =
+            existing.name !== defaultAgent.name ||
+            existing.description !== defaultAgent.description ||
+            existing.icon !== defaultAgent.icon ||
+            existing.category !== defaultAgent.category ||
             existing.implicitMCPIds.length !== defaultAgent.implicitMCPIds.length ||
             existing.implicitMCPIds.some((id, i) => id !== defaultAgent.implicitMCPIds[i]) ||
             existingExt.length !== defaultExt.length ||
@@ -204,6 +216,10 @@ export async function initializeDatabase(): Promise<void> {
             existing.topP !== defaultAgent.topP
           if (needsSync) {
             await db.agents.update(defaultAgent.id, {
+              name: defaultAgent.name,
+              description: defaultAgent.description,
+              icon: defaultAgent.icon,
+              category: defaultAgent.category,
               implicitMCPIds: defaultAgent.implicitMCPIds,
               extensionMCPIds: defaultExt,
               automationServerIds: defaultAuto,

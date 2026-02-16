@@ -1,0 +1,50 @@
+{
+  "id": "trello-bulk-move-cards",
+  "name": "trello_bulk_move_cards",
+  "description": "Move multiple Trello cards to a target list in parallel using concurrent browser tabs. Use this instead of calling trello_move_card multiple times. Pass card IDs as a comma-separated string.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "card_ids",
+      "type": "string",
+      "description": "Comma-separated Trello card IDs to move",
+      "required": true
+    },
+    {
+      "name": "target_list_id",
+      "type": "string",
+      "description": "Target list ID to move all cards to",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{card_ids}}`.split(',').map(id => ({ url: 'https://trello.com', card_id: id.trim() }))",
+      "name": "items",
+      "label": "Build card ID list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 3,
+      "maxItems": 20,
+      "waitUntil": "load",
+      "label": "Move each card in parallel",
+      "detailSteps": [
+        {
+          "action": "wait",
+          "ms": 2000
+        },
+        {
+          "action": "code",
+          "code": "const cardId = new URLSearchParams(window.location.search).get('_id') || ''; const resp = await fetch('/1/cards/' + cardId + '?idList={{target_list_id}}', { method: 'PUT', credentials: 'same-origin' }); if (!resp.ok) return { status: 'error', card_id: cardId, error: resp.status }; const card = await resp.json(); return { status: 'moved', card_id: card.id, card_name: card.name }",
+          "name": "move_result",
+          "label": "Move card"
+        }
+      ]
+    }
+  ]
+}

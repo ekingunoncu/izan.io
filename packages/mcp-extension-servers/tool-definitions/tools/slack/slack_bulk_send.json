@@ -1,0 +1,50 @@
+{
+  "id": "slack-bulk-send",
+  "name": "slack_bulk_send",
+  "description": "Send a message to multiple Slack channels in parallel using concurrent browser tabs. Use this instead of calling slack_send_message multiple times. Pass channel names as a comma-separated string.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "channel_names",
+      "type": "string",
+      "description": "Comma-separated channel names without # (e.g. 'general,random,engineering')",
+      "required": true
+    },
+    {
+      "name": "message",
+      "type": "string",
+      "description": "Message text to send to each channel",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{channel_names}}`.split(',').map(c => ({ url: 'https://app.slack.com', channel: c.trim() }))",
+      "name": "items",
+      "label": "Build channel list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 2,
+      "maxItems": 10,
+      "waitUntil": "load",
+      "label": "Send to each channel in parallel",
+      "detailSteps": [
+        {
+          "action": "wait",
+          "ms": 3000
+        },
+        {
+          "action": "code",
+          "code": "const localConfig = localStorage.getItem('localConfig_v2'); if (!localConfig) return { status: 'error', message: 'Not logged in' }; const config = JSON.parse(localConfig); const teamId = Object.keys(config.teams)[0]; const token = config.teams[teamId].token; const chanResp = await fetch('/api/conversations.list?types=public_channel,private_channel&limit=200', { method: 'POST', headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/x-www-form-urlencoded' } }); const chanData = await chanResp.json(); const chanName = new URLSearchParams(window.location.search).get('_chan') || ''; const channel = chanData.channels?.find(c => c.name === chanName); if (!channel) return { status: 'not_found', channel: chanName }; const resp = await fetch('/api/chat.postMessage', { method: 'POST', headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' }, body: JSON.stringify({ channel: channel.id, text: `{{message}}` }) }); const data = await resp.json(); return { status: data.ok ? 'sent' : 'error', channel: chanName, error: data.error || '' }",
+          "name": "send_result",
+          "label": "Send message"
+        }
+      ]
+    }
+  ]
+}

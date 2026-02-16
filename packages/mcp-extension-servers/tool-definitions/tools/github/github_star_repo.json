@@ -1,0 +1,38 @@
+{
+  "id": "github-star-repo",
+  "name": "github_star_repo",
+  "description": "Star a GitHub repository. You must be logged into GitHub.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "repo_url",
+      "type": "string",
+      "description": "GitHub repository URL (e.g. 'https://github.com/owner/repo')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{repo_url}}",
+      "label": "Open repository"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[data-testid='latest-commit'], .BorderGrid-row, .repository-content",
+      "timeout": 15000,
+      "label": "Wait for repo page"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page render"
+    },
+    {
+      "action": "code",
+      "code": "const starBtn = document.querySelector('button[data-ga-click*=\"star\"], form.unstarred button, .js-toggler-container:not(.on) button.btn-sm'); if (!starBtn) { const alreadyStarred = document.querySelector('form.starred button, .js-toggler-container.on button'); if (alreadyStarred) return { success: true, message: 'Already starred', repo: window.location.pathname.substring(1) }; return { success: false, message: 'Star button not found - make sure you are logged in' }; } starBtn.click(); await new Promise(r => setTimeout(r, 1000)); return { success: true, message: 'Repository starred', repo: window.location.pathname.substring(1) }",
+      "name": "result",
+      "label": "Click star button"
+    }
+  ]
+}

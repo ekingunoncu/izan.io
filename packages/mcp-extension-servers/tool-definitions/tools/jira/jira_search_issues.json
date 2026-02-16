@@ -1,0 +1,38 @@
+{
+  "id": "jira-search-issues",
+  "name": "jira_search_issues",
+  "description": "Search Jira issues using JQL (Jira Query Language). Returns up to 20 results with key, summary, status, assignee, and priority. You must be logged into your Jira instance.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "jira_url",
+      "type": "string",
+      "description": "Base URL of Jira instance (e.g. 'https://company.atlassian.net')",
+      "required": true
+    },
+    {
+      "name": "jql",
+      "type": "string",
+      "description": "JQL query string (e.g. 'project = PROJ AND status = \"In Progress\"')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{jira_url}}/browse",
+      "label": "Open Jira"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let Jira load"
+    },
+    {
+      "action": "code",
+      "code": "const baseUrl = `{{jira_url}}`.replace(/\\/$/, ''); const jql = `{{jql}}`; const resp = await fetch(baseUrl + '/rest/api/3/search?jql=' + encodeURIComponent(jql) + '&maxResults=20&fields=summary,status,assignee,priority,issuetype,created,updated', { credentials: 'same-origin' }); if (!resp.ok) throw new Error('Jira API error: ' + resp.status); const data = await resp.json(); const issues = (data.issues || []).map(i => ({ key: i.key, summary: i.fields.summary, status: i.fields.status?.name || '', assignee: i.fields.assignee?.displayName || 'Unassigned', priority: i.fields.priority?.name || '', type: i.fields.issuetype?.name || '', created: i.fields.created, updated: i.fields.updated })); return { total: data.total, result_count: issues.length, issues: issues }",
+      "name": "result",
+      "label": "Search issues via REST API"
+    }
+  ]
+}

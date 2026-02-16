@@ -1,0 +1,25 @@
+{
+  "id": "slack-list-members",
+  "name": "slack_list_members",
+  "description": "List all members in the Slack workspace with display names, real names, and online status.",
+  "version": "1.0.0",
+  "parameters": [],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://app.slack.com",
+      "label": "Open Slack"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Let Slack load"
+    },
+    {
+      "action": "code",
+      "code": "const localConfig = localStorage.getItem('localConfig_v2'); if (!localConfig) throw new Error('Not logged into Slack'); const config = JSON.parse(localConfig); const teamId = Object.keys(config.teams)[0]; const token = config.teams[teamId].token; const resp = await fetch('/api/users.list?limit=200', { method: 'POST', headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/x-www-form-urlencoded' } }); const data = await resp.json(); if (!data.ok) throw new Error('Members failed: ' + data.error); const members = (data.members || []).filter(m => !m.is_bot && !m.deleted).map(m => ({ id: m.id, name: m.name, display_name: m.profile?.display_name || '', real_name: m.real_name || '', title: m.profile?.title || '', is_admin: m.is_admin || false })); return { result_count: members.length, members: members }",
+      "name": "result",
+      "label": "List members via Slack API"
+    }
+  ]
+}

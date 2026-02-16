@@ -1,0 +1,38 @@
+{
+  "id": "trello-move-card",
+  "name": "trello_move_card",
+  "description": "Move a Trello card to a different list on the same or different board.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "card_id",
+      "type": "string",
+      "description": "Trello card ID to move",
+      "required": true
+    },
+    {
+      "name": "target_list_id",
+      "type": "string",
+      "description": "Target list ID to move the card to",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://trello.com",
+      "label": "Open Trello"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let Trello load"
+    },
+    {
+      "action": "code",
+      "code": "const resp = await fetch('/1/cards/{{card_id}}?idList={{target_list_id}}', { method: 'PUT', credentials: 'same-origin' }); if (!resp.ok) { const err = await resp.text(); throw new Error('Move failed: ' + resp.status + ' ' + err); } const card = await resp.json(); return { success: true, card_id: card.id, card_name: card.name, new_list_id: '{{target_list_id}}', url: card.shortUrl || card.url }",
+      "name": "result",
+      "label": "Move card via Trello API"
+    }
+  ]
+}

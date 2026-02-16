@@ -534,7 +534,7 @@ export default function Home() {
             <div className="max-w-4xl mx-auto">
               <div className="relative rounded-2xl overflow-hidden border border-border/50 shadow-2xl shadow-primary/5 bg-black aspect-video">
                 <iframe
-                  src="https://www.youtube.com/embed/5CHOTIYhP1w?rel=0&modestbranding=1"
+                  src="https://www.youtube.com/embed/2MfR4l__4wQ?rel=0&modestbranding=1"
                   title={t("home.demoTitle")}
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen

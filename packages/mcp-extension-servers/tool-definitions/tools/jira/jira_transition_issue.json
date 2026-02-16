@@ -1,0 +1,44 @@
+{
+  "id": "jira-transition-issue",
+  "name": "jira_transition_issue",
+  "description": "Transition a Jira issue to a new status (e.g. To Do → In Progress → Done). Lists available transitions if target_status is not found.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "jira_url",
+      "type": "string",
+      "description": "Base URL of Jira instance (e.g. 'https://company.atlassian.net')",
+      "required": true
+    },
+    {
+      "name": "issue_key",
+      "type": "string",
+      "description": "Jira issue key (e.g. 'PROJ-123')",
+      "required": true
+    },
+    {
+      "name": "target_status",
+      "type": "string",
+      "description": "Target status name (e.g. 'In Progress', 'Done', 'To Do')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{jira_url}}/browse/{{issue_key}}",
+      "label": "Open Jira issue"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page load"
+    },
+    {
+      "action": "code",
+      "code": "const baseUrl = `{{jira_url}}`.replace(/\\/$/, ''); const target = `{{target_status}}`.toLowerCase(); const tResp = await fetch(baseUrl + '/rest/api/3/issue/{{issue_key}}/transitions', { credentials: 'same-origin' }); if (!tResp.ok) throw new Error('Failed to get transitions: ' + tResp.status); const tData = await tResp.json(); const transitions = tData.transitions || []; const match = transitions.find(t => t.name.toLowerCase() === target || t.to.name.toLowerCase() === target); if (!match) return { success: false, message: 'Status not available', available_transitions: transitions.map(t => ({ id: t.id, name: t.name, to: t.to.name })) }; const resp = await fetch(baseUrl + '/rest/api/3/issue/{{issue_key}}/transitions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ transition: { id: match.id } }) }); if (!resp.ok) throw new Error('Transition failed: ' + resp.status); return { success: true, key: '{{issue_key}}', transitioned_to: match.to.name }",
+      "name": "result",
+      "label": "Transition issue via REST API"
+    }
+  ]
+}

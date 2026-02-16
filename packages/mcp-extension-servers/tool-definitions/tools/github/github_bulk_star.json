@@ -1,0 +1,50 @@
+{
+  "id": "github-bulk-star",
+  "name": "github_bulk_star",
+  "description": "Star multiple GitHub repositories in parallel using concurrent browser tabs. Use this instead of calling github_star_repo multiple times. Pass repo URLs as a comma-separated string.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "repo_urls",
+      "type": "string",
+      "description": "Comma-separated GitHub repo URLs (e.g. 'https://github.com/facebook/react,https://github.com/vuejs/vue')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{repo_urls}}`.split(',').map(u => ({ url: u.trim() }))",
+      "name": "items",
+      "label": "Build repo URL list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 3,
+      "maxItems": 20,
+      "waitUntil": "load",
+      "label": "Star each repo in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": "[data-testid='latest-commit'], .BorderGrid-row, .repository-content",
+          "timeout": 15000,
+          "label": "Wait for repo page"
+        },
+        {
+          "action": "wait",
+          "ms": 2000
+        },
+        {
+          "action": "code",
+          "code": "const starBtn = document.querySelector('button[data-ga-click*=\"star\"], form.unstarred button, .js-toggler-container:not(.on) button.btn-sm'); if (!starBtn) { const alreadyStarred = document.querySelector('form.starred button, .js-toggler-container.on button'); if (alreadyStarred) return { status: 'already_starred', repo: window.location.pathname.substring(1) }; return { status: 'error', repo: window.location.pathname.substring(1), message: 'Star button not found' }; } starBtn.click(); await new Promise(r => setTimeout(r, 1000)); return { status: 'starred', repo: window.location.pathname.substring(1) }",
+          "name": "star_result",
+          "label": "Star repo"
+        }
+      ]
+    }
+  ]
+}

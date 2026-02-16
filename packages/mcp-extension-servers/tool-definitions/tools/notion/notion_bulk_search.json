@@ -1,0 +1,44 @@
+{
+  "id": "notion-bulk-search",
+  "name": "notion_bulk_search",
+  "description": "Search multiple queries in Notion in parallel using concurrent browser tabs. Use this instead of calling notion_search multiple times. Pass queries as a comma-separated string.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "queries",
+      "type": "string",
+      "description": "Comma-separated search queries (e.g. 'meeting notes,project plan,Q1 goals')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{queries}}`.split(',').map(q => ({ url: 'https://www.notion.so', query: q.trim() }))",
+      "name": "items",
+      "label": "Build query list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 3,
+      "maxItems": 10,
+      "waitUntil": "load",
+      "label": "Search each query in parallel",
+      "detailSteps": [
+        {
+          "action": "wait",
+          "ms": 3000
+        },
+        {
+          "action": "code",
+          "code": "const query = new URLSearchParams(window.location.search).get('_q') || ''; const resp = await fetch('/api/v3/search', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ query: query, type: 'BlocksInSpace', limit: 5, filters: { isDeletedOnly: false, navigableBlockContentOnly: true } }) }); if (!resp.ok) return { query: query, error: resp.status }; const data = await resp.json(); const results = (data.results || []).map(r => { const block = data.recordMap?.block?.[r.id]?.value; return { title: block?.properties?.title?.flat()?.join('') || '', type: block?.type || '' }; }); return { query: query, result_count: results.length, results: results }",
+          "name": "search_result",
+          "label": "Search Notion"
+        }
+      ]
+    }
+  ]
+}

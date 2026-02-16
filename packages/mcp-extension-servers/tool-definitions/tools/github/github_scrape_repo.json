@@ -1,0 +1,38 @@
+{
+  "id": "github-scrape-repo",
+  "name": "github_scrape_repo",
+  "description": "Scrape detailed info about a GitHub repository including stars, forks, description, languages, recent activity, and README excerpt.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "repo_url",
+      "type": "string",
+      "description": "GitHub repository URL (e.g. 'https://github.com/owner/repo')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{repo_url}}",
+      "label": "Open repository"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[data-testid='latest-commit'], .BorderGrid-row, .repository-content",
+      "timeout": 15000,
+      "label": "Wait for repo page"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page render"
+    },
+    {
+      "action": "code",
+      "code": "const name = document.querySelector('[itemprop=\"name\"], strong[itemprop=\"name\"] a')?.textContent?.trim() || ''; const owner = document.querySelector('[itemprop=\"author\"] a, .author a')?.textContent?.trim() || ''; const desc = document.querySelector('[itemprop=\"description\"], .f4.my-3')?.textContent?.trim() || ''; const stars = document.querySelector('#repo-stars-counter-star, a[href*=\"/stargazers\"] .Counter, .social-count')?.textContent?.trim() || ''; const forks = document.querySelector('#repo-network-counter, a[href*=\"/forks\"] .Counter')?.textContent?.trim() || ''; const watchers = document.querySelector('#repo-watchers-counter')?.textContent?.trim() || ''; const topics = Array.from(document.querySelectorAll('.topic-tag, a[data-octo-click=\"topic_click\"]')).map(t => t.textContent.trim()); const languages = Array.from(document.querySelectorAll('.BorderGrid-row .Progress-item')).map(l => l.getAttribute('aria-label') || '').filter(Boolean); const readme = document.querySelector('#readme article, .markdown-body')?.textContent?.trim()?.substring(0, 500) || ''; const license = document.querySelector('a[data-analytics-event*=\"LICENSE\"], .octicon-law')?.parentElement?.textContent?.trim() || ''; return { name: owner + '/' + name, description: desc, stars: stars, forks: forks, watchers: watchers, topics: topics, languages: languages, license: license, readme_excerpt: readme, url: window.location.href }",
+      "name": "result",
+      "label": "Extract repo details"
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "id": "notion-get-page",
+  "name": "notion_get_page",
+  "description": "Get the content of a Notion page including title, blocks, and properties. Returns structured page content.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "page_url",
+      "type": "string",
+      "description": "Notion page URL (e.g. 'https://www.notion.so/Page-Title-abc123')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{page_url}}",
+      "label": "Open Notion page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".notion-page-content, .notion-scroller, [data-content-editable-root]",
+      "timeout": 15000,
+      "label": "Wait for page content"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Let page fully render"
+    },
+    {
+      "action": "code",
+      "code": "const title = document.querySelector('.notion-page__title, [placeholder=\"Untitled\"], .notranslate[data-content-editable-leaf]')?.textContent?.trim() || ''; const blocks = []; const contentEls = document.querySelectorAll('.notion-page-content [data-block-id], .notion-scroller .notion-selectable'); for (let i = 0; i < Math.min(contentEls.length, 50); i++) { const el = contentEls[i]; const text = el.textContent?.trim() || ''; if (text) blocks.push({ type: el.getAttribute('data-block-type') || el.className.match(/notion-(\\w+)-block/)?.[1] || 'text', content: text.substring(0, 300) }); } const properties = []; const propEls = document.querySelectorAll('.notion-collection-page-properties .notion-collection_view-block [data-block-id]'); propEls.forEach(p => { const label = p.querySelector('.notion-collection-property-title')?.textContent?.trim() || ''; const value = p.querySelector('.notion-collection-property-value, .notion-property-value')?.textContent?.trim() || ''; if (label || value) properties.push({ label, value }); }); return { title: title, block_count: blocks.length, blocks: blocks, properties: properties, url: window.location.href }",
+      "name": "result",
+      "label": "Extract page content from DOM"
+    }
+  ]
+}

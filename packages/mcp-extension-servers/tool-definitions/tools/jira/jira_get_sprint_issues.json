@@ -1,0 +1,38 @@
+{
+  "id": "jira-get-sprint-issues",
+  "name": "jira_get_sprint_issues",
+  "description": "Get all issues in a specific sprint. Returns issue keys, summaries, statuses, and assignees.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "jira_url",
+      "type": "string",
+      "description": "Base URL of Jira instance (e.g. 'https://company.atlassian.net')",
+      "required": true
+    },
+    {
+      "name": "sprint_id",
+      "type": "string",
+      "description": "Sprint ID number",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{jira_url}}/jira/software/projects",
+      "label": "Open Jira"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let Jira load"
+    },
+    {
+      "action": "code",
+      "code": "const baseUrl = `{{jira_url}}`.replace(/\\/$/, ''); const resp = await fetch(baseUrl + '/rest/agile/1.0/sprint/{{sprint_id}}/issue?maxResults=50&fields=summary,status,assignee,priority,issuetype', { credentials: 'same-origin' }); if (!resp.ok) throw new Error('Sprint API error: ' + resp.status); const data = await resp.json(); const issues = (data.issues || []).map(i => ({ key: i.key, summary: i.fields.summary, status: i.fields.status?.name || '', assignee: i.fields.assignee?.displayName || 'Unassigned', priority: i.fields.priority?.name || '', type: i.fields.issuetype?.name || '' })); return { total: data.total || issues.length, result_count: issues.length, issues: issues }",
+      "name": "result",
+      "label": "Fetch sprint issues via Agile REST API"
+    }
+  ]
+}

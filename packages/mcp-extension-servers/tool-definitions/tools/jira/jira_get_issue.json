@@ -1,0 +1,38 @@
+{
+  "id": "jira-get-issue",
+  "name": "jira_get_issue",
+  "description": "Get detailed information about a specific Jira issue including summary, description, status, assignee, priority, labels, and comments.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "jira_url",
+      "type": "string",
+      "description": "Base URL of Jira instance (e.g. 'https://company.atlassian.net')",
+      "required": true
+    },
+    {
+      "name": "issue_key",
+      "type": "string",
+      "description": "Jira issue key (e.g. 'PROJ-123')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{jira_url}}/browse/{{issue_key}}",
+      "label": "Open Jira issue"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page load"
+    },
+    {
+      "action": "code",
+      "code": "const baseUrl = `{{jira_url}}`.replace(/\\/$/, ''); const resp = await fetch(baseUrl + '/rest/api/3/issue/{{issue_key}}?fields=summary,description,status,assignee,reporter,priority,issuetype,labels,created,updated,comment', { credentials: 'same-origin' }); if (!resp.ok) throw new Error('Jira API error: ' + resp.status); const i = await resp.json(); const comments = (i.fields.comment?.comments || []).slice(-5).map(c => ({ author: c.author?.displayName || '', body: c.body?.content?.map(b => b.content?.map(t => t.text).join('')).join('\\n') || '', created: c.created })); return { key: i.key, summary: i.fields.summary, description: i.fields.description?.content?.map(b => b.content?.map(t => t.text).join('')).join('\\n') || '', status: i.fields.status?.name || '', assignee: i.fields.assignee?.displayName || 'Unassigned', reporter: i.fields.reporter?.displayName || '', priority: i.fields.priority?.name || '', type: i.fields.issuetype?.name || '', labels: i.fields.labels || [], created: i.fields.created, updated: i.fields.updated, recent_comments: comments }",
+      "name": "result",
+      "label": "Fetch issue details via REST API"
+    }
+  ]
+}

@@ -25,10 +25,23 @@ import {
   Server,
   Cog,
   Link2,
-  Send,
   Briefcase,
   MapPin,
+  Store,
 } from "lucide-react";
+import {
+  JiraIcon,
+  SlackIcon,
+  GitHubIcon,
+  NotionIcon,
+  WhatsAppIcon,
+  TrelloIcon,
+  XIcon,
+  DiscordIcon,
+  LinkedInIcon,
+  RedditIcon,
+  GoogleMapsIcon,
+} from "~/components/ui/platform-icons";
 import { Button } from "~/components/ui/button";
 import { IzanLogo } from "~/components/ui/izan-logo";
 import {
@@ -70,9 +83,20 @@ const AGENT_ICONS: Record<string, typeof Bot> = {
   lightbulb: Lightbulb,
   puzzle: Puzzle,
   "trending-up": TrendingUp,
-  twitter: Send,
+  twitter: XIcon,
   briefcase: Briefcase,
   "map-pin": MapPin,
+  store: Store,
+  jira: JiraIcon,
+  slack: SlackIcon,
+  github: GitHubIcon,
+  notion: NotionIcon,
+  whatsapp: WhatsAppIcon,
+  trello: TrelloIcon,
+  discord: DiscordIcon,
+  linkedin: LinkedInIcon,
+  reddit: RedditIcon,
+  "google-maps": GoogleMapsIcon,
 };
 
 const AGENT_COLORS: Record<string, string> = Object.fromEntries(

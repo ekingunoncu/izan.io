@@ -1,0 +1,46 @@
+{
+  "id": "notion-update-page",
+  "name": "notion_update_page",
+  "description": "Update a Notion page's title or append text content to it.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "page_url",
+      "type": "string",
+      "description": "Notion page URL (e.g. 'https://www.notion.so/Page-Title-abc123')",
+      "required": true
+    },
+    {
+      "name": "new_title",
+      "type": "string",
+      "description": "New page title (leave empty to keep current)",
+      "required": false,
+      "default": ""
+    },
+    {
+      "name": "append_text",
+      "type": "string",
+      "description": "Text to append to the page (leave empty to skip)",
+      "required": false,
+      "default": ""
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{page_url}}",
+      "label": "Open Notion page"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Let page load"
+    },
+    {
+      "action": "code",
+      "code": "const url = window.location.href; const idMatch = url.match(/([a-f0-9]{32})(?:[?#]|$)/) || url.match(/([a-f0-9-]{36})/); if (!idMatch) throw new Error('Could not extract page ID from URL'); let pageId = idMatch[1]; if (pageId.length === 32) pageId = pageId.replace(/(.{8})(.{4})(.{4})(.{4})(.{12})/, '$1-$2-$3-$4-$5'); const ops = []; const newTitle = `{{new_title}}`; if (newTitle) { ops.push({ id: pageId, table: 'block', path: ['properties', 'title'], command: 'set', args: [[ newTitle ]] }); } const appendText = `{{append_text}}`; if (appendText) { const blockId = crypto.randomUUID(); ops.push({ id: blockId, table: 'block', path: [], command: 'set', args: { type: 'text', id: blockId, version: 1, alive: true, parent_id: pageId, parent_table: 'block', properties: { title: [[ appendText ]] } } }); ops.push({ id: pageId, table: 'block', path: ['content'], command: 'listAfter', args: { id: blockId } }); } if (ops.length === 0) return { success: false, message: 'No changes specified' }; const resp = await fetch('/api/v3/submitTransaction', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ operations: ops }) }); if (!resp.ok) throw new Error('Update failed: ' + resp.status); return { success: true, page_id: pageId, updated: { title: !!newTitle, appended: !!appendText } }",
+      "name": "result",
+      "label": "Update page via Notion API"
+    }
+  ]
+}

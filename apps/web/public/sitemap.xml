@@ -243,6 +243,66 @@
   </url>
 
   <url>
+    <loc>https://izan.io/tr/agents/github-manager</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/agents/github-manager" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/agents/github-manager" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/agents/github-manager" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/agents/github-manager" />
+    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://izan.io/en/agents/github-manager</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/agents/github-manager" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/agents/github-manager" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/agents/github-manager" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/agents/github-manager" />
+    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://izan.io/de/agents/github-manager</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/agents/github-manager" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/agents/github-manager" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/agents/github-manager" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/agents/github-manager" />
+    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://izan.io/tr/agents/jira-manager</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/agents/jira-manager" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/agents/jira-manager" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/agents/jira-manager" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/agents/jira-manager" />
+    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://izan.io/en/agents/jira-manager</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/agents/jira-manager" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/agents/jira-manager" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/agents/jira-manager" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/agents/jira-manager" />
+    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://izan.io/de/agents/jira-manager</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/agents/jira-manager" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/agents/jira-manager" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/agents/jira-manager" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/agents/jira-manager" />
+    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
     <loc>https://izan.io/tr/agents/linkedin-manager</loc>
     <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/agents/linkedin-manager" />
     <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/agents/linkedin-manager" />
@@ -298,6 +358,36 @@
     <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/agents/maps-scout" />
     <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/agents/maps-scout" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/agents/maps-scout" />
+    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://izan.io/tr/agents/notion-manager</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/agents/notion-manager" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/agents/notion-manager" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/agents/notion-manager" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/agents/notion-manager" />
+    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://izan.io/en/agents/notion-manager</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/agents/notion-manager" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/agents/notion-manager" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/agents/notion-manager" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/agents/notion-manager" />
+    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://izan.io/de/agents/notion-manager</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/agents/notion-manager" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/agents/notion-manager" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/agents/notion-manager" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/agents/notion-manager" />
     <priority>0.7</priority>
     <changefreq>weekly</changefreq>
   </url>
@@ -363,6 +453,66 @@
   </url>
 
   <url>
+    <loc>https://izan.io/tr/agents/slack-manager</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/agents/slack-manager" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/agents/slack-manager" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/agents/slack-manager" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/agents/slack-manager" />
+    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://izan.io/en/agents/slack-manager</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/agents/slack-manager" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/agents/slack-manager" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/agents/slack-manager" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/agents/slack-manager" />
+    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://izan.io/de/agents/slack-manager</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/agents/slack-manager" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/agents/slack-manager" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/agents/slack-manager" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/agents/slack-manager" />
+    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://izan.io/tr/agents/trello-manager</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/agents/trello-manager" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/agents/trello-manager" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/agents/trello-manager" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/agents/trello-manager" />
+    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://izan.io/en/agents/trello-manager</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/agents/trello-manager" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/agents/trello-manager" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/agents/trello-manager" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/agents/trello-manager" />
+    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://izan.io/de/agents/trello-manager</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/agents/trello-manager" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/agents/trello-manager" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/agents/trello-manager" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/agents/trello-manager" />
+    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
     <loc>https://izan.io/tr/agents/web-fetch</loc>
     <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/agents/web-fetch" />
     <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/agents/web-fetch" />
@@ -388,6 +538,36 @@
     <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/agents/web-fetch" />
     <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/agents/web-fetch" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/agents/web-fetch" />
+    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://izan.io/tr/agents/whatsapp-manager</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/agents/whatsapp-manager" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/agents/whatsapp-manager" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/agents/whatsapp-manager" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/agents/whatsapp-manager" />
+    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://izan.io/en/agents/whatsapp-manager</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/agents/whatsapp-manager" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/agents/whatsapp-manager" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/agents/whatsapp-manager" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/agents/whatsapp-manager" />
+    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://izan.io/de/agents/whatsapp-manager</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/agents/whatsapp-manager" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/agents/whatsapp-manager" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/agents/whatsapp-manager" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/agents/whatsapp-manager" />
     <priority>0.7</priority>
     <changefreq>weekly</changefreq>
   </url>

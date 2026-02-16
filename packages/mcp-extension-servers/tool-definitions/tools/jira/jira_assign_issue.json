@@ -1,0 +1,45 @@
+{
+  "id": "jira-assign-issue",
+  "name": "jira_assign_issue",
+  "description": "Assign a Jira issue to a user by their account ID or email. Set assignee to empty to unassign.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "jira_url",
+      "type": "string",
+      "description": "Base URL of Jira instance (e.g. 'https://company.atlassian.net')",
+      "required": true
+    },
+    {
+      "name": "issue_key",
+      "type": "string",
+      "description": "Jira issue key (e.g. 'PROJ-123')",
+      "required": true
+    },
+    {
+      "name": "assignee_query",
+      "type": "string",
+      "description": "User display name or email to search for and assign (leave empty to unassign)",
+      "required": false,
+      "default": ""
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{jira_url}}/browse/{{issue_key}}",
+      "label": "Open Jira issue"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page load"
+    },
+    {
+      "action": "code",
+      "code": "const baseUrl = `{{jira_url}}`.replace(/\\/$/, ''); const query = `{{assignee_query}}`; let accountId = null; if (query) { const uResp = await fetch(baseUrl + '/rest/api/3/user/search?query=' + encodeURIComponent(query) + '&maxResults=1', { credentials: 'same-origin' }); if (!uResp.ok) throw new Error('User search failed: ' + uResp.status); const users = await uResp.json(); if (users.length === 0) return { success: false, message: 'No user found matching: ' + query }; accountId = users[0].accountId; } const resp = await fetch(baseUrl + '/rest/api/3/issue/{{issue_key}}/assignee', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ accountId: accountId }) }); if (!resp.ok) { const err = await resp.text(); throw new Error('Assign failed: ' + resp.status + ' ' + err); } return { success: true, key: '{{issue_key}}', assignee: query || 'Unassigned' }",
+      "name": "result",
+      "label": "Assign issue via REST API"
+    }
+  ]
+}

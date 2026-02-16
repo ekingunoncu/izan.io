@@ -1,0 +1,45 @@
+{
+  "id": "github-create-issue",
+  "name": "github_create_issue",
+  "description": "Create a new issue on a GitHub repository. You must be logged into GitHub and have permission to create issues.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "repo",
+      "type": "string",
+      "description": "Repository in 'owner/repo' format (e.g. 'facebook/react')",
+      "required": true
+    },
+    {
+      "name": "title",
+      "type": "string",
+      "description": "Issue title",
+      "required": true
+    },
+    {
+      "name": "body",
+      "type": "string",
+      "description": "Issue body (supports GitHub markdown)",
+      "required": false,
+      "default": ""
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://github.com/{{repo}}",
+      "label": "Open repository"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page load"
+    },
+    {
+      "action": "code",
+      "code": "const resp = await fetch('https://api.github.com/repos/{{repo}}/issues', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/vnd.github.v3+json' }, credentials: 'same-origin', body: JSON.stringify({ title: `{{title}}`, body: `{{body}}` }) }); if (!resp.ok) { const err = await resp.text(); throw new Error('Create issue failed: ' + resp.status + ' ' + err); } const issue = await resp.json(); return { success: true, number: issue.number, title: issue.title, url: issue.html_url }",
+      "name": "result",
+      "label": "Create issue via GitHub API"
+    }
+  ]
+}

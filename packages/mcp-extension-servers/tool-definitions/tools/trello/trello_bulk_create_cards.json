@@ -1,0 +1,50 @@
+{
+  "id": "trello-bulk-create-cards",
+  "name": "trello_bulk_create_cards",
+  "description": "Create multiple Trello cards in parallel using concurrent browser tabs. Use this instead of calling trello_create_card multiple times. Pass card names as a comma-separated string.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "list_id",
+      "type": "string",
+      "description": "Trello list ID to create cards in",
+      "required": true
+    },
+    {
+      "name": "card_names",
+      "type": "string",
+      "description": "Comma-separated card names (e.g. 'Task 1,Task 2,Task 3')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{card_names}}`.split(',').map(n => ({ url: 'https://trello.com', name: n.trim() }))",
+      "name": "items",
+      "label": "Build card name list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 3,
+      "maxItems": 20,
+      "waitUntil": "load",
+      "label": "Create each card in parallel",
+      "detailSteps": [
+        {
+          "action": "wait",
+          "ms": 2000
+        },
+        {
+          "action": "code",
+          "code": "const cardName = new URLSearchParams(window.location.search).get('_n') || ''; const resp = await fetch('/1/cards?idList={{list_id}}&name=' + encodeURIComponent(cardName), { method: 'POST', credentials: 'same-origin' }); if (!resp.ok) return { status: 'error', name: cardName, error: resp.status }; const card = await resp.json(); return { status: 'created', name: card.name, id: card.id, url: card.shortUrl || '' }",
+          "name": "create_result",
+          "label": "Create card"
+        }
+      ]
+    }
+  ]
+}

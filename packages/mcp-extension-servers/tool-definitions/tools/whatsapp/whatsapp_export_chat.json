@@ -1,0 +1,38 @@
+{
+  "id": "whatsapp-export-chat",
+  "name": "whatsapp_export_chat",
+  "description": "Export a WhatsApp chat's messages as structured data. Opens the chat and scrolls to collect messages.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "contact_name",
+      "type": "string",
+      "description": "Contact or group name",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://web.whatsapp.com",
+      "label": "Open WhatsApp Web"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "div[contenteditable='true'][data-tab='3'], div#side",
+      "timeout": 30000,
+      "label": "Wait for WhatsApp to load"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Let app render"
+    },
+    {
+      "action": "code",
+      "code": "const searchBox = document.querySelector('div[contenteditable=\"true\"][data-tab=\"3\"]'); if (!searchBox) throw new Error('Search box not found'); searchBox.focus(); searchBox.textContent = ''; document.execCommand('insertText', false, `{{contact_name}}`); searchBox.dispatchEvent(new Event('input', { bubbles: true })); await new Promise(r => setTimeout(r, 2000)); const results = document.querySelectorAll('#pane-side span[title], [data-testid=\"cell-frame-title\"] span'); for (const r of results) { if (r.getAttribute('title')?.toLowerCase().includes(`{{contact_name}}`.toLowerCase()) || r.textContent?.toLowerCase().includes(`{{contact_name}}`.toLowerCase())) { r.closest('[data-testid=\"list-item\"], [data-testid=\"cell-frame-container\"], div[tabindex]')?.click(); break; } } await new Promise(r => setTimeout(r, 2000)); const msgPanel = document.querySelector('[data-testid=\"conversation-panel-messages\"], .message-list'); if (msgPanel) { for (let s = 0; s < 3; s++) { msgPanel.scrollTop = 0; await new Promise(r => setTimeout(r, 1500)); } msgPanel.scrollTop = msgPanel.scrollHeight; await new Promise(r => setTimeout(r, 1000)); } const messages = []; const msgEls = document.querySelectorAll('div.message-in, div.message-out, [data-testid=\"msg-container\"]'); for (const msg of msgEls) { const isOutgoing = msg.classList.contains('message-out') || msg.querySelector('[data-testid=\"msg-dblcheck\"]') != null; const textEl = msg.querySelector('span.selectable-text, span[data-testid=\"conversation-text\"]'); const timeEl = msg.querySelector('[data-testid=\"msg-meta\"] span, span.message-time'); messages.push({ direction: isOutgoing ? 'sent' : 'received', text: textEl?.textContent?.trim()?.substring(0, 500) || '', time: timeEl?.textContent?.trim() || '' }); } return { contact: `{{contact_name}}`, format: 'json', message_count: messages.length, messages: messages }",
+      "name": "result",
+      "label": "Export chat messages"
+    }
+  ]
+}

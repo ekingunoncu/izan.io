@@ -18,12 +18,26 @@ import {
   Lightbulb,
   Settings,
   Star,
-  Send,
   Briefcase,
   MapPin,
+  TrendingUp,
+  Store,
 } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { IzanLogo } from "~/components/ui/izan-logo";
+import {
+  JiraIcon,
+  SlackIcon,
+  GitHubIcon,
+  NotionIcon,
+  WhatsAppIcon,
+  TrelloIcon,
+  XIcon,
+  DiscordIcon,
+  LinkedInIcon,
+  RedditIcon,
+  GoogleMapsIcon,
+} from "~/components/ui/platform-icons";
 import {
   Card,
   CardContent,
@@ -51,9 +65,21 @@ const AGENT_ICONS: Record<string, typeof Bot> = {
   shield: Shield,
   "message-square": MessageSquare,
   lightbulb: Lightbulb,
-  twitter: Send,
+  twitter: XIcon,
   briefcase: Briefcase,
   "map-pin": MapPin,
+  "trending-up": TrendingUp,
+  store: Store,
+  jira: JiraIcon,
+  slack: SlackIcon,
+  github: GitHubIcon,
+  notion: NotionIcon,
+  whatsapp: WhatsAppIcon,
+  trello: TrelloIcon,
+  discord: DiscordIcon,
+  linkedin: LinkedInIcon,
+  reddit: RedditIcon,
+  "google-maps": GoogleMapsIcon,
 };
 
 export function clientLoader() {

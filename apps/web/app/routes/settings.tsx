@@ -36,7 +36,24 @@ import {
   Puzzle,
   Zap,
   Lightbulb,
+  TrendingUp,
+  Briefcase,
+  MapPin,
+  Store,
 } from "lucide-react";
+import {
+  JiraIcon,
+  SlackIcon,
+  GitHubIcon,
+  NotionIcon,
+  WhatsAppIcon,
+  TrelloIcon,
+  XIcon,
+  DiscordIcon,
+  LinkedInIcon,
+  RedditIcon,
+  GoogleMapsIcon,
+} from "~/components/ui/platform-icons";
 import { useState, useEffect, useRef } from "react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip";
 import {
@@ -382,6 +399,11 @@ const AGENT_ICON_MAP: Record<string, typeof Bot> = {
   bot: Bot, search: Search, code: Code, calendar: Calendar, mail: Mail,
   database: Database, globe: Globe, "file-text": FileText, puzzle: Puzzle,
   zap: Zap, shield: Shield, "message-square": MessageSquare, lightbulb: Lightbulb,
+  "trending-up": TrendingUp, briefcase: Briefcase, "map-pin": MapPin, store: Store,
+  twitter: XIcon, jira: JiraIcon, slack: SlackIcon, github: GitHubIcon,
+  notion: NotionIcon, whatsapp: WhatsAppIcon, trello: TrelloIcon,
+  discord: DiscordIcon, linkedin: LinkedInIcon, reddit: RedditIcon,
+  "google-maps": GoogleMapsIcon,
 };
 
 function getAgentIcon(iconId: string) {

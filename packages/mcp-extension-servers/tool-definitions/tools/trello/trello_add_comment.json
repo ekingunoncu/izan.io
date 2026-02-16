@@ -1,0 +1,38 @@
+{
+  "id": "trello-add-comment",
+  "name": "trello_add_comment",
+  "description": "Add a comment to a Trello card.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "card_id",
+      "type": "string",
+      "description": "Trello card ID",
+      "required": true
+    },
+    {
+      "name": "comment",
+      "type": "string",
+      "description": "Comment text to add",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://trello.com",
+      "label": "Open Trello"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let Trello load"
+    },
+    {
+      "action": "code",
+      "code": "const resp = await fetch('/1/cards/{{card_id}}/actions/comments?text=' + encodeURIComponent(`{{comment}}`), { method: 'POST', credentials: 'same-origin' }); if (!resp.ok) { const err = await resp.text(); throw new Error('Comment failed: ' + resp.status + ' ' + err); } const result = await resp.json(); return { success: true, card_id: '{{card_id}}', comment_id: result.id, author: result.memberCreator?.fullName || '' }",
+      "name": "result",
+      "label": "Add comment via Trello API"
+    }
+  ]
+}

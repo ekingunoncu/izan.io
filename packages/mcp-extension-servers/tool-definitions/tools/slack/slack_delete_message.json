@@ -1,0 +1,38 @@
+{
+  "id": "slack-delete-message",
+  "name": "slack_delete_message",
+  "description": "Delete your own message from a Slack channel. Requires channel name and message timestamp.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "channel_name",
+      "type": "string",
+      "description": "Channel name without # (e.g. 'general')",
+      "required": true
+    },
+    {
+      "name": "message_ts",
+      "type": "string",
+      "description": "Message timestamp (e.g. '1234567890.123456')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://app.slack.com",
+      "label": "Open Slack"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Let Slack load"
+    },
+    {
+      "action": "code",
+      "code": "const localConfig = localStorage.getItem('localConfig_v2'); if (!localConfig) throw new Error('Not logged into Slack'); const config = JSON.parse(localConfig); const teamId = Object.keys(config.teams)[0]; const token = config.teams[teamId].token; const chanResp = await fetch('/api/conversations.list?types=public_channel,private_channel&limit=200', { method: 'POST', headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/x-www-form-urlencoded' } }); const chanData = await chanResp.json(); const channel = chanData.channels?.find(c => c.name === `{{channel_name}}`); if (!channel) return { success: false, message: 'Channel not found: {{channel_name}}' }; const resp = await fetch('/api/chat.delete', { method: 'POST', headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' }, body: JSON.stringify({ channel: channel.id, ts: `{{message_ts}}` }) }); const data = await resp.json(); if (!data.ok) throw new Error('Delete failed: ' + data.error); return { success: true, channel: '{{channel_name}}', deleted_ts: '{{message_ts}}' }",
+      "name": "result",
+      "label": "Delete message via Slack API"
+    }
+  ]
+}

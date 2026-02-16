@@ -99,6 +99,107 @@
         "reddit_bulk_search",
         "reddit_bulk_upvote"
       ]
+    },
+    {
+      "id": "jira",
+      "name": "Jira Automation",
+      "description": "Automate Jira: search issues with JQL, create and update tickets, manage sprints, transition statuses, add comments",
+      "category": "productivity",
+      "tools": [
+        "jira_search_issues",
+        "jira_get_issue",
+        "jira_create_issue",
+        "jira_update_issue",
+        "jira_transition_issue",
+        "jira_add_comment",
+        "jira_get_boards",
+        "jira_get_sprint_issues",
+        "jira_assign_issue",
+        "jira_bulk_update_issues"
+      ]
+    },
+    {
+      "id": "slack",
+      "name": "Slack Automation",
+      "description": "Automate Slack: send messages, search conversations, list channels and members, scrape history, set status",
+      "category": "productivity",
+      "tools": [
+        "slack_send_message",
+        "slack_search_messages",
+        "slack_list_channels",
+        "slack_scrape_channel_history",
+        "slack_delete_message",
+        "slack_list_members",
+        "slack_set_status",
+        "slack_bulk_send",
+        "slack_bulk_search"
+      ]
+    },
+    {
+      "id": "github",
+      "name": "GitHub Automation",
+      "description": "Automate GitHub: search repos, scrape profiles, list issues and PRs, create issues, star repos, browse trending",
+      "category": "productivity",
+      "tools": [
+        "github_search_repos",
+        "github_scrape_repo",
+        "github_list_issues",
+        "github_create_issue",
+        "github_scrape_profile",
+        "github_star_repo",
+        "github_list_pull_requests",
+        "github_scrape_trending",
+        "github_bulk_scrape_repos",
+        "github_bulk_star"
+      ]
+    },
+    {
+      "id": "notion",
+      "name": "Notion Automation",
+      "description": "Automate Notion: search pages, read content, create and update pages, scrape databases, export data",
+      "category": "productivity",
+      "tools": [
+        "notion_search",
+        "notion_get_page",
+        "notion_create_page",
+        "notion_update_page",
+        "notion_scrape_database",
+        "notion_list_pages",
+        "notion_bulk_search",
+        "notion_export_database"
+      ]
+    },
+    {
+      "id": "whatsapp",
+      "name": "WhatsApp Automation",
+      "description": "Automate WhatsApp Web: send messages, search chats, scrape conversations, list contacts, send to phone numbers",
+      "category": "social_media",
+      "tools": [
+        "whatsapp_send_message",
+        "whatsapp_search_chats",
+        "whatsapp_scrape_chat",
+        "whatsapp_scrape_contacts",
+        "whatsapp_send_to_number",
+        "whatsapp_bulk_send",
+        "whatsapp_export_chat"
+      ]
+    },
+    {
+      "id": "trello",
+      "name": "Trello Automation",
+      "description": "Automate Trello: list boards, scrape cards, create and update cards, move between lists, add comments, search",
+      "category": "productivity",
+      "tools": [
+        "trello_list_boards",
+        "trello_scrape_board",
+        "trello_create_card",
+        "trello_update_card",
+        "trello_move_card",
+        "trello_add_comment",
+        "trello_search",
+        "trello_bulk_create_cards",
+        "trello_bulk_move_cards"
+      ]
     }
   ]
 }

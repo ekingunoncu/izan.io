@@ -1,0 +1,59 @@
+{
+  "id": "jira-update-issue",
+  "name": "jira_update_issue",
+  "description": "Update fields of an existing Jira issue. Can update summary, description, assignee, priority, and labels.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "jira_url",
+      "type": "string",
+      "description": "Base URL of Jira instance (e.g. 'https://company.atlassian.net')",
+      "required": true
+    },
+    {
+      "name": "issue_key",
+      "type": "string",
+      "description": "Jira issue key (e.g. 'PROJ-123')",
+      "required": true
+    },
+    {
+      "name": "summary",
+      "type": "string",
+      "description": "New summary/title (leave empty to keep current)",
+      "required": false,
+      "default": ""
+    },
+    {
+      "name": "description",
+      "type": "string",
+      "description": "New description (leave empty to keep current)",
+      "required": false,
+      "default": ""
+    },
+    {
+      "name": "priority",
+      "type": "string",
+      "description": "New priority: 'Highest', 'High', 'Medium', 'Low', 'Lowest' (leave empty to keep current)",
+      "required": false,
+      "default": ""
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{jira_url}}/browse/{{issue_key}}",
+      "label": "Open Jira issue"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page load"
+    },
+    {
+      "action": "code",
+      "code": "const baseUrl = `{{jira_url}}`.replace(/\\/$/, ''); const fields = {}; const summary = `{{summary}}`; if (summary) fields.summary = summary; const desc = `{{description}}`; if (desc) fields.description = { type: 'doc', version: 1, content: [{ type: 'paragraph', content: [{ type: 'text', text: desc }] }] }; const priority = `{{priority}}`; if (priority) fields.priority = { name: priority }; if (Object.keys(fields).length === 0) return { success: false, message: 'No fields to update' }; const resp = await fetch(baseUrl + '/rest/api/3/issue/{{issue_key}}', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ fields }) }); if (!resp.ok) { const err = await resp.text(); throw new Error('Update failed: ' + resp.status + ' ' + err); } return { success: true, key: '{{issue_key}}', updated_fields: Object.keys(fields) }",
+      "name": "result",
+      "label": "Update issue via REST API"
+    }
+  ]
+}

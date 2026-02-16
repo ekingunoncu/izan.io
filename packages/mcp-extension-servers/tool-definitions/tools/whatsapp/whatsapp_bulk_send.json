@@ -1,0 +1,56 @@
+{
+  "id": "whatsapp-bulk-send",
+  "name": "whatsapp_bulk_send",
+  "description": "Send a message to multiple WhatsApp contacts in parallel using concurrent browser tabs. Use this instead of calling whatsapp_send_message multiple times. Pass contact names as a comma-separated string.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "contact_names",
+      "type": "string",
+      "description": "Comma-separated contact or group names (e.g. 'John,Family Group,Alice')",
+      "required": true
+    },
+    {
+      "name": "message",
+      "type": "string",
+      "description": "Message text to send to each contact",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{contact_names}}`.split(',').map(c => ({ url: 'https://web.whatsapp.com', contact: c.trim() }))",
+      "name": "items",
+      "label": "Build contact list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 2,
+      "maxItems": 10,
+      "waitUntil": "load",
+      "label": "Send to each contact in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": "div[contenteditable='true'][data-tab='3'], div#side",
+          "timeout": 30000,
+          "label": "Wait for WhatsApp"
+        },
+        {
+          "action": "wait",
+          "ms": 3000
+        },
+        {
+          "action": "code",
+          "code": "const contactName = new URLSearchParams(window.location.search).get('_c') || ''; const searchBox = document.querySelector('div[contenteditable=\"true\"][data-tab=\"3\"]'); if (!searchBox) return { status: 'error', contact: contactName, message: 'WhatsApp not loaded' }; searchBox.focus(); searchBox.textContent = ''; document.execCommand('insertText', false, contactName); searchBox.dispatchEvent(new Event('input', { bubbles: true })); await new Promise(r => setTimeout(r, 2000)); const results = document.querySelectorAll('#pane-side span[title], [data-testid=\"cell-frame-title\"] span'); let found = false; for (const r of results) { if (r.getAttribute('title')?.toLowerCase().includes(contactName.toLowerCase()) || r.textContent?.toLowerCase().includes(contactName.toLowerCase())) { r.closest('[data-testid=\"list-item\"], [data-testid=\"cell-frame-container\"], div[tabindex]')?.click(); found = true; break; } } if (!found) return { status: 'not_found', contact: contactName }; await new Promise(r => setTimeout(r, 1500)); const msgBox = document.querySelector('div[contenteditable=\"true\"][data-tab=\"10\"]') || document.querySelector('footer div[contenteditable=\"true\"]'); if (!msgBox) return { status: 'error', contact: contactName, message: 'Message input not found' }; msgBox.focus(); document.execCommand('insertText', false, `{{message}}`); msgBox.dispatchEvent(new Event('input', { bubbles: true })); await new Promise(r => setTimeout(r, 500)); const sendBtn = document.querySelector('span[data-icon=\"send\"]'); if (sendBtn) sendBtn.closest('button')?.click() || sendBtn.click(); else msgBox.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true })); await new Promise(r => setTimeout(r, 1000)); return { status: 'sent', contact: contactName }",
+          "name": "send_result",
+          "label": "Send message"
+        }
+      ]
+    }
+  ]
+}

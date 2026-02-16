@@ -1,0 +1,53 @@
+{
+  "id": "trello-update-card",
+  "name": "trello_update_card",
+  "description": "Update a Trello card's title, description, or due date.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "card_id",
+      "type": "string",
+      "description": "Trello card ID",
+      "required": true
+    },
+    {
+      "name": "name",
+      "type": "string",
+      "description": "New card title (leave empty to keep current)",
+      "required": false,
+      "default": ""
+    },
+    {
+      "name": "description",
+      "type": "string",
+      "description": "New description (leave empty to keep current)",
+      "required": false,
+      "default": ""
+    },
+    {
+      "name": "due_date",
+      "type": "string",
+      "description": "New due date in ISO format or 'null' to remove (leave empty to keep current)",
+      "required": false,
+      "default": ""
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://trello.com",
+      "label": "Open Trello"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let Trello load"
+    },
+    {
+      "action": "code",
+      "code": "const params = new URLSearchParams(); const name = `{{name}}`; if (name) params.set('name', name); const desc = `{{description}}`; if (desc) params.set('desc', desc); const due = `{{due_date}}`; if (due === 'null') params.set('due', ''); else if (due) params.set('due', due); if ([...params].length === 0) return { success: false, message: 'No fields to update' }; const resp = await fetch('/1/cards/{{card_id}}?' + params.toString(), { method: 'PUT', credentials: 'same-origin' }); if (!resp.ok) { const err = await resp.text(); throw new Error('Update failed: ' + resp.status + ' ' + err); } const card = await resp.json(); return { success: true, id: card.id, name: card.name, url: card.shortUrl || card.url }",
+      "name": "result",
+      "label": "Update card via Trello API"
+    }
+  ]
+}

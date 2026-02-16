@@ -1,0 +1,38 @@
+{
+  "id": "slack-send-message",
+  "name": "slack_send_message",
+  "description": "Send a message to a Slack channel. You must be logged into your Slack workspace at app.slack.com.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "channel_name",
+      "type": "string",
+      "description": "Channel name without # (e.g. 'general', 'random')",
+      "required": true
+    },
+    {
+      "name": "message",
+      "type": "string",
+      "description": "Message text to send (supports Slack markdown)",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://app.slack.com",
+      "label": "Open Slack"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Let Slack load"
+    },
+    {
+      "action": "code",
+      "code": "const localConfig = localStorage.getItem('localConfig_v2'); if (!localConfig) throw new Error('Not logged into Slack - localConfig_v2 not found'); const config = JSON.parse(localConfig); const teamId = Object.keys(config.teams)[0]; const token = config.teams[teamId].token; if (!token) throw new Error('Slack token not found'); const chanResp = await fetch('/api/conversations.list?types=public_channel,private_channel&limit=200', { method: 'POST', headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/x-www-form-urlencoded' } }); if (!chanResp.ok) throw new Error('Failed to list channels'); const chanData = await chanResp.json(); const channel = chanData.channels?.find(c => c.name === `{{channel_name}}`); if (!channel) return { success: false, message: 'Channel not found: {{channel_name}}' }; const resp = await fetch('/api/chat.postMessage', { method: 'POST', headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' }, body: JSON.stringify({ channel: channel.id, text: `{{message}}` }) }); const data = await resp.json(); if (!data.ok) throw new Error('Send failed: ' + data.error); return { success: true, channel: '{{channel_name}}', ts: data.ts }",
+      "name": "result",
+      "label": "Send message via Slack API"
+    }
+  ]
+}

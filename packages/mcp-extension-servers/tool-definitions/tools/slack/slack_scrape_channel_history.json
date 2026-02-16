@@ -1,0 +1,39 @@
+{
+  "id": "slack-scrape-channel-history",
+  "name": "slack_scrape_channel_history",
+  "description": "Get recent messages from a Slack channel. Returns messages with author, text, timestamp, and reactions.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "channel_name",
+      "type": "string",
+      "description": "Channel name without # (e.g. 'general')",
+      "required": true
+    },
+    {
+      "name": "limit",
+      "type": "string",
+      "description": "Number of messages to fetch (default: 20, max: 100)",
+      "required": false,
+      "default": "20"
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://app.slack.com",
+      "label": "Open Slack"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Let Slack load"
+    },
+    {
+      "action": "code",
+      "code": "const localConfig = localStorage.getItem('localConfig_v2'); if (!localConfig) throw new Error('Not logged into Slack'); const config = JSON.parse(localConfig); const teamId = Object.keys(config.teams)[0]; const token = config.teams[teamId].token; const chanResp = await fetch('/api/conversations.list?types=public_channel,private_channel&limit=200', { method: 'POST', headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/x-www-form-urlencoded' } }); const chanData = await chanResp.json(); const channel = chanData.channels?.find(c => c.name === `{{channel_name}}`); if (!channel) return { success: false, message: 'Channel not found: {{channel_name}}' }; const limit = Math.min(parseInt(`{{limit}}`) || 20, 100); const resp = await fetch('/api/conversations.history', { method: 'POST', headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'channel=' + channel.id + '&limit=' + limit }); const data = await resp.json(); if (!data.ok) throw new Error('History failed: ' + data.error); const messages = (data.messages || []).map(m => ({ text: m.text?.substring(0, 300) || '', user: m.user || '', ts: m.ts, type: m.subtype || 'message', reactions: (m.reactions || []).map(r => r.name + ':' + r.count).join(', ') })); return { channel: '{{channel_name}}', result_count: messages.length, messages: messages }",
+      "name": "result",
+      "label": "Fetch channel history via Slack API"
+    }
+  ]
+}

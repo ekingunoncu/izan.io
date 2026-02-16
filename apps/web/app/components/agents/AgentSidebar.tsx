@@ -14,6 +14,10 @@ import {
   Shield,
   MessageSquare,
   Lightbulb,
+  TrendingUp,
+  Briefcase,
+  MapPin,
+  Store,
   Plus,
   Trash2,
   ChevronLeft,
@@ -24,6 +28,19 @@ import {
   AlertCircle,
   CalendarClock,
 } from 'lucide-react'
+import {
+  JiraIcon,
+  SlackIcon,
+  GitHubIcon,
+  NotionIcon,
+  WhatsAppIcon,
+  TrelloIcon,
+  XIcon,
+  DiscordIcon,
+  LinkedInIcon,
+  RedditIcon,
+  GoogleMapsIcon,
+} from '~/components/ui/platform-icons'
 import { Button } from '~/components/ui/button'
 import {
   AlertDialog,
@@ -56,6 +73,21 @@ const agentIcons: Record<string, typeof Bot> = {
   'shield': Shield,
   'message-square': MessageSquare,
   'lightbulb': Lightbulb,
+  'trending-up': TrendingUp,
+  'briefcase': Briefcase,
+  'map-pin': MapPin,
+  'store': Store,
+  'twitter': XIcon,
+  'jira': JiraIcon,
+  'slack': SlackIcon,
+  'github': GitHubIcon,
+  'notion': NotionIcon,
+  'whatsapp': WhatsAppIcon,
+  'trello': TrelloIcon,
+  'discord': DiscordIcon,
+  'linkedin': LinkedInIcon,
+  'reddit': RedditIcon,
+  'google-maps': GoogleMapsIcon,
 }
 
 /** Get icon and style for a task status */

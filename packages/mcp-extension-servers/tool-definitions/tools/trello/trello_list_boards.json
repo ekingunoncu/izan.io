@@ -1,0 +1,25 @@
+{
+  "id": "trello-list-boards",
+  "name": "trello_list_boards",
+  "description": "List all Trello boards you have access to. Returns board names, URLs, and organization info.",
+  "version": "1.0.0",
+  "parameters": [],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://trello.com",
+      "label": "Open Trello"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Let Trello load"
+    },
+    {
+      "action": "code",
+      "code": "const resp = await fetch('/1/members/me/boards?fields=name,url,shortUrl,closed,idOrganization,dateLastActivity', { credentials: 'same-origin' }); if (!resp.ok) throw new Error('Trello API error: ' + resp.status); const boards = await resp.json(); const active = boards.filter(b => !b.closed).map(b => ({ name: b.name, url: b.url || b.shortUrl, last_activity: b.dateLastActivity, org_id: b.idOrganization || '' })); return { result_count: active.length, boards: active }",
+      "name": "result",
+      "label": "Fetch boards via Trello REST API"
+    }
+  ]
+}

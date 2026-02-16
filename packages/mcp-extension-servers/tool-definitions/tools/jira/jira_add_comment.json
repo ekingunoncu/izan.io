@@ -1,0 +1,44 @@
+{
+  "id": "jira-add-comment",
+  "name": "jira_add_comment",
+  "description": "Add a comment to a Jira issue.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "jira_url",
+      "type": "string",
+      "description": "Base URL of Jira instance (e.g. 'https://company.atlassian.net')",
+      "required": true
+    },
+    {
+      "name": "issue_key",
+      "type": "string",
+      "description": "Jira issue key (e.g. 'PROJ-123')",
+      "required": true
+    },
+    {
+      "name": "comment",
+      "type": "string",
+      "description": "Comment text to add",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{jira_url}}/browse/{{issue_key}}",
+      "label": "Open Jira issue"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page load"
+    },
+    {
+      "action": "code",
+      "code": "const baseUrl = `{{jira_url}}`.replace(/\\/$/, ''); const body = { body: { type: 'doc', version: 1, content: [{ type: 'paragraph', content: [{ type: 'text', text: `{{comment}}` }] }] } }; const resp = await fetch(baseUrl + '/rest/api/3/issue/{{issue_key}}/comment', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify(body) }); if (!resp.ok) { const err = await resp.text(); throw new Error('Comment failed: ' + resp.status + ' ' + err); } const result = await resp.json(); return { success: true, key: '{{issue_key}}', comment_id: result.id, author: result.author?.displayName || '' }",
+      "name": "result",
+      "label": "Add comment via REST API"
+    }
+  ]
+}

@@ -1,0 +1,48 @@
+{
+  "id": "github-list-pull-requests",
+  "name": "github_list_pull_requests",
+  "description": "List pull requests for a GitHub repository. Returns PR titles, numbers, authors, labels, and state.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "repo",
+      "type": "string",
+      "description": "Repository in 'owner/repo' format (e.g. 'facebook/react')",
+      "required": true
+    },
+    {
+      "name": "state",
+      "type": "string",
+      "description": "PR state: 'open', 'closed', 'all' (default: open)",
+      "required": false,
+      "default": "open"
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://github.com/{{repo}}/pulls",
+      "urlParams": {
+        "q": "is:pr is:{{state}}"
+      },
+      "label": "Open pull requests page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".js-issue-row, .Box-row, [data-testid='pull-request-row']",
+      "timeout": 15000,
+      "label": "Wait for PR list"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page render"
+    },
+    {
+      "action": "code",
+      "code": "const prs = []; const rows = document.querySelectorAll('.js-issue-row, .Box-row, [data-testid=\"pull-request-row\"]'); for (let i = 0; i < Math.min(rows.length, 20); i++) { const row = rows[i]; const titleEl = row.querySelector('a[data-hovercard-type=\"pull_request\"], a.Link--primary'); const labels = Array.from(row.querySelectorAll('a.IssueLabel, .lh-default .label')).map(l => l.textContent.trim()); const authorEl = row.querySelector('.opened-by a, a[data-hovercard-type=\"user\"]'); const timeEl = row.querySelector('relative-time'); prs.push({ title: titleEl ? titleEl.textContent.trim() : '', number: titleEl ? titleEl.href.split('/').pop() : '', labels: labels, author: authorEl ? authorEl.textContent.trim() : '', time: timeEl ? timeEl.getAttribute('datetime') || timeEl.textContent.trim() : '', url: titleEl ? titleEl.href : '' }); } return { repo: '{{repo}}', result_count: prs.length, pull_requests: prs }",
+      "name": "result",
+      "label": "Extract PRs from DOM"
+    }
+  ]
+}

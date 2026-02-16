@@ -1,0 +1,31 @@
+{
+  "id": "whatsapp-scrape-contacts",
+  "name": "whatsapp_scrape_contacts",
+  "description": "List contacts and groups from the WhatsApp sidebar chat list. Returns names, last messages, and timestamps.",
+  "version": "1.0.0",
+  "parameters": [],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://web.whatsapp.com",
+      "label": "Open WhatsApp Web"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "div#pane-side, div[data-testid='chatlist']",
+      "timeout": 30000,
+      "label": "Wait for chat list"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Let chat list render"
+    },
+    {
+      "action": "code",
+      "code": "const contacts = []; const chatItems = document.querySelectorAll('#pane-side [data-testid=\"list-item\"], #pane-side [data-testid=\"cell-frame-container\"], div[data-testid=\"chatlist\"] div[tabindex]'); for (let i = 0; i < Math.min(chatItems.length, 30); i++) { const item = chatItems[i]; const nameEl = item.querySelector('span[title], [data-testid=\"cell-frame-title\"] span'); const msgEl = item.querySelector('span[data-testid=\"last-msg-status\"], span.selectable-text'); const timeEl = item.querySelector('div._amk6, [data-testid=\"cell-frame-secondary\"]'); const unreadEl = item.querySelector('span[data-testid=\"icon-unread-count\"], .unread-count'); contacts.push({ name: nameEl?.getAttribute('title') || nameEl?.textContent?.trim() || '', last_message: msgEl?.textContent?.trim()?.substring(0, 100) || '', time: timeEl?.textContent?.trim() || '', unread: unreadEl?.textContent?.trim() || '' }); } return { result_count: contacts.length, contacts: contacts }",
+      "name": "result",
+      "label": "Extract chat list"
+    }
+  ]
+}

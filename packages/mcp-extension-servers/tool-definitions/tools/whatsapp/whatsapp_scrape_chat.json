@@ -1,0 +1,56 @@
+{
+  "id": "whatsapp-scrape-chat",
+  "name": "whatsapp_scrape_chat",
+  "description": "Scrape recent messages from a WhatsApp chat. Opens the chat and extracts message content, sender, and time.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "contact_name",
+      "type": "string",
+      "description": "Contact or group name to open",
+      "required": true
+    },
+    {
+      "name": "limit",
+      "type": "string",
+      "description": "Number of messages to extract (default: 20)",
+      "required": false,
+      "default": "20"
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://web.whatsapp.com",
+      "label": "Open WhatsApp Web"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "div[contenteditable='true'][data-tab='3'], div#side",
+      "timeout": 30000,
+      "label": "Wait for WhatsApp to load"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Let app render"
+    },
+    {
+      "action": "code",
+      "code": "const searchBox = document.querySelector('div[contenteditable=\"true\"][data-tab=\"3\"]'); if (!searchBox) throw new Error('Search box not found'); searchBox.focus(); searchBox.textContent = ''; document.execCommand('insertText', false, `{{contact_name}}`); searchBox.dispatchEvent(new Event('input', { bubbles: true })); await new Promise(r => setTimeout(r, 2000)); const results = document.querySelectorAll('#pane-side span[title], [data-testid=\"cell-frame-title\"] span'); for (const r of results) { if (r.getAttribute('title')?.toLowerCase().includes(`{{contact_name}}`.toLowerCase()) || r.textContent?.toLowerCase().includes(`{{contact_name}}`.toLowerCase())) { r.closest('[data-testid=\"list-item\"], [data-testid=\"cell-frame-container\"], div[tabindex]')?.click(); break; } } await new Promise(r => setTimeout(r, 2000)); return { opened: true }",
+      "name": "open_chat",
+      "label": "Search and open chat"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let messages load"
+    },
+    {
+      "action": "code",
+      "code": "const limit = parseInt(`{{limit}}`) || 20; const messages = []; const msgEls = document.querySelectorAll('div.message-in, div.message-out, div[data-id], [data-testid=\"msg-container\"]'); const startIdx = Math.max(0, msgEls.length - limit); for (let i = startIdx; i < msgEls.length; i++) { const msg = msgEls[i]; const isOutgoing = msg.classList.contains('message-out') || msg.querySelector('[data-testid=\"msg-check\"], [data-testid=\"msg-dblcheck\"]') != null; const textEl = msg.querySelector('span.selectable-text, span[data-testid=\"conversation-text\"], .copyable-text'); const timeEl = msg.querySelector('[data-testid=\"msg-meta\"] span, span.message-time'); const senderEl = msg.querySelector('[data-testid=\"msg-author\"], span[aria-label]'); messages.push({ direction: isOutgoing ? 'sent' : 'received', sender: senderEl?.textContent?.trim() || (isOutgoing ? 'You' : `{{contact_name}}`), text: textEl?.textContent?.trim()?.substring(0, 500) || '', time: timeEl?.textContent?.trim() || '' }); } return { contact: `{{contact_name}}`, message_count: messages.length, messages: messages }",
+      "name": "result",
+      "label": "Extract messages"
+    }
+  ]
+}

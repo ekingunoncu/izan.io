@@ -1,0 +1,51 @@
+{
+  "id": "github-search-repos",
+  "name": "github_search_repos",
+  "description": "Search GitHub repositories by query. Returns repos with name, description, stars, forks, and language.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "query",
+      "type": "string",
+      "description": "Search query (e.g. 'machine learning python', 'react component library')",
+      "required": true
+    },
+    {
+      "name": "sort",
+      "type": "string",
+      "description": "Sort by: 'stars', 'forks', 'updated', 'best-match' (default: best-match)",
+      "required": false,
+      "default": "best-match"
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://github.com/search",
+      "urlParams": {
+        "q": "{{query}}",
+        "type": "repositories",
+        "s": "{{sort}}",
+        "o": "desc"
+      },
+      "label": "Search GitHub repos"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[data-testid='results-list'], .repo-list",
+      "timeout": 15000,
+      "label": "Wait for search results"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let results render"
+    },
+    {
+      "action": "code",
+      "code": "const results = []; const items = document.querySelectorAll('[data-testid=\"results-list\"] > div, .repo-list-item'); for (let i = 0; i < Math.min(items.length, 10); i++) { const item = items[i]; const linkEl = item.querySelector('a[href*=\"/\"]'); const descEl = item.querySelector('p, .mb-1'); const langEl = item.querySelector('[itemprop=\"programmingLanguage\"], span.repo-language-color + span'); const starsEl = item.querySelector('a[href*=\"/stargazers\"], .mr-3'); const href = linkEl ? linkEl.getAttribute('href') : ''; results.push({ name: href ? href.replace(/^\\//, '') : '', description: descEl ? descEl.textContent.trim().substring(0, 200) : '', language: langEl ? langEl.textContent.trim() : '', stars: starsEl ? starsEl.textContent.trim() : '', url: href ? 'https://github.com' + href : '' }); } return { result_count: results.length, results: results }",
+      "name": "result",
+      "label": "Extract search results"
+    }
+  ]
+}

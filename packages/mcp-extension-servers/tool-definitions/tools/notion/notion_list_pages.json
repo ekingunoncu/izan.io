@@ -1,0 +1,31 @@
+{
+  "id": "notion-list-pages",
+  "name": "notion_list_pages",
+  "description": "List recent pages from the Notion sidebar. Returns page titles and URLs visible in the sidebar navigation.",
+  "version": "1.0.0",
+  "parameters": [],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://www.notion.so",
+      "label": "Open Notion"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".notion-sidebar, .notion-scroller",
+      "timeout": 15000,
+      "label": "Wait for sidebar"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Let sidebar render"
+    },
+    {
+      "action": "code",
+      "code": "const pages = []; const items = document.querySelectorAll('.notion-sidebar .notion-sidebar-container [data-block-id], .notion-sidebar a[href*=\"notion.so\"]'); for (let i = 0; i < Math.min(items.length, 30); i++) { const item = items[i]; const titleEl = item.querySelector('.notranslate, [data-content-editable-leaf], span'); const title = titleEl?.textContent?.trim() || item.textContent?.trim() || ''; const blockId = item.getAttribute('data-block-id') || ''; const href = item.getAttribute('href') || ''; if (title && title.length > 1) { pages.push({ title: title.substring(0, 100), id: blockId, url: href || (blockId ? 'https://www.notion.so/' + blockId.replace(/-/g, '') : '') }); } } return { result_count: pages.length, pages: pages }",
+      "name": "result",
+      "label": "Extract sidebar pages"
+    }
+  ]
+}

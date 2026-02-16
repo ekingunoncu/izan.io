@@ -1,0 +1,44 @@
+{
+  "id": "slack-bulk-search",
+  "name": "slack_bulk_search",
+  "description": "Search multiple queries in Slack in parallel using concurrent browser tabs. Use this instead of calling slack_search_messages multiple times. Pass queries as a comma-separated string.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "queries",
+      "type": "string",
+      "description": "Comma-separated search queries (e.g. 'budget report,team meeting,deadline')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{queries}}`.split(',').map(q => ({ url: 'https://app.slack.com', query: q.trim() }))",
+      "name": "items",
+      "label": "Build query list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 3,
+      "maxItems": 10,
+      "waitUntil": "load",
+      "label": "Search each query in parallel",
+      "detailSteps": [
+        {
+          "action": "wait",
+          "ms": 3000
+        },
+        {
+          "action": "code",
+          "code": "const localConfig = localStorage.getItem('localConfig_v2'); if (!localConfig) return { status: 'error', message: 'Not logged in' }; const config = JSON.parse(localConfig); const teamId = Object.keys(config.teams)[0]; const token = config.teams[teamId].token; const query = new URLSearchParams(window.location.search).get('_q') || ''; const resp = await fetch('/api/search.messages', { method: 'POST', headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'query=' + encodeURIComponent(query) + '&count=5' }); const data = await resp.json(); const messages = (data.messages?.matches || []).map(m => ({ text: m.text?.substring(0, 150) || '', username: m.username || '', channel: m.channel?.name || '' })); return { query: query, total: data.messages?.total || 0, result_count: messages.length, messages: messages }",
+          "name": "search_result",
+          "label": "Search messages"
+        }
+      ]
+    }
+  ]
+}

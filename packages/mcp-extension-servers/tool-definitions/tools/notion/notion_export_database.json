@@ -1,0 +1,38 @@
+{
+  "id": "notion-export-database",
+  "name": "notion_export_database",
+  "description": "Export a Notion database as structured data. Scrolls to collect all visible rows and returns as JSON with headers and values.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "database_url",
+      "type": "string",
+      "description": "Notion database URL",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{database_url}}",
+      "label": "Open Notion database"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".notion-table-view, .notion-board-view, .notion-list-view, .notion-collection_view-block",
+      "timeout": 15000,
+      "label": "Wait for database view"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Let database render"
+    },
+    {
+      "action": "code",
+      "code": "const scroller = document.querySelector('.notion-scroller, .notion-frame'); if (scroller) { for (let s = 0; s < 5; s++) { scroller.scrollTop = scroller.scrollHeight; await new Promise(r => setTimeout(r, 1000)); } scroller.scrollTop = 0; await new Promise(r => setTimeout(r, 500)); } const headers = []; document.querySelectorAll('.notion-table-view-header-cell, .notion-collection-column-header').forEach(h => { headers.push(h.textContent?.trim() || ''); }); const rows = []; const rowEls = document.querySelectorAll('.notion-table-view .notion-collection-item, .notion-table-row, .notion-list-item'); for (let i = 0; i < Math.min(rowEls.length, 100); i++) { const row = rowEls[i]; const cells = row.querySelectorAll('.notion-table-view-cell, .notion-collection-property-value, td'); const rowData = {}; cells.forEach((cell, idx) => { const key = headers[idx] || 'col_' + idx; rowData[key] = cell.textContent?.trim()?.substring(0, 200) || ''; }); if (Object.values(rowData).some(v => v)) rows.push(rowData); } return { format: 'json', headers: headers, row_count: rows.length, rows: rows }",
+      "name": "result",
+      "label": "Export database rows"
+    }
+  ]
+}
