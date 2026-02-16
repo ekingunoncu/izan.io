@@ -1,0 +1,59 @@
+{
+  "id": "x-auto-bulk-like-search",
+  "name": "bulk_like_search_results",
+  "description": "Search for tweets and like all results (up to a specified limit). Useful for engagement campaigns.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "query",
+      "type": "string",
+      "description": "Search query to find tweets",
+      "required": true
+    },
+    {
+      "name": "max_likes",
+      "type": "number",
+      "description": "Maximum number of tweets to like (1-20)",
+      "required": false,
+      "default": 5
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://x.com/search",
+      "urlParams": {
+        "q": "{{query}}",
+        "src": "typed_query",
+        "f": "live"
+      },
+      "label": "Search X"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "article[data-testid='tweet']",
+      "timeout": 15000,
+      "label": "Wait for page content"
+    },
+    {
+      "action": "wait",
+      "ms": 1000,
+      "label": "Let page settle"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 800
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const maxLikes = Math.min(parseInt('{{max_likes}}') || 5, 20); const likeButtons = document.querySelectorAll('[data-testid$=\"like\"]'); let liked = 0; for (let i = 0; i < Math.min(likeButtons.length, maxLikes); i++) { likeButtons[i].click(); liked++; await new Promise(r => setTimeout(r, 800 + Math.random() * 700)); } return { liked_count: liked, message: `Liked ${liked} tweets` }",
+      "name": "result",
+      "label": "Like tweets from search results"
+    }
+  ]
+}

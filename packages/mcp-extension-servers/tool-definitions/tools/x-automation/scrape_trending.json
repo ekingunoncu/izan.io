@@ -1,0 +1,41 @@
+{
+  "id": "x-auto-scrape-trending",
+  "name": "scrape_trending",
+  "description": "Scrape the current trending topics on X/Twitter.",
+  "version": "1.0.0",
+  "parameters": [],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://x.com/explore/tabs/trending",
+      "label": "Open trending page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[data-testid='trend']",
+      "timeout": 15000,
+      "label": "Wait for page content"
+    },
+    {
+      "action": "wait",
+      "ms": 1000,
+      "label": "Let page settle"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll for more trends"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const trends = []; const trendCells = document.querySelectorAll('[data-testid=\"trend\"]'); trendCells.forEach((cell, i) => { if (i >= 20) return; const spans = cell.querySelectorAll('span'); const texts = Array.from(spans).map(s => s.textContent.trim()).filter(t => t.length > 0); let topic = ''; let category = ''; let postCount = ''; for (const t of texts) { if (t.match(/trending/i)) continue; if (t.match(/^\\d+\\s*·/)) continue; if (t.match(/posts$/i) || t.match(/[KMB]\\s*posts/i) || t.match(/^[\\d,.]+[KMB]?$/)) { postCount = t; } else if (t.match(/·/) || t.match(/trending in/i)) { category = t; } else if (t.startsWith('#') || t.length > 2) { if (!topic) topic = t; } } if (topic) trends.push({ rank: i + 1, topic: topic, category: category, post_count: postCount }); }); return { count: trends.length, trends: trends }",
+      "name": "trending",
+      "label": "Extract trending topics"
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "id": "x-auto-like-tweet",
+  "name": "like_tweet",
+  "description": "Like a specific tweet by navigating to its URL and clicking the like button.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "tweet_url",
+      "type": "string",
+      "description": "Full URL of the tweet to like (e.g. https://x.com/user/status/123456)",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{tweet_url}}",
+      "label": "Open the tweet"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "article[data-testid='tweet']",
+      "timeout": 15000,
+      "label": "Wait for page content"
+    },
+    {
+      "action": "wait",
+      "ms": 1000,
+      "label": "Let page settle"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[data-testid$='like']",
+      "timeout": 10000,
+      "label": "Wait for like button"
+    },
+    {
+      "action": "code",
+      "code": "const likeBtn = document.querySelector('[data-testid$=\"like\"]'); const unlikeBtn = document.querySelector('[data-testid$=\"unlike\"]'); if (unlikeBtn) return { already_liked: true, message: 'Tweet is already liked' }; if (likeBtn) { likeBtn.click(); return { success: true, message: 'Tweet liked' }; } return { success: false, message: 'Like button not found' }",
+      "name": "result",
+      "label": "Like the tweet (skip if already liked)"
+    }
+  ]
+}

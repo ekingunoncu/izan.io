@@ -18,6 +18,7 @@ import {
   Lightbulb,
   Settings,
   Star,
+  Send,
 } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { IzanLogo } from "~/components/ui/izan-logo";
@@ -48,6 +49,7 @@ const AGENT_ICONS: Record<string, typeof Bot> = {
   shield: Shield,
   "message-square": MessageSquare,
   lightbulb: Lightbulb,
+  twitter: Send,
 };
 
 export function clientLoader() {

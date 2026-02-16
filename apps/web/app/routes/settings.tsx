@@ -66,7 +66,7 @@ import { useAgentStore } from "~/store/agent.store";
 import { storageService } from "~/lib/services";
 import { useAutomationStore } from "~/store/automation.store";
 import { DEFAULT_MCP_SERVERS } from "~/lib/mcp/config";
-import { requestAutomationData, sendPreferenceToExtension } from "~/lib/mcp/extension-bridge";
+import { requestAutomationData } from "~/lib/mcp/extension-bridge";
 import { cn } from "~/lib/utils";
 import { type SupportedLanguage, setStoredLanguagePreference } from "~/i18n";
 import { useProvidersWithModels } from "~/lib/use-providers-with-models";
@@ -375,49 +375,7 @@ function AutomationToolsSection() {
 }
 
 function AutomationBrowserSection() {
-  const { t } = useTranslation("common");
-  const [foreground, setForeground] = useState(false);
-  const [loaded, setLoaded] = useState(false);
-
-  useEffect(() => {
-    storageService.getPreferences().then((prefs) => {
-      setForeground(prefs.automationBrowserForeground ?? false);
-      setLoaded(true);
-    });
-  }, []);
-
-  if (!loaded) return null;
-
-  const handleToggle = (checked: boolean) => {
-    setForeground(checked);
-    storageService.updatePreferences({ automationBrowserForeground: checked });
-    sendPreferenceToExtension("automationBrowserForeground", checked);
-  };
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Cog className="h-5 w-5" />
-          {t("settings.automationBrowserTitle")}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <label className="flex items-start gap-3 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={foreground}
-            onChange={(e) => handleToggle(e.target.checked)}
-            className="rounded border-input accent-primary h-4 w-4 mt-0.5"
-          />
-          <div>
-            <p className="text-sm font-medium">{t("settings.automationBrowserForeground")}</p>
-            <p className="text-xs text-muted-foreground">{t("settings.automationBrowserForegroundDesc")}</p>
-          </div>
-        </label>
-      </CardContent>
-    </Card>
-  );
+  return null;
 }
 
 const AGENT_ICON_MAP: Record<string, typeof Bot> = {

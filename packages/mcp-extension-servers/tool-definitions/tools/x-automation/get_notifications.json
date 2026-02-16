@@ -1,0 +1,41 @@
+{
+  "id": "x-auto-get-notifications",
+  "name": "get_notifications",
+  "description": "Scrape your recent X/Twitter notifications (mentions, likes, retweets, follows).",
+  "version": "1.0.0",
+  "parameters": [],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://x.com/notifications",
+      "label": "Open notifications"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[data-testid='cellInnerDiv']",
+      "timeout": 15000,
+      "label": "Wait for page content"
+    },
+    {
+      "action": "wait",
+      "ms": 1000,
+      "label": "Let page settle"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Load more notifications"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const notifications = []; const cells = document.querySelectorAll('article[data-testid=\"tweet\"], [data-testid=\"notification\"], [data-testid=\"cellInnerDiv\"]'); let count = 0; cells.forEach(cell => { if (count >= 15) return; const text = cell.textContent.trim(); if (text.length < 5) return; const timeEl = cell.querySelector('time'); const linkEls = cell.querySelectorAll('a[href*=\"/status/\"]'); const userLinks = cell.querySelectorAll('a[role=\"link\"][href^=\"/\"]'); let type = 'unknown'; if (text.match(/liked/i)) type = 'like'; else if (text.match(/retweeted/i)) type = 'retweet'; else if (text.match(/followed/i)) type = 'follow'; else if (text.match(/replied/i) || text.match(/replying to/i)) type = 'reply'; else if (text.match(/mentioned/i)) type = 'mention'; const shortText = text.substring(0, 200); notifications.push({ type: type, text: shortText, time: timeEl ? timeEl.getAttribute('datetime') : '', tweet_url: linkEls.length > 0 ? 'https://x.com' + linkEls[0].getAttribute('href') : '' }); count++; }); return { count: notifications.length, notifications: notifications }",
+      "name": "notifications",
+      "label": "Extract notifications"
+    }
+  ]
+}

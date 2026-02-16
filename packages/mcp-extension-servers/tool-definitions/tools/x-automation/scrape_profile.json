@@ -1,0 +1,38 @@
+{
+  "id": "x-auto-scrape-profile",
+  "name": "scrape_profile",
+  "description": "Scrape a user's X/Twitter profile info: bio, follower/following counts, location, website, etc.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "username",
+      "type": "string",
+      "description": "Username to scrape (without @)",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://x.com/{{username}}",
+      "label": "Open profile"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[data-testid='UserName']",
+      "timeout": 15000,
+      "label": "Wait for page content"
+    },
+    {
+      "action": "wait",
+      "ms": 1000,
+      "label": "Let page settle"
+    },
+    {
+      "action": "code",
+      "code": "const nameEl = document.querySelector('[data-testid=\"UserName\"]'); const bioEl = document.querySelector('[data-testid=\"UserDescription\"]'); const locationEl = document.querySelector('[data-testid=\"UserLocation\"]'); const urlEl = document.querySelector('[data-testid=\"UserUrl\"]'); const joinDateEl = document.querySelector('[data-testid=\"UserJoinDate\"]'); const headerPhoto = document.querySelector('[data-testid=\"UserAvatar-Container-unknown\"] img, a[href$=\"/photo\"] img'); const followingLink = document.querySelector('a[href$=\"/following\"] span span'); const followersLink = document.querySelector('a[href$=\"/verified_followers\"] span span, a[href$=\"/followers\"] span span'); const isVerified = !!document.querySelector('[data-testid=\"icon-verified\"]'); return { name: nameEl ? nameEl.querySelector('span span') ? nameEl.querySelector('span span').textContent.trim() : nameEl.textContent.trim().split('\\n')[0] : 'Unknown', username: '@' + window.location.pathname.replace('/', ''), bio: bioEl ? bioEl.textContent.trim() : '', location: locationEl ? locationEl.textContent.trim() : '', website: urlEl ? urlEl.textContent.trim() : '', join_date: joinDateEl ? joinDateEl.textContent.trim() : '', following_count: followingLink ? followingLink.textContent.trim() : '0', followers_count: followersLink ? followersLink.textContent.trim() : '0', verified: isVerified, avatar_url: headerPhoto ? headerPhoto.src : '', profile_url: window.location.href }",
+      "name": "profile",
+      "label": "Extract profile data"
+    }
+  ]
+}

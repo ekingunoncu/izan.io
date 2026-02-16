@@ -1,0 +1,60 @@
+{
+  "id": "x-auto-bulk-scrape-timelines",
+  "name": "bulk_scrape_timelines",
+  "description": "Scrape recent tweets from multiple X/Twitter timelines in parallel (up to 10 tweets per user).",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "usernames",
+      "type": "string",
+      "description": "Comma-separated usernames to scrape (without @, e.g. 'elonmusk,openai,anthropic')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{usernames}}`.split(',').map(u => ({ url: 'https://x.com/' + u.trim(), username: u.trim() }))",
+      "name": "items",
+      "label": "Build timeline URL list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 3,
+      "maxItems": 10,
+      "waitUntil": "load",
+      "label": "Scrape each timeline in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": "article[data-testid='tweet']",
+          "timeout": 15000,
+          "label": "Wait for tweets"
+        },
+        {
+          "action": "wait",
+          "ms": 1500
+        },
+        {
+          "action": "scroll",
+          "direction": "down",
+          "amount": 1000,
+          "label": "Scroll for more"
+        },
+        {
+          "action": "wait",
+          "ms": 1500
+        },
+        {
+          "action": "code",
+          "code": "const tweets = []; const articles = document.querySelectorAll('article[data-testid=\"tweet\"]'); for (let i = 0; i < Math.min(articles.length, 10); i++) { const el = articles[i]; const tweetTextEl = el.querySelector('[data-testid=\"tweetText\"]'); const timeEl = el.querySelector('time'); const linkEl = el.querySelector('a[href*=\"/status/\"]'); const likeEl = el.querySelector('[data-testid$=\"like\"] span, [data-testid$=\"unlike\"] span'); const retweetEl = el.querySelector('[data-testid$=\"retweet\"] span, [data-testid$=\"unretweet\"] span'); tweets.push({ text: tweetTextEl ? tweetTextEl.textContent.trim() : '', time: timeEl ? timeEl.getAttribute('datetime') : '', url: linkEl ? 'https://x.com' + linkEl.getAttribute('href') : '', likes: likeEl ? likeEl.textContent.trim() : '0', retweets: retweetEl ? retweetEl.textContent.trim() : '0' }); } return { username: window.location.pathname.replace('/', ''), tweet_count: tweets.length, tweets: tweets }",
+          "name": "timeline",
+          "label": "Extract tweets"
+        }
+      ]
+    }
+  ]
+}

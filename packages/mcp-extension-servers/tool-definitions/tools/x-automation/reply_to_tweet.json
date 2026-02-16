@@ -1,0 +1,79 @@
+{
+  "id": "x-auto-reply-tweet",
+  "name": "reply_to_tweet",
+  "description": "Reply to a specific tweet by URL. Opens the tweet and posts a reply.",
+  "version": "1.0.1",
+  "parameters": [
+    {
+      "name": "tweet_url",
+      "type": "string",
+      "description": "Full URL of the tweet to reply to (e.g. https://x.com/user/status/123456)",
+      "required": true
+    },
+    {
+      "name": "reply_text",
+      "type": "string",
+      "description": "The reply text (max 280 characters)",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{tweet_url}}",
+      "label": "Open the tweet"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[data-testid='tweetText']",
+      "timeout": 15000,
+      "label": "Wait for page content"
+    },
+    {
+      "action": "wait",
+      "ms": 1000,
+      "label": "Let page settle"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[data-testid^='tweetTextarea']",
+      "timeout": 10000,
+      "label": "Wait for reply box"
+    },
+    {
+      "action": "click",
+      "selector": "[data-testid^='tweetTextarea']",
+      "label": "Focus reply box"
+    },
+    {
+      "action": "wait",
+      "ms": 300,
+      "label": "Wait for focus"
+    },
+    {
+      "action": "code",
+      "code": "const txt = `{{reply_text}}`; if (txt.length > 280) throw new Error('Reply exceeds 280 characters (' + txt.length + ' chars). Please shorten it.'); const el = document.querySelector('[data-testid^=\"tweetTextarea\"] [contenteditable=\"true\"], [data-testid^=\"tweetTextarea\"][contenteditable=\"true\"], [data-testid^=\"tweetTextarea\"]'); if (!el) throw new Error('Reply textarea not found'); el.focus(); document.execCommand('insertText', false, txt); el.dispatchEvent(new Event('input', {bubbles: true})); return { typed: true, characters: txt.length }",
+      "name": "type_reply",
+      "label": "Type reply text"
+    },
+    {
+      "action": "wait",
+      "ms": 500
+    },
+    {
+      "action": "click",
+      "selector": "[data-testid='tweetButtonInline'], [data-testid^='tweetButton']",
+      "label": "Send reply"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Wait for reply to post"
+    },
+    {
+      "action": "code",
+      "code": "return { success: true, message: 'Reply posted successfully' }",
+      "name": "result"
+    }
+  ]
+}

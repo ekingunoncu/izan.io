@@ -1,0 +1,53 @@
+{
+  "id": "x-auto-search-tweets",
+  "name": "search_tweets",
+  "description": "Search for tweets on X/Twitter and extract the results (up to 10 tweets).",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "query",
+      "type": "string",
+      "description": "Search query (supports X search operators like 'from:user', 'min_faves:100', etc.)",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://x.com/search",
+      "urlParams": {
+        "q": "{{query}}",
+        "src": "typed_query",
+        "f": "live"
+      },
+      "label": "Search X"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "article[data-testid='tweet']",
+      "timeout": 15000,
+      "label": "Wait for tweets to appear"
+    },
+    {
+      "action": "wait",
+      "ms": 1500,
+      "label": "Let more tweets render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 800,
+      "label": "Scroll to load more tweets"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const tweets = []; const articles = document.querySelectorAll('article[data-testid=\"tweet\"]'); for (let i = 0; i < Math.min(articles.length, 10); i++) { const el = articles[i]; const userNameEl = el.querySelector('[data-testid=\"User-Name\"]'); const tweetTextEl = el.querySelector('[data-testid=\"tweetText\"]'); const timeEl = el.querySelector('time'); const linkEl = el.querySelector('a[href*=\"/status/\"]'); const likeEl = el.querySelector('[data-testid$=\"like\"] span, [data-testid$=\"unlike\"] span'); const retweetEl = el.querySelector('[data-testid$=\"retweet\"] span, [data-testid$=\"unretweet\"] span'); const replyEl = el.querySelector('[data-testid=\"reply\"] span'); tweets.push({ author: userNameEl ? userNameEl.textContent.trim() : 'Unknown', text: tweetTextEl ? tweetTextEl.textContent.trim() : '', time: timeEl ? timeEl.getAttribute('datetime') : '', url: linkEl ? 'https://x.com' + linkEl.getAttribute('href') : '', likes: likeEl ? likeEl.textContent.trim() : '0', retweets: retweetEl ? retweetEl.textContent.trim() : '0', replies: replyEl ? replyEl.textContent.trim() : '0' }); } return { tweet_count: tweets.length, tweets: tweets }",
+      "name": "search_results",
+      "label": "Extract search results"
+    }
+  ]
+}

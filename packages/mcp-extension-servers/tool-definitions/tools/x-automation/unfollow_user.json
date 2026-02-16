@@ -1,0 +1,38 @@
+{
+  "id": "x-auto-unfollow-user",
+  "name": "unfollow_user",
+  "description": "Unfollow a user on X/Twitter by navigating to their profile.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "username",
+      "type": "string",
+      "description": "Username to unfollow (without @)",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://x.com/{{username}}",
+      "label": "Open user profile"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[data-testid='UserName']",
+      "timeout": 15000,
+      "label": "Wait for page content"
+    },
+    {
+      "action": "wait",
+      "ms": 1000,
+      "label": "Let page settle"
+    },
+    {
+      "action": "code",
+      "code": "const unfollowBtn = document.querySelector('[data-testid$=\"-unfollow\"]'); if (!unfollowBtn) return { not_following: true, message: 'Not following this user' }; unfollowBtn.click(); await new Promise(r => setTimeout(r, 500)); const confirmBtn = document.querySelector('[data-testid=\"confirmationSheetConfirm\"]'); if (confirmBtn) confirmBtn.click(); return { success: true, message: 'Unfollowed user' }",
+      "name": "result",
+      "label": "Unfollow user with confirmation"
+    }
+  ]
+}

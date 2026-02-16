@@ -1,0 +1,63 @@
+{
+  "id": "x-auto-retweet",
+  "name": "retweet",
+  "description": "Retweet a specific tweet by navigating to its URL and clicking the retweet button.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "tweet_url",
+      "type": "string",
+      "description": "Full URL of the tweet to retweet",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{tweet_url}}",
+      "label": "Open the tweet"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "article[data-testid='tweet']",
+      "timeout": 15000,
+      "label": "Wait for page content"
+    },
+    {
+      "action": "wait",
+      "ms": 1000,
+      "label": "Let page settle"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[data-testid$='retweet']",
+      "timeout": 10000,
+      "label": "Wait for retweet button"
+    },
+    {
+      "action": "click",
+      "selector": "[data-testid$='retweet']",
+      "label": "Click retweet"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[data-testid='retweetConfirm'], [data-testid='repostConfirm']",
+      "timeout": 5000,
+      "label": "Wait for retweet menu"
+    },
+    {
+      "action": "click",
+      "selector": "[data-testid='retweetConfirm'], [data-testid='repostConfirm']",
+      "label": "Confirm retweet"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "return { success: true, message: 'Retweeted successfully' }",
+      "name": "result"
+    }
+  ]
+}

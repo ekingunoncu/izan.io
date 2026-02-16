@@ -1,0 +1,111 @@
+{
+  "id": "x-auto-send-dm",
+  "name": "send_dm",
+  "description": "Send a direct message to a user on X/Twitter. The user must allow DMs from you.",
+  "version": "1.0.1",
+  "parameters": [
+    {
+      "name": "username",
+      "type": "string",
+      "description": "Username to send DM to (without @)",
+      "required": true
+    },
+    {
+      "name": "message",
+      "type": "string",
+      "description": "Message text to send",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://x.com/messages",
+      "label": "Open messages"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[data-testid='NewDM_Button'], a[href='/messages/compose']",
+      "timeout": 15000,
+      "label": "Wait for messages page"
+    },
+    {
+      "action": "code",
+      "code": "const composeBtn = document.querySelector('[data-testid=\"NewDM_Button\"]'); if (composeBtn) composeBtn.click(); else { const altBtn = document.querySelector('a[href=\"/messages/compose\"]'); if (altBtn) altBtn.click(); } return { clicked: true }",
+      "name": "open_compose",
+      "label": "Click new message button"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[data-testid='searchPeople']",
+      "timeout": 10000,
+      "label": "Wait for people search"
+    },
+    {
+      "action": "type",
+      "selector": "[data-testid='searchPeople']",
+      "text": "{{username}}",
+      "clear": true,
+      "label": "Search for user"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Wait for search results"
+    },
+    {
+      "action": "code",
+      "code": "const results = document.querySelectorAll('[data-testid=\"TypeaheadUser\"]'); if (results.length > 0) { results[0].click(); return { found: true }; } return { found: false, message: 'User not found in search results' }",
+      "name": "select_user",
+      "label": "Select user from results"
+    },
+    {
+      "action": "wait",
+      "ms": 1000
+    },
+    {
+      "action": "code",
+      "code": "const nextBtn = document.querySelector('[data-testid=\"nextButton\"]'); if (nextBtn) nextBtn.click(); return { clicked: true }",
+      "name": "click_next",
+      "label": "Click Next to open conversation"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[data-testid='dmComposerTextInput']",
+      "timeout": 10000,
+      "label": "Wait for message input"
+    },
+    {
+      "action": "code",
+      "code": "const el = document.querySelector('[data-testid=\"dmComposerTextInput\"] [contenteditable=\"true\"], [data-testid=\"dmComposerTextInput\"][contenteditable=\"true\"], [data-testid=\"dmComposerTextInput\"]'); if (!el) throw new Error('DM input not found'); el.focus(); document.execCommand('insertText', false, `{{message}}`); el.dispatchEvent(new Event('input', {bubbles: true})); return { typed: true }",
+      "name": "type_message",
+      "label": "Type message"
+    },
+    {
+      "action": "wait",
+      "ms": 500
+    },
+    {
+      "action": "click",
+      "selector": "[data-testid='dmComposerSendButton']",
+      "label": "Send message"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "return { success: true, message: 'DM sent successfully' }",
+      "name": "result"
+    }
+  ]
+}

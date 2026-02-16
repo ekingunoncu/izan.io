@@ -162,6 +162,8 @@
     "agentWebFetchDesc": "Beliebige Webseiten abrufen und deren Inhalt lesen. Erfordert die Browser-Erweiterung.",
     "agentPlayStoreTitle": "Play Store",
     "agentPlayStoreDesc": "Apps im Google Play Store suchen und analysieren. Erfordert die Browser-Erweiterung.",
+    "agentXManagerTitle": "X Manager",
+    "agentXManagerDesc": "X/Twitter automatisieren: posten, liken, retweeten, folgen, suchen und scrapen. Erfordert die Browser-Erweiterung.",
     "agentMoreTitle": "Und mehr unterwegs...",
     "agentMoreDesc": "Trading, Sport, Nachrichten, Shopping - neue Agenten werden von uns und der Community ständig entwickelt.",
 
@@ -370,6 +372,24 @@
         "usageExample3": "Lies den Inhalt dieser Seite: https://news.ycombinator.com",
         "usageExample4": "Fasse den Artikel unter dieser URL zusammen",
         "usageExample5": "Welche Informationen sind auf dieser Seite?"
+      },
+      "x-manager": {
+        "name": "X Manager",
+        "description": "X/Twitter automatisieren: posten, liken, retweeten, folgen, suchen, Profile scrapen und mehr. Kein Twitter-API-Schlüssel nötig.",
+        "detailedDescription": "Ihr X (ehemals Twitter) Automatisierungsassistent. Dieser Agent steuert X.com direkt über den Browser mit der izan.io Chrome-Erweiterung — keine Twitter-API-Schlüssel oder Entwicklerkonten erforderlich. Er kann Tweets posten, liken und retweeten, Nutzern folgen und entfolgen, Tweets suchen, Profile und Timelines scrapen, Trending Topics prüfen, DMs senden, Lesezeichen verwalten und Benachrichtigungen überwachen. Alles läuft in Ihrer Browser-Sitzung, Ihre Anmeldedaten bleiben lokal und privat.",
+        "whatItDoes": "Der X Manager Agent verwendet 21 vorgefertigte Browser-Automatisierungsmakros, um über die Chrome-Erweiterung mit X.com zu interagieren. Er navigiert zu den richtigen Seiten, wartet auf das Laden von Inhalten und verwendet die stabilen data-testid-Selektoren von X.com. Bulk-Tools laufen in parallelen Browser-Tabs für Geschwindigkeit. Keine API-Schlüssel, keine Rate-Limit-Tokens, kein Entwicklerkonto nötig.",
+        "mcps": "Browser-Erweiterung (X/Twitter-Automatisierungsmakros — 21 Tools, davon 6 parallele Bulk-Tools)",
+        "feature1": "Tweets posten (mit 280-Zeichen-Validierung), antworten, liken, retweeten und bookmarken — alles per Browser-Automatisierung, kein Twitter-API-Schlüssel nötig",
+        "feature2": "Parallele Bulk-Operationen: mehrere Profile scrapen, mehrere Suchanfragen gleichzeitig durchführen, viele Elemente parallel in Browser-Tabs liken/retweeten/folgen",
+        "feature3": "Tweets mit erweiterten Operatoren suchen, Nutzerprofile (Bio, Follower, Standort) extrahieren, Timelines mit Engagement-Metriken, Trending Topics verfolgen",
+        "feature4": "Direktnachrichten senden, Benachrichtigungen prüfen, Lesezeichen verwalten, folgen/entfolgen — läuft vollständig in Ihrem Browser über die Chrome-Erweiterung",
+        "howToUse": "Installieren Sie die izan.io Chrome-Erweiterung, wählen Sie den X Manager Agent und starten Sie den Chat. Bitten Sie ihn, einen Tweet zu posten, Themen zu suchen, Trends zu prüfen, ein Profil zu scrapen oder eine X/Twitter-Aktion auszuführen. Der Agent öffnet X.com in einem Browser-Tab, führt die Aktion aus und gibt die Ergebnisse zurück. Sie müssen in Ihrem Browser bei X.com angemeldet sein.",
+        "proTip": "Für Bulk-Operationen einfach natürlich fragen: 'Vergleiche die Profile von @openai, @anthropic und @google' — der Agent ruft alle drei parallel ab. Verwenden Sie X-Suchoperatoren wie from:user, min_faves:100 oder lang:de für präzise Ergebnisse.",
+        "usageExample1": "Poste einen Tweet über unseren neuesten Produktlaunch",
+        "usageExample2": "Vergleiche die Profile von @openai, @anthropic und @google",
+        "usageExample3": "Suche parallel nach 'KI-Agenten', 'Open Source LLM' und 'Browser-Automatisierung'",
+        "usageExample4": "Was ist gerade auf X im Trend?",
+        "usageExample5": "Like und retweete diese Tweets: url1, url2, url3"
       },
       "play-store": {
         "name": "Play Store",

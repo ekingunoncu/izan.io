@@ -162,6 +162,8 @@
     "agentWebFetchDesc": "Fetch any web page and read its content. Requires the browser extension.",
     "agentPlayStoreTitle": "Play Store",
     "agentPlayStoreDesc": "Search and analyze apps on Google Play Store. Requires the browser extension.",
+    "agentXManagerTitle": "X Manager",
+    "agentXManagerDesc": "Automate X/Twitter: post, like, retweet, follow, search, and scrape. Requires the browser extension.",
     "agentMoreTitle": "And More on the Way...",
     "agentMoreDesc": "Trading, sports, news, shopping - new agents are always being built by us and the community.",
 
@@ -370,6 +372,24 @@
         "usageExample3": "Read the content of this page: https://news.ycombinator.com",
         "usageExample4": "Summarize the article at this URL",
         "usageExample5": "What information is on this page?"
+      },
+      "x-manager": {
+        "name": "X Manager",
+        "description": "Automate X/Twitter: post, like, retweet, follow, search, scrape profiles, and more. No Twitter API key needed.",
+        "detailedDescription": "Your X (formerly Twitter) automation assistant. This agent controls X.com directly through the browser using the izan.io Chrome extension — no Twitter API keys or developer accounts required. It can post tweets, like and retweet posts, follow and unfollow users, search tweets, scrape profiles and timelines, check trending topics, send DMs, manage bookmarks, and monitor notifications. Everything runs in your browser session, so your credentials stay local and private.",
+        "whatItDoes": "The X Manager agent uses 21 pre-built browser automation macros to interact with X.com through the Chrome extension. It navigates to the right pages, waits for content to load, and uses X.com's stable data-testid selectors to perform actions and extract data. Bulk tools run in parallel browser tabs for speed. No API keys, no rate limit tokens, no developer account needed — it works through the browser just like you would.",
+        "mcps": "Browser Extension (X/Twitter automation macros — 21 tools, including 6 parallel bulk tools)",
+        "feature1": "Post tweets (with 280-char validation), reply, like, retweet, and bookmark — all through browser automation, no Twitter API key required",
+        "feature2": "Parallel bulk operations: scrape multiple profiles, search multiple queries, like/retweet/follow many items simultaneously in parallel browser tabs",
+        "feature3": "Search tweets with advanced operators, scrape user profiles (bio, followers, location), extract timelines with engagement metrics, monitor trending topics",
+        "feature4": "Send direct messages, check notifications, manage bookmarks, follow/unfollow users — runs entirely in your browser via the Chrome extension",
+        "howToUse": "Install the izan.io Chrome extension, then select the X Manager agent and start chatting. Ask it to post a tweet, search for topics, check trending, scrape a profile, or perform any X/Twitter action. The agent opens X.com in a browser tab, performs the action, and returns the results. You must be logged into X.com in your browser.",
+        "proTip": "For bulk operations, just ask naturally: 'Compare the profiles of @openai, @anthropic, and @google' — the agent will use bulk_scrape_profiles to fetch all three in parallel. Use X search operators like from:user, min_faves:100, or lang:en for precise results.",
+        "usageExample1": "Post a tweet about our latest product launch",
+        "usageExample2": "Compare the profiles of @openai, @anthropic and @google",
+        "usageExample3": "Search for 'AI agents', 'open source LLM' and 'browser automation' in parallel",
+        "usageExample4": "What's trending on X right now?",
+        "usageExample5": "Like and retweet these tweets: url1, url2, url3"
       },
       "play-store": {
         "name": "Play Store",

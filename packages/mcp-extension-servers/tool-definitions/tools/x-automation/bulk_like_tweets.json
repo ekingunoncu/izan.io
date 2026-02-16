@@ -1,0 +1,50 @@
+{
+  "id": "x-auto-bulk-like-tweets",
+  "name": "bulk_like_tweets",
+  "description": "Like multiple tweets in parallel by their URLs. Skips already-liked tweets.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "tweet_urls",
+      "type": "string",
+      "description": "Comma-separated tweet URLs to like (e.g. 'https://x.com/user/status/123,https://x.com/user/status/456')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{tweet_urls}}`.split(',').map(u => ({ url: u.trim() }))",
+      "name": "items",
+      "label": "Build tweet URL list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 3,
+      "maxItems": 20,
+      "waitUntil": "load",
+      "label": "Like each tweet in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": "article[data-testid='tweet']",
+          "timeout": 15000,
+          "label": "Wait for tweet"
+        },
+        {
+          "action": "wait",
+          "ms": 1000
+        },
+        {
+          "action": "code",
+          "code": "const likeBtn = document.querySelector('[data-testid$=\"like\"]'); const unlikeBtn = document.querySelector('[data-testid$=\"unlike\"]'); if (unlikeBtn) return { status: 'already_liked', url: window.location.href }; if (likeBtn) { likeBtn.click(); return { status: 'liked', url: window.location.href }; } return { status: 'not_found', url: window.location.href }",
+          "name": "like_result",
+          "label": "Like tweet"
+        }
+      ]
+    }
+  ]
+}

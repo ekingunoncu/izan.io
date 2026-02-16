@@ -7,6 +7,35 @@
       "description": "Discover and analyze apps from Google Play Store",
       "category": "web_search",
       "tools": ["fetch_app_details", "search_play_store"]
+    },
+    {
+      "id": "x-automation",
+      "name": "X (Twitter) Automation",
+      "description": "Automate X/Twitter actions: post tweets, search, like, retweet, follow/unfollow, scrape profiles and timelines",
+      "category": "social_media",
+      "tools": [
+        "post_tweet",
+        "reply_to_tweet",
+        "like_tweet",
+        "retweet",
+        "follow_user",
+        "unfollow_user",
+        "search_tweets",
+        "scrape_profile",
+        "scrape_timeline",
+        "scrape_trending",
+        "send_dm",
+        "bookmark_tweet",
+        "get_notifications",
+        "get_bookmarks",
+        "bulk_like_search_results",
+        "bulk_scrape_profiles",
+        "bulk_scrape_timelines",
+        "bulk_search_tweets",
+        "bulk_like_tweets",
+        "bulk_follow_users",
+        "bulk_retweet"
+      ]
     }
   ]
 }

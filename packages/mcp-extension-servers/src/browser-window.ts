@@ -77,8 +77,8 @@ export class BrowserWindow {
 
   // ─── Lifecycle ──────────────────────────────────────────────────
 
-  async open(url: string, opts: { background?: boolean; viewport?: { width: number; height: number } } = {}): Promise<number> {
-    const r = await this.send('open', { url, background: opts.background ?? true, viewport: opts.viewport }) as { tabId: number }
+  async open(url: string, opts: { viewport?: { width: number; height: number } } = {}): Promise<number> {
+    const r = await this.send('open', { url, viewport: opts.viewport }) as { tabId: number }
     this.tabId = r.tabId
     return this.tabId
   }

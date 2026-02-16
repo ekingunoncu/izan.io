@@ -1,0 +1,44 @@
+{
+  "id": "x-auto-bookmark-tweet",
+  "name": "bookmark_tweet",
+  "description": "Bookmark a tweet for later reading.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "tweet_url",
+      "type": "string",
+      "description": "Full URL of the tweet to bookmark",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{tweet_url}}",
+      "label": "Open the tweet"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "article[data-testid='tweet']",
+      "timeout": 15000,
+      "label": "Wait for page content"
+    },
+    {
+      "action": "wait",
+      "ms": 1000,
+      "label": "Let page settle"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[data-testid$='bookmark']",
+      "timeout": 10000,
+      "label": "Wait for bookmark button"
+    },
+    {
+      "action": "code",
+      "code": "const bookmarkBtn = document.querySelector('[data-testid$=\"bookmark\"]'); const unbookmarkBtn = document.querySelector('[data-testid$=\"removeBookmark\"]'); if (unbookmarkBtn) return { already_bookmarked: true, message: 'Tweet is already bookmarked' }; if (bookmarkBtn) { bookmarkBtn.click(); return { success: true, message: 'Tweet bookmarked' }; } return { success: false, message: 'Bookmark button not found' }",
+      "name": "result",
+      "label": "Bookmark the tweet"
+    }
+  ]
+}

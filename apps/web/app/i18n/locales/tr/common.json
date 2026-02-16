@@ -162,6 +162,8 @@
     "agentWebFetchDesc": "Herhangi bir web sayfasını açıp içeriğini okuyun. Tarayıcı eklentisi gerektirir.",
     "agentPlayStoreTitle": "Play Store",
     "agentPlayStoreDesc": "Google Play Store'da uygulama arayın ve analiz edin. Tarayıcı eklentisi gerektirir.",
+    "agentXManagerTitle": "X Yöneticisi",
+    "agentXManagerDesc": "X/Twitter otomasyonu: tweet at, beğen, RT, takip et, ara ve profil çek. Tarayıcı eklentisi gerektirir.",
     "agentMoreTitle": "Ve Daha Fazlası Yolda...",
     "agentMoreDesc": "Borsa, spor, haber, alışveriş - yeni agentlar bizim ve topluluk tarafından sürekli geliştiriliyor.",
 
@@ -370,6 +372,24 @@
         "usageExample3": "Bu sayfanın içeriğini oku: https://news.ycombinator.com",
         "usageExample4": "Bu URL'deki makaleyi özetle",
         "usageExample5": "Bu sayfada hangi bilgiler var?"
+      },
+      "x-manager": {
+        "name": "X Yöneticisi",
+        "description": "X/Twitter otomasyonu: tweet at, beğen, RT, takip et, ara, profil çek ve daha fazlası. Twitter API anahtarı gerekmez.",
+        "detailedDescription": "X (eski adıyla Twitter) otomasyon asistanınız. Bu agent, izan.io Chrome eklentisi aracılığıyla X.com'u doğrudan tarayıcıdan kontrol eder — Twitter API anahtarı veya geliştirici hesabı gerekmez. Tweet atabilir, beğenip retweet yapabilir, kullanıcıları takip edip takipten çıkabilir, tweet arayabilir, profil ve zaman çizelgesi çekebilir, gündem konularını kontrol edebilir, DM gönderebilir, yer imlerini yönetebilir ve bildirimleri izleyebilir. Her şey tarayıcı oturumunuzda çalışır, kimlik bilgileriniz yerel ve gizli kalır.",
+        "whatItDoes": "X Manager agenti, Chrome eklentisi aracılığıyla X.com ile etkileşim kurmak için 21 önceden oluşturulmuş tarayıcı otomasyon makrosu kullanır. Doğru sayfalara gider, içeriğin yüklenmesini bekler ve X.com'un kararlı data-testid seçicilerini kullanarak işlem yapar ve veri çeker. Toplu araçlar hız için paralel tarayıcı sekmelerinde çalışır. API anahtarı yok, hız sınırı tokeni yok, geliştirici hesabı gerekmiyor — tıpkı sizin yaptığınız gibi tarayıcı üzerinden çalışır.",
+        "mcps": "Tarayıcı Eklentisi (X/Twitter otomasyon makroları — 21 araç, 6 paralel toplu araç dahil)",
+        "feature1": "Tweet at (280 karakter doğrulamalı), yanıtla, beğen, retweet yap ve yer imlerine ekle — hepsi tarayıcı otomasyonuyla, Twitter API anahtarı gerekmez",
+        "feature2": "Paralel toplu işlemler: birden fazla profili çek, birden fazla sorgu ara, çok sayıda öğeyi aynı anda paralel tarayıcı sekmelerinde beğen/RT/takip et",
+        "feature3": "Gelişmiş operatörlerle tweet ara, kullanıcı profillerini çek (bio, takipçi, konum), etkileşim metrikleriyle zaman çizelgesi çıkar, gündem konularını izle",
+        "feature4": "Direkt mesaj gönder, bildirimleri kontrol et, yer imlerini yönet, takip et/takipten çık — tamamen tarayıcınızda Chrome eklentisi aracılığıyla çalışır",
+        "howToUse": "izan.io Chrome eklentisini kurun, ardından X Yöneticisi agentını seçin ve sohbet etmeye başlayın. Tweet atmasını, konu aramasını, gündem kontrolü yapmasını, profil çekmesini veya herhangi bir X/Twitter işlemi gerçekleştirmesini isteyin. Agent X.com'u tarayıcı sekmesinde açar, işlemi gerçekleştirir ve sonuçları döndürür. X.com'da tarayıcınızda oturum açmış olmanız gerekir.",
+        "proTip": "Toplu işlemler için doğal şekilde isteyin: '@openai, @anthropic ve @google profillerini karşılaştır' — agent hepsini paralel olarak çeker. Hassas sonuçlar için from:user, min_faves:100 veya lang:tr gibi X arama operatörlerini kullanın.",
+        "usageExample1": "Son ürün lansmanımız hakkında bir tweet at",
+        "usageExample2": "@openai, @anthropic ve @google profillerini karşılaştır",
+        "usageExample3": "'AI agentlar', 'açık kaynak LLM' ve 'tarayıcı otomasyonu' konularını paralel ara",
+        "usageExample4": "Şu an X'te neler gündemde?",
+        "usageExample5": "Bu tweetleri beğen ve RT yap: url1, url2, url3"
       },
       "play-store": {
         "name": "Play Store",

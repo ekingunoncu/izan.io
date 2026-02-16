@@ -273,6 +273,36 @@
   </url>
 
   <url>
+    <loc>https://izan.io/tr/agents/x-manager</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/agents/x-manager" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/agents/x-manager" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/agents/x-manager" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/agents/x-manager" />
+    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://izan.io/en/agents/x-manager</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/agents/x-manager" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/agents/x-manager" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/agents/x-manager" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/agents/x-manager" />
+    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://izan.io/de/agents/x-manager</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/agents/x-manager" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/agents/x-manager" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/agents/x-manager" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/agents/x-manager" />
+    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
     <loc>https://izan.io/tr/docs/getting-started</loc>
     <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/docs/getting-started" />
     <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/docs/getting-started" />

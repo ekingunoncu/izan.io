@@ -1,0 +1,61 @@
+{
+  "id": "x-auto-bulk-retweet",
+  "name": "bulk_retweet",
+  "description": "Retweet multiple tweets in parallel by their URLs. Skips already-retweeted tweets.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "tweet_urls",
+      "type": "string",
+      "description": "Comma-separated tweet URLs to retweet (e.g. 'https://x.com/user/status/123,https://x.com/user/status/456')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{tweet_urls}}`.split(',').map(u => ({ url: u.trim() }))",
+      "name": "items",
+      "label": "Build tweet URL list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 2,
+      "maxItems": 20,
+      "waitUntil": "load",
+      "label": "Retweet each in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": "article[data-testid='tweet']",
+          "timeout": 15000,
+          "label": "Wait for tweet"
+        },
+        {
+          "action": "wait",
+          "ms": 1000
+        },
+        {
+          "action": "code",
+          "code": "const rtBtn = document.querySelector('[data-testid$=\"retweet\"]'); const unrtBtn = document.querySelector('[data-testid$=\"unretweet\"]'); if (unrtBtn) return { status: 'already_retweeted', url: window.location.href }; if (rtBtn) { rtBtn.click(); return { status: 'clicked_retweet', url: window.location.href }; } return { status: 'not_found', url: window.location.href }",
+          "name": "rt_click",
+          "label": "Click retweet button"
+        },
+        {
+          "action": "wait",
+          "ms": 1000,
+          "label": "Wait for confirm menu"
+        },
+        {
+          "action": "code",
+          "code": "const confirm = document.querySelector('[data-testid=\"retweetConfirm\"], [data-testid=\"repostConfirm\"]'); if (confirm) { confirm.click(); return { status: 'retweeted', url: window.location.href }; } return { status: 'confirm_not_found', url: window.location.href }",
+          "name": "rt_confirm",
+          "label": "Confirm retweet"
+        }
+      ]
+    }
+  ]
+}

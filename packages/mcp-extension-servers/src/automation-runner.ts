@@ -358,7 +358,7 @@ export class AutomationRunner {
 
     // Open tab if not already open, then navigate
     if (!bw.isOpen()) {
-      await bw.open(url, { background: false, viewport })
+      await bw.open(url, { viewport })
     } else {
       await bw.navigate(url)
     }
@@ -685,7 +685,7 @@ export class AutomationRunner {
       }
 
       console.log(`[izan-ext] processForEachItem[${itemIndex}]: opening ${url.slice(0, 150)}`)
-      await bw.open(url, { background: true, viewport })
+      await bw.open(url, { viewport })
 
       // Wait according to strategy
       const waitUntil: WaitUntil = step.waitUntil ?? 'load'

@@ -1,0 +1,38 @@
+{
+  "id": "x-auto-follow-user",
+  "name": "follow_user",
+  "description": "Follow a user on X/Twitter by navigating to their profile.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "username",
+      "type": "string",
+      "description": "Username to follow (without @, e.g. 'elonmusk')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://x.com/{{username}}",
+      "label": "Open user profile"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[data-testid='UserName']",
+      "timeout": 15000,
+      "label": "Wait for page content"
+    },
+    {
+      "action": "wait",
+      "ms": 1000,
+      "label": "Let page settle"
+    },
+    {
+      "action": "code",
+      "code": "const followBtn = document.querySelector('[data-testid$=\"-follow\"]'); const unfollowBtn = document.querySelector('[data-testid$=\"-unfollow\"]'); if (unfollowBtn) return { already_following: true, message: 'Already following this user' }; if (followBtn) { followBtn.click(); return { success: true, message: 'Followed user' }; } return { success: false, message: 'Follow button not found' }",
+      "name": "result",
+      "label": "Follow user (skip if already following)"
+    }
+  ]
+}

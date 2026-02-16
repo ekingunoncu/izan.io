@@ -629,19 +629,8 @@ type P = Record<string, unknown>
 async function handleOpen(p: P): Promise<R> {
   const url = p.url as string
   const viewport = p.viewport as { width: number; height: number } | undefined
-  // Read user preference for foreground/background from chrome.storage
-  let background: boolean
-  if (p.background !== undefined) {
-    background = p.background !== false
-  } else {
-    // No explicit param - check user preference
-    try {
-      const result = await chrome.storage.local.get('izan_pref_automationBrowserForeground')
-      background = !result.izan_pref_automationBrowserForeground
-    } catch {
-      background = true // default: background
-    }
-  }
+  // Always open in foreground
+  const background = false
   // Use a small physical window; actual viewport is emulated via CDP
   const opts = { width: 400, height: 300 }
   const laneId = getLaneId(p)
@@ -786,19 +775,12 @@ async function handleCloseAll(_p: P): Promise<R> {
 async function handleNavigate(p: P): Promise<R> {
   const tid = p.tabId as number
   const url = p.url as string
-  // Remember which window had focus so we can restore it if Chrome brings our window to front
-  const prevFocused = await new Promise<number | undefined>((resolve) => {
-    chrome.windows.getLastFocused((w) => resolve(w?.id))
-  })
   await chrome.tabs.update(tid, { url, active: false })
   await waitForTab(tid, 15_000)
+  // Always bring automation window to front after navigation
   const tab = await chrome.tabs.get(tid)
-  const ourWindowId = tab.windowId
-  const nowFocused = await new Promise<number | undefined>((resolve) => {
-    chrome.windows.getLastFocused((w) => resolve(w?.id))
-  })
-  if (nowFocused === ourWindowId && prevFocused != null && prevFocused !== ourWindowId) {
-    await chrome.windows.update(prevFocused, { focused: true })
+  if (tab.windowId != null) {
+    await chrome.windows.update(tab.windowId, { focused: true })
   }
   return { success: true }
 }

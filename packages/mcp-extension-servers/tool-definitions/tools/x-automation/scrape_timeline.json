@@ -1,0 +1,48 @@
+{
+  "id": "x-auto-scrape-timeline",
+  "name": "scrape_timeline",
+  "description": "Scrape recent tweets from a user's timeline (up to 15 tweets).",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "username",
+      "type": "string",
+      "description": "Username whose timeline to scrape (without @)",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://x.com/{{username}}",
+      "label": "Open user timeline"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "article[data-testid='tweet']",
+      "timeout": 15000,
+      "label": "Wait for page content"
+    },
+    {
+      "action": "wait",
+      "ms": 1000,
+      "label": "Let page settle"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1500,
+      "label": "Scroll for more tweets"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const tweets = []; const articles = document.querySelectorAll('article[data-testid=\"tweet\"]'); for (let i = 0; i < Math.min(articles.length, 15); i++) { const el = articles[i]; const tweetTextEl = el.querySelector('[data-testid=\"tweetText\"]'); const timeEl = el.querySelector('time'); const linkEl = el.querySelector('a[href*=\"/status/\"]'); const likeEl = el.querySelector('[data-testid$=\"like\"] span, [data-testid$=\"unlike\"] span'); const retweetEl = el.querySelector('[data-testid$=\"retweet\"] span, [data-testid$=\"unretweet\"] span'); const replyEl = el.querySelector('[data-testid=\"reply\"] span'); const imgEls = el.querySelectorAll('[data-testid=\"tweetPhoto\"] img'); const images = Array.from(imgEls).map(img => img.src); const isRetweet = !!el.querySelector('[data-testid=\"socialContext\"]'); const isPinned = el.textContent.includes('Pinned'); tweets.push({ text: tweetTextEl ? tweetTextEl.textContent.trim() : '', time: timeEl ? timeEl.getAttribute('datetime') : '', url: linkEl ? 'https://x.com' + linkEl.getAttribute('href') : '', likes: likeEl ? likeEl.textContent.trim() : '0', retweets: retweetEl ? retweetEl.textContent.trim() : '0', replies: replyEl ? replyEl.textContent.trim() : '0', images: images, is_retweet: isRetweet, is_pinned: isPinned }); } return { username: window.location.pathname.replace('/', ''), tweet_count: tweets.length, tweets: tweets }",
+      "name": "timeline",
+      "label": "Extract timeline tweets"
+    }
+  ]
+}

@@ -908,12 +908,20 @@ export function App() {
         const json = JSON.parse(reader.result as string)
 
         if (importTarget.type === 'server') {
-          // Expect { server: {...}, tools: [...] }
-          if (!json.server || !json.tools) {
-            setImportError('Invalid server JSON: expected { server, tools }')
+          // Accept both wrapped { server, tools } and flat ServerDefinition { name, tools }
+          let importData = json
+          if (!json.server && json.name && json.tools) {
+            // Flat ServerDefinition format → wrap into expected shape
+            importData = {
+              server: { name: json.name, description: json.description || '', category: json.category || 'custom' },
+              tools: json.tools,
+            }
+          }
+          if (!importData.server || !importData.tools) {
+            setImportError('Invalid server JSON: expected { name, tools } or { server, tools }')
             return
           }
-          portRef.current?.postMessage({ type: 'importAutomationServer', data: json })
+          portRef.current?.postMessage({ type: 'importAutomationServer', data: importData })
         } else {
           // Expect a single tool object: { name, steps, ... }
           if (!json.name || !json.steps) {
@@ -1641,9 +1649,14 @@ export function App() {
               <p className="text-sm text-muted-foreground px-4">
                 Create a server to start recording macros.
               </p>
-              <Button variant="default" size="sm" onClick={() => setShowNewServerForm(true)}>
-                <Plus className="h-4 w-4" /> New Server
-              </Button>
+              <div className="flex gap-2 justify-center">
+                <Button variant="default" size="sm" onClick={() => setShowNewServerForm(true)}>
+                  <Plus className="h-4 w-4" /> New Server
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleImportServer}>
+                  <Upload className="h-4 w-4" /> Import JSON
+                </Button>
+              </div>
             </div>
           ) : (
             <>

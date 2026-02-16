@@ -1,0 +1,60 @@
+{
+  "id": "x-auto-bulk-search-tweets",
+  "name": "bulk_search_tweets",
+  "description": "Search multiple queries on X/Twitter in parallel and extract results for each (up to 10 tweets per query).",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "queries",
+      "type": "string",
+      "description": "Comma-separated search queries (e.g. 'open source AI,machine learning,LLM agents')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{queries}}`.split(',').map(q => ({ url: 'https://x.com/search?q=' + encodeURIComponent(q.trim()) + '&src=typed_query&f=live', query: q.trim() }))",
+      "name": "items",
+      "label": "Build search URL list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 3,
+      "maxItems": 10,
+      "waitUntil": "load",
+      "label": "Search each query in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": "article[data-testid='tweet']",
+          "timeout": 15000,
+          "label": "Wait for results"
+        },
+        {
+          "action": "wait",
+          "ms": 1500
+        },
+        {
+          "action": "scroll",
+          "direction": "down",
+          "amount": 800,
+          "label": "Scroll for more"
+        },
+        {
+          "action": "wait",
+          "ms": 1500
+        },
+        {
+          "action": "code",
+          "code": "const tweets = []; const articles = document.querySelectorAll('article[data-testid=\"tweet\"]'); for (let i = 0; i < Math.min(articles.length, 10); i++) { const el = articles[i]; const userNameEl = el.querySelector('[data-testid=\"User-Name\"]'); const tweetTextEl = el.querySelector('[data-testid=\"tweetText\"]'); const timeEl = el.querySelector('time'); const linkEl = el.querySelector('a[href*=\"/status/\"]'); const likeEl = el.querySelector('[data-testid$=\"like\"] span, [data-testid$=\"unlike\"] span'); const retweetEl = el.querySelector('[data-testid$=\"retweet\"] span, [data-testid$=\"unretweet\"] span'); tweets.push({ author: userNameEl ? userNameEl.textContent.trim() : 'Unknown', text: tweetTextEl ? tweetTextEl.textContent.trim() : '', time: timeEl ? timeEl.getAttribute('datetime') : '', url: linkEl ? 'https://x.com' + linkEl.getAttribute('href') : '', likes: likeEl ? likeEl.textContent.trim() : '0', retweets: retweetEl ? retweetEl.textContent.trim() : '0' }); } return { query: new URLSearchParams(window.location.search).get('q') || '', tweet_count: tweets.length, tweets: tweets }",
+          "name": "search_results",
+          "label": "Extract search results"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "id": "x-auto-bulk-follow-users",
+  "name": "bulk_follow_users",
+  "description": "Follow multiple X/Twitter users in parallel. Skips users you already follow.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "usernames",
+      "type": "string",
+      "description": "Comma-separated usernames to follow (without @, e.g. 'openai,anthropic,google')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{usernames}}`.split(',').map(u => ({ url: 'https://x.com/' + u.trim(), username: u.trim() }))",
+      "name": "items",
+      "label": "Build profile URL list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 3,
+      "maxItems": 20,
+      "waitUntil": "load",
+      "label": "Follow each user in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": "[data-testid='UserName']",
+          "timeout": 15000,
+          "label": "Wait for profile"
+        },
+        {
+          "action": "wait",
+          "ms": 1000
+        },
+        {
+          "action": "code",
+          "code": "const followBtn = document.querySelector('[data-testid$=\"-follow\"]'); const unfollowBtn = document.querySelector('[data-testid$=\"-unfollow\"]'); const username = window.location.pathname.replace('/', ''); if (unfollowBtn) return { status: 'already_following', username: username }; if (followBtn) { followBtn.click(); return { status: 'followed', username: username }; } return { status: 'button_not_found', username: username }",
+          "name": "follow_result",
+          "label": "Follow user"
+        }
+      ]
+    }
+  ]
+}
