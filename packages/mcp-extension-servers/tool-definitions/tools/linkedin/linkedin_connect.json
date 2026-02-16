@@ -1,0 +1,64 @@
+{
+  "id": "linkedin-connect",
+  "name": "linkedin_connect",
+  "description": "Send a connection request to a LinkedIn user. Optionally include a personalized note.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "profile_url",
+      "type": "string",
+      "description": "LinkedIn profile URL of the person to connect with",
+      "required": true
+    },
+    {
+      "name": "note",
+      "type": "string",
+      "description": "Optional personalized connection note (max 300 chars). Leave empty to connect without a note.",
+      "required": false
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{profile_url}}",
+      "label": "Open profile"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".text-heading-xlarge, .pv-text-details__left-panel h1",
+      "timeout": 15000,
+      "label": "Wait for profile"
+    },
+    {
+      "action": "wait",
+      "ms": 1500,
+      "label": "Let page settle"
+    },
+    {
+      "action": "code",
+      "code": "const connectBtn = document.querySelector('button[aria-label*=\"Invite\"][aria-label*=\"connect\" i], button.pvs-profile-actions__action[aria-label*=\"connect\" i], main button[aria-label*=\"Connect\"]'); const moreBtn = document.querySelector('button[aria-label=\"More actions\"], div.artdeco-dropdown button'); if (connectBtn) { connectBtn.click(); return { found: 'direct' }; } else if (moreBtn) { moreBtn.click(); return { found: 'more_menu' }; } const alreadyConnected = document.querySelector('button[aria-label*=\"Message\"], button[aria-label*=\"Pending\"]'); if (alreadyConnected) return { found: 'already_connected', message: 'Already connected or pending' }; return { found: 'not_found', message: 'Connect button not found' }",
+      "name": "find_connect",
+      "label": "Find and click Connect button"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const dropdownConnect = document.querySelector('div[role=\"menu\"] span:not([class]):not([id])'); if (dropdownConnect) { const items = document.querySelectorAll('div[role=\"menu\"] li button, div.artdeco-dropdown__content li button'); for (const item of items) { if (item.textContent.toLowerCase().includes('connect')) { item.click(); break; } } } return { clicked_dropdown: true }",
+      "name": "click_dropdown_connect",
+      "label": "Click Connect from dropdown if needed"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const note = `{{note}}`; if (note && note !== '{{' + 'note}}' && note.trim()) { const addNoteBtn = document.querySelector('button[aria-label=\"Add a note\"]'); if (addNoteBtn) { addNoteBtn.click(); await new Promise(r => setTimeout(r, 1000)); const textarea = document.querySelector('textarea[name=\"message\"], textarea#custom-message'); if (textarea) { textarea.focus(); textarea.value = note.slice(0, 300); textarea.dispatchEvent(new Event('input', {bubbles: true})); } } } const sendBtn = document.querySelector('button[aria-label=\"Send now\"], button[aria-label=\"Send without a note\"], button[aria-label=\"Send invitation\"]'); if (sendBtn) { sendBtn.click(); return { success: true, message: 'Connection request sent' }; } return { success: false, message: 'Send button not found - connection modal may not have appeared' }",
+      "name": "result",
+      "label": "Send connection request"
+    }
+  ]
+}

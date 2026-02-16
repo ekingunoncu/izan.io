@@ -1,0 +1,64 @@
+{
+  "id": "discord-search-messages",
+  "name": "discord_search_messages",
+  "description": "Search for messages in a Discord server. Uses Discord's built-in search to find messages by content, author, or other filters.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "server_url",
+      "type": "string",
+      "description": "Any channel URL in the Discord server (e.g. 'https://discord.com/channels/123/456')",
+      "required": true
+    },
+    {
+      "name": "query",
+      "type": "string",
+      "description": "Search query (supports Discord search syntax: from:user, has:link, before:date, etc.)",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{server_url}}",
+      "label": "Open Discord server"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "div[role='textbox']",
+      "timeout": 15000,
+      "label": "Wait for Discord to load"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const searchBtn = document.querySelector('button[aria-label=\"Search\"], div[class*=\"search\"] button, [class*=\"searchBar\"]'); if (searchBtn) searchBtn.click(); else { const searchInput = document.querySelector('input[aria-label=\"Search\"], [class*=\"searchBar\"] input'); if (searchInput) searchInput.focus(); } return { clicked: true }",
+      "name": "open_search",
+      "label": "Open search"
+    },
+    {
+      "action": "wait",
+      "ms": 1000
+    },
+    {
+      "action": "code",
+      "code": "const searchInput = document.querySelector('[class*=\"searchBar\"] input, input[aria-label=\"Search\"]'); if (searchInput) { searchInput.focus(); searchInput.value = `{{query}}`; searchInput.dispatchEvent(new Event('input', {bubbles: true})); await new Promise(r => setTimeout(r, 500)); searchInput.dispatchEvent(new KeyboardEvent('keydown', {key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true})); } return { searched: true }",
+      "name": "type_search",
+      "label": "Type search query"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Wait for search results"
+    },
+    {
+      "action": "code",
+      "code": "const results = []; const searchResults = document.querySelectorAll('[class*=\"searchResult\"], [id^=\"search-result\"]'); for (let i = 0; i < Math.min(searchResults.length, 10); i++) { const el = searchResults[i]; const authorEl = el.querySelector('[class*=\"username\"], span[class*=\"headerText\"] span'); const contentEl = el.querySelector('[id^=\"message-content-\"], [class*=\"messageContent\"], [class*=\"markup\"]'); const timeEl = el.querySelector('time'); results.push({ author: authorEl ? authorEl.textContent.trim() : '', content: contentEl ? contentEl.textContent.trim() : '', timestamp: timeEl ? timeEl.getAttribute('datetime') || '' : '' }); } return { result_count: results.length, results: results }",
+      "name": "search_results",
+      "label": "Extract search results"
+    }
+  ]
+}

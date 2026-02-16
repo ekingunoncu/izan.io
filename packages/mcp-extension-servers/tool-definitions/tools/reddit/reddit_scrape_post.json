@@ -1,0 +1,44 @@
+{
+  "id": "reddit-scrape-post",
+  "name": "reddit_scrape_post",
+  "description": "Scrape a Reddit post and its top comments. Returns post title, content, score, and top-level comments.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "post_url",
+      "type": "string",
+      "description": "Reddit post URL (old.reddit.com or regular reddit.com URL)",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "const url = `{{post_url}}`; const oldUrl = url.replace('www.reddit.com', 'old.reddit.com').replace('new.reddit.com', 'old.reddit.com'); return { url: oldUrl.includes('old.reddit.com') ? oldUrl : url.replace('reddit.com', 'old.reddit.com') }",
+      "name": "converted_url",
+      "label": "Convert to old.reddit.com URL"
+    },
+    {
+      "action": "navigate",
+      "url": "{{post_url}}",
+      "label": "Open Reddit post"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".thing.link, .top-matter",
+      "timeout": 15000,
+      "label": "Wait for post to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let comments load"
+    },
+    {
+      "action": "code",
+      "code": "const titleEl = document.querySelector('a.title, .top-matter a.title'); const postBody = document.querySelector('.thing.link .usertext-body .md, .expando .md'); const authorEl = document.querySelector('.thing.link a.author, .top-matter a.author'); const scoreEl = document.querySelector('.thing.link .score.unvoted'); const subredditEl = document.querySelector('a.subreddit'); const timeEl = document.querySelector('.thing.link time, .top-matter time'); const comments = []; const commentEls = document.querySelectorAll('.comment.thing'); for (let i = 0; i < Math.min(commentEls.length, 15); i++) { const c = commentEls[i]; const cAuthor = c.querySelector('a.author'); const cBody = c.querySelector('.usertext-body .md'); const cScore = c.querySelector('.score.unvoted'); const cTime = c.querySelector('time'); const depth = parseInt(c.getAttribute('data-depth') || '0', 10); if (depth > 1) continue; comments.push({ author: cAuthor ? cAuthor.textContent.trim() : '[deleted]', text: cBody ? cBody.textContent.trim().slice(0, 500) : '[deleted]', score: cScore ? cScore.textContent.trim() : '', time: cTime ? cTime.getAttribute('datetime') || '' : '' }); } return { title: titleEl ? titleEl.textContent.trim() : '', author: authorEl ? authorEl.textContent.trim() : '[deleted]', subreddit: subredditEl ? subredditEl.textContent.trim() : '', score: scoreEl ? scoreEl.textContent.trim() : '', body: postBody ? postBody.textContent.trim().slice(0, 2000) : '', time: timeEl ? timeEl.getAttribute('datetime') || '' : '', comment_count: comments.length, comments: comments, url: window.location.href }",
+      "name": "post_data",
+      "label": "Extract post and comments"
+    }
+  ]
+}

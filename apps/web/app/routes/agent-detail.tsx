@@ -26,6 +26,8 @@ import {
   Cog,
   Link2,
   Send,
+  Briefcase,
+  MapPin,
 } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { IzanLogo } from "~/components/ui/izan-logo";
@@ -69,6 +71,8 @@ const AGENT_ICONS: Record<string, typeof Bot> = {
   puzzle: Puzzle,
   "trending-up": TrendingUp,
   twitter: Send,
+  briefcase: Briefcase,
+  "map-pin": MapPin,
 };
 
 const AGENT_COLORS: Record<string, string> = Object.fromEntries(

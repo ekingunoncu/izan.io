@@ -1,0 +1,56 @@
+{
+  "id": "discord-bulk-send",
+  "name": "discord_bulk_send",
+  "description": "Send a message to multiple Discord channels in parallel using concurrent browser tabs. Use this instead of calling discord_send_message multiple times - it is faster and more efficient. Pass all channel URLs as a single comma-separated string.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "channel_urls",
+      "type": "string",
+      "description": "Comma-separated Discord channel URLs",
+      "required": true
+    },
+    {
+      "name": "message",
+      "type": "string",
+      "description": "Message text to send to each channel",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{channel_urls}}`.split(',').map(u => ({ url: u.trim() }))",
+      "name": "items",
+      "label": "Build channel URL list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 2,
+      "maxItems": 10,
+      "waitUntil": "load",
+      "label": "Send to each channel in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": "div[role='textbox']",
+          "timeout": 15000,
+          "label": "Wait for message input"
+        },
+        {
+          "action": "wait",
+          "ms": 1500
+        },
+        {
+          "action": "code",
+          "code": "const el = document.querySelector('div[role=\"textbox\"][contenteditable=\"true\"]'); if (!el) return { status: 'input_not_found', channel: window.location.href }; el.focus(); document.execCommand('insertText', false, `{{message}}`); el.dispatchEvent(new Event('input', {bubbles: true})); await new Promise(r => setTimeout(r, 500)); el.dispatchEvent(new KeyboardEvent('keydown', {key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true})); return { status: 'sent', channel: window.location.href }",
+          "name": "send_result",
+          "label": "Send message"
+        }
+      ]
+    }
+  ]
+}

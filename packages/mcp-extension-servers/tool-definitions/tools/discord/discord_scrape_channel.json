@@ -1,0 +1,38 @@
+{
+  "id": "discord-scrape-channel",
+  "name": "discord_scrape_channel",
+  "description": "Scrape recent messages from a Discord channel. Returns up to 20 messages with author, content, and timestamp.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "channel_url",
+      "type": "string",
+      "description": "Discord channel URL (e.g. 'https://discord.com/channels/123/456')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{channel_url}}",
+      "label": "Open Discord channel"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[id^='message-content-'], [class*='messageContent']",
+      "timeout": 15000,
+      "label": "Wait for messages to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let messages render"
+    },
+    {
+      "action": "code",
+      "code": "const messages = []; const msgEls = document.querySelectorAll('[id^=\"chat-messages-\"] > div[class*=\"message\"], li[id^=\"chat-messages-\"]'); for (let i = Math.max(0, msgEls.length - 20); i < msgEls.length; i++) { const el = msgEls[i]; const authorEl = el.querySelector('[class*=\"username\"], span[class*=\"headerText\"] span'); const contentEl = el.querySelector('[id^=\"message-content-\"], div[class*=\"messageContent\"]'); const timeEl = el.querySelector('time'); if (contentEl && contentEl.textContent.trim()) { messages.push({ author: authorEl ? authorEl.textContent.trim() : '', content: contentEl ? contentEl.textContent.trim() : '', timestamp: timeEl ? timeEl.getAttribute('datetime') || timeEl.textContent.trim() : '' }); } } return { message_count: messages.length, channel_url: window.location.href, messages: messages }",
+      "name": "channel_messages",
+      "label": "Extract messages"
+    }
+  ]
+}

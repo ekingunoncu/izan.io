@@ -1,0 +1,59 @@
+{
+  "id": "maps-export-results",
+  "name": "maps_export_results",
+  "description": "Search Google Maps and export all results as structured data. Returns name, rating, address, phone, website, and URL for each place.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "query",
+      "type": "string",
+      "description": "Search query for places to export",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://www.google.com/maps/search/{{query}}",
+      "label": "Search Google Maps"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[role='feed']",
+      "timeout": 15000,
+      "label": "Wait for results"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "scroll",
+      "selector": "[role='feed']",
+      "direction": "down",
+      "amount": 2000,
+      "label": "Scroll to load more results"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "scroll",
+      "selector": "[role='feed']",
+      "direction": "down",
+      "amount": 2000,
+      "label": "Scroll more"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const results = []; const feed = document.querySelector('[role=\"feed\"]'); if (!feed) return { result_count: 0, results: [] }; const items = feed.querySelectorAll('div[jsaction] a[href*=\"/maps/place/\"]'); const seen = new Set(); for (const link of items) { if (results.length >= 20) break; const href = link.href; if (seen.has(href)) continue; seen.add(href); const container = link.closest('div[jsaction]'); if (!container) continue; const nameEl = container.querySelector('.fontHeadlineSmall, .qBF1Pd'); const ratingEl = container.querySelector('span[role=\"img\"]'); const details = container.querySelectorAll('.fontBodyMedium span'); let address = '', phone = ''; for (const sp of details) { const t = sp.textContent.trim(); if (t.match(/^[\\+\\(]?[\\d\\s\\-\\(\\)]+$/) && t.length > 6) phone = t; else if (t.length > 10 && !t.includes('·') && !t.includes('star')) address = address || t; } results.push({ name: nameEl ? nameEl.textContent.trim() : 'Unknown', rating: ratingEl ? ratingEl.getAttribute('aria-label') : '', address: address, phone: phone, url: href }); } return { result_count: results.length, results: results, query: `{{query}}` }",
+      "name": "export_data",
+      "label": "Export all results"
+    }
+  ]
+}

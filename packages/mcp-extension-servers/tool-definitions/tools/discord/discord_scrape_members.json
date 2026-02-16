@@ -1,0 +1,47 @@
+{
+  "id": "discord-scrape-members",
+  "name": "discord_scrape_members",
+  "description": "Scrape the member list of a Discord server. Returns usernames and roles for visible members.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "channel_url",
+      "type": "string",
+      "description": "Any channel URL in the server (e.g. 'https://discord.com/channels/123/456')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{channel_url}}",
+      "label": "Open Discord channel"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "div[role='textbox']",
+      "timeout": 15000,
+      "label": "Wait for channel to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const membersToggle = document.querySelector('button[aria-label*=\"Member\"], button[aria-label*=\"member\"]'); if (membersToggle) membersToggle.click(); return { toggled: true }",
+      "name": "show_members",
+      "label": "Show member list"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const members = []; const memberEls = document.querySelectorAll('[class*=\"member\"][class*=\"container\"], [class*=\"memberInner\"]'); let currentRole = ''; for (const el of memberEls) { const roleHeader = el.querySelector('[class*=\"membersGroup\"] span, h2'); if (roleHeader) { currentRole = roleHeader.textContent.trim(); continue; } const nameEl = el.querySelector('[class*=\"username\"], span[class*=\"name\"]'); const statusEl = el.querySelector('[class*=\"status\"]'); if (nameEl) { members.push({ username: nameEl.textContent.trim(), role: currentRole, status: statusEl ? statusEl.textContent.trim() : 'offline' }); } } if (members.length === 0) { const fallbackEls = document.querySelectorAll('[class*=\"members\"] [class*=\"content\"]'); fallbackEls.forEach(el => { const text = el.textContent.trim(); if (text && text.length < 100) members.push({ username: text, role: '', status: '' }); }); } return { member_count: members.length, members: members.slice(0, 50) }",
+      "name": "members_list",
+      "label": "Extract member list"
+    }
+  ]
+}

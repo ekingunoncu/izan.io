@@ -19,6 +19,8 @@ import {
   Settings,
   Star,
   Send,
+  Briefcase,
+  MapPin,
 } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { IzanLogo } from "~/components/ui/izan-logo";
@@ -50,6 +52,8 @@ const AGENT_ICONS: Record<string, typeof Bot> = {
   "message-square": MessageSquare,
   lightbulb: Lightbulb,
   twitter: Send,
+  briefcase: Briefcase,
+  "map-pin": MapPin,
 };
 
 export function clientLoader() {

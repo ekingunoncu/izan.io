@@ -1,0 +1,45 @@
+{
+  "id": "reddit-scrape-subreddit",
+  "name": "reddit_scrape_subreddit",
+  "description": "Scrape recent posts from a subreddit. Returns up to 15 posts with title, score, author, comment count, and URL.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "subreddit",
+      "type": "string",
+      "description": "Subreddit name without r/ (e.g. 'programming', 'machinelearning')",
+      "required": true
+    },
+    {
+      "name": "sort",
+      "type": "string",
+      "description": "Sort order: 'hot', 'new', 'top', 'rising' (default: hot)",
+      "required": false,
+      "default": "hot"
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://old.reddit.com/r/{{subreddit}}/{{sort}}",
+      "label": "Open subreddit"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".thing.link",
+      "timeout": 15000,
+      "label": "Wait for posts"
+    },
+    {
+      "action": "wait",
+      "ms": 1500,
+      "label": "Let page settle"
+    },
+    {
+      "action": "code",
+      "code": "const posts = []; const things = document.querySelectorAll('.thing.link'); for (let i = 0; i < Math.min(things.length, 15); i++) { const thing = things[i]; const titleEl = thing.querySelector('a.title'); const authorEl = thing.querySelector('a.author'); const scoreEl = thing.querySelector('.score.unvoted'); const commentsEl = thing.querySelector('a.comments'); const timeEl = thing.querySelector('time, .live-timestamp'); const flairEl = thing.querySelector('.linkflairlabel'); const stickied = thing.classList.contains('stickied'); posts.push({ title: titleEl ? titleEl.textContent.trim() : '', author: authorEl ? authorEl.textContent.trim() : thing.getAttribute('data-author') || '[deleted]', score: scoreEl ? scoreEl.textContent.trim() : '', comment_count: commentsEl ? commentsEl.textContent.trim().split(' ')[0] : '', time: timeEl ? timeEl.getAttribute('datetime') || timeEl.getAttribute('title') || '' : '', flair: flairEl ? flairEl.textContent.trim() : '', stickied: stickied, url: titleEl ? titleEl.href : '', reddit_url: thing.getAttribute('data-permalink') ? 'https://old.reddit.com' + thing.getAttribute('data-permalink') : '' }); } const subredditDesc = document.querySelector('.md.wiki p, .public-description p'); return { subreddit: '{{subreddit}}', post_count: posts.length, description: subredditDesc ? subredditDesc.textContent.trim().slice(0, 200) : '', posts: posts }",
+      "name": "subreddit_data",
+      "label": "Extract subreddit posts"
+    }
+  ]
+}

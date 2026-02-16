@@ -1,0 +1,38 @@
+{
+  "id": "maps-scrape-place",
+  "name": "maps_scrape_place",
+  "description": "Scrape detailed information about a place on Google Maps: name, address, phone, website, rating, hours, and reviews count.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "place_url",
+      "type": "string",
+      "description": "Google Maps place URL (e.g. from maps_search_places results)",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{place_url}}",
+      "label": "Open place page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "h1, [role='main'] h1",
+      "timeout": 15000,
+      "label": "Wait for place details"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page settle"
+    },
+    {
+      "action": "code",
+      "code": "const nameEl = document.querySelector('h1'); const ratingEl = document.querySelector('div.F7nice span[aria-hidden=\"true\"], span[role=\"img\"][aria-label*=\"star\"]'); const reviewCountEl = document.querySelector('div.F7nice span[aria-label*=\"review\"], button[jsaction*=\"review\"] span'); const addressBtn = document.querySelector('button[data-item-id=\"address\"], button[aria-label*=\"Address\"]'); const phoneBtn = document.querySelector('button[data-item-id*=\"phone\"], button[aria-label*=\"Phone\"]'); const websiteLink = document.querySelector('a[data-item-id=\"authority\"], a[aria-label*=\"Website\"]'); const categoryEl = document.querySelector('button[jsaction*=\"category\"], .DkEaL'); const hoursEl = document.querySelector('div[aria-label*=\"hour\" i], button[data-item-id=\"oh\"]'); const priceEl = document.querySelector('span[aria-label*=\"Price\"]'); return { name: nameEl ? nameEl.textContent.trim() : 'Unknown', rating: ratingEl ? ratingEl.textContent.trim() : '', review_count: reviewCountEl ? reviewCountEl.textContent.trim() : '', address: addressBtn ? addressBtn.textContent.trim().replace(/^Address:\\s*/i, '') : '', phone: phoneBtn ? phoneBtn.textContent.trim().replace(/^Phone:\\s*/i, '') : '', website: websiteLink ? websiteLink.href : '', category: categoryEl ? categoryEl.textContent.trim() : '', hours: hoursEl ? hoursEl.getAttribute('aria-label') || hoursEl.textContent.trim() : '', price_level: priceEl ? priceEl.getAttribute('aria-label') || priceEl.textContent.trim() : '', url: window.location.href }",
+      "name": "place_details",
+      "label": "Extract place details"
+    }
+  ]
+}

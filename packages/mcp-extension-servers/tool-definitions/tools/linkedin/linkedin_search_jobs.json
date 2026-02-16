@@ -1,0 +1,58 @@
+{
+  "id": "linkedin-search-jobs",
+  "name": "linkedin_search_jobs",
+  "description": "Search for jobs on LinkedIn by title, company, or keywords. Returns up to 10 job listings with title, company, location, and URL.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "query",
+      "type": "string",
+      "description": "Job search query (title, company, or keywords)",
+      "required": true
+    },
+    {
+      "name": "location",
+      "type": "string",
+      "description": "Optional location filter (e.g. 'San Francisco', 'Remote')",
+      "required": false
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://www.linkedin.com/jobs/search/",
+      "urlParams": {
+        "keywords": "{{query}}",
+        "location": "{{location}}"
+      },
+      "label": "Search LinkedIn jobs"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".job-card-container, .jobs-search-results-list, .scaffold-layout__list",
+      "timeout": 15000,
+      "label": "Wait for job results"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let results render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 800,
+      "label": "Scroll to load more"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const jobs = []; const cards = document.querySelectorAll('.job-card-container, .job-card-list__entity-lockup, li.jobs-search-results__list-item'); for (let i = 0; i < Math.min(cards.length, 10); i++) { const card = cards[i]; const titleEl = card.querySelector('.job-card-list__title, .job-card-container__link strong, a.job-card-list__title--link strong'); const companyEl = card.querySelector('.job-card-container__primary-description, .artdeco-entity-lockup__subtitle span'); const locationEl = card.querySelector('.job-card-container__metadata-item, .artdeco-entity-lockup__caption span'); const linkEl = card.querySelector('a[href*=\"/jobs/view/\"], a.job-card-list__title--link, a.job-card-container__link'); jobs.push({ title: titleEl ? titleEl.textContent.trim() : 'Unknown', company: companyEl ? companyEl.textContent.trim() : '', location: locationEl ? locationEl.textContent.trim() : '', url: linkEl ? 'https://www.linkedin.com' + linkEl.getAttribute('href').split('?')[0] : '' }); } return { job_count: jobs.length, jobs: jobs }",
+      "name": "search_results",
+      "label": "Extract job listings"
+    }
+  ]
+}

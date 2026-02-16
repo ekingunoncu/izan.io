@@ -1,0 +1,44 @@
+{
+  "id": "maps-get-directions",
+  "name": "maps_get_directions",
+  "description": "Get directions between two locations on Google Maps. Returns distance, duration, and step-by-step directions.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "origin",
+      "type": "string",
+      "description": "Starting location (address or place name)",
+      "required": true
+    },
+    {
+      "name": "destination",
+      "type": "string",
+      "description": "Destination location (address or place name)",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://www.google.com/maps/dir/{{origin}}/{{destination}}",
+      "label": "Open directions"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "#section-directions-trip-0, div[data-trip-index='0'], .directions-mode-group",
+      "timeout": 15000,
+      "label": "Wait for directions to load"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Let directions calculate"
+    },
+    {
+      "action": "code",
+      "code": "const trips = document.querySelectorAll('#section-directions-trip-0, div[data-trip-index=\"0\"], .directions-mode-group div[role=\"listitem\"]'); const distanceEl = document.querySelector('.section-directions-trip-distance span, div[jstcache] .fontHeadlineSmall, div[data-trip-index=\"0\"] .fontHeadlineSmall'); const durationEl = document.querySelector('.section-directions-trip-duration span, div[data-trip-index=\"0\"] .fontHeadlineLarge, div.Fk3sm'); const steps = []; const stepEls = document.querySelectorAll('.directions-mode-step, div[data-step-index], .step-text'); stepEls.forEach((step, i) => { if (i >= 15) return; steps.push(step.textContent.trim()); }); return { distance: distanceEl ? distanceEl.textContent.trim() : '', duration: durationEl ? durationEl.textContent.trim() : '', steps: steps, url: window.location.href }",
+      "name": "directions",
+      "label": "Extract directions"
+    }
+  ]
+}

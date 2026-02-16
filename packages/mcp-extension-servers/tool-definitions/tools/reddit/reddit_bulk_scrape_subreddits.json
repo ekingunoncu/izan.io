@@ -1,0 +1,50 @@
+{
+  "id": "reddit-bulk-scrape-subreddits",
+  "name": "reddit_bulk_scrape_subreddits",
+  "description": "Scrape posts from multiple subreddits in parallel using concurrent browser tabs. Use this instead of calling reddit_scrape_subreddit multiple times - it is faster and more efficient. Pass all subreddit names as a single comma-separated string. Example: 'programming,webdev,javascript'.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "subreddits",
+      "type": "string",
+      "description": "Comma-separated subreddit names without r/ (e.g. 'programming,javascript,python')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{subreddits}}`.split(',').map(s => ({ url: 'https://old.reddit.com/r/' + s.trim(), subreddit: s.trim() }))",
+      "name": "items",
+      "label": "Build subreddit URL list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 3,
+      "maxItems": 10,
+      "waitUntil": "load",
+      "label": "Scrape each subreddit in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": ".thing.link",
+          "timeout": 15000,
+          "label": "Wait for posts"
+        },
+        {
+          "action": "wait",
+          "ms": 1500
+        },
+        {
+          "action": "code",
+          "code": "const posts = []; const things = document.querySelectorAll('.thing.link'); for (let i = 0; i < Math.min(things.length, 5); i++) { const thing = things[i]; const titleEl = thing.querySelector('a.title'); const scoreEl = thing.querySelector('.score.unvoted'); const commentsEl = thing.querySelector('a.comments'); posts.push({ title: titleEl ? titleEl.textContent.trim() : '', score: scoreEl ? scoreEl.textContent.trim() : '', comments: commentsEl ? commentsEl.textContent.trim().split(' ')[0] : '', url: titleEl ? titleEl.href : '' }); } const subreddit = window.location.pathname.split('/')[2] || ''; return { subreddit: subreddit, post_count: posts.length, posts: posts }",
+          "name": "subreddit_data",
+          "label": "Extract posts"
+        }
+      ]
+    }
+  ]
+}

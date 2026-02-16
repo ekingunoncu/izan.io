@@ -1,0 +1,50 @@
+{
+  "id": "reddit-bulk-search",
+  "name": "reddit_bulk_search",
+  "description": "Search multiple queries on Reddit in parallel using concurrent browser tabs. Use this instead of calling reddit_search_posts multiple times - it is faster and more efficient. Pass all queries as a single comma-separated string. Example: 'best laptops 2024,mechanical keyboards,budget monitors'.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "queries",
+      "type": "string",
+      "description": "Comma-separated search queries (e.g. 'best programming language,learn python,web dev tips')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{queries}}`.split(',').map(q => ({ url: 'https://old.reddit.com/search?q=' + encodeURIComponent(q.trim()), query: q.trim() }))",
+      "name": "items",
+      "label": "Build search URL list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 3,
+      "maxItems": 10,
+      "waitUntil": "load",
+      "label": "Search each query in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": ".thing, .search-result",
+          "timeout": 15000,
+          "label": "Wait for results"
+        },
+        {
+          "action": "wait",
+          "ms": 1500
+        },
+        {
+          "action": "code",
+          "code": "const results = []; const posts = document.querySelectorAll('.thing.link, .search-result-link'); for (let i = 0; i < Math.min(posts.length, 5); i++) { const post = posts[i]; const titleEl = post.querySelector('a.title, a.search-title'); const subredditEl = post.querySelector('a.subreddit'); const scoreEl = post.querySelector('.score.unvoted'); results.push({ title: titleEl ? titleEl.textContent.trim() : '', subreddit: subredditEl ? subredditEl.textContent.trim() : '', score: scoreEl ? scoreEl.textContent.trim() : '', url: titleEl ? titleEl.href : '' }); } const urlParams = new URLSearchParams(window.location.search); return { query: urlParams.get('q') || '', result_count: results.length, results: results }",
+          "name": "search_results",
+          "label": "Extract results"
+        }
+      ]
+    }
+  ]
+}

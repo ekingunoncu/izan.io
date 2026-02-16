@@ -1,0 +1,37 @@
+{
+  "id": "reddit-scrape-user",
+  "name": "reddit_scrape_user",
+  "description": "Scrape a Reddit user's profile: karma, account age, and recent posts/comments.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "username",
+      "type": "string",
+      "description": "Reddit username (without u/, e.g. 'spez')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://old.reddit.com/user/{{username}}",
+      "label": "Open user profile"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".thing, .titlebox",
+      "timeout": 15000,
+      "label": "Wait for profile to load"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const karmaEls = document.querySelectorAll('.karma'); const cakeDay = document.querySelector('.age time, .titlebox .age'); const trophyEls = document.querySelectorAll('.trophy-name'); const trophies = []; trophyEls.forEach(t => trophies.push(t.textContent.trim())); const recentPosts = []; const things = document.querySelectorAll('.thing'); for (let i = 0; i < Math.min(things.length, 10); i++) { const thing = things[i]; const titleEl = thing.querySelector('a.title'); const linkEl = thing.querySelector('a.bylink, a.comments'); const subredditEl = thing.querySelector('a.subreddit'); const scoreEl = thing.querySelector('.score.unvoted'); const timeEl = thing.querySelector('time'); const isComment = thing.classList.contains('comment'); recentPosts.push({ type: isComment ? 'comment' : 'post', title: titleEl ? titleEl.textContent.trim() : '', subreddit: subredditEl ? subredditEl.textContent.trim() : '', score: scoreEl ? scoreEl.textContent.trim() : '', time: timeEl ? timeEl.getAttribute('datetime') || '' : '', url: linkEl ? linkEl.href : '' }); } return { username: '{{username}}', karma: karmaEls.length > 0 ? { post: karmaEls[0] ? karmaEls[0].textContent.trim() : '', comment: karmaEls[1] ? karmaEls[1].textContent.trim() : '' } : {}, cake_day: cakeDay ? cakeDay.getAttribute('datetime') || cakeDay.textContent.trim() : '', trophies: trophies.slice(0, 5), recent_activity: recentPosts, profile_url: window.location.href }",
+      "name": "user_profile",
+      "label": "Extract user profile"
+    }
+  ]
+}

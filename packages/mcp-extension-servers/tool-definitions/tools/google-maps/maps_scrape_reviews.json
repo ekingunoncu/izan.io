@@ -1,0 +1,57 @@
+{
+  "id": "maps-scrape-reviews",
+  "name": "maps_scrape_reviews",
+  "description": "Scrape reviews for a Google Maps place. Returns up to 10 reviews with author, rating, text, and date.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "place_url",
+      "type": "string",
+      "description": "Google Maps place URL",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{place_url}}",
+      "label": "Open place page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "h1",
+      "timeout": 15000,
+      "label": "Wait for place to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const reviewsTab = document.querySelector('button[aria-label*=\"Review\"], button[data-tab-index=\"1\"]'); if (reviewsTab) reviewsTab.click(); return { clicked: true }",
+      "name": "open_reviews",
+      "label": "Click Reviews tab"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 800,
+      "label": "Scroll to load reviews"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const reviews = []; const reviewEls = document.querySelectorAll('div[data-review-id], div.jftiEf'); for (let i = 0; i < Math.min(reviewEls.length, 10); i++) { const el = reviewEls[i]; const authorEl = el.querySelector('.d4r55, button[class*=\"name\"]'); const ratingEl = el.querySelector('span[role=\"img\"]'); const textEl = el.querySelector('.wiI7pd, .review-full-text, span[class*=\"review\"]'); const dateEl = el.querySelector('.rsqaWe, span[class*=\"date\"]'); const moreBtn = el.querySelector('button[aria-label*=\"More\"], button[jsaction*=\"review.expand\"]'); if (moreBtn) moreBtn.click(); reviews.push({ author: authorEl ? authorEl.textContent.trim() : 'Anonymous', rating: ratingEl ? ratingEl.getAttribute('aria-label') || '' : '', text: textEl ? textEl.textContent.trim() : '', date: dateEl ? dateEl.textContent.trim() : '' }); } return { review_count: reviews.length, reviews: reviews }",
+      "name": "reviews",
+      "label": "Extract reviews"
+    }
+  ]
+}

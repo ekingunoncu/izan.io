@@ -1,0 +1,50 @@
+{
+  "id": "linkedin-bulk-scrape-profiles",
+  "name": "linkedin_bulk_scrape_profiles",
+  "description": "Scrape multiple LinkedIn profiles in parallel using concurrent browser tabs. Use this instead of calling linkedin_scrape_profile multiple times - it is faster and more efficient. Pass all profile URLs as a single comma-separated string.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "profile_urls",
+      "type": "string",
+      "description": "Comma-separated LinkedIn profile URLs (e.g. 'https://linkedin.com/in/user1,https://linkedin.com/in/user2')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{profile_urls}}`.split(',').map(u => ({ url: u.trim() }))",
+      "name": "items",
+      "label": "Build profile URL list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 3,
+      "maxItems": 10,
+      "waitUntil": "load",
+      "label": "Scrape each profile in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": ".text-heading-xlarge, .pv-text-details__left-panel h1",
+          "timeout": 15000,
+          "label": "Wait for profile"
+        },
+        {
+          "action": "wait",
+          "ms": 2000
+        },
+        {
+          "action": "code",
+          "code": "const nameEl = document.querySelector('.text-heading-xlarge, .pv-text-details__left-panel h1'); const headlineEl = document.querySelector('.text-body-medium.break-words'); const locationEl = document.querySelector('.text-body-small.inline.t-black--light.break-words'); const aboutSection = document.querySelector('#about ~ div .inline-show-more-text, .pv-shared-text-with-see-more span[aria-hidden=\"true\"]'); const connectionsEl = document.querySelector('.t-bold:not(.text-heading-xlarge)'); return { name: nameEl ? nameEl.textContent.trim() : 'Unknown', headline: headlineEl ? headlineEl.textContent.trim() : '', location: locationEl ? locationEl.textContent.trim() : '', about: aboutSection ? aboutSection.textContent.trim().slice(0, 300) : '', connections: connectionsEl ? connectionsEl.textContent.trim() : '', profile_url: window.location.href }",
+          "name": "profile",
+          "label": "Extract profile data"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "id": "reddit-upvote-post",
+  "name": "reddit_upvote_post",
+  "description": "Upvote a Reddit post. You must be logged in to old.reddit.com.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "post_url",
+      "type": "string",
+      "description": "Reddit post URL to upvote",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{post_url}}",
+      "label": "Open post"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".thing.link, .top-matter",
+      "timeout": 15000,
+      "label": "Wait for post"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const upvoteBtn = document.querySelector('.thing.link div.up, .thing.link div.arrow.up'); if (!upvoteBtn) return { success: false, message: 'Upvote button not found' }; const alreadyUpvoted = document.querySelector('.thing.link div.upmod'); if (alreadyUpvoted) return { success: true, message: 'Already upvoted' }; upvoteBtn.click(); return { success: true, message: 'Post upvoted' }",
+      "name": "result",
+      "label": "Upvote the post"
+    }
+  ]
+}

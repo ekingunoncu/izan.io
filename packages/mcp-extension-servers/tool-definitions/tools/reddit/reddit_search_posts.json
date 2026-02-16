@@ -1,0 +1,49 @@
+{
+  "id": "reddit-search-posts",
+  "name": "reddit_search_posts",
+  "description": "Search for posts across Reddit. Returns up to 10 results with title, subreddit, score, author, and URL.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "query",
+      "type": "string",
+      "description": "Search query",
+      "required": true
+    },
+    {
+      "name": "sort",
+      "type": "string",
+      "description": "Sort order: 'relevance', 'hot', 'top', 'new', 'comments' (default: relevance)",
+      "required": false,
+      "default": "relevance"
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://old.reddit.com/search",
+      "urlParams": {
+        "q": "{{query}}",
+        "sort": "{{sort}}"
+      },
+      "label": "Search Reddit"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".thing, .search-result",
+      "timeout": 15000,
+      "label": "Wait for search results"
+    },
+    {
+      "action": "wait",
+      "ms": 1500,
+      "label": "Let results render"
+    },
+    {
+      "action": "code",
+      "code": "const results = []; const posts = document.querySelectorAll('.thing.link, .search-result-link'); for (let i = 0; i < Math.min(posts.length, 10); i++) { const post = posts[i]; const titleEl = post.querySelector('a.title, a.search-title'); const authorEl = post.querySelector('a.author'); const subredditEl = post.querySelector('a.subreddit'); const scoreEl = post.querySelector('.score.unvoted, .search-score'); const timeEl = post.querySelector('time, .live-timestamp'); const commentsEl = post.querySelector('a.comments, .search-comments'); results.push({ title: titleEl ? titleEl.textContent.trim() : '', subreddit: subredditEl ? subredditEl.textContent.trim() : post.getAttribute('data-subreddit') || '', author: authorEl ? authorEl.textContent.trim() : post.getAttribute('data-author') || '', score: scoreEl ? scoreEl.textContent.trim() : '', time: timeEl ? timeEl.getAttribute('datetime') || timeEl.getAttribute('title') || timeEl.textContent.trim() : '', comment_count: commentsEl ? commentsEl.textContent.trim().split(' ')[0] : '', url: titleEl ? titleEl.href : '' }); } return { result_count: results.length, results: results }",
+      "name": "search_results",
+      "label": "Extract search results"
+    }
+  ]
+}

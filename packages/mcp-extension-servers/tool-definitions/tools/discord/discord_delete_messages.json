@@ -1,0 +1,43 @@
+{
+  "id": "discord-delete-messages",
+  "name": "discord_delete_messages",
+  "description": "Delete your own recent messages in a Discord channel. Only deletes messages sent by you.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "channel_url",
+      "type": "string",
+      "description": "Discord channel URL where your messages are",
+      "required": true
+    },
+    {
+      "name": "count",
+      "type": "number",
+      "description": "Number of your messages to delete (1-10)",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{channel_url}}",
+      "label": "Open Discord channel"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[id^='message-content-']",
+      "timeout": 15000,
+      "label": "Wait for messages"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const maxDelete = Math.min(parseInt('{{count}}') || 3, 10); const channelId = window.location.href.split('/').pop(); let token = ''; try { const iframe = document.createElement('iframe'); iframe.style.display = 'none'; document.body.appendChild(iframe); token = iframe.contentWindow.localStorage.getItem('token'); if (token) token = token.replace(/\"/g, ''); document.body.removeChild(iframe); } catch(e) {} if (!token) { try { const req = new XMLHttpRequest(); req.open('GET', '/api/v9/users/@me', false); req.send(); } catch(e) {} return { success: false, message: 'Could not retrieve auth token. Please ensure you are logged into Discord.' }; } let deleted = 0; try { const res = await fetch('/api/v9/channels/' + channelId + '/messages?limit=50', { headers: { 'Authorization': token } }); const msgs = await res.json(); const userRes = await fetch('/api/v9/users/@me', { headers: { 'Authorization': token } }); const user = await userRes.json(); const myMsgs = msgs.filter(m => m.author.id === user.id).slice(0, maxDelete); for (const msg of myMsgs) { await fetch('/api/v9/channels/' + channelId + '/messages/' + msg.id, { method: 'DELETE', headers: { 'Authorization': token } }); deleted++; await new Promise(r => setTimeout(r, 1000 + Math.random() * 1000)); } } catch(e) { return { success: false, deleted: deleted, error: e.message }; } return { success: true, deleted_count: deleted, message: 'Deleted ' + deleted + ' messages' }",
+      "name": "result",
+      "label": "Delete own messages via API"
+    }
+  ]
+}

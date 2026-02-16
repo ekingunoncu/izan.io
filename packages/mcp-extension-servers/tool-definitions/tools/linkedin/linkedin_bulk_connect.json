@@ -1,0 +1,50 @@
+{
+  "id": "linkedin-bulk-connect",
+  "name": "linkedin_bulk_connect",
+  "description": "Send connection requests to multiple LinkedIn users in parallel using concurrent browser tabs. Use this instead of calling linkedin_connect multiple times - it is faster and more efficient. Pass all profile URLs as a single comma-separated string. Skips users you're already connected with.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "profile_urls",
+      "type": "string",
+      "description": "Comma-separated LinkedIn profile URLs to connect with",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{profile_urls}}`.split(',').map(u => ({ url: u.trim() }))",
+      "name": "items",
+      "label": "Build profile URL list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 2,
+      "maxItems": 10,
+      "waitUntil": "load",
+      "label": "Connect with each user in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": ".text-heading-xlarge",
+          "timeout": 15000,
+          "label": "Wait for profile"
+        },
+        {
+          "action": "wait",
+          "ms": 1500
+        },
+        {
+          "action": "code",
+          "code": "const name = (document.querySelector('.text-heading-xlarge') || {}).textContent || 'Unknown'; const connectBtn = document.querySelector('button[aria-label*=\"Invite\"][aria-label*=\"connect\" i], main button[aria-label*=\"Connect\"]'); const alreadyConnected = document.querySelector('button[aria-label*=\"Message\"], button[aria-label*=\"Pending\"]'); if (alreadyConnected) return { status: 'already_connected', name: name.trim() }; if (connectBtn) { connectBtn.click(); await new Promise(r => setTimeout(r, 1500)); const sendBtn = document.querySelector('button[aria-label=\"Send now\"], button[aria-label=\"Send without a note\"], button[aria-label=\"Send invitation\"]'); if (sendBtn) { sendBtn.click(); return { status: 'connected', name: name.trim() }; } return { status: 'modal_issue', name: name.trim() }; } const moreBtn = document.querySelector('button[aria-label=\"More actions\"]'); if (moreBtn) { moreBtn.click(); await new Promise(r => setTimeout(r, 1000)); const items = document.querySelectorAll('div[role=\"menu\"] li button'); for (const item of items) { if (item.textContent.toLowerCase().includes('connect')) { item.click(); await new Promise(r => setTimeout(r, 1500)); const sendBtn2 = document.querySelector('button[aria-label=\"Send now\"], button[aria-label=\"Send without a note\"]'); if (sendBtn2) { sendBtn2.click(); return { status: 'connected', name: name.trim() }; } break; } } } return { status: 'button_not_found', name: name.trim() }",
+          "name": "connect_result",
+          "label": "Send connection request"
+        }
+      ]
+    }
+  ]
+}

@@ -36,6 +36,69 @@
         "bulk_follow_users",
         "bulk_retweet"
       ]
+    },
+    {
+      "id": "linkedin",
+      "name": "LinkedIn Automation",
+      "description": "Automate LinkedIn: search people, scrape profiles, send connections, message contacts, search and scrape jobs",
+      "category": "social_media",
+      "tools": [
+        "linkedin_search_people",
+        "linkedin_scrape_profile",
+        "linkedin_connect",
+        "linkedin_send_message",
+        "linkedin_search_jobs",
+        "linkedin_scrape_job",
+        "linkedin_bulk_scrape_profiles",
+        "linkedin_bulk_connect"
+      ]
+    },
+    {
+      "id": "google-maps",
+      "name": "Google Maps Automation",
+      "description": "Automate Google Maps: search places, scrape business details, read reviews, get directions, export data",
+      "category": "web_search",
+      "tools": [
+        "maps_search_places",
+        "maps_scrape_place",
+        "maps_scrape_reviews",
+        "maps_get_directions",
+        "maps_export_results",
+        "maps_bulk_search",
+        "maps_bulk_scrape_places"
+      ]
+    },
+    {
+      "id": "discord",
+      "name": "Discord Automation",
+      "description": "Automate Discord: send messages, scrape channels, search messages, view members, manage servers",
+      "category": "social_media",
+      "tools": [
+        "discord_send_message",
+        "discord_scrape_channel",
+        "discord_search_messages",
+        "discord_scrape_members",
+        "discord_delete_messages",
+        "discord_scrape_server_info",
+        "discord_bulk_send"
+      ]
+    },
+    {
+      "id": "reddit",
+      "name": "Reddit Automation",
+      "description": "Automate Reddit: search posts, scrape subreddits, read comments, upvote, post comments, analyze users",
+      "category": "social_media",
+      "tools": [
+        "reddit_search_posts",
+        "reddit_scrape_subreddit",
+        "reddit_scrape_post",
+        "reddit_upvote_post",
+        "reddit_post_comment",
+        "reddit_scrape_user",
+        "reddit_bulk_scrape_subreddits",
+        "reddit_bulk_search",
+        "reddit_bulk_upvote"
+      ]
     }
   ]
 }

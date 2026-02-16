@@ -183,6 +183,36 @@
   </url>
 
   <url>
+    <loc>https://izan.io/tr/agents/discord-manager</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/agents/discord-manager" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/agents/discord-manager" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/agents/discord-manager" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/agents/discord-manager" />
+    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://izan.io/en/agents/discord-manager</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/agents/discord-manager" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/agents/discord-manager" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/agents/discord-manager" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/agents/discord-manager" />
+    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://izan.io/de/agents/discord-manager</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/agents/discord-manager" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/agents/discord-manager" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/agents/discord-manager" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/agents/discord-manager" />
+    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
     <loc>https://izan.io/tr/agents/domain-expert</loc>
     <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/agents/domain-expert" />
     <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/agents/domain-expert" />
@@ -213,6 +243,66 @@
   </url>
 
   <url>
+    <loc>https://izan.io/tr/agents/linkedin-manager</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/agents/linkedin-manager" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/agents/linkedin-manager" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/agents/linkedin-manager" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/agents/linkedin-manager" />
+    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://izan.io/en/agents/linkedin-manager</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/agents/linkedin-manager" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/agents/linkedin-manager" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/agents/linkedin-manager" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/agents/linkedin-manager" />
+    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://izan.io/de/agents/linkedin-manager</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/agents/linkedin-manager" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/agents/linkedin-manager" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/agents/linkedin-manager" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/agents/linkedin-manager" />
+    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://izan.io/tr/agents/maps-scout</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/agents/maps-scout" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/agents/maps-scout" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/agents/maps-scout" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/agents/maps-scout" />
+    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://izan.io/en/agents/maps-scout</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/agents/maps-scout" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/agents/maps-scout" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/agents/maps-scout" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/agents/maps-scout" />
+    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://izan.io/de/agents/maps-scout</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/agents/maps-scout" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/agents/maps-scout" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/agents/maps-scout" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/agents/maps-scout" />
+    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
     <loc>https://izan.io/tr/agents/play-store</loc>
     <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/agents/play-store" />
     <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/agents/play-store" />
@@ -238,6 +328,36 @@
     <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/agents/play-store" />
     <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/agents/play-store" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/agents/play-store" />
+    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://izan.io/tr/agents/reddit-manager</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/agents/reddit-manager" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/agents/reddit-manager" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/agents/reddit-manager" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/agents/reddit-manager" />
+    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://izan.io/en/agents/reddit-manager</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/agents/reddit-manager" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/agents/reddit-manager" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/agents/reddit-manager" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/agents/reddit-manager" />
+    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://izan.io/de/agents/reddit-manager</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr/agents/reddit-manager" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en/agents/reddit-manager" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de/agents/reddit-manager" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en/agents/reddit-manager" />
     <priority>0.7</priority>
     <changefreq>weekly</changefreq>
   </url>

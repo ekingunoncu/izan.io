@@ -1,0 +1,50 @@
+{
+  "id": "reddit-bulk-upvote",
+  "name": "reddit_bulk_upvote",
+  "description": "Upvote multiple Reddit posts in parallel using concurrent browser tabs. Use this instead of calling reddit_upvote_post multiple times - it is faster and more efficient. Pass all post URLs as a single comma-separated string. You must be logged in to Reddit.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "post_urls",
+      "type": "string",
+      "description": "Comma-separated Reddit post URLs to upvote",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{post_urls}}`.split(',').map(u => { let url = u.trim(); url = url.replace('www.reddit.com', 'old.reddit.com').replace('new.reddit.com', 'old.reddit.com'); if (!url.includes('old.reddit.com')) url = url.replace('reddit.com', 'old.reddit.com'); return { url: url }; })",
+      "name": "items",
+      "label": "Build post URL list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 2,
+      "maxItems": 10,
+      "waitUntil": "load",
+      "label": "Upvote each post in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": ".thing.link",
+          "timeout": 15000,
+          "label": "Wait for post"
+        },
+        {
+          "action": "wait",
+          "ms": 1000
+        },
+        {
+          "action": "code",
+          "code": "const alreadyUpvoted = document.querySelector('.thing.link div.upmod'); if (alreadyUpvoted) return { status: 'already_upvoted', url: window.location.href }; const upvoteBtn = document.querySelector('.thing.link div.up, .thing.link div.arrow.up'); if (upvoteBtn) { upvoteBtn.click(); return { status: 'upvoted', url: window.location.href }; } return { status: 'button_not_found', url: window.location.href }",
+          "name": "upvote_result",
+          "label": "Upvote post"
+        }
+      ]
+    }
+  ]
+}

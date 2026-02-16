@@ -1,0 +1,57 @@
+{
+  "id": "reddit-post-comment",
+  "name": "reddit_post_comment",
+  "description": "Post a comment on a Reddit post. You must be logged in to Reddit.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "post_url",
+      "type": "string",
+      "description": "Reddit post URL to comment on",
+      "required": true
+    },
+    {
+      "name": "comment",
+      "type": "string",
+      "description": "Comment text (supports Reddit markdown)",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{post_url}}",
+      "label": "Open post"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "textarea[name='text'], .usertext-edit textarea",
+      "timeout": 15000,
+      "label": "Wait for comment box"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const textarea = document.querySelector('.commentarea textarea[name=\"text\"], form.cloneable textarea[name=\"text\"]'); if (!textarea) return { success: false, message: 'Comment textarea not found - are you logged in?' }; textarea.focus(); textarea.value = `{{comment}}`; textarea.dispatchEvent(new Event('input', {bubbles: true})); textarea.dispatchEvent(new Event('change', {bubbles: true})); return { typed: true }",
+      "name": "type_comment",
+      "label": "Type comment"
+    },
+    {
+      "action": "wait",
+      "ms": 500
+    },
+    {
+      "action": "code",
+      "code": "const saveBtn = document.querySelector('.commentarea .save, .commentarea button[type=\"submit\"]'); if (saveBtn) { saveBtn.click(); return { success: true, message: 'Comment posted' }; } return { success: false, message: 'Save button not found' }",
+      "name": "result",
+      "label": "Submit comment"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    }
+  ]
+}

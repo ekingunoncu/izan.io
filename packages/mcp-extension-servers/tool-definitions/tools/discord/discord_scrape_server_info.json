@@ -1,0 +1,37 @@
+{
+  "id": "discord-scrape-server-info",
+  "name": "discord_scrape_server_info",
+  "description": "Get information about a Discord server: name, member count, channels, and boost level.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "channel_url",
+      "type": "string",
+      "description": "Any channel URL in the server (e.g. 'https://discord.com/channels/123/456')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{channel_url}}",
+      "label": "Open Discord server"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "div[role='textbox'], [class*='sidebar']",
+      "timeout": 15000,
+      "label": "Wait for server to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const serverNameEl = document.querySelector('[class*=\"name\"][class*=\"header\"] h1, header[class*=\"header\"] h1, [class*=\"guilds\"] [class*=\"selected\"] [class*=\"name\"]'); const channels = []; const channelEls = document.querySelectorAll('[class*=\"channel\"] a[href*=\"/channels/\"], [data-list-item-id*=\"channels\"]'); const seen = new Set(); channelEls.forEach(el => { const name = el.textContent.trim(); if (name && !seen.has(name) && name.length < 50) { seen.add(name); channels.push(name); } }); const serverName = serverNameEl ? serverNameEl.textContent.trim() : document.querySelector('h1') ? document.querySelector('h1').textContent.trim() : 'Unknown'; const serverId = window.location.pathname.split('/')[2]; return { server_name: serverName, server_id: serverId, channel_count: channels.length, channels: channels.slice(0, 30), url: window.location.href }",
+      "name": "server_info",
+      "label": "Extract server info"
+    }
+  ]
+}
