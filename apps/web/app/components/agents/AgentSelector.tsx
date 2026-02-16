@@ -36,6 +36,12 @@ import {
   LinkedInIcon,
   RedditIcon,
   GoogleMapsIcon,
+  TelegramIcon,
+  GoogleSheetsIcon,
+  YouTubeIcon,
+  SpotifyIcon,
+  AirtableIcon,
+  FigmaIcon,
 } from '~/components/ui/platform-icons'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
@@ -73,6 +79,12 @@ const agentIconMap: Record<string, typeof Bot> = {
   'linkedin': LinkedInIcon,
   'reddit': RedditIcon,
   'google-maps': GoogleMapsIcon,
+  'telegram': TelegramIcon,
+  'google-sheets': GoogleSheetsIcon,
+  'youtube': YouTubeIcon,
+  'spotify': SpotifyIcon,
+  'airtable': AirtableIcon,
+  'figma': FigmaIcon,
   'store': Store,
 }
 

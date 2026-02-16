@@ -24,6 +24,11 @@ import {
   CalendarClock,
   CheckCircle2,
   Download,
+  Globe,
+  Lock,
+  ShieldCheck,
+  Terminal,
+  X,
 } from "lucide-react";
 import { BUILTIN_AGENT_DEFINITIONS } from "@izan/agents";
 import { getAgentIcon } from "~/components/agents/AgentSelector";
@@ -546,6 +551,200 @@ export default function Home() {
           </div>
         </section>
 
+        {/* ========== WHY IZAN.IO - Comparison ========== */}
+        <section className="py-14 sm:py-20 md:py-28 relative overflow-hidden">
+          {/* Background with subtle pattern */}
+          <div className="absolute inset-0 -z-10">
+            <div className="absolute inset-0 bg-gradient-to-b from-background via-muted/30 to-background" />
+            <div
+              className="absolute inset-0 opacity-[0.015] dark:opacity-[0.03]"
+              style={{
+                backgroundImage: `radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)`,
+                backgroundSize: "32px 32px",
+              }}
+            />
+          </div>
+          {/* Decorative blurs */}
+          <div className="absolute top-20 -left-32 w-72 h-72 rounded-full bg-blue-500/10 blur-[120px]" aria-hidden />
+          <div className="absolute bottom-20 -right-32 w-72 h-72 rounded-full bg-violet-500/10 blur-[120px]" aria-hidden />
+
+          <div className="container mx-auto px-4 sm:px-6">
+            <div className="text-center mb-14 sm:mb-18">
+              <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-sm font-medium text-primary mb-6">
+                <ShieldCheck className="h-4 w-4" />
+                {t("home.compServerlessTag")}
+              </span>
+              <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-5 tracking-tight">
+                {t("home.compTitle")}
+              </h2>
+              <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
+                {t("home.compSubtitle")}
+              </p>
+            </div>
+
+            {/* Advantage cards - 2 + 3 layout */}
+            <div className="max-w-6xl mx-auto mb-16 sm:mb-20">
+              {/* Top row - 2 wide cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 mb-4 sm:mb-5">
+                {([
+                  { titleKey: "home.compServerlessTitle", descKey: "home.compServerlessDesc", tagKey: "home.compServerlessTag", icon: Globe, color: "blue" as const },
+                  { titleKey: "home.compSecurityTitle", descKey: "home.compSecurityDesc", tagKey: "home.compSecurityTag", icon: Lock, color: "emerald" as const },
+                ]).map((card) => {
+                  const CardIcon = card.icon;
+                  const c = colorMap[card.color];
+                  return (
+                    <div
+                      key={card.titleKey}
+                      className={`group relative rounded-2xl border ${c.border} ${c.bg} p-7 sm:p-8 transition-all duration-300 hover:shadow-lg ${c.shadow} overflow-hidden`}
+                    >
+                      {/* Decorative glow */}
+                      <div className={`absolute -top-16 -right-16 w-40 h-40 rounded-full ${c.bg} blur-3xl opacity-0 group-hover:opacity-60 transition-opacity duration-700`} aria-hidden />
+                      <div className="relative flex flex-col sm:flex-row sm:items-start gap-5">
+                        <div className={`flex h-13 w-13 items-center justify-center rounded-2xl ${c.iconBg} text-white shadow-lg shrink-0`}>
+                          <CardIcon className="h-6 w-6" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-lg sm:text-xl font-bold mb-2">
+                            {t(card.titleKey)}
+                          </h3>
+                          <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
+                            {t(card.descKey)}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              {/* Bottom row - 3 cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5">
+                {([
+                  { titleKey: "home.compSandboxTitle", descKey: "home.compSandboxDesc", tagKey: "home.compSandboxTag", icon: Shield, color: "violet" as const },
+                  { titleKey: "home.compAuthTitle", descKey: "home.compAuthDesc", tagKey: "home.compAuthTag", icon: MousePointerClick, color: "rose" as const },
+                  { titleKey: "home.compOpenTitle", descKey: "home.compOpenDesc", tagKey: "home.compOpenTag", icon: Code2, color: "amber" as const },
+                ]).map((card) => {
+                  const CardIcon = card.icon;
+                  const c = colorMap[card.color];
+                  return (
+                    <div
+                      key={card.titleKey}
+                      className={`group relative rounded-2xl border ${c.border} ${c.bg} p-6 sm:p-7 transition-all duration-300 hover:shadow-lg ${c.shadow} overflow-hidden`}
+                    >
+                      <div className={`absolute -top-12 -right-12 w-32 h-32 rounded-full ${c.bg} blur-2xl opacity-0 group-hover:opacity-60 transition-opacity duration-700`} aria-hidden />
+                      <div className="relative">
+                        <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${c.iconBg} text-white shadow-md mb-4`}>
+                          <CardIcon className="h-5 w-5" />
+                        </div>
+                        <h3 className="text-base sm:text-lg font-bold mb-2">
+                          {t(card.titleKey)}
+                        </h3>
+                        <p className="text-sm text-muted-foreground leading-relaxed">
+                          {t(card.descKey)}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Comparison table */}
+            <div className="max-w-4xl mx-auto mb-14 sm:mb-16">
+              <div className="rounded-2xl border border-border/50 overflow-hidden shadow-xl bg-background/80 backdrop-blur-sm">
+                {/* Table header */}
+                <div className="grid grid-cols-[1fr_1fr_1fr] sm:grid-cols-[140px_1fr_1fr]">
+                  <div className="bg-muted/50 dark:bg-muted/20 p-3 sm:p-4 border-b border-border/50" />
+                  <div className="bg-muted/50 dark:bg-muted/20 p-3 sm:p-4 border-b border-l border-border/50 text-center">
+                    <div className="flex items-center justify-center gap-2">
+                      <Terminal className="h-4 w-4 text-muted-foreground hidden sm:block" />
+                      <span className="text-xs sm:text-sm font-semibold text-muted-foreground">
+                        {t("home.compVsTraditional")}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="bg-primary/5 dark:bg-primary/10 p-3 sm:p-4 border-b border-l border-border/50 text-center">
+                    <div className="flex items-center justify-center gap-2">
+                      <IzanLogo className="h-4 w-4 text-primary hidden sm:block" />
+                      <span className="text-xs sm:text-sm font-bold text-primary">
+                        {t("home.compVsIzan")}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Table rows */}
+                {[1, 2, 3, 4, 5, 6].map((row) => (
+                  <div
+                    key={row}
+                    className={`grid grid-cols-[1fr_1fr_1fr] sm:grid-cols-[140px_1fr_1fr] ${
+                      row < 6 ? "border-b border-border/30" : ""
+                    } transition-colors hover:bg-muted/10`}
+                  >
+                    <div className="p-3 sm:p-4 bg-muted/30 dark:bg-muted/10 flex items-center">
+                      <span className="text-xs sm:text-sm font-semibold text-foreground/80">
+                        {t(`home.compVsRow${row}Label`)}
+                      </span>
+                    </div>
+                    <div className="p-3 sm:p-4 border-l border-border/30 flex items-center">
+                      <div className="flex items-start gap-2">
+                        <X className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
+                        <span className="text-xs sm:text-sm text-muted-foreground">
+                          {t(`home.compVsRow${row}Traditional`)}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="p-3 sm:p-4 border-l border-border/30 bg-emerald-500/[0.03] dark:bg-emerald-500/[0.05] flex items-center">
+                      <div className="flex items-start gap-2">
+                        <Check className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
+                        <span className="text-xs sm:text-sm font-medium text-foreground">
+                          {t(`home.compVsRow${row}Izan`)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* CTA - "Open izan.io. Install the extension. That's it." */}
+            <div className="max-w-3xl mx-auto text-center">
+              <div className="relative rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/5 via-primary/[0.02] to-transparent p-8 sm:p-10 md:p-12 overflow-hidden">
+                <div className="absolute -top-20 -right-20 w-48 h-48 rounded-full bg-primary/10 blur-3xl" aria-hidden />
+                <div className="absolute -bottom-16 -left-16 w-40 h-40 rounded-full bg-primary/5 blur-2xl" aria-hidden />
+                <div className="relative">
+                  <h3 className="text-xl sm:text-2xl md:text-3xl font-bold mb-3 tracking-tight">
+                    {t("home.compCtaTitle")}
+                  </h3>
+                  <p className="text-sm sm:text-base text-muted-foreground mb-7 max-w-lg mx-auto">
+                    {t("home.compCtaDesc")}
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-3 justify-center items-stretch sm:items-center">
+                    <Link to={`/${lang}/docs/chrome-extension`}>
+                      <Button
+                        size="lg"
+                        className="gap-2.5 w-full sm:w-auto h-12 px-7 rounded-xl text-base font-semibold shadow-lg shadow-primary/15 hover:shadow-xl hover:shadow-primary/25 transition-all duration-300 hover:scale-[1.02]"
+                      >
+                        <Download className="h-5 w-5" />
+                        {t("home.compCtaExtension")}
+                      </Button>
+                    </Link>
+                    <Link to="/chat">
+                      <Button
+                        size="lg"
+                        variant="outline"
+                        className="gap-2.5 w-full sm:w-auto h-12 px-7 rounded-xl text-base font-semibold border-2 hover:bg-primary/5 transition-all duration-300"
+                      >
+                        <MessageSquare className="h-5 w-5" />
+                        {t("home.compCtaChat")}
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* ========== FEATURES - SEO Grid ========== */}
         <section className="py-10 sm:py-14 md:py-20">
           <div className="container mx-auto px-4 sm:px-6">
@@ -583,6 +782,92 @@ export default function Home() {
                         {t(feat.descKey)}
                       </p>
                     </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        {/* ========== HOW IT WORKS ========== */}
+        <section className="py-12 sm:py-16 md:py-20 bg-muted/30 dark:bg-muted/10 section-muted-fade">
+          <div className="container mx-auto px-4 sm:px-6">
+            <div className="text-center mb-12 sm:mb-16">
+              <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4">
+                {t("home.howItWorks")}
+              </h2>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-5 md:gap-6 max-w-6xl mx-auto">
+              {([
+                { step: 1, icon: Sparkles, color: "blue" as const, link: null },
+                { step: 2, icon: Download, color: "amber" as const, link: `/${lang}/docs/chrome-extension` },
+                { step: 3, icon: Bot, color: "violet" as const, link: `/${lang}/agents` },
+                { step: 4, icon: CheckCircle2, color: "emerald" as const, link: null },
+              ]).map(({ step, icon: StepIcon, color, link }, idx) => {
+                const accents = {
+                  blue: {
+                    border: "border-blue-500/20 hover:border-blue-500/40",
+                    badge: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
+                    icon: "bg-blue-500 shadow-blue-500/20",
+                    glow: "bg-blue-500/10",
+                  },
+                  amber: {
+                    border: "border-amber-500/20 hover:border-amber-500/40",
+                    badge: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+                    icon: "bg-amber-500 shadow-amber-500/20",
+                    glow: "bg-amber-500/10",
+                  },
+                  violet: {
+                    border: "border-violet-500/20 hover:border-violet-500/40",
+                    badge: "bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/20",
+                    icon: "bg-violet-500 shadow-violet-500/20",
+                    glow: "bg-violet-500/10",
+                  },
+                  emerald: {
+                    border: "border-emerald-500/20 hover:border-emerald-500/40",
+                    badge: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+                    icon: "bg-emerald-500 shadow-emerald-500/20",
+                    glow: "bg-emerald-500/10",
+                  },
+                };
+                const a = accents[color];
+                const card = (
+                  <div className={`group relative rounded-2xl border ${a.border} bg-background/60 dark:bg-background/40 p-6 sm:p-7 transition-all duration-300 hover:shadow-lg overflow-hidden h-full ${link ? "cursor-pointer hover:-translate-y-0.5" : ""}`}>
+                    {/* Subtle glow */}
+                    <div className={`absolute -top-12 -right-12 w-32 h-32 rounded-full ${a.glow} blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500`} aria-hidden />
+                    <div className="relative">
+                      <div className="flex items-center gap-3 mb-5">
+                        <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${a.icon} text-white shadow-lg`}>
+                          <StepIcon className="h-5 w-5" />
+                        </div>
+                        <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-bold ${a.badge}`}>
+                          {step}
+                        </span>
+                      </div>
+                      <h3 className="font-bold text-lg mb-2">
+                        {t(`home.step${step}Title`)}
+                      </h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed">
+                        {t(`home.step${step}Desc`)}
+                      </p>
+                    </div>
+                  </div>
+                );
+                return (
+                  <div key={step} className="relative">
+                    {/* Arrow connector (desktop) */}
+                    {idx < 3 && (
+                      <div className="hidden lg:block absolute top-12 -right-4 z-10">
+                        <ArrowRight className="h-5 w-5 text-muted-foreground/30" />
+                      </div>
+                    )}
+                    {link ? (
+                      <Link to={link} className="block h-full">
+                        {card}
+                      </Link>
+                    ) : (
+                      card
+                    )}
                   </div>
                 );
               })}
@@ -669,83 +954,6 @@ export default function Home() {
                 return (
                   <div key={agent.titleKey} className="h-full">
                     {content}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-
-        {/* ========== HOW IT WORKS ========== */}
-        <section className="py-12 sm:py-16 md:py-20 bg-muted/30 dark:bg-muted/10 section-muted-fade-from-dark">
-          <div className="container mx-auto px-4 sm:px-6">
-            <div className="text-center mb-12 sm:mb-16">
-              <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4">
-                {t("home.howItWorks")}
-              </h2>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-5 md:gap-6 max-w-6xl mx-auto">
-              {([
-                { step: 1, icon: Sparkles, color: "blue" as const },
-                { step: 2, icon: Download, color: "amber" as const },
-                { step: 3, icon: Bot, color: "violet" as const },
-                { step: 4, icon: CheckCircle2, color: "emerald" as const },
-              ]).map(({ step, icon: StepIcon, color }, idx) => {
-                const accents = {
-                  blue: {
-                    border: "border-blue-500/20 hover:border-blue-500/40",
-                    badge: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
-                    icon: "bg-blue-500 shadow-blue-500/20",
-                    glow: "bg-blue-500/10",
-                  },
-                  amber: {
-                    border: "border-amber-500/20 hover:border-amber-500/40",
-                    badge: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
-                    icon: "bg-amber-500 shadow-amber-500/20",
-                    glow: "bg-amber-500/10",
-                  },
-                  violet: {
-                    border: "border-violet-500/20 hover:border-violet-500/40",
-                    badge: "bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/20",
-                    icon: "bg-violet-500 shadow-violet-500/20",
-                    glow: "bg-violet-500/10",
-                  },
-                  emerald: {
-                    border: "border-emerald-500/20 hover:border-emerald-500/40",
-                    badge: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
-                    icon: "bg-emerald-500 shadow-emerald-500/20",
-                    glow: "bg-emerald-500/10",
-                  },
-                };
-                const a = accents[color];
-                return (
-                  <div key={step} className="relative">
-                    {/* Arrow connector (desktop) */}
-                    {idx < 3 && (
-                      <div className="hidden lg:block absolute top-12 -right-4 z-10">
-                        <ArrowRight className="h-5 w-5 text-muted-foreground/30" />
-                      </div>
-                    )}
-                    <div className={`group relative rounded-2xl border ${a.border} bg-background/60 dark:bg-background/40 p-6 sm:p-7 transition-all duration-300 hover:shadow-lg overflow-hidden h-full`}>
-                      {/* Subtle glow */}
-                      <div className={`absolute -top-12 -right-12 w-32 h-32 rounded-full ${a.glow} blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500`} aria-hidden />
-                      <div className="relative">
-                        <div className="flex items-center gap-3 mb-5">
-                          <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${a.icon} text-white shadow-lg`}>
-                            <StepIcon className="h-5 w-5" />
-                          </div>
-                          <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-bold ${a.badge}`}>
-                            {step}
-                          </span>
-                        </div>
-                        <h3 className="font-bold text-lg mb-2">
-                          {t(`home.step${step}Title`)}
-                        </h3>
-                        <p className="text-sm text-muted-foreground leading-relaxed">
-                          {t(`home.step${step}Desc`)}
-                        </p>
-                      </div>
-                    </div>
                   </div>
                 );
               })}

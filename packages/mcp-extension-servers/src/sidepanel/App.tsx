@@ -5,7 +5,7 @@ import {
   Keyboard, ArrowDownUp, ListFilter, Timer, Hourglass,
   Link, Database, Save, Wrench, Loader2, AlertTriangle, RefreshCw,
   GripVertical, ChevronUp, ChevronDown, Pencil, Columns,
-  Download, Upload, Code, ScanEye, Layers, Braces, Play,
+  Download, Upload, Code, ScanEye, Layers, Braces, Play, Search,
 } from 'lucide-react'
 
 const LazyCodeEditor = lazy(() => import('./code-editor').then(m => ({ default: m.CodeEditor })))
@@ -61,7 +61,34 @@ interface AutomationToolFull extends AutomationTool {
   parameters: Array<{ name: string; type: string; description: string; required: boolean; source?: string; sourceKey?: string }>
 }
 
-type View = 'list' | 'record' | 'save' | 'edit'
+type View = 'list' | 'record' | 'save' | 'edit' | 'prebuilt-detail'
+
+interface PrebuiltManifestServer {
+  id: string
+  name: string
+  description: string
+  category: string
+  tools: string[]
+}
+
+interface PrebuiltManifest {
+  version: string
+  servers: PrebuiltManifestServer[]
+}
+
+interface PrebuiltToolFull {
+  id: string
+  name: string
+  description: string
+  version: string
+  parameters: Array<{ name: string; type: string; description: string; required: boolean }>
+  steps: Step[]
+  lanes?: Lane[]
+  serverId: string
+  serverName: string
+}
+
+const CDN_BASE = 'https://izan.io/mcp-tools'
 
 const STEP_ICONS: Record<string, typeof Globe> = {
   navigate: Globe, click: MousePointerClick, type: Keyboard, scroll: ArrowDownUp,
@@ -148,6 +175,18 @@ export function App() {
   const [importError, setImportError] = useState<string | null>(null)
   const [exportingToolId, setExportingToolId] = useState<string | null>(null)
   const exportingToolIdRef = useRef<string | null>(null)
+
+  // Pre-built tools
+  const [listTab, setListTab] = useState<'my-macros' | 'pre-built'>('my-macros')
+  const [prebuiltManifest, setPrebuiltManifest] = useState<PrebuiltManifest | null>(null)
+  const [prebuiltLoading, setPrebuiltLoading] = useState(false)
+  const [prebuiltError, setPrebuiltError] = useState<string | null>(null)
+  const [prebuiltDetailTool, setPrebuiltDetailTool] = useState<PrebuiltToolFull | null>(null)
+  const [prebuiltDetailLoading, setPrebuiltDetailLoading] = useState(false)
+  const prebuiltToolCache = useRef<Map<string, PrebuiltToolFull>>(new Map())
+  const [cloning, setCloning] = useState(false)
+  const [prebuiltSearch, setPrebuiltSearch] = useState('')
+  const [expandedPrebuiltServers, setExpandedPrebuiltServers] = useState<Set<string>>(new Set())
 
   // Selector extract (manual CSS selector input)
   const [showSelectorInput, setShowSelectorInput] = useState(false)
@@ -853,6 +892,131 @@ export function App() {
     setCodeParamMeta(new Map())
     setView('list')
   }
+
+  // ─── Pre-built tools fetch ─────────────────────────────────────
+
+  const fetchPrebuiltManifest = useCallback(async () => {
+    if (prebuiltManifest) return // already cached
+    setPrebuiltLoading(true)
+    setPrebuiltError(null)
+    try {
+      const res = await fetch(`${CDN_BASE}/manifest.json`)
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const data = (await res.json()) as PrebuiltManifest
+      setPrebuiltManifest(data)
+    } catch (err) {
+      setPrebuiltError(err instanceof Error ? err.message : 'Failed to load')
+    } finally {
+      setPrebuiltLoading(false)
+    }
+  }, [prebuiltManifest])
+
+  const fetchPrebuiltTool = useCallback(async (serverId: string, serverName: string, toolName: string) => {
+    const cacheKey = `${serverId}/${toolName}`
+    const cached = prebuiltToolCache.current.get(cacheKey)
+    if (cached) {
+      setPrebuiltDetailTool(cached)
+      setView('prebuilt-detail')
+      return
+    }
+    setPrebuiltDetailLoading(true)
+    try {
+      const res = await fetch(`${CDN_BASE}/tools/${serverId}/${toolName}.json`)
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const data = await res.json() as { id: string; name: string; description: string; version: string; parameters: PrebuiltToolFull['parameters']; steps: Step[]; lanes?: Lane[] }
+      const full: PrebuiltToolFull = { ...data, serverId, serverName }
+      prebuiltToolCache.current.set(cacheKey, full)
+      setPrebuiltDetailTool(full)
+      setView('prebuilt-detail')
+    } catch (err) {
+      setPrebuiltError(err instanceof Error ? err.message : 'Failed to load tool')
+    } finally {
+      setPrebuiltDetailLoading(false)
+    }
+  }, [])
+
+  const handleClonePrebuiltTool = useCallback(async (tool: PrebuiltToolFull) => {
+    if (!portRef.current) return
+    setCloning(true)
+    const clonedName = `my_${tool.name}`
+    const clonedDisplayName = `My ${tool.name.replaceAll('_', ' ').replace(/\b\w/g, c => c.toUpperCase())}`
+    try {
+      // Find or create a server matching the pre-built server name
+      const existing = servers.find(s => s.name === tool.serverName)
+      const toolData = {
+        name: clonedName,
+        displayName: clonedDisplayName,
+        description: tool.description,
+        version: tool.version,
+        parameters: tool.parameters,
+        steps: tool.steps,
+        ...(tool.lanes && tool.lanes.length > 1 ? { lanes: tool.lanes } : {}),
+      }
+      if (existing) {
+        portRef.current.postMessage({
+          type: 'importAutomationTool',
+          serverId: existing.id,
+          data: toolData,
+        })
+      } else {
+        // Create a server first via importAutomationServer with just this one tool
+        portRef.current.postMessage({
+          type: 'importAutomationServer',
+          data: {
+            server: { name: tool.serverName, description: `Cloned from pre-built: ${tool.serverName}`, category: 'custom' },
+            tools: [toolData],
+          },
+        })
+      }
+      // Switch to My Macros tab to see the result
+      setListTab('my-macros')
+      setView('list')
+    } finally {
+      setCloning(false)
+    }
+  }, [servers])
+
+  const handleClonePrebuiltServer = useCallback(async (server: PrebuiltManifestServer) => {
+    if (!portRef.current) return
+    setCloning(true)
+    try {
+      // Fetch all tools in parallel
+      const toolResults = await Promise.all(
+        server.tools.map(async (toolName) => {
+          const cacheKey = `${server.id}/${toolName}`
+          const cached = prebuiltToolCache.current.get(cacheKey)
+          if (cached) return cached
+          const res = await fetch(`${CDN_BASE}/tools/${server.id}/${toolName}.json`)
+          if (!res.ok) throw new Error(`Failed to fetch ${toolName}`)
+          const data = await res.json() as { id: string; name: string; description: string; version: string; parameters: PrebuiltToolFull['parameters']; steps: Step[]; lanes?: Lane[] }
+          const full: PrebuiltToolFull = { ...data, serverId: server.id, serverName: server.name }
+          prebuiltToolCache.current.set(cacheKey, full)
+          return full
+        }),
+      )
+      portRef.current.postMessage({
+        type: 'importAutomationServer',
+        data: {
+          server: { name: server.name, description: server.description, category: server.category },
+          tools: toolResults.map(t => ({
+            name: `my_${t.name}`,
+            displayName: `My ${t.name.replaceAll('_', ' ').replace(/\b\w/g, c => c.toUpperCase())}`,
+            description: t.description,
+            version: t.version,
+            parameters: t.parameters,
+            steps: t.steps,
+            ...(t.lanes && t.lanes.length > 1 ? { lanes: t.lanes } : {}),
+          })),
+        },
+      })
+      setListTab('my-macros')
+      setView('list')
+    } catch (err) {
+      setPrebuiltError(err instanceof Error ? err.message : 'Failed to clone server')
+    } finally {
+      setCloning(false)
+    }
+  }, [])
 
   const getToolsForServer = (serverId: string) => tools.filter((t) => t.serverId === serverId)
 
@@ -1574,6 +1738,77 @@ export function App() {
     )
   }
 
+  // ─── Pre-built detail view ─────────────────────────────────────
+
+  if (view === 'prebuilt-detail' && prebuiltDetailTool) {
+    const tool = prebuiltDetailTool
+    const displayName = tool.name.replaceAll('_', ' ').replace(/\b\w/g, c => c.toUpperCase())
+    return (
+      <div className="flex flex-col h-screen">
+        <Header
+          title={displayName}
+          icon={<Wrench className="h-4 w-4 text-primary" />}
+          onBack={() => { setView('list'); setListTab('pre-built') }}
+        />
+
+        <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4">
+          {/* Info card */}
+          <div className="rounded-lg border bg-card p-4 space-y-2">
+            <p className="text-sm font-medium">{displayName}</p>
+            {tool.description && <p className="text-sm text-muted-foreground">{tool.description}</p>}
+            <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+              <span className="inline-flex items-center gap-1"><Server className="h-3 w-3" />{tool.serverName}</span>
+              {tool.version && <span>v{tool.version}</span>}
+            </div>
+          </div>
+
+          {/* Parameters */}
+          {tool.parameters.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Parameters</p>
+              <div className="space-y-1.5">
+                {tool.parameters.map((p) => (
+                  <div key={p.name} className="rounded-md border bg-card px-3 py-2 space-y-0.5">
+                    <div className="flex items-center gap-2">
+                      <code className="text-sm font-mono font-medium">{p.name}</code>
+                      <span className="text-xs text-muted-foreground">{p.type}</span>
+                      {p.required && <span className="text-[10px] font-medium text-primary bg-primary/10 px-1.5 py-0.5 rounded">required</span>}
+                    </div>
+                    {p.description && <p className="text-sm text-muted-foreground">{p.description}</p>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Clone button */}
+          <Button
+            variant="default"
+            size="sm"
+            className="w-full"
+            disabled={cloning}
+            onClick={() => handleClonePrebuiltTool(tool)}
+          >
+            {cloning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+            Clone to My Macros
+          </Button>
+
+          {/* Steps */}
+          {tool.steps.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Steps ({tool.steps.length})</p>
+              <div className="space-y-1.5">
+                {tool.steps.map((step, i) => (
+                  <ReadOnlyStepCard key={i} index={i} step={step} />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+
   // ─── List view ─────────────────────────────────────────────────
 
   if (view === 'list') {
@@ -1583,6 +1818,33 @@ export function App() {
           title="Macros"
           icon={<Server className="h-4 w-4 text-primary" />}
         />
+
+        {/* Tab bar */}
+        <div className="flex border-b">
+          <button
+            className={cn(
+              'flex-1 py-2 text-sm font-medium text-center transition-colors',
+              listTab === 'my-macros'
+                ? 'border-b-2 border-primary text-foreground'
+                : 'text-muted-foreground hover:text-foreground',
+            )}
+            onClick={() => setListTab('my-macros')}
+          >
+            My Macros
+          </button>
+          <button
+            className={cn(
+              'flex-1 py-2 text-sm font-medium text-center transition-colors',
+              listTab === 'pre-built'
+                ? 'border-b-2 border-primary text-foreground'
+                : 'text-muted-foreground hover:text-foreground',
+            )}
+            onClick={() => { setListTab('pre-built'); fetchPrebuiltManifest() }}
+          >
+            Pre-built
+          </button>
+        </div>
+
         {/* Hidden file input for JSON import */}
         <input
           ref={importFileRef}
@@ -1591,6 +1853,8 @@ export function App() {
           className="hidden"
           onChange={handleImportFile}
         />
+
+        {listTab === 'my-macros' ? (
         <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
           {/* Import error banner */}
           {importError && (
@@ -1757,6 +2021,132 @@ export function App() {
             </>
           )}
         </div>
+        ) : (
+        /* Pre-built tools tab */
+        <div className="flex flex-col flex-1 min-h-0">
+          {/* Search */}
+          {prebuiltManifest && !prebuiltLoading && (
+            <div className="px-4 pt-3 pb-1">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                <Input
+                  value={prebuiltSearch}
+                  onChange={(e) => setPrebuiltSearch(e.target.value)}
+                  placeholder="Search tools..."
+                  className="pl-8 h-8 text-sm"
+                />
+                {prebuiltSearch && (
+                  <button className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" onClick={() => setPrebuiltSearch('')}>
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
+            {prebuiltLoading ? (
+              <div className="flex items-center justify-center py-10">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : prebuiltError ? (
+              <div className="py-8 space-y-3 text-center">
+                <AlertTriangle className="h-10 w-10 mx-auto text-muted-foreground/40" />
+                <p className="text-sm text-muted-foreground">{prebuiltError}</p>
+                <Button variant="outline" size="sm" onClick={() => { setPrebuiltManifest(null); fetchPrebuiltManifest() }}>
+                  <RefreshCw className="h-4 w-4" /> Retry
+                </Button>
+              </div>
+            ) : prebuiltManifest ? (
+              <>
+                {prebuiltDetailLoading && (
+                  <div className="flex items-center gap-2 rounded-lg border bg-card p-3 text-sm text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" /> Loading tool...
+                  </div>
+                )}
+                {(() => {
+                  const q = prebuiltSearch.toLowerCase().trim()
+                  const filtered = q
+                    ? prebuiltManifest.servers
+                        .map(s => ({
+                          ...s,
+                          tools: s.tools.filter(t => t.replaceAll('_', ' ').includes(q) || s.name.toLowerCase().includes(q)),
+                        }))
+                        .filter(s => s.tools.length > 0)
+                    : prebuiltManifest.servers
+                  // When searching, auto-expand all matching servers
+                  const isSearching = q.length > 0
+                  if (filtered.length === 0) {
+                    return (
+                      <div className="py-8 text-center">
+                        <p className="text-sm text-muted-foreground">No tools match "{prebuiltSearch}"</p>
+                      </div>
+                    )
+                  }
+                  return filtered.map((s) => {
+                    const isExpanded = isSearching || expandedPrebuiltServers.has(s.id)
+                    return (
+                      <div key={s.id} className="rounded-lg border bg-card overflow-hidden">
+                        <button
+                          className="w-full px-4 py-2.5 flex items-center gap-2.5 text-left hover:bg-secondary/30 transition-colors"
+                          onClick={() => {
+                            setExpandedPrebuiltServers(prev => {
+                              const next = new Set(prev)
+                              if (next.has(s.id)) next.delete(s.id); else next.add(s.id)
+                              return next
+                            })
+                          }}
+                        >
+                          <Server className="h-4 w-4 text-muted-foreground shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">{s.name}</p>
+                          </div>
+                          <span className="text-xs text-muted-foreground shrink-0">{s.tools.length}</span>
+                          {isExpanded
+                            ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                            : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
+                        </button>
+                        {isExpanded && (
+                          <div className="border-t px-4 py-2 bg-muted/30 space-y-0.5">
+                            {s.description && <p className="text-xs text-muted-foreground mb-1.5">{s.description}</p>}
+                            {s.tools.map((toolName) => (
+                              <div
+                                key={toolName}
+                                className="flex items-center gap-2.5 py-1.5 cursor-pointer hover:bg-secondary/50 rounded-md px-2 -mx-2 transition-colors"
+                                onClick={() => fetchPrebuiltTool(s.id, s.name, toolName)}
+                                role="button"
+                                tabIndex={0}
+                              >
+                                <Wrench className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                                <span className="text-sm text-foreground truncate">
+                                  {toolName.replaceAll('_', ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                                </span>
+                              </div>
+                            ))}
+                            <button
+                              className="w-full mt-1.5 flex items-center justify-center gap-1.5 rounded-md border border-dashed py-1.5 text-xs text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors disabled:opacity-50"
+                              disabled={cloning}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                // Use the full server from manifest (not search-filtered)
+                                const full = prebuiltManifest!.servers.find(ms => ms.id === s.id)
+                                if (full) handleClonePrebuiltServer(full)
+                              }}
+                            >
+                              {cloning ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
+                              Clone All ({(prebuiltManifest!.servers.find(ms => ms.id === s.id)?.tools.length ?? s.tools.length)} tools)
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })
+                })()}
+              </>
+            ) : null}
+          </div>
+        </div>
+        )}
       </div>
     )
   }
@@ -3770,6 +4160,78 @@ function CodeParamCards({ params, meta, onUpdate }: {
           </div>
         )
       })}
+    </div>
+  )
+}
+
+// ─── ReadOnlyStepCard ─────────────────────────────────────────────────────────
+
+function ReadOnlyStepCard({ index, step }: { index: number; step: Step }) {
+  const [expanded, setExpanded] = useState(false)
+  const Icon = STEP_ICONS[step.action] ?? Globe
+  const detail = stepDetail(step)
+  const label = (step.label as string) || step.action
+
+  const hasDetails =
+    (step.action === 'navigate' && step.url) ||
+    (step.action === 'code' && step.code) ||
+    (step.action === 'forEachItem' && Array.isArray(step.detailSteps)) ||
+    (step.action === 'extract' && Array.isArray(step.fields))
+
+  return (
+    <div className="rounded-md border bg-card overflow-hidden">
+      <button
+        className="w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-secondary/30 transition-colors"
+        onClick={() => hasDetails && setExpanded(!expanded)}
+      >
+        <span className="text-xs font-mono text-muted-foreground w-5 shrink-0 text-right">{index + 1}</span>
+        <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+        <div className="flex-1 min-w-0">
+          <span className="text-sm block truncate">{label}</span>
+          {detail && <span className="text-xs text-muted-foreground block truncate">{detail}</span>}
+        </div>
+        {hasDetails && (
+          expanded ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground shrink-0" /> : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+        )}
+      </button>
+
+      {expanded && (
+        <div className="px-3 pb-2.5 pt-0.5 text-xs space-y-1.5 border-t bg-muted/20">
+          {step.action === 'navigate' && step.url && (
+            <div className="break-all font-mono text-muted-foreground">{step.url}</div>
+          )}
+          {step.action === 'code' && step.code && (
+            <pre className="font-mono text-muted-foreground whitespace-pre-wrap bg-muted/40 rounded p-2 max-h-40 overflow-y-auto">
+              {step.code as string}
+            </pre>
+          )}
+          {step.action === 'forEachItem' && Array.isArray(step.detailSteps) && (
+            <div className="space-y-1">
+              <p className="text-muted-foreground">
+                Source: {step.sourceExtract as string}
+                {step.concurrency ? ` · concurrency: ${step.concurrency}` : ''}
+                {step.maxItems ? ` · max: ${step.maxItems}` : ''}
+              </p>
+              <div className="space-y-1 pl-2 border-l-2 border-muted">
+                {(step.detailSteps as Step[]).map((ds, di) => (
+                  <ReadOnlyStepCard key={di} index={di} step={ds} />
+                ))}
+              </div>
+            </div>
+          )}
+          {step.action === 'extract' && Array.isArray(step.fields) && (
+            <div className="space-y-0.5">
+              {(step.fields as Array<{ key: string; selector?: string; type?: string }>).map((f, fi) => (
+                <div key={fi} className="flex items-center gap-2 text-muted-foreground">
+                  <code className="font-mono">{f.key}</code>
+                  {f.selector && <span className="truncate">{f.selector}</span>}
+                  {f.type && <span className="text-muted-foreground/60">{f.type}</span>}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
