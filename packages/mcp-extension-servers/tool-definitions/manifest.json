@@ -614,13 +614,13 @@
       "description": "Automate Yahoo Finance: search stocks, scrape quotes, read news, analyze financials, track holders, and compare tickers",
       "category": "web_search",
       "tools": [
-        "yahoofinance_search",
-        "yahoofinance_scrape_quote",
-        "yahoofinance_scrape_news",
-        "yahoofinance_scrape_financials",
-        "yahoofinance_scrape_holders",
-        "yahoofinance_compare_stocks",
-        "yahoofinance_bulk_search"
+        "yahoo_finance_search",
+        "yahoo_finance_scrape_quote",
+        "yahoo_finance_scrape_news",
+        "yahoo_finance_scrape_financials",
+        "yahoo_finance_scrape_history",
+        "yahoo_finance_compare_stocks",
+        "yahoo_finance_bulk_search"
       ]
     },
     {
@@ -633,7 +633,7 @@
         "zillow_scrape_listing",
         "zillow_scrape_agent",
         "zillow_scrape_neighborhood",
-        "zillow_scrape_price_history",
+        "zillow_scrape_estimates",
         "zillow_compare_listings",
         "zillow_bulk_search"
       ]
@@ -646,10 +646,10 @@
       "tools": [
         "wikipedia_search",
         "wikipedia_scrape_article",
-        "wikipedia_scrape_summary",
+        "wikipedia_random_article",
         "wikipedia_scrape_categories",
         "wikipedia_scrape_references",
-        "wikipedia_scrape_history",
+        "wikipedia_scrape_links",
         "wikipedia_bulk_search"
       ]
     },
@@ -662,7 +662,7 @@
         "walmart_search",
         "walmart_scrape_product",
         "walmart_scrape_reviews",
-        "walmart_scrape_seller",
+        "walmart_scrape_store",
         "walmart_scrape_deals",
         "walmart_compare_prices",
         "walmart_bulk_search"
@@ -677,7 +677,7 @@
         "twitch_search",
         "twitch_scrape_channel",
         "twitch_scrape_stream",
-        "twitch_scrape_categories",
+        "twitch_scrape_category",
         "twitch_scrape_clips",
         "twitch_scrape_chat",
         "twitch_bulk_search"
@@ -708,7 +708,7 @@
         "yelp_scrape_business",
         "yelp_scrape_reviews",
         "yelp_scrape_photos",
-        "yelp_scrape_nearby",
+        "yelp_scrape_menu",
         "yelp_compare_businesses",
         "yelp_bulk_search"
       ]
@@ -739,7 +739,7 @@
         "quora_scrape_answers",
         "quora_scrape_profile",
         "quora_scrape_topic",
-        "quora_scrape_space",
+        "quora_scrape_trending",
         "quora_bulk_search"
       ]
     },
@@ -768,7 +768,7 @@
         "medium_scrape_article",
         "medium_scrape_author",
         "medium_scrape_publication",
-        "medium_scrape_topic",
+        "medium_scrape_tag",
         "medium_scrape_trending",
         "medium_bulk_search"
       ]
@@ -781,10 +781,10 @@
       "tools": [
         "substack_search",
         "substack_scrape_post",
-        "substack_scrape_publication",
+        "substack_scrape_newsletter",
         "substack_scrape_author",
         "substack_scrape_archive",
-        "substack_scrape_leaderboard",
+        "substack_scrape_comments",
         "substack_bulk_search"
       ]
     },
@@ -798,7 +798,7 @@
         "stackoverflow_scrape_question",
         "stackoverflow_scrape_answers",
         "stackoverflow_scrape_user",
-        "stackoverflow_scrape_tags",
+        "stackoverflow_scrape_tag",
         "stackoverflow_scrape_trending",
         "stackoverflow_bulk_search"
       ]
@@ -842,8 +842,8 @@
         "rottentomatoes_search",
         "rottentomatoes_scrape_movie",
         "rottentomatoes_scrape_reviews",
-        "rottentomatoes_scrape_cast",
-        "rottentomatoes_scrape_audience",
+        "rottentomatoes_scrape_top",
+        "rottentomatoes_scrape_tvshow",
         "rottentomatoes_compare_movies",
         "rottentomatoes_bulk_search"
       ]
@@ -871,7 +871,7 @@
       "tools": [
         "producthunt_search",
         "producthunt_scrape_product",
-        "producthunt_scrape_launches",
+        "producthunt_scrape_maker",
         "producthunt_scrape_collection",
         "producthunt_scrape_reviews",
         "producthunt_scrape_trending",
@@ -903,7 +903,7 @@
         "udemy_scrape_course",
         "udemy_scrape_reviews",
         "udemy_scrape_instructor",
-        "udemy_scrape_category",
+        "udemy_scrape_curriculum",
         "udemy_compare_courses",
         "udemy_bulk_search"
       ]
