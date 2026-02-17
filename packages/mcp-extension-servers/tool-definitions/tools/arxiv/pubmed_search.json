@@ -1,0 +1,38 @@
+{
+  "id": "pubmed-search",
+  "name": "pubmed_search",
+  "description": "Search PubMed medical papers. Returns titles, authors, journals, and PMIDs.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "query",
+      "type": "string",
+      "description": "Medical paper search query",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/?term={{query}}",
+      "label": "Open PubMed search"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".results-article, article, .search-results",
+      "timeout": 15000,
+      "label": "Wait for results"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Let results render"
+    },
+    {
+      "action": "code",
+      "code": "const results = []; document.querySelectorAll('article.full-docsum, .results-article').forEach((el, i) => { if (i < 15) { const titleEl = el.querySelector('a.docsum-title, .title a'); const authEl = el.querySelector('.docsum-authors, .authors'); const journalEl = el.querySelector('.docsum-journal-citation, .journal'); const pmidEl = el.querySelector('.docsum-pmid, .pmid'); results.push({ title: titleEl?.textContent?.trim() || '', url: titleEl?.href || '', authors: authEl?.textContent?.trim() || '', journal: journalEl?.textContent?.trim() || '', pmid: pmidEl?.textContent?.trim() || '' }); } }); return { query: '{{query}}', result_count: results.length, results };",
+      "name": "results",
+      "label": "Extract papers"
+    }
+  ]
+}

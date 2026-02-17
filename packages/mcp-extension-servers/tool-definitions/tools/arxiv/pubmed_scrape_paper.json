@@ -1,0 +1,38 @@
+{
+  "id": "pubmed-scrape-paper",
+  "name": "pubmed_scrape_paper",
+  "description": "Scrape a specific PubMed paper. Returns title, authors, abstract, DOI, and keywords.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "pmid",
+      "type": "string",
+      "description": "PubMed ID (e.g. \"12345678\")",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/{{pmid}}/",
+      "label": "Open paper page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "h1.heading-title, .abstract",
+      "timeout": 15000,
+      "label": "Wait for page"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page render"
+    },
+    {
+      "action": "code",
+      "code": "const title = document.querySelector('h1.heading-title')?.textContent?.trim() || ''; const authors = []; document.querySelectorAll('.authors-list a.full-name').forEach(a => authors.push(a.textContent?.trim())); const abstract = document.querySelector('#eng-abstract p, .abstract-content p')?.textContent?.trim() || ''; const doi = document.querySelector('a[data-ga-action=\"DOI\"], .doi a')?.textContent?.trim() || ''; const journal = document.querySelector('.journal-actions button, .cit')?.textContent?.trim() || ''; const keywords = []; document.querySelectorAll('.keywords-list .keyword, .abstract + .keywords a').forEach(k => keywords.push(k.textContent?.trim())); return { pmid: '{{pmid}}', title, authors, abstract, doi, journal, keywords, url: window.location.href };",
+      "name": "paper_data",
+      "label": "Extract paper info"
+    }
+  ]
+}

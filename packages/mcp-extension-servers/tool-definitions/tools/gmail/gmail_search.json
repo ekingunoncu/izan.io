@@ -30,7 +30,7 @@
     },
     {
       "action": "code",
-      "code": "const searchInput = document.querySelector('input[aria-label=\"Search mail\"]'); if (searchInput) { searchInput.focus(); searchInput.click(); await new Promise(r => setTimeout(r, 300)); searchInput.value = ''; searchInput.dispatchEvent(new Event('input', { bubbles: true })); document.execCommand('insertText', false, `{{query}}`); await new Promise(r => setTimeout(r, 300)); searchInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true })); } return { searched: true }",
+      "code": "const searchInput = document.querySelector('input[aria-label=\"Search mail\"]'); if (searchInput) { searchInput.focus(); searchInput.click(); await new Promise(r => setTimeout(r, 300)); searchInput.select(); document.execCommand('insertText', false, `{{query}}`); await new Promise(r => setTimeout(r, 300)); searchInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true })); } return { searched: true }",
       "name": "execute_search",
       "label": "Enter search query and submit"
     },

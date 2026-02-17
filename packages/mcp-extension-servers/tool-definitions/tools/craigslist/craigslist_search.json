@@ -1,0 +1,48 @@
+{
+  "id": "craigslist-search",
+  "name": "craigslist_search",
+  "description": "Search Craigslist for-sale listings across all regions. Returns matching results with title, price, date, and URL.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "query",
+      "type": "string",
+      "description": "Search query (e.g. 'laptop', 'bicycle', 'couch')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://www.craigslist.org/search/sss?query={{query}}",
+      "label": "Open Craigslist search"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".cl-search-result, .result-row, .cl-static-search-result, body",
+      "timeout": 15000,
+      "label": "Wait for results"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Let results render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll for more"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const results = []; document.querySelectorAll('.cl-search-result, .result-row, .cl-static-search-result').forEach((el, i) => { if (i < 20) { const titleEl = el.querySelector('a.posting-title, a.result-title, .titlestring, a.cl-app-anchor'); const priceEl = el.querySelector('.priceinfo, .result-price'); const metaEl = el.querySelector('.meta, .result-date'); const dateEl = el.querySelector('time'); results.push({ title: titleEl?.textContent?.trim() || '', url: titleEl?.href || '', price: priceEl?.textContent?.trim() || '', date: dateEl?.textContent?.trim() || metaEl?.textContent?.trim() || '' }); } }); return { query: '{{query}}', result_count: results.length, results };",
+      "name": "search_results",
+      "label": "Extract results"
+    }
+  ]
+}

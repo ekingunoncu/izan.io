@@ -1,0 +1,47 @@
+{
+  "id": "huggingface-search-models",
+  "name": "huggingface_search_models",
+  "description": "Search AI models on Hugging Face. Returns model names, authors, downloads, likes, and tags.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "query",
+      "type": "string",
+      "description": "Model search query",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://huggingface.co/models?search={{query}}",
+      "label": "Open HF model search"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "h4, article",
+      "timeout": 15000,
+      "label": "Wait for results"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Let results render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 800
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const results = []; const cards = document.querySelectorAll('article, main a[href]:has(h4)'); for (let i = 0; i < Math.min(cards.length, 15); i++) { const c = cards[i]; const titleEl = c.querySelector('h4'); if (!titleEl) continue; const link = c.closest('a[href]') || c.querySelector('a[href]') || c; const spans = Array.from(c.querySelectorAll('span')).map(s => s.textContent.trim()).filter(Boolean); results.push({ name: titleEl.textContent.trim(), url: link.href || '', meta: spans.slice(0, 5) }); } return { query: '{{query}}', result_count: results.length, results };",
+      "name": "results",
+      "label": "Extract models"
+    }
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "id": "espn-bulk-search",
+  "name": "espn_bulk_search",
+  "description": "Search multiple queries on ESPN in parallel using concurrent browser tabs. Use this instead of calling espn_search multiple times - it is faster and more efficient. Pass all queries as a single comma-separated string.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "queries",
+      "type": "string",
+      "description": "Comma-separated search queries (e.g. 'LeBron James,Super Bowl,NBA playoffs')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{queries}}`.split(',').map(q => ({ url: 'https://www.espn.com/search/_/q/' + encodeURIComponent(q.trim()), query: q.trim() }))",
+      "name": "items",
+      "label": "Build search URL list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 3,
+      "maxItems": 10,
+      "waitUntil": "load",
+      "label": "Search each query in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": ".search-results, .contentItem, .content",
+          "timeout": 15000,
+          "label": "Wait for results"
+        },
+        {
+          "action": "wait",
+          "ms": 2000
+        },
+        {
+          "action": "code",
+          "code": "const results = []; document.querySelectorAll('.contentItem, .search-results li, article').forEach((el, i) => { if (i < 15) { const titleEl = el.querySelector('a h2, .contentItem__title, h3 a'); const descEl = el.querySelector('p, .contentItem__subhead'); results.push({ title: titleEl?.textContent?.trim() || '', url: titleEl?.closest('a')?.href || '', description: descEl?.textContent?.trim()?.slice(0, 200) || '' }); } }); const pathParts = window.location.pathname.split('/q/'); const query = pathParts.length > 1 ? decodeURIComponent(pathParts[1]) : ''; return { query: query, result_count: results.length, results: results };",
+          "name": "search_results",
+          "label": "Extract results"
+        }
+      ]
+    }
+  ]
+}

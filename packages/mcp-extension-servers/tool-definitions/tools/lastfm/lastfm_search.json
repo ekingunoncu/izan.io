@@ -1,0 +1,38 @@
+{
+  "id": "lastfm-search",
+  "name": "lastfm_search",
+  "description": "Search Last.fm. Returns matching artists and tracks.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "query",
+      "type": "string",
+      "description": "Search query",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://www.last.fm/search?q={{query}}",
+      "label": "Open Last.fm search"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".grid-items-item-details, .chartlist-row, .page-content",
+      "timeout": 15000,
+      "label": "Wait for results"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Let results render"
+    },
+    {
+      "action": "code",
+      "code": "const artists = []; document.querySelectorAll('.grid-items-item-details').forEach((el, i) => { if (i < 10) { const nameEl = el.querySelector('.grid-items-item-main-text a.link-block-target'); const auxEl = el.querySelector('.grid-items-item-aux-text'); artists.push({ name: nameEl?.textContent?.trim() || '', url: nameEl?.href || '', listeners: auxEl?.textContent?.trim() || '' }); } }); const tracks = []; document.querySelectorAll('.chartlist-row').forEach((el, i) => { if (i < 10) { const nameEl = el.querySelector('.chartlist-name a.link-block-target'); const artistEl = el.querySelector('.chartlist-artist a'); const countEl = el.querySelector('.chartlist-count-bar-value'); tracks.push({ name: nameEl?.textContent?.trim() || '', url: nameEl?.href || '', artist: artistEl?.textContent?.trim() || '', plays: countEl?.textContent?.trim() || '' }); } }); return { query: '{{query}}', artist_count: artists.length, artists, track_count: tracks.length, tracks };",
+      "name": "search_results",
+      "label": "Extract results"
+    }
+  ]
+}

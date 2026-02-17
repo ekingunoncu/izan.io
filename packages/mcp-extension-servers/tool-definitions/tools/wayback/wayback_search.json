@@ -1,0 +1,38 @@
+{
+  "id": "wayback-search",
+  "name": "wayback_search",
+  "description": "Look up a URL on the Wayback Machine calendar view. Returns capture history summary and snapshot availability for the given URL.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "query",
+      "type": "string",
+      "description": "URL to look up in the Wayback Machine (e.g. 'example.com', 'https://example.com/page')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://web.archive.org/web/*/{{query}}",
+      "label": "Open Wayback Machine search"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "#wb-calendar, .calendar-grid, .calendar, [class*=\"CalendarMonth\"], .content",
+      "timeout": 15000,
+      "label": "Wait for results"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Let results render"
+    },
+    {
+      "action": "code",
+      "code": "const snapshots = document.querySelector('#wb-calendar, .calendar-grid, .calendar, [class*=\"CalendarMonth\"]')?.textContent?.trim()?.slice(0, 500) || ''; const sparkline = document.querySelector('.sparkline-container, [class*=\"captures\"], [class*=\"capture-count\"], .captures-range-info')?.textContent?.trim() || ''; return { url_searched: '{{query}}', calendar_summary: snapshots, captures_info: sparkline, page_url: window.location.href };",
+      "name": "search_results",
+      "label": "Extract results"
+    }
+  ]
+}

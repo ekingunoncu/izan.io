@@ -25,7 +25,7 @@
     },
     {
       "action": "waitForSelector",
-      "selector": "div[role='textbox'], [class*='slateTextArea']",
+      "selector": "div[role='textbox'][contenteditable='true']",
       "timeout": 15000,
       "label": "Wait for message input"
     },
@@ -36,7 +36,7 @@
     },
     {
       "action": "code",
-      "code": "const el = document.querySelector('div[role=\"textbox\"][contenteditable=\"true\"]'); if (!el) throw new Error('Message input not found'); el.focus(); document.execCommand('insertText', false, `{{message}}`); el.dispatchEvent(new Event('input', {bubbles: true})); return { typed: true }",
+      "code": "const el = document.querySelector('div[role=\"textbox\"][contenteditable=\"true\"]'); if (!el) throw new Error('Message input not found'); el.focus(); await new Promise(r => setTimeout(r, 200)); document.execCommand('insertText', false, `{{message}}`); el.dispatchEvent(new Event('input', {bubbles: true})); return { typed: true }",
       "name": "type_message",
       "label": "Type message"
     },
@@ -46,7 +46,7 @@
     },
     {
       "action": "code",
-      "code": "const el = document.querySelector('div[role=\"textbox\"]'); if (el) { el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true })); } return { success: true, message: 'Message sent' }",
+      "code": "const el = document.querySelector('div[role=\"textbox\"][contenteditable=\"true\"]'); if (el) { el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true })); } return { success: true, message: 'Message sent' }",
       "name": "result",
       "label": "Press Enter to send"
     },

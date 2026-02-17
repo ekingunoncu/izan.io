@@ -1,0 +1,48 @@
+{
+  "id": "huggingface-scrape-dataset",
+  "name": "huggingface_scrape_dataset",
+  "description": "Scrape a Hugging Face dataset page. Returns name, description, tags, download count, and dataset card.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "dataset_id",
+      "type": "string",
+      "description": "Dataset ID (e.g. 'openai/gsm8k')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://huggingface.co/datasets/{{dataset_id}}",
+      "label": "Open page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".prose, h1, main",
+      "timeout": 15000,
+      "label": "Wait for content"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll for more"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const title = document.querySelector('h1')?.textContent?.trim()||''; const tags = Array.from(document.querySelectorAll('a[href*=\"/datasets?\"]')).slice(0,10).map(t=>t.textContent.trim()); const licenseEl = document.querySelector('a[href*=\"choosealicense\"], a[href*=\"/datasets?license=\"]'); const license = licenseEl?.textContent?.trim()||''; const card = document.querySelector('.prose')?.innerText?.substring(0,3000)||''; const dlEl = document.querySelector('[title*=\"download\"], [title*=\"Download\"]'); const downloads = dlEl?.textContent?.trim()||''; return { title, tags, license, downloads, card_content: card, url: window.location.href }",
+      "name": "page_data",
+      "label": "Extract data"
+    }
+  ]
+}

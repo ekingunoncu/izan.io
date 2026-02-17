@@ -1,0 +1,38 @@
+{
+  "id": "lastfm-scrape-user",
+  "name": "lastfm_scrape_user",
+  "description": "Scrape a Last.fm user profile including scrobble count, top artists, and recent tracks.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "username",
+      "type": "string",
+      "description": "Last.fm username",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://www.last.fm/user/{{username}}",
+      "label": "Open Last.fm user profile"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "h1.header-title, .header-metadata, .page-content",
+      "timeout": 15000,
+      "label": "Wait for page"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Let page render"
+    },
+    {
+      "action": "code",
+      "code": "const name = document.querySelector('h1.header-title')?.textContent?.trim() || ''; const displayName = document.querySelector('.header-title-display-name')?.textContent?.trim() || ''; const scrobbleSince = document.querySelector('.header-scrobble-since')?.textContent?.trim() || ''; const metaItems = document.querySelectorAll('.header-metadata-item'); let scrobbles = ''; let artistCount = ''; let lovedTracks = ''; metaItems.forEach(item => { const title = item.querySelector('.header-metadata-title')?.textContent?.trim() || ''; const abbr = item.querySelector('abbr[title]'); const link = item.querySelector('.header-metadata-display a'); const val = abbr ? abbr.getAttribute('title') : (link ? link.textContent?.trim() : item.querySelector('.header-metadata-display p')?.textContent?.trim() || ''); if (title.includes('Scrobble')) scrobbles = val || ''; if (title.includes('Artist')) artistCount = val || ''; if (title.includes('Loved')) lovedTracks = val || ''; }); const topArtists = []; document.querySelectorAll('.grid-items-item-details').forEach((el, i) => { if (i < 10) { const artistName = el.querySelector('.grid-items-item-main-text a.link-block-target')?.textContent?.trim() || ''; const aux = el.querySelector('.grid-items-item-aux-text')?.textContent?.trim() || ''; topArtists.push({ name: artistName, info: aux }); } }); const recentTracks = []; document.querySelectorAll('.chartlist-row').forEach((el, i) => { if (i < 10) { const trackName = el.querySelector('.chartlist-name a.link-block-target')?.textContent?.trim() || ''; const artistEl = el.querySelector('.chartlist-artist a'); recentTracks.push({ track: trackName, artist: artistEl?.textContent?.trim() || '' }); } }); return { username: '{{username}}', display_name: displayName || name, scrobble_since: scrobbleSince, scrobbles, artist_count: artistCount, loved_tracks: lovedTracks, top_artists: topArtists, recent_tracks: recentTracks, url: window.location.href };",
+      "name": "result",
+      "label": "Extract user data"
+    }
+  ]
+}

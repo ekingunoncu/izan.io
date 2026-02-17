@@ -1,0 +1,54 @@
+{
+  "id": "craigslist-browse-category",
+  "name": "craigslist_browse_category",
+  "description": "Browse a Craigslist category. Returns listings with titles, prices, and locations.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "city",
+      "type": "string",
+      "description": "City subdomain (e.g. 'newyork', 'sfbay')",
+      "required": true
+    },
+    {
+      "name": "category",
+      "type": "string",
+      "description": "Category code (e.g. 'cta' for cars, 'apa' for apartments)",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://{{city}}.craigslist.org/search/{{category}}",
+      "label": "Open page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".cl-search-result, .result-row, .cl-static-search-result, body",
+      "timeout": 15000,
+      "label": "Wait for content"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll for more"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const results = []; document.querySelectorAll('.cl-search-result, .result-row, .cl-static-search-result').forEach((el,i) => { if(i>=20) return; const titleEl = el.querySelector('a.posting-title, a.result-title, a.cl-app-anchor'); const priceEl = el.querySelector('.priceinfo, .result-price'); const locEl = el.querySelector('.result-hood, .meta'); results.push({ title: titleEl?titleEl.textContent.trim():'', url: titleEl?titleEl.href:'', price: priceEl?priceEl.textContent.trim():'', location: locEl?locEl.textContent.trim():'' }); }); return { city: '{{city}}', category: '{{category}}', result_count: results.length, results }",
+      "name": "page_data",
+      "label": "Extract data"
+    }
+  ]
+}

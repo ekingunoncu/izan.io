@@ -1,0 +1,60 @@
+{
+  "id": "todoist-search",
+  "name": "todoist_search",
+  "description": "Search Todoist tasks using the search dialog. Returns matching tasks with names, due dates, and priorities. Requires login.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "query",
+      "type": "string",
+      "description": "Search query (e.g. 'meeting', 'p1', '@work')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://app.todoist.com/app/today",
+      "label": "Open Todoist"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "main, [class*=\"task\"], .content",
+      "timeout": 15000,
+      "label": "Wait for app to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Let app fully render"
+    },
+    {
+      "action": "code",
+      "code": "const searchBtn = document.querySelector('[aria-label=\"Search\"], button[class*=\"search\"], a[href*=\"search\"], [data-testid=\"search\"]'); if (searchBtn) { searchBtn.click(); } else { document.dispatchEvent(new KeyboardEvent('keydown', { key: '/', code: 'Slash', keyCode: 191, bubbles: true })); } return { opened: true };",
+      "name": "open_search",
+      "label": "Open search dialog"
+    },
+    {
+      "action": "wait",
+      "ms": 1500,
+      "label": "Wait for search dialog"
+    },
+    {
+      "action": "code",
+      "code": "const input = document.querySelector('input[type=\"search\"], input[placeholder*=\"Search\"], input[placeholder*=\"search\"], [role=\"combobox\"], [data-testid=\"search-input\"], dialog input, [class*=\"search\"] input'); if (input) { input.focus(); input.value = ''; document.execCommand('insertText', false, '{{query}}'); input.dispatchEvent(new Event('input', { bubbles: true })); input.dispatchEvent(new Event('change', { bubbles: true })); } return { typed: !!input };",
+      "name": "type_query",
+      "label": "Type search query"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Wait for search results"
+    },
+    {
+      "action": "code",
+      "code": "const tasks = []; document.querySelectorAll('.task_list_item, [class*=\"task_list_item\"], [data-testid=\"task\"], [class*=\"search\"] li, [class*=\"result\"] [class*=\"task\"]').forEach((el, i) => { if (i < 20) { const nameEl = el.querySelector('.task_content, [class*=\"task_content\"], [data-testid=\"task-name\"], [class*=\"content\"]'); const dueEl = el.querySelector('.due_date, [class*=\"due\"], time, [class*=\"date\"]'); const prioEl = el.querySelector('[class*=\"priority\"]'); tasks.push({ name: nameEl?.textContent?.trim() || '', due_date: dueEl?.textContent?.trim() || '', priority: prioEl?.className?.match(/priority_(\\d)/)?.[1] || prioEl?.getAttribute('data-priority') || '' }); } }); return { query: '{{query}}', task_count: tasks.length, tasks: tasks.filter(t => t.name) };",
+      "name": "search_results",
+      "label": "Extract search results"
+    }
+  ]
+}

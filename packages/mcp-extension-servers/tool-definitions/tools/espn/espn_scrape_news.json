@@ -1,0 +1,48 @@
+{
+  "id": "espn-scrape-news",
+  "name": "espn_scrape_news",
+  "description": "Scrape top sports news and headlines from ESPN for a given sport. Returns up to 15 articles with title, URL, and description.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "sport",
+      "type": "string",
+      "description": "Sport slug (e.g. 'nfl', 'nba', 'mlb', 'nhl', 'soccer', 'college-football')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://www.espn.com/{{sport}}/",
+      "label": "Open ESPN sport page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "article, .contentItem, [class*='Story'], h1, .content",
+      "timeout": 15000,
+      "label": "Wait for news content"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Let articles render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll to load more articles"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const articles = []; const seen = new Set(); document.querySelectorAll('article, .contentItem, [class*=\"Story\"], [class*=\"ContentItem\"]').forEach((el, i) => { if (articles.length < 15) { const titleEl = el.querySelector('h1 a, h2 a, h3 a, .contentItem__title a, [class*=\"title\"] a'); const descEl = el.querySelector('p, .contentItem__subhead, [class*=\"description\"]'); const linkEl = titleEl || el.querySelector('a[href*=\"/story/\"], a[href*=\"/article/\"]'); const title = titleEl?.textContent?.trim() || ''; const url = linkEl?.href || ''; if (title && !seen.has(title)) { seen.add(title); articles.push({ title: title, url: url, description: descEl?.textContent?.trim()?.slice(0, 200) || '' }); } } }); return { sport: `{{sport}}`, article_count: articles.length, articles: articles };",
+      "name": "result",
+      "label": "Extract news articles"
+    }
+  ]
+}

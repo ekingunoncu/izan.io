@@ -1,0 +1,48 @@
+{
+  "id": "letterboxd-scrape-reviews",
+  "name": "letterboxd_scrape_reviews",
+  "description": "Scrape reviews for a film on Letterboxd. Returns reviewer, rating, and review text.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "film_slug",
+      "type": "string",
+      "description": "Film slug",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://letterboxd.com/film/{{film_slug}}/reviews/",
+      "label": "Open page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "section.film-reviews, div.viewing-list, article.film-detail",
+      "timeout": 15000,
+      "label": "Wait for content"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll for more"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const reviews = Array.from(document.querySelectorAll('article.film-detail, article.production-viewing')).slice(0,15).map(rev => { const reviewer = rev.querySelector('strong.displayname, a.context')?.textContent?.trim()||''; const rating = rev.querySelector('span.rating')?.textContent?.trim()||''; const text = rev.querySelector('div.body-text p')?.textContent?.trim()?.substring(0,500)||''; return { reviewer, rating, text }; }).filter(r=>r.text); return { film: '{{film_slug}}', reviews, url: window.location.href }",
+      "name": "page_data",
+      "label": "Extract data"
+    }
+  ]
+}

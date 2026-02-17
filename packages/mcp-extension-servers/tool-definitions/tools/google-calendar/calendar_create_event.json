@@ -51,20 +51,20 @@
       "label": "Wait for calendar to load"
     },
     {
-      "action": "wait",
-      "ms": 2000,
-      "label": "Let calendar fully render"
+      "action": "code",
+      "code": "const title = `{{title}}`; const date = `{{date}}`.replace(/-/g, ''); const time = `{{time}}`; const duration = parseInt(`{{duration}}`) || 60; const desc = `{{description}}`; let dates = ''; if (time && date) { const [h, m] = time.split(':'); const startMin = parseInt(h) * 60 + (parseInt(m) || 0); const endMin = startMin + duration; const endH = String(Math.floor(endMin / 60) % 24).padStart(2, '0'); const endM = String(endMin % 60).padStart(2, '0'); dates = date + 'T' + String(h).padStart(2, '0') + String(m || '00').padStart(2, '0') + '00/' + date + 'T' + endH + endM + '00'; } else if (date) { const d = new Date(parseInt(date.slice(0,4)), parseInt(date.slice(4,6))-1, parseInt(date.slice(6,8))+1); const next = d.getFullYear() + String(d.getMonth()+1).padStart(2,'0') + String(d.getDate()).padStart(2,'0'); dates = date + '/' + next; } const p = new URLSearchParams(); p.set('text', title); if (dates) p.set('dates', dates); if (desc) p.set('details', desc); window.location.href = 'https://calendar.google.com/calendar/r/eventedit?' + p.toString(); return { navigating: true, title: title, date: `{{date}}`, time: time || 'all-day' }",
+      "name": "navigate_to_form",
+      "label": "Build eventedit URL and navigate to pre-filled event form"
     },
     {
-      "action": "code",
-      "code": "const createBtn = document.querySelector('[data-view=\"0\"] button, [aria-label=\"Create\"], button[data-tooltip=\"Create\"], .VfPpkd-Bz112c-LgbsSe[aria-label=\"Create\"]'); if (!createBtn) { const fabBtn = document.querySelector('.h-fab, .FAB, [jsname=\"rhPCBd\"]'); if (fabBtn) { fabBtn.click(); } else { return { error: 'Could not find Create button' }; } } else { createBtn.click(); } await new Promise(r => setTimeout(r, 2000)); return { clicked: true }",
-      "name": "open_form",
-      "label": "Click the Create button to open event form"
+      "action": "wait",
+      "ms": 5000,
+      "label": "Wait for event creation form to fully load"
     },
     {
       "action": "waitForSelector",
-      "selector": "input[aria-label='Title'], [data-key='title'], input[placeholder='Add title'], input[aria-label='Add title']",
-      "timeout": 10000,
+      "selector": "input[aria-label='Title'], [data-key='title'], input[placeholder='Add title'], input[aria-label='Add title'], [aria-label='Save']",
+      "timeout": 20000,
       "label": "Wait for event creation form"
     },
     {
@@ -74,41 +74,7 @@
     },
     {
       "action": "code",
-      "code": "const titleInput = document.querySelector('input[aria-label=\"Title\"], [data-key=\"title\"] input, input[placeholder=\"Add title\"], input[aria-label=\"Add title\"]'); if (!titleInput) return { error: 'Could not find title input' }; titleInput.focus(); titleInput.click(); await new Promise(r => setTimeout(r, 300)); const nativeSet = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set; nativeSet.call(titleInput, `{{title}}`); titleInput.dispatchEvent(new Event('input', { bubbles: true })); titleInput.dispatchEvent(new Event('change', { bubbles: true })); await new Promise(r => setTimeout(r, 500)); return { title_set: true }",
-      "name": "set_title",
-      "label": "Type event title"
-    },
-    {
-      "action": "code",
-      "code": "const moreOptionsBtn = document.querySelector('[aria-label=\"More options\"], button[data-tooltip=\"More options\"], .moreOptions, [jsname=\"x8hBuf\"]'); if (moreOptionsBtn) { moreOptionsBtn.click(); await new Promise(r => setTimeout(r, 2500)); } return { expanded: !!moreOptionsBtn }",
-      "name": "expand_form",
-      "label": "Click More options to open full event editor"
-    },
-    {
-      "action": "wait",
-      "ms": 2000,
-      "label": "Let full editor load"
-    },
-    {
-      "action": "code",
-      "code": "const date = `{{date}}`; const time = `{{time}}`; const duration = parseInt(`{{duration}}`) || 60; const nativeSet = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set; const dateInput = document.querySelector('input[aria-label*=\"date\" i], input[aria-label*=\"Start date\" i], input[data-initial-value]'); if (dateInput) { const [y, m, d] = date.split('-'); const dateObj = new Date(parseInt(y), parseInt(m) - 1, parseInt(d)); const formatted = dateObj.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }); dateInput.focus(); dateInput.click(); await new Promise(r => setTimeout(r, 300)); nativeSet.call(dateInput, formatted); dateInput.dispatchEvent(new Event('input', { bubbles: true })); dateInput.dispatchEvent(new Event('change', { bubbles: true })); dateInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', keyCode: 13, bubbles: true })); await new Promise(r => setTimeout(r, 500)); } if (time) { const startTimeInput = document.querySelector('input[aria-label*=\"Start time\" i], input[aria-label*=\"time\" i]'); if (startTimeInput) { const [h, min] = time.split(':'); const hrs = parseInt(h); const mins = parseInt(min) || 0; const ampm = hrs >= 12 ? 'PM' : 'AM'; const hr12 = hrs === 0 ? 12 : hrs > 12 ? hrs - 12 : hrs; const timeStr = hr12 + ':' + String(mins).padStart(2, '0') + ampm; startTimeInput.focus(); startTimeInput.click(); await new Promise(r => setTimeout(r, 300)); nativeSet.call(startTimeInput, timeStr); startTimeInput.dispatchEvent(new Event('input', { bubbles: true })); startTimeInput.dispatchEvent(new Event('change', { bubbles: true })); startTimeInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', keyCode: 13, bubbles: true })); await new Promise(r => setTimeout(r, 500)); } const endTimeInput = document.querySelectorAll('input[aria-label*=\"time\" i]')[1] || document.querySelector('input[aria-label*=\"End time\" i]'); if (endTimeInput) { const startMins = parseInt(time.split(':')[0]) * 60 + (parseInt(time.split(':')[1]) || 0); const endMins = startMins + duration; const endH = Math.floor(endMins / 60) % 24; const endM = endMins % 60; const endAmpm = endH >= 12 ? 'PM' : 'AM'; const endHr12 = endH === 0 ? 12 : endH > 12 ? endH - 12 : endH; const endTimeStr = endHr12 + ':' + String(endM).padStart(2, '0') + endAmpm; endTimeInput.focus(); endTimeInput.click(); await new Promise(r => setTimeout(r, 300)); nativeSet.call(endTimeInput, endTimeStr); endTimeInput.dispatchEvent(new Event('input', { bubbles: true })); endTimeInput.dispatchEvent(new Event('change', { bubbles: true })); endTimeInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', keyCode: 13, bubbles: true })); await new Promise(r => setTimeout(r, 500)); } } return { date_set: date, time_set: time || 'all-day', duration: duration }",
-      "name": "set_datetime",
-      "label": "Set event date, start time, and end time"
-    },
-    {
-      "action": "code",
-      "code": "const desc = `{{description}}`; if (desc) { const descInput = document.querySelector('[aria-label*=\"Description\" i], [aria-label*=\"description\" i], [contenteditable=\"true\"][aria-label*=\"escription\"], textarea[aria-label*=\"escription\"]'); if (descInput) { descInput.focus(); descInput.click(); await new Promise(r => setTimeout(r, 300)); if (descInput.tagName === 'TEXTAREA' || descInput.tagName === 'INPUT') { const nativeSet = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set || Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value').set; nativeSet.call(descInput, desc); descInput.dispatchEvent(new Event('input', { bubbles: true })); } else { descInput.textContent = desc; descInput.dispatchEvent(new Event('input', { bubbles: true })); } await new Promise(r => setTimeout(r, 500)); return { description_set: true }; } } return { description_set: desc ? false : 'skipped' }",
-      "name": "set_description",
-      "label": "Add event description if provided"
-    },
-    {
-      "action": "wait",
-      "ms": 1000,
-      "label": "Brief pause before saving"
-    },
-    {
-      "action": "code",
-      "code": "const saveBtn = document.querySelector('[aria-label=\"Save\"], button[data-tooltip=\"Save\"], [jsname=\"x8hBuf\"][aria-label=\"Save\"], button[type=\"submit\"]'); if (!saveBtn) { const allButtons = [...document.querySelectorAll('button, [role=\"button\"]')]; const save = allButtons.find(b => (b.textContent || '').trim().toLowerCase() === 'save'); if (save) { save.click(); } else { return { error: 'Could not find Save button' }; } } else { saveBtn.click(); } await new Promise(r => setTimeout(r, 3000)); return { success: true, title: `{{title}}`, date: `{{date}}`, time: `{{time}}` || 'all-day', url: window.location.href }",
+      "code": "const saveBtn = document.querySelector('[aria-label=\"Save\"], button[data-tooltip=\"Save\"], button[type=\"submit\"]'); if (!saveBtn) { const allButtons = [...document.querySelectorAll('button, [role=\"button\"]')]; const save = allButtons.find(b => (b.textContent || '').trim().toLowerCase() === 'save'); if (save) { save.click(); } else { return { error: 'Could not find Save button' }; } } else { saveBtn.click(); } await new Promise(r => setTimeout(r, 3000)); return { success: true, title: `{{title}}`, date: `{{date}}`, time: `{{time}}` || 'all-day', url: window.location.href }",
       "name": "save_result",
       "label": "Save the event"
     }

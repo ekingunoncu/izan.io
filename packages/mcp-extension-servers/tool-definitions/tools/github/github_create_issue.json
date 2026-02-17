@@ -27,19 +27,58 @@
   "steps": [
     {
       "action": "navigate",
-      "url": "https://github.com/{{repo}}",
-      "label": "Open repository"
+      "url": "https://github.com/{{repo}}/issues/new",
+      "label": "Open new issue form"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "input[id='issue_title'], input[name='issue[title]']",
+      "timeout": 15000,
+      "label": "Wait for issue form"
     },
     {
       "action": "wait",
       "ms": 2000,
-      "label": "Let page load"
+      "label": "Let form render"
     },
     {
       "action": "code",
-      "code": "const resp = await fetch('https://api.github.com/repos/{{repo}}/issues', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/vnd.github.v3+json' }, credentials: 'same-origin', body: JSON.stringify({ title: `{{title}}`, body: `{{body}}` }) }); if (!resp.ok) { const err = await resp.text(); throw new Error('Create issue failed: ' + resp.status + ' ' + err); } const issue = await resp.json(); return { success: true, number: issue.number, title: issue.title, url: issue.html_url }",
+      "code": "const titleInput = document.querySelector('input[id=\"issue_title\"], input[name=\"issue[title]\"]'); if (!titleInput) { return { success: false, message: 'Issue title input not found - make sure you are logged in and have permission to create issues' }; } const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set; nativeInputValueSetter.call(titleInput, `{{title}}`); titleInput.dispatchEvent(new Event('input', { bubbles: true })); titleInput.dispatchEvent(new Event('change', { bubbles: true })); return { step: 'title_filled' }",
+      "name": "fill_title",
+      "label": "Fill issue title"
+    },
+    {
+      "action": "wait",
+      "ms": 500,
+      "label": "Brief pause"
+    },
+    {
+      "action": "code",
+      "code": "const bodyInput = document.querySelector('textarea[id=\"issue_body\"], textarea[name=\"issue[body]\"], #issue_body'); if (bodyInput) { const nativeTextAreaSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value').set; nativeTextAreaSetter.call(bodyInput, `{{body}}`); bodyInput.dispatchEvent(new Event('input', { bubbles: true })); bodyInput.dispatchEvent(new Event('change', { bubbles: true })); } return { step: 'body_filled' }",
+      "name": "fill_body",
+      "label": "Fill issue body"
+    },
+    {
+      "action": "wait",
+      "ms": 500,
+      "label": "Brief pause"
+    },
+    {
+      "action": "code",
+      "code": "const submitBtn = document.querySelector('button[type=\"submit\"][data-disable-with], button.btn-primary[type=\"submit\"], button[data-testid=\"create-issue-button\"]'); if (!submitBtn) { return { success: false, message: 'Submit button not found' }; } submitBtn.click(); return { step: 'submitted' }",
+      "name": "submit",
+      "label": "Submit issue"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Wait for issue creation"
+    },
+    {
+      "action": "code",
+      "code": "const url = window.location.href; const match = url.match(/\\/issues\\/(\\d+)/); if (match) { const titleEl = document.querySelector('.js-issue-title, [data-testid=\"issue-title\"], h1 bdi'); return { success: true, number: parseInt(match[1], 10), title: titleEl ? titleEl.textContent.trim() : '', url: url }; } return { success: false, message: 'Issue may not have been created. Current URL: ' + url }",
       "name": "result",
-      "label": "Create issue via GitHub API"
+      "label": "Verify issue created"
     }
   ]
 }

@@ -1,0 +1,38 @@
+{
+  "id": "bandcamp-search",
+  "name": "bandcamp_search",
+  "description": "Search Bandcamp for artists, albums, tracks, fans, and labels. Returns matching results with type, name, URL, image, genre, and tags.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "query",
+      "type": "string",
+      "description": "Search query (e.g. 'aphex twin', 'lo-fi hip hop', 'indie label')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://bandcamp.com/search?q={{query}}",
+      "label": "Open Bandcamp search"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".result-items li.searchresult, .result-items",
+      "timeout": 15000,
+      "label": "Wait for results"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Let results render"
+    },
+    {
+      "action": "code",
+      "code": "const results = []; document.querySelectorAll('.result-items li.searchresult').forEach((el, i) => { if (i < 15) { const info = el.querySelector('.result-info'); const titleEl = info?.querySelector('.heading a'); const typeEl = info?.querySelector('.itemtype'); const urlEl = info?.querySelector('.itemurl a'); const subheadEl = info?.querySelector('.subhead'); const genreEl = info?.querySelector('.genre'); const tagsEl = info?.querySelector('.tags'); const releasedEl = info?.querySelector('.released'); const artEl = el.querySelector('.art img'); results.push({ name: titleEl?.textContent?.trim() || '', url: urlEl?.textContent?.trim() || titleEl?.href || '', type: typeEl?.textContent?.trim() || '', subhead: subheadEl?.textContent?.trim() || '', genre: genreEl?.textContent?.trim().replace(/^genre:\\s*/i, '') || '', tags: tagsEl?.textContent?.trim().replace(/^tags:\\s*/i, '') || '', released: releasedEl?.textContent?.trim().replace(/^released\\s*/i, '') || '', image: artEl?.src || '' }); } }); return { query: '{{query}}', result_count: results.length, results };",
+      "name": "search_results",
+      "label": "Extract results"
+    }
+  ]
+}

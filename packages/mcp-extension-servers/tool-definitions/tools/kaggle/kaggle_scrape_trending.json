@@ -1,0 +1,48 @@
+{
+  "id": "kaggle-scrape-trending",
+  "name": "kaggle_scrape_trending",
+  "description": "Browse trending/popular content on Kaggle. Supports datasets, competitions, or code (notebooks).",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "content_type",
+      "type": "string",
+      "description": "Type: 'datasets', 'competitions', or 'code'",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://www.kaggle.com/{{content_type}}?sort=hotness",
+      "label": "Open trending page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "a[href*='/{{content_type}}/'], a[href*='/code/'], ul[role='list']",
+      "timeout": 15000,
+      "label": "Wait for content to load"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll for more items"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const contentType = '{{content_type}}'; const items = []; const seen = new Set(); const linkPattern = contentType === 'code' ? /^\\/code\\/[^/]+\\/[^/]+/ : contentType === 'datasets' ? /^\\/datasets\\/[^/]+\\/[^/]+/ : /^\\/competitions\\/[^/]+$/; document.querySelectorAll('a[href]').forEach(a => { const href = a.getAttribute('href') || ''; if (seen.has(href) || !href.startsWith('/') || !linkPattern.test(href)) return; if (href.includes('/leaderboard') || href.includes('/discussion') || href.includes('/data') || href.includes('/rules')) return; const title = a.textContent.trim(); if (!title || title.length > 200 || title.length < 3) return; seen.add(href); const parent = a.closest('li') || a.parentElement; const desc = parent ? Array.from(parent.querySelectorAll('span,p')).map(e => e.textContent.trim()).filter(t => t.length > 20 && t !== title).slice(0, 1).join('') : ''; items.push({ title: title.substring(0, 200), url: 'https://www.kaggle.com' + href, description: desc.substring(0, 300) }); }); return { content_type: contentType, item_count: items.length, items: items.slice(0, 20), url: window.location.href };",
+      "name": "page_data",
+      "label": "Extract trending items"
+    }
+  ]
+}

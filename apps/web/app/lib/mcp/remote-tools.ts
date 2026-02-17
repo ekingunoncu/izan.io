@@ -44,6 +44,14 @@ const toolCache = new Map<string, unknown>()
 // ─── Public API ──────────────────────────────────────────────────────────────
 
 /**
+ * Synchronous getter for the cached manifest (null when not yet fetched).
+ * Used by getToolsForAgent() to build tool→server mapping without async calls.
+ */
+export function getCachedManifest(): RemoteManifest | null {
+  return manifestCache
+}
+
+/**
  * Fetch the remote tool manifest.
  * Cached for 5 minutes.
  */

@@ -1,0 +1,31 @@
+{
+  "id": "todoist-scrape-upcoming",
+  "name": "todoist_scrape_upcoming",
+  "description": "Scrape upcoming tasks in Todoist.",
+  "version": "1.0.0",
+  "parameters": [],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://app.todoist.com/app/upcoming",
+      "label": "Open Todoist"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".task_list, [class*=\"task\"], .content",
+      "timeout": 15000,
+      "label": "Wait for page"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Let page render"
+    },
+    {
+      "action": "code",
+      "code": "const tasks = []; document.querySelectorAll('.task_list_item, [class*=\"task_item\"]').forEach((el, i) => { if (i < 30) { const nameEl = el.querySelector('.task_content, [class*=\"content\"]'); const dueEl = el.querySelector('.due_date, time'); tasks.push({ name: nameEl?.textContent?.trim() || '', due: dueEl?.textContent?.trim() || '' }); } }); return { task_count: tasks.length, tasks };",
+      "name": "result",
+      "label": "Extract data"
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "id": "myfitnesspal-browse-recipes",
+  "name": "myfitnesspal_browse_recipes",
+  "description": "Browse popular recipes on MyFitnessPal. Returns recipe names, calories, and ratings.",
+  "version": "1.0.0",
+  "parameters": [],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://www.myfitnesspal.com/recipes",
+      "label": "Open page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[class*=\"recipe\"], .recipe-card, article",
+      "timeout": 15000,
+      "label": "Wait for content"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll for more"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const recipes = Array.from(document.querySelectorAll('[class*=\"recipe\"], .recipe-card, article')).slice(0,20).map(el => { const title = el.querySelector('h2, h3, a, [class*=\"title\"]')?.textContent?.trim()||''; const cal = el.querySelector('[class*=\"calories\"], .nutrition-info')?.textContent?.trim()||''; const link = el.querySelector('a')?.href||''; return { title, calories: cal, url: link }; }).filter(r=>r.title); return { recipes, url: window.location.href }",
+      "name": "page_data",
+      "label": "Extract data"
+    }
+  ]
+}

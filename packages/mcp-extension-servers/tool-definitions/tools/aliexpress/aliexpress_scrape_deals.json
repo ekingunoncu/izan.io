@@ -5,7 +5,7 @@
   "version": "1.0.0",
   "parameters": [],
   "steps": [
-    { "action": "navigate", "url": "https://www.aliexpress.com/wow/gcp/newnov-sale/index", "label": "Open deals page" },
+    { "action": "navigate", "url": "https://www.aliexpress.com/campaign/wow/gcp/superdeal-g/index", "label": "Open deals page" },
     { "action": "waitForSelector", "selector": "[class*='product'], [class*='item'], [class*='card']", "timeout": 15000, "label": "Wait for deals" },
     { "action": "wait", "ms": 2000 },
     { "action": "scroll", "direction": "down", "amount": 1200, "label": "Scroll for more deals" },

@@ -1,0 +1,51 @@
+{
+  "id": "opensea-scrape-rankings",
+  "name": "opensea_scrape_rankings",
+  "description": "Browse top NFT collection rankings on OpenSea. Returns up to 25 collections with rank, name, volume, floor price, and percentage change.",
+  "version": "1.0.0",
+  "parameters": [],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://opensea.io/rankings",
+      "label": "Open OpenSea rankings"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "table, [class*='ranking'], a[href*='/collection/']",
+      "timeout": 15000,
+      "label": "Wait for rankings to load"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Let rankings render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1500,
+      "label": "Scroll to load more rankings"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1500,
+      "label": "Scroll further for more collections"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const collections = []; const rows = document.querySelectorAll('table tbody tr, [class*=\"ranking-row\"], [class*=\"RankingRow\"]'); if (rows.length > 0) { rows.forEach((el, i) => { if (i >= 25) return; const cells = el.querySelectorAll('td'); const nameEl = el.querySelector('a[href*=\"/collection/\"], [class*=\"name\"]'); const link = el.querySelector('a[href*=\"/collection/\"]'); let volume = ''; let floor = ''; let change = ''; if (cells.length >= 3) { volume = cells[2]?.textContent?.trim() || ''; floor = cells[3]?.textContent?.trim() || ''; change = cells[4]?.textContent?.trim() || ''; } else { const spans = el.querySelectorAll('span, div'); const texts = Array.from(spans).map(s => s.textContent.trim()).filter(Boolean); if (texts.length >= 3) { volume = texts[1] || ''; floor = texts[2] || ''; change = texts[3] || ''; } } collections.push({ rank: i + 1, name: nameEl?.textContent?.trim() || '', volume: volume, floor_price: floor, change: change, url: link?.href || '' }); }); } else { const links = document.querySelectorAll('a[href*=\"/collection/\"]'); const seen = new Set(); links.forEach((el, i) => { if (collections.length >= 25) return; const href = el.href; if (seen.has(href)) return; seen.add(href); const name = el.textContent?.trim() || ''; if (!name || name.length > 100) return; const parent = el.closest('div, li, tr'); const priceEl = parent?.querySelector('[class*=\"price\"], [class*=\"floor\"], [class*=\"volume\"]'); collections.push({ rank: collections.length + 1, name: name, volume: '', floor_price: priceEl?.textContent?.trim() || '', change: '', url: href }); }); } return { collection_count: collections.length, collections: collections }",
+      "name": "result",
+      "label": "Extract ranking data"
+    }
+  ]
+}

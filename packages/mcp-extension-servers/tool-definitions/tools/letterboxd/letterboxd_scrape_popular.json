@@ -1,0 +1,41 @@
+{
+  "id": "letterboxd-scrape-popular",
+  "name": "letterboxd_scrape_popular",
+  "description": "Scrape popular films on Letterboxd this week.",
+  "version": "1.0.0",
+  "parameters": [],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://letterboxd.com/films/popular/",
+      "label": "Open page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "ul.poster-list, li.poster-container",
+      "timeout": 15000,
+      "label": "Wait for content"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll for more"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const films = Array.from(document.querySelectorAll('li.poster-container')).slice(0,30).map((el,i) => { const img = el.querySelector('img'); const poster = el.querySelector('div.film-poster'); const slug = poster?poster.getAttribute('data-film-slug'):''; return { rank: i+1, title: img?img.getAttribute('alt'):'', url: slug?'https://letterboxd.com/film/'+slug+'/':'' }; }).filter(f=>f.title); return { films, url: window.location.href }",
+      "name": "page_data",
+      "label": "Extract data"
+    }
+  ]
+}

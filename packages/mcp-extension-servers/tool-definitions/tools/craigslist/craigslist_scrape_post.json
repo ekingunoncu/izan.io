@@ -1,0 +1,48 @@
+{
+  "id": "craigslist-scrape-post",
+  "name": "craigslist_scrape_post",
+  "description": "Scrape a Craigslist post. Returns title, price, description, images, and attributes.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "post_url",
+      "type": "string",
+      "description": "Craigslist post URL",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{post_url}}",
+      "label": "Open page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "#titletextonly, .postingtitletext, .posting-title, body",
+      "timeout": 15000,
+      "label": "Wait for content"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll for more"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const title = document.querySelector('#titletextonly, .postingtitletext, .posting-title')?.textContent?.trim()||''; const price = document.querySelector('.price, .postingtitletext .price, .priceinfo')?.textContent?.trim()||''; const body = document.querySelector('#postingbody, .posting-body')?.textContent?.trim()?.replace('QR Code Link to This Post','')?.trim()?.substring(0,2000)||''; const attrs = {}; document.querySelectorAll('.attrgroup span, .mapAndAttrs .attrgroup span').forEach(s => { const text = s.textContent.trim(); const parts = text.split(':'); if(parts.length===2) attrs[parts[0].trim().toLowerCase()]=parts[1].trim(); else if(text) attrs[text.toLowerCase()]='yes'; }); const images = Array.from(document.querySelectorAll('#thumbs a, .swipe img, .gallery img, .slide img')).slice(0,10).map(el=>el.href||el.src||'').filter(Boolean); const loc = document.querySelector('.mapaddress, [class*=\"mapaddress\"]')?.textContent?.trim()||''; const posted = document.querySelector('time')?.textContent?.trim()||''; return { title, price, description: body, attributes: attrs, images, location: loc, posted, url: window.location.href }",
+      "name": "page_data",
+      "label": "Extract data"
+    }
+  ]
+}

@@ -1,0 +1,48 @@
+{
+  "id": "huggingface-scrape-trending",
+  "name": "huggingface_scrape_trending",
+  "description": "Browse trending models, datasets, or spaces on Hugging Face.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "category",
+      "type": "string",
+      "description": "One of: 'models', 'datasets', 'spaces'",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://huggingface.co/{{category}}?sort=trending",
+      "label": "Open page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "h4, article",
+      "timeout": 15000,
+      "label": "Wait for content"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll for more"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const items = []; const cards = document.querySelectorAll('article, main a[href]:has(h4)'); for (let i = 0; i < Math.min(cards.length, 20); i++) { const card = cards[i]; const titleEl = card.querySelector('h4'); if (!titleEl) continue; const spans = Array.from(card.querySelectorAll('span')); const link = card.closest('a[href]') || card.querySelector('a[href]') || card; items.push({ rank: items.length + 1, name: titleEl.textContent.trim(), url: link.href || '', meta: spans.slice(0, 5).map(s => s.textContent.trim()).filter(Boolean) }); } return { category: '{{category}}', items }",
+      "name": "page_data",
+      "label": "Extract data"
+    }
+  ]
+}

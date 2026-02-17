@@ -1,0 +1,38 @@
+{
+  "id": "stockx-search",
+  "name": "stockx_search",
+  "description": "Search StockX. Search sneakers, streetwear, and collectibles. Returns names, prices, and price changes.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "query",
+      "type": "string",
+      "description": "Search query",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://stockx.com/search?s={{query}}",
+      "label": "Open StockX search"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[data-testid='product-card'], [class*='ProductCard'], [class*='tile']",
+      "timeout": 15000,
+      "label": "Wait for results"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Let results render"
+    },
+    {
+      "action": "code",
+      "code": "const results = []; document.querySelectorAll('[data-testid=\"product-card\"], [class*=\"ProductCard\"], [class*=\"tile\"] a').forEach((el, i) => { if (i < 15) { const nameEl = el.querySelector('p, [class*=\"name\"], h3'); const priceEl = el.querySelector('[class*=\"price\"], [class*=\"amount\"]'); const imgEl = el.querySelector('img'); results.push({ name: nameEl?.textContent?.trim() || '', price: priceEl?.textContent?.trim() || '', image: imgEl?.src || '', url: el.href || el.querySelector('a')?.href || '' }); } }); return { query: '{{query}}', result_count: results.length, results };",
+      "name": "search_results",
+      "label": "Extract results"
+    }
+  ]
+}

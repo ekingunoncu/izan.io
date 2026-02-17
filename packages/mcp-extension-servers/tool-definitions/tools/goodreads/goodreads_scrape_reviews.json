@@ -1,0 +1,48 @@
+{
+  "id": "goodreads-scrape-reviews",
+  "name": "goodreads_scrape_reviews",
+  "description": "Scrape user reviews for a book from Goodreads. Returns reviewer name, rating, date, and review text.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "book_url",
+      "type": "string",
+      "description": "Goodreads book URL",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{book_url}}",
+      "label": "Open page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "h1, [data-testid=\"bookTitle\"]",
+      "timeout": 15000,
+      "label": "Wait for content"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll for more"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const bookTitle = (document.querySelector('[data-testid=\"bookTitle\"]')||document.querySelector('h1#bookTitle')||document.querySelector('h1'))?.textContent?.trim()||''; const reviews = Array.from(document.querySelectorAll('[class*=\"ReviewCard\"], [class*=\"ReviewsList\"] article, div.review, article[class*=\"review\"]')).slice(0,15).map(rev => { const name = rev.querySelector('[class*=\"ReviewerProfile__name\"], a[href*=\"/user/show/\"]')?.textContent?.trim()||''; const ratingAttr = rev.querySelector('[role=\"img\"][aria-label*=\"star\"], [aria-label*=\"stars\"], [aria-label*=\"rating\"], .staticStars'); let rating = ''; if(ratingAttr) { const lbl = ratingAttr.getAttribute('aria-label')||''; const m = lbl.match(/(\\d+)/); if(m) rating=m[1]; } const date = rev.querySelector('[class*=\"ReviewCard__date\"], [class*=\"ReviewDate\"], a.reviewDate')?.textContent?.trim()||''; const text = rev.querySelector('[class*=\"Formatted\"], [class*=\"ReviewCard__text\"], [class*=\"TruncatedContent__text\"], .reviewText span')?.textContent?.trim()?.substring(0,500)||''; const likes = rev.querySelector('[class*=\"SocialFooter\"] button, .likesCount')?.textContent?.trim()||''; return { reviewer: name, rating, date, text, likes }; }).filter(r=>r.text); return { book_title: bookTitle, review_count: reviews.length, reviews, url: window.location.href }",
+      "name": "page_data",
+      "label": "Extract data"
+    }
+  ]
+}

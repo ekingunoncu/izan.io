@@ -1,0 +1,50 @@
+{
+  "id": "coinbase-bulk-search",
+  "name": "coinbase_bulk_search",
+  "description": "Search multiple queries on Coinbase in parallel.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "queries",
+      "type": "string",
+      "description": "Comma-separated search queries",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{queries}}`.split(',').map(q => ({ url: 'https://www.coinbase.com/explore?query=' + encodeURIComponent(q.trim()), query: q.trim() }))",
+      "name": "items",
+      "label": "Build URL list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 3,
+      "maxItems": 10,
+      "waitUntil": "load",
+      "label": "Search in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": "table, a[href*='/price/']",
+          "timeout": 15000,
+          "label": "Wait"
+        },
+        {
+          "action": "wait",
+          "ms": 2000
+        },
+        {
+          "action": "code",
+          "code": "const query = new URLSearchParams(window.location.search).get('query') || ''; const results = []; document.querySelectorAll('table tbody tr, a[href*=\"/price/\"]').forEach((el, i) => { if (i >= 20) return; const link = el.querySelector('a[href*=\"/price/\"]') || (el.matches?.('a[href*=\"/price/\"]') ? el : null); const name = el.querySelector('td:first-child, h2, p')?.textContent?.trim() || el.textContent?.trim() || ''; const price = el.querySelector('td:nth-child(2), [class*=\"Price\"]')?.textContent?.trim() || ''; const change = el.querySelector('td:nth-child(3), [class*=\"Change\"]')?.textContent?.trim() || ''; const href = link?.getAttribute?.('href') || ''; const url = href.startsWith('/') ? 'https://www.coinbase.com' + href : href; if (name && name.length < 100) results.push({ name, url, price, change }); }); return { query, result_count: results.length, results };",
+          "name": "results",
+          "label": "Extract"
+        }
+      ]
+    }
+  ]
+}

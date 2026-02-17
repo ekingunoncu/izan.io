@@ -25,7 +25,7 @@
     },
     {
       "action": "waitForSelector",
-      "selector": "#section-directions-trip-0, div[data-trip-index='0'], .directions-mode-group",
+      "selector": "div[role='list'], div[data-trip-index='0'], .directions-mode-group",
       "timeout": 15000,
       "label": "Wait for directions to load"
     },
@@ -36,7 +36,7 @@
     },
     {
       "action": "code",
-      "code": "const trips = document.querySelectorAll('#section-directions-trip-0, div[data-trip-index=\"0\"], .directions-mode-group div[role=\"listitem\"]'); const distanceEl = document.querySelector('.section-directions-trip-distance span, div[jstcache] .fontHeadlineSmall, div[data-trip-index=\"0\"] .fontHeadlineSmall'); const durationEl = document.querySelector('.section-directions-trip-duration span, div[data-trip-index=\"0\"] .fontHeadlineLarge, div.Fk3sm'); const steps = []; const stepEls = document.querySelectorAll('.directions-mode-step, div[data-step-index], .step-text'); stepEls.forEach((step, i) => { if (i >= 15) return; steps.push(step.textContent.trim()); }); return { distance: distanceEl ? distanceEl.textContent.trim() : '', duration: durationEl ? durationEl.textContent.trim() : '', steps: steps, url: window.location.href }",
+      "code": "const main = document.querySelector('[role=\"main\"]'); const allText = main ? main.innerText : ''; const distMatch = allText.match(/(\\d[\\d.,]+\\s*(?:km|mi|miles|m|ft))/i); const durMatch = allText.match(/(\\d+\\s*(?:h(?:ours?)?|min(?:utes?)?|hr)[\\s\\d]*(?:min(?:utes?)?)?)/i); const steps = []; const stepEls = document.querySelectorAll('div[data-step-index], div[role=\"list\"] div[role=\"listitem\"], .directions-mode-step'); stepEls.forEach((step, i) => { if (i >= 15) return; const t = step.textContent.trim(); if (t.length > 2) steps.push(t); }); if (steps.length === 0) { const listItems = document.querySelectorAll('div[role=\"list\"] > div'); listItems.forEach((item, i) => { if (i >= 15) return; const t = item.textContent.trim(); if (t.length > 5) steps.push(t); }); } return { distance: distMatch ? distMatch[1] : '', duration: durMatch ? durMatch[1] : '', steps: steps, url: window.location.href }",
       "name": "directions",
       "label": "Extract directions"
     }

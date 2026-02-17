@@ -1,0 +1,41 @@
+{
+  "id": "todoist-scrape-productivity",
+  "name": "todoist_scrape_productivity",
+  "description": "Scrape Todoist productivity/karma stats. Requires login.",
+  "version": "1.0.0",
+  "parameters": [],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://app.todoist.com/app/activity/completed",
+      "label": "Open page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "main, [class*=\"productivity\"], .content",
+      "timeout": 15000,
+      "label": "Wait for content"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll for more"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const stats = {}; document.querySelectorAll('[class*=\"stat\"], [class*=\"Stat\"], .karma-summary span, dt, dd').forEach(el => { const text = el.textContent.trim(); if(text.length<50) { const parts = text.split(':'); if(parts.length===2) stats[parts[0].trim().toLowerCase()]=parts[1].trim(); } }); const allText = document.body.innerText; const karma = allText.match(/karma[:\\s]+(\\d[\\d,]*)/i)?.[1]||''; const completed = allText.match(/(\\d[\\d,]*)\\s*completed/i)?.[1]||''; return { karma, tasks_completed: completed, stats, url: window.location.href }",
+      "name": "page_data",
+      "label": "Extract data"
+    }
+  ]
+}

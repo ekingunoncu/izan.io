@@ -1,0 +1,48 @@
+{
+  "id": "goodreads-scrape-list",
+  "name": "goodreads_scrape_list",
+  "description": "Scrape a Goodreads list. Returns books with titles, authors, ratings, and scores.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "list_url",
+      "type": "string",
+      "description": "Goodreads list URL",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{list_url}}",
+      "label": "Open page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "table.tableList tr, [class*='BookListItem']",
+      "timeout": 15000,
+      "label": "Wait for content"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll for more"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const listTitle = document.querySelector('h1')?.textContent?.trim()||''; const books = Array.from(document.querySelectorAll('table.tableList tr, [class*=\"BookListItem\"]')).slice(0,50).map((row,i) => { const t = row.querySelector('a.bookTitle, a[href*=\"/book/show/\"]'); const a = row.querySelector('a.authorName, a[href*=\"/author/\"]'); const r = row.querySelector('[class*=\"minirating\"]'); return { rank: i+1, title: t?t.textContent.trim():'', url: t?t.href:'', author: a?a.textContent.trim():'', rating: r?r.textContent.trim():'' }; }).filter(b=>b.title); return { list_title: listTitle, books, url: window.location.href }",
+      "name": "page_data",
+      "label": "Extract data"
+    }
+  ]
+}

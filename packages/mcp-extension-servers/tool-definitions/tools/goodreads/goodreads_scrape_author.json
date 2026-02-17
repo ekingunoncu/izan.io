@@ -1,0 +1,38 @@
+{
+  "id": "goodreads-scrape-author",
+  "name": "goodreads_scrape_author",
+  "description": "Scrape a Goodreads author page.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "author_id",
+      "type": "string",
+      "description": "Author ID",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://www.goodreads.com/author/show/{{author_id}}",
+      "label": "Open Goodreads"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "h1, .authorName, .content",
+      "timeout": 15000,
+      "label": "Wait for page"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Let page render"
+    },
+    {
+      "action": "code",
+      "code": "const name = document.querySelector('h1, .authorName')?.textContent?.trim() || ''; const bioEl = document.querySelector('[data-testid=\"aboutAuthor\"], [class*=\"AboutAuthor\"] [class*=\"Formatted\"], .aboutAuthorInfo span, [class*=\"DetailsLayoutRightParagraph\"]'); const bio = bioEl?.textContent?.trim()?.slice(0, 500) || ''; const books = []; document.querySelectorAll('a.bookTitle, [class*=\"book\"] a[href*=\"/book/show/\"], a[href*=\"/book/show/\"]').forEach((b, i) => { if (i < 10) books.push({ title: b.textContent?.trim(), url: b.href || '' }); }); const img = document.querySelector('.authorPhoto img, img[alt*=\"author\"], [class*=\"AuthorPhoto\"] img')?.src || ''; return { name, bio, books, image: img, url: window.location.href };",
+      "name": "result",
+      "label": "Extract data"
+    }
+  ]
+}

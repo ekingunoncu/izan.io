@@ -1,0 +1,59 @@
+{
+  "id": "huggingface-bulk-search-models",
+  "name": "huggingface_bulk_search_models",
+  "description": "Search multiple model queries on Hugging Face in parallel.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "queries",
+      "type": "string",
+      "description": "Comma-separated search queries (e.g. 'llama,mistral,gemma')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{queries}}`.split(',').map(q => ({ url: `https://huggingface.co/models?search=${encodeURIComponent(q.trim())}`, query: q.trim() }))",
+      "name": "items",
+      "label": "Build URL list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 3,
+      "maxItems": 10,
+      "waitUntil": "load",
+      "label": "Search in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": "h4, article",
+          "timeout": 15000,
+          "label": "Wait"
+        },
+        {
+          "action": "wait",
+          "ms": 2000
+        },
+        {
+          "action": "scroll",
+          "direction": "down",
+          "amount": 600
+        },
+        {
+          "action": "wait",
+          "ms": 1500
+        },
+        {
+          "action": "code",
+          "code": "const results = []; const cards = document.querySelectorAll('article, main a[href]:has(h4)'); for (let i = 0; i < Math.min(cards.length, 5); i++) { const card = cards[i]; const titleEl = card.querySelector('h4'); if (!titleEl) continue; const link = card.closest('a[href]') || card.querySelector('a[href]') || card; const spans = Array.from(card.querySelectorAll('span')).map(s => s.textContent.trim()).filter(Boolean); results.push({ name: titleEl.textContent.trim(), url: link.href || '', meta: spans.slice(0, 4) }); } const params = new URLSearchParams(window.location.search); return { query: params.get('search') || '', result_count: results.length, results };",
+          "name": "results",
+          "label": "Extract"
+        }
+      ]
+    }
+  ]
+}

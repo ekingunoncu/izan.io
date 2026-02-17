@@ -1,0 +1,38 @@
+{
+  "id": "lastfm-scrape-artist",
+  "name": "lastfm_scrape_artist",
+  "description": "Scrape a Last.fm artist page including bio, top tracks, listeners, scrobbles, and tags.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "artist_name",
+      "type": "string",
+      "description": "Artist name (URL encoded)",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://www.last.fm/music/{{artist_name}}",
+      "label": "Open Last.fm artist page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "h1.header-new-title, .header-metadata-tnew, .page-content",
+      "timeout": 15000,
+      "label": "Wait for page"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Let page render"
+    },
+    {
+      "action": "code",
+      "code": "const name = document.querySelector('h1.header-new-title')?.textContent?.trim() || ''; const metaItems = document.querySelectorAll('.header-metadata-tnew-item'); let listeners = ''; let scrobbles = ''; metaItems.forEach(item => { const title = item.querySelector('.header-metadata-tnew-title')?.textContent?.trim() || ''; const abbr = item.querySelector('abbr[title]'); const val = abbr ? abbr.getAttribute('title') : item.querySelector('.header-metadata-tnew-display p')?.textContent?.trim() || ''; if (title.includes('Listener')) listeners = val || ''; if (title.includes('Scrobble')) scrobbles = val || ''; }); const bio = document.querySelector('.wiki-block-inner')?.textContent?.trim()?.slice(0, 500) || ''; const topTracks = []; document.querySelectorAll('.chartlist-row').forEach((el, i) => { if (i < 10) { const trackName = el.querySelector('.chartlist-name a.link-block-target')?.textContent?.trim() || ''; const playCount = el.querySelector('.chartlist-count-bar-value')?.textContent?.trim() || ''; topTracks.push({ name: trackName, plays: playCount }); } }); const tags = []; document.querySelectorAll('.catalogue-tags .tag a').forEach(t => tags.push(t.textContent?.trim())); return { name, listeners, scrobbles, bio, top_tracks: topTracks, tags, url: window.location.href };",
+      "name": "result",
+      "label": "Extract artist data"
+    }
+  ]
+}

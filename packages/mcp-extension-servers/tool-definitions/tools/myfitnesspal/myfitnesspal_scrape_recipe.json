@@ -1,0 +1,48 @@
+{
+  "id": "myfitnesspal-scrape-recipe",
+  "name": "myfitnesspal_scrape_recipe",
+  "description": "Scrape a recipe from MyFitnessPal. Returns name, ingredients, nutrition per serving, and instructions.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "recipe_url",
+      "type": "string",
+      "description": "MyFitnessPal recipe URL",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{recipe_url}}",
+      "label": "Open page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "h1, [class*=\"recipe-name\"]",
+      "timeout": 15000,
+      "label": "Wait for content"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll for more"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const name = document.querySelector('h1, [class*=\"recipe-name\"]')?.textContent?.trim()||''; const ingredients = Array.from(document.querySelectorAll('[class*=\"ingredient\"], .ingredient-list li, li.ingredient')).map(el=>el.textContent.trim()).filter(Boolean); const nutrients = {}; document.querySelectorAll('tr, [class*=\"nutrient\"]').forEach(el => { const lbl = el.querySelector('td:first-child, [class*=\"label\"]')?.textContent?.trim()?.toLowerCase()||''; const val = el.querySelector('td:last-child, [class*=\"value\"]')?.textContent?.trim()||''; if(lbl&&val&&lbl.length<30) nutrients[lbl]=val; }); const servings = document.body.innerText.match(/(\\d+)\\s*servings?/i)?.[1]||''; return { name, ingredients, nutrients, servings, url: window.location.href }",
+      "name": "page_data",
+      "label": "Extract data"
+    }
+  ]
+}

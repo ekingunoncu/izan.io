@@ -1,0 +1,38 @@
+{
+  "id": "arxiv-search",
+  "name": "arxiv_search",
+  "description": "Search arXiv papers. Returns titles, authors, abstract snippets, arxiv IDs, and categories.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "query",
+      "type": "string",
+      "description": "Paper search query",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://arxiv.org/search/?searchtype=all&query={{query}}",
+      "label": "Open arXiv search"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "li.arxiv-result, ol.breathe-horizontal",
+      "timeout": 15000,
+      "label": "Wait for results"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let results render"
+    },
+    {
+      "action": "code",
+      "code": "const results = []; document.querySelectorAll('li.arxiv-result').forEach((el, i) => { if (i < 15) { const titleEl = el.querySelector('p.title'); const authorsEl = el.querySelector('p.authors'); const abstractEl = el.querySelector('.abstract-full') || el.querySelector('.abstract-short'); const idEl = el.querySelector('.list-title a[href*=\"/abs/\"]'); const catsEl = el.querySelector('.tags'); results.push({ title: titleEl?.textContent?.replace('Title:', '')?.trim() || '', authors: authorsEl?.textContent?.replace('Authors:', '')?.trim() || '', abstract: (abstractEl?.textContent?.trim()?.replace(/\\s*(More|Less)\\s*$/, '') || '').slice(0, 300), arxiv_id: idEl?.textContent?.trim() || '', url: idEl?.href || '', categories: catsEl?.textContent?.trim() || '' }); } }); return { query: '{{query}}', result_count: results.length, results };",
+      "name": "results",
+      "label": "Extract papers"
+    }
+  ]
+}

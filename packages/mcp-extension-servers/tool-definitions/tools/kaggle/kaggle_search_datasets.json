@@ -1,0 +1,48 @@
+{
+  "id": "kaggle-search-datasets",
+  "name": "kaggle_search_datasets",
+  "description": "Search Kaggle datasets specifically. Uses the datasets browse page with search filter. Returns dataset titles, URLs, and descriptions.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "query",
+      "type": "string",
+      "description": "Search query for Kaggle datasets (e.g. 'titanic', 'housing prices', 'NLP')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://www.kaggle.com/datasets?search={{query}}",
+      "label": "Search Kaggle datasets"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "a[href*='/datasets/']",
+      "timeout": 15000,
+      "label": "Wait for dataset results"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Let results render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 800,
+      "label": "Scroll for more results"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const results = []; const seen = new Set(); document.querySelectorAll('a[href*=\"/datasets/\"]').forEach(a => { const href = a.getAttribute('href'); if (!href || !href.match(/\\/datasets\\/[^/]+\\/[^/]+/) || seen.has(href)) return; seen.add(href); const title = a.textContent.trim(); if (!title || title.length > 200 || title.length < 3) return; const parent = a.closest('li') || a.parentElement; const desc = parent ? Array.from(parent.querySelectorAll('span,p')).map(e => e.textContent.trim()).filter(t => t.length > 20 && t !== title).slice(0, 1).join('') : ''; results.push({ title: title.substring(0, 200), url: 'https://www.kaggle.com' + href, description: desc.substring(0, 300) }); }); return { query: '{{query}}', result_count: results.length, results: results.slice(0, 15) };",
+      "name": "search_results",
+      "label": "Extract dataset results"
+    }
+  ]
+}

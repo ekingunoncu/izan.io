@@ -1,0 +1,48 @@
+{
+  "id": "letterboxd-scrape-member",
+  "name": "letterboxd_scrape_member",
+  "description": "Scrape a Letterboxd member profile. Returns name, bio, stats, and favorite films.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "username",
+      "type": "string",
+      "description": "Letterboxd username",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://letterboxd.com/{{username}}/",
+      "label": "Open page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "h1, div.profile-summary, h4.profile-statistic",
+      "timeout": 15000,
+      "label": "Wait for content"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll for more"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const name = document.querySelector('meta[property=\"og:title\"]')?.getAttribute('content')||document.querySelector('h1')?.textContent?.trim()||''; const bio = document.querySelector('meta[property=\"og:description\"]')?.getAttribute('content')||''; const location = document.querySelector('div.profile-metadata div.metadatum')?.textContent?.trim()||''; const stats = {}; document.querySelectorAll('h4.profile-statistic').forEach(s => { const a = s.querySelector('a'); const spans = s.querySelectorAll('span'); const val = a?a.textContent.trim():(spans[0]?spans[0].textContent.trim():''); const lbl = spans.length>1?spans[spans.length-1].textContent.trim().toLowerCase():''; if(lbl&&val) stats[lbl]=val; }); const favs = Array.from(document.querySelectorAll('section#favourites ul.poster-list li img, section#favourites .poster-container img')).slice(0,4).map(img=>img.getAttribute('alt')||''); return { username: '{{username}}', name, bio, location, stats, favorite_films: favs, url: window.location.href }",
+      "name": "page_data",
+      "label": "Extract data"
+    }
+  ]
+}

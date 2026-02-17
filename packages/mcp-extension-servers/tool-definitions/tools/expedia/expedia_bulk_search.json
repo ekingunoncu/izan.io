@@ -26,7 +26,7 @@
   "steps": [
     {
       "action": "code",
-      "code": "return `{{destinations}}`.split(',').map(d => ({ url: 'https://www.expedia.com/Hotel-Search?destination=' + encodeURIComponent(d.trim()) + '&startDate={{checkin}}&endDate={{checkout}}', destination: d.trim() }))",
+      "code": "return `{{destinations}}`.split(',').map(d => ({ url: 'https://www.expedia.com/Hotel-Search?destination=' + encodeURIComponent(d.trim()) + '&startDate={{checkin}}&endDate={{checkout}}&adults=2', destination: d.trim() }))",
       "name": "items",
       "label": "Build search URL list"
     },
@@ -42,7 +42,7 @@
       "detailSteps": [
         {
           "action": "waitForSelector",
-          "selector": "[data-stid='property-listing'], [class*='hotel-card'], [class*='PropertyCard']",
+          "selector": "[data-stid='lodging-card-responsive'], [data-stid='property-listing']",
           "timeout": 20000,
           "label": "Wait for results"
         },
@@ -61,7 +61,7 @@
         },
         {
           "action": "code",
-          "code": "const results = []; const items = document.querySelectorAll('[data-stid=\"property-listing\"], [class*=\"hotel-card\"], [class*=\"PropertyCard\"]'); for (let i = 0; i < Math.min(items.length, 5); i++) { const el = items[i]; const nameEl = el.querySelector('h3, h2, [data-stid=\"content-hotel-title\"]'); const priceEl = el.querySelector('[data-stid=\"content-hotel-price\"], [class*=\"price\"] span'); const ratingEl = el.querySelector('[class*=\"guest-rating\"], [class*=\"review-score\"]'); const linkEl = el.querySelector('a[href*=\"Hotel\"], a[href*=\"hotel\"]'); results.push({ name: nameEl ? nameEl.textContent.trim() : '', price: priceEl ? priceEl.textContent.trim() : '', rating: ratingEl ? ratingEl.textContent.trim() : '', url: linkEl ? linkEl.href : '' }); } const params = new URLSearchParams(window.location.search); return { destination: params.get('destination') || '', result_count: results.length, results: results }",
+          "code": "const results = []; const items = document.querySelectorAll('[data-stid=\"lodging-card-responsive\"], [data-stid=\"property-listing\"]'); for (let i = 0; i < Math.min(items.length, 5); i++) { const el = items[i]; const nameEl = el.querySelector('h3, h2'); const priceEl = el.querySelector('[data-test-id=\"price-summary-message-line\"] span, [data-stid=\"price-lockup\"] span'); const ratingEl = el.querySelector('span.is-visually-hidden, [aria-label*=\"rating\"]'); const linkEl = el.querySelector('a[data-stid=\"open-hotel-information\"], a[href*=\"Hotel-Information\"], a[href*=\".h\"]'); const url = linkEl ? (linkEl.href.startsWith('http') ? linkEl.href : 'https://www.expedia.com' + linkEl.getAttribute('href')) : ''; results.push({ name: nameEl ? nameEl.textContent.trim() : '', price: priceEl ? priceEl.textContent.trim() : '', rating: ratingEl ? ratingEl.textContent.trim() : '', url: url }); } const params = new URLSearchParams(window.location.search); return { destination: params.get('destination') || '', result_count: results.length, results: results }",
           "name": "search_results",
           "label": "Extract results"
         }

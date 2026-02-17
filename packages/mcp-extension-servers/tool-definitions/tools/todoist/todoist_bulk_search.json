@@ -1,0 +1,70 @@
+{
+  "id": "todoist-bulk-search",
+  "name": "todoist_bulk_search",
+  "description": "Search multiple queries on Todoist in parallel. Each query opens a separate tab, triggers the search dialog, types the query, and extracts results.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "queries",
+      "type": "string",
+      "description": "Comma-separated search queries (e.g. 'meeting,urgent,@work')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{queries}}`.split(',').map(q => ({ url: 'https://app.todoist.com/app/today#__q=' + encodeURIComponent(q.trim()), query: q.trim() }))",
+      "name": "items",
+      "label": "Build query list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 3,
+      "maxItems": 10,
+      "waitUntil": "load",
+      "label": "Search in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": "main, [class*=\"task\"], .content",
+          "timeout": 15000,
+          "label": "Wait for app"
+        },
+        {
+          "action": "wait",
+          "ms": 2500
+        },
+        {
+          "action": "code",
+          "code": "const searchBtn = document.querySelector('[aria-label=\"Search\"], button[class*=\"search\"], a[href*=\"search\"], [data-testid=\"search\"]'); if (searchBtn) { searchBtn.click(); } else { document.dispatchEvent(new KeyboardEvent('keydown', { key: '/', code: 'Slash', keyCode: 191, bubbles: true })); } return { opened: true };",
+          "name": "open_search",
+          "label": "Open search"
+        },
+        {
+          "action": "wait",
+          "ms": 1500
+        },
+        {
+          "action": "code",
+          "code": "const hash = window.location.hash || ''; const qMatch = hash.match(/__q=([^&]*)/); const query = qMatch ? decodeURIComponent(qMatch[1]) : ''; const input = document.querySelector('input[type=\"search\"], input[placeholder*=\"Search\"], input[placeholder*=\"search\"], [role=\"combobox\"], [data-testid=\"search-input\"], dialog input, [class*=\"search\"] input'); if (input && query) { input.focus(); input.value = ''; document.execCommand('insertText', false, query); input.dispatchEvent(new Event('input', { bubbles: true })); } return { typed: !!input, query };",
+          "name": "type_query",
+          "label": "Type query"
+        },
+        {
+          "action": "wait",
+          "ms": 3000
+        },
+        {
+          "action": "code",
+          "code": "const tasks = []; document.querySelectorAll('.task_list_item, [class*=\"task_list_item\"], [data-testid=\"task\"], [class*=\"search\"] li, [class*=\"result\"] [class*=\"task\"]').forEach((el, i) => { if (i < 20) { const nameEl = el.querySelector('.task_content, [class*=\"task_content\"], [data-testid=\"task-name\"], [class*=\"content\"]'); const dueEl = el.querySelector('.due_date, [class*=\"due\"], time, [class*=\"date\"]'); const prioEl = el.querySelector('[class*=\"priority\"]'); tasks.push({ name: nameEl?.textContent?.trim() || '', due_date: dueEl?.textContent?.trim() || '', priority: prioEl?.className?.match(/priority_(\\d)/)?.[1] || prioEl?.getAttribute('data-priority') || '' }); } }); return { task_count: tasks.length, tasks: tasks.filter(t => t.name) };",
+          "name": "results",
+          "label": "Extract results"
+        }
+      ]
+    }
+  ]
+}

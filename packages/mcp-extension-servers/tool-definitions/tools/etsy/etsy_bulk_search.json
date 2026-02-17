@@ -30,7 +30,7 @@
       "detailSteps": [
         {
           "action": "waitForSelector",
-          "selector": "[data-search-results] li, .search-listings-group li, .v2-listing-card, [class*='listing-card']",
+          "selector": ".v2-listing-card, a.listing-link, li[data-listing-id]",
           "timeout": 15000,
           "label": "Wait for results"
         },
@@ -49,7 +49,7 @@
         },
         {
           "action": "code",
-          "code": "const results = []; const items = document.querySelectorAll('.v2-listing-card, [class*=\"listing-card\"][data-listing-id], [data-search-results] li .v2-listing-card, .search-listings-group .v2-listing-card'); const candidates = items.length > 0 ? items : document.querySelectorAll('[data-search-results] li, .search-listings-group li'); for (let i = 0; i < Math.min(candidates.length, 5); i++) { const el = candidates[i]; const titleEl = el.querySelector('h3, [class*=\"title\"], a[title]'); const priceEl = el.querySelector('[class*=\"price\"] .currency-value, span[class*=\"price\"]'); const currencyEl = el.querySelector('.currency-symbol'); const linkEl = el.querySelector('a[href*=\"/listing/\"]'); const imgEl = el.querySelector('img'); const shopEl = el.querySelector('[class*=\"shop-name\"], p[class*=\"shop\"]'); const ratingEl = el.querySelector('[class*=\"rating\"] span, .wt-screen-reader-only'); const freeShippingEl = el.querySelector('[class*=\"free-shipping\"], [class*=\"freeShipping\"]'); results.push({ title: titleEl ? (titleEl.getAttribute('title') || titleEl.textContent.trim()) : '', price: (currencyEl ? currencyEl.textContent.trim() : '') + (priceEl ? priceEl.textContent.trim() : ''), url: linkEl ? linkEl.href : '', image: imgEl ? imgEl.getAttribute('src') : '', shop_name: shopEl ? shopEl.textContent.trim() : '', rating: ratingEl ? ratingEl.textContent.trim() : '', free_shipping: !!freeShippingEl }); } const params = new URLSearchParams(window.location.search); return { query: params.get('q') || '', result_count: results.length, results: results }",
+          "code": "const results = []; const cards = document.querySelectorAll('.v2-listing-card, li[data-listing-id]'); for (let i = 0; i < Math.min(cards.length, 5); i++) { const el = cards[i]; const titleEl = el.querySelector('h2.v2-listing-card__title, h3.v2-listing-card__title, h2, h3, a[title]'); const priceEl = el.querySelector('span.currency-value, [data-currency-value]'); const currencyEl = el.querySelector('span.currency-symbol'); const linkEl = el.querySelector('a.listing-link, a[href*=\"/listing/\"]'); const imgEl = el.querySelector('img'); const shopEl = el.querySelector('p a[href*=\"/shop/\"], [aria-label*=\"shop\"]'); const ratingEl = el.querySelector('[aria-label*=\"star\"], [aria-label*=\"rating\"]'); const freeShippingEl = el.querySelector('[aria-label*=\"shipping\"], [data-free-shipping]'); results.push({ title: titleEl ? (titleEl.getAttribute('title') || titleEl.textContent.trim()) : '', price: (currencyEl ? currencyEl.textContent.trim() : '') + (priceEl ? priceEl.textContent.trim() : ''), url: linkEl ? linkEl.href : '', image: imgEl ? imgEl.getAttribute('src') : '', shop_name: shopEl ? shopEl.textContent.trim() : '', rating: ratingEl ? (ratingEl.getAttribute('aria-label') || ratingEl.textContent.trim()) : '', free_shipping: !!freeShippingEl }); } const params = new URLSearchParams(window.location.search); return { query: params.get('q') || '', result_count: results.length, results: results }",
           "name": "search_results",
           "label": "Extract results"
         }

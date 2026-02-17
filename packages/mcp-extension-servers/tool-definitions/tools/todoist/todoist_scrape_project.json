@@ -1,0 +1,48 @@
+{
+  "id": "todoist-scrape-project",
+  "name": "todoist_scrape_project",
+  "description": "Scrape a Todoist project by its numeric ID. Returns tasks with titles, due dates, priorities, and labels. Find the project ID from the URL when viewing a project (e.g. app.todoist.com/app/project/2349078265). Requires login.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "project_id",
+      "type": "string",
+      "description": "Numeric project ID from the Todoist URL (e.g. '2349078265')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://app.todoist.com/app/project/{{project_id}}",
+      "label": "Open project page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".task_list_item, [data-testid=\"task\"], [class*=\"task_list\"]",
+      "timeout": 15000,
+      "label": "Wait for content"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll for more"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const projectName = document.querySelector('h1, [class*=\"project_name\"], [data-testid=\"project-name\"], header [class*=\"title\"]')?.textContent?.trim() || ''; const tasks = Array.from(document.querySelectorAll('.task_list_item, [data-testid=\"task\"]')).slice(0,50).map(el => { const title = el.querySelector('.task_content, [data-testid=\"task-name\"]')?.textContent?.trim()||''; const due = el.querySelector('.date, time, [class*=\"due\"]')?.textContent?.trim()||''; const priority = el.querySelector('[class*=\"priority\"]')?.className?.match(/priority_(\\d)/)?.[1]||''; const labels = Array.from(el.querySelectorAll('[class*=\"label\"], .tag')).map(l=>l.textContent.trim()); return { title, due_date: due, priority, labels }; }).filter(t=>t.title); return { project_id: '{{project_id}}', project_name: projectName, tasks }",
+      "name": "page_data",
+      "label": "Extract data"
+    }
+  ]
+}

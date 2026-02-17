@@ -1,0 +1,38 @@
+{
+  "id": "discogs-scrape-release",
+  "name": "discogs_scrape_release",
+  "description": "Scrape a Discogs release. Returns tracklist, label, format, ratings, and marketplace prices.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "release_id",
+      "type": "string",
+      "description": "Release ID",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://www.discogs.com/release/{{release_id}}",
+      "label": "Open Discogs"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".profile, h1, #release-title",
+      "timeout": 15000,
+      "label": "Wait for page"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Let page render"
+    },
+    {
+      "action": "code",
+      "code": "const title = document.querySelector('h1, #release-title')?.textContent?.trim() || ''; const artists = []; document.querySelectorAll('#profile_title a[href*=\"/artist/\"]').forEach(a => artists.push(a.textContent?.trim())); const tracks = []; document.querySelectorAll('.tracklist_track, tr[class*=\"track\"]').forEach(t => { const pos = t.querySelector('.tracklist_track_pos, td:first-child')?.textContent?.trim() || ''; const name = t.querySelector('.tracklist_track_title a, .trackTitle')?.textContent?.trim() || ''; const dur = t.querySelector('.tracklist_track_duration span, td:last-child')?.textContent?.trim() || ''; tracks.push({ position: pos, name, duration: dur }); }); const rating = document.querySelector('.rating_value, .average')?.textContent?.trim() || ''; return { title, artists, tracks, rating, url: window.location.href };",
+      "name": "result",
+      "label": "Extract data"
+    }
+  ]
+}

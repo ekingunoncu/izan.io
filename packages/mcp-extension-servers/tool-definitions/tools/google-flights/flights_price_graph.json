@@ -25,7 +25,7 @@
     },
     {
       "action": "waitForSelector",
-      "selector": "li.pIav2d, div[data-resultid], ul[role='list'] li",
+      "selector": "li.pIav2d",
       "timeout": 20000,
       "label": "Wait for flight results"
     },
@@ -57,7 +57,7 @@
     },
     {
       "action": "code",
-      "code": "const pricePoints = []; const graphBars = document.querySelectorAll('div[data-flt-ve=\"price_graph\"] div[role=\"button\"], div.JRwjBf div[role=\"button\"], g[role=\"listitem\"], div[class*=\"price-graph\"] div[role=\"button\"]'); graphBars.forEach((bar, i) => { if (i >= 30) return; const label = bar.getAttribute('aria-label') || bar.textContent.trim(); if (label) pricePoints.push(label); }); const calendarCells = document.querySelectorAll('td[data-value], div[class*=\"calendar\"] button[aria-label*=\"$\"], div[class*=\"calendar\"] button[aria-label*=\"EUR\"]'); const calendarPrices = []; calendarCells.forEach((cell, i) => { if (i >= 60) return; const label = cell.getAttribute('aria-label') || cell.textContent.trim(); if (label && label.match(/\\d/)) calendarPrices.push(label); }); const tipEl = document.querySelector('div[class*=\"tip\"], div[class*=\"advice\"], div.CQYfx, div[class*=\"price-insight\"]'); return { from: `{{from}}`, to: `{{to}}`, price_graph_points: pricePoints, calendar_prices: calendarPrices, travel_tip: tipEl ? tipEl.textContent.trim() : '', data_points_count: pricePoints.length + calendarPrices.length, url: window.location.href }",
+      "code": "const pricePoints = []; const graphBars = document.querySelectorAll('div[data-flt-ve=\"price_graph\"] div[role=\"button\"], div.JRwjBf div[role=\"button\"], g[role=\"listitem\"]'); graphBars.forEach((bar, i) => { if (i >= 30) return; const label = bar.getAttribute('aria-label') || bar.textContent.trim(); if (label) pricePoints.push(label); }); const calendarCells = document.querySelectorAll('td[data-value], button[aria-label*=\"$\"], button[aria-label*=\"EUR\"], button[aria-label*=\"GBP\"]'); const calendarPrices = []; calendarCells.forEach((cell, i) => { if (i >= 60) return; const label = cell.getAttribute('aria-label') || cell.textContent.trim(); if (label && label.match(/\\d/)) calendarPrices.push(label); }); const tipEl = document.querySelector('div.CQYfx, div[class*=\"price-insight\"], div[class*=\"tip\"]'); return { from: `{{from}}`, to: `{{to}}`, price_graph_points: pricePoints, calendar_prices: calendarPrices, travel_tip: tipEl ? tipEl.textContent.trim() : '', data_points_count: pricePoints.length + calendarPrices.length, url: window.location.href }",
       "name": "price_graph_data",
       "label": "Extract price graph data"
     }

@@ -1,0 +1,50 @@
+{
+  "id": "todoist-bulk-scrape-projects",
+  "name": "todoist_bulk_scrape_projects",
+  "description": "Scrape multiple Todoist projects in parallel by their numeric IDs. Use this instead of calling todoist_scrape_project multiple times. Find project IDs from Todoist URLs (e.g. app.todoist.com/app/project/2349078265).",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "project_ids",
+      "type": "string",
+      "description": "Comma-separated numeric project IDs (e.g. '2349078265,2349078300,2349078412')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{project_ids}}`.split(',').map(id => ({ url: 'https://app.todoist.com/app/project/' + id.trim(), project_id: id.trim() }))",
+      "name": "items",
+      "label": "Build project URL list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 3,
+      "maxItems": 10,
+      "waitUntil": "load",
+      "label": "Open each project in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": ".task_list_item, [data-testid=\"task\"], [class*=\"task_list\"]",
+          "timeout": 15000,
+          "label": "Wait for tasks"
+        },
+        {
+          "action": "wait",
+          "ms": 2500
+        },
+        {
+          "action": "code",
+          "code": "const projectName = document.querySelector('h1, [class*=\"project_name\"], [data-testid=\"project-name\"], header [class*=\"title\"]')?.textContent?.trim() || ''; const tasks = Array.from(document.querySelectorAll('.task_list_item, [data-testid=\"task\"]')).slice(0,30).map(el => ({ title: el.querySelector('.task_content, [data-testid=\"task-name\"]')?.textContent?.trim()||'', due: el.querySelector('.date, time, [class*=\"due\"]')?.textContent?.trim()||'' })).filter(t=>t.title); return { project_name: projectName, tasks }",
+          "name": "project_tasks",
+          "label": "Extract tasks"
+        }
+      ]
+    }
+  ]
+}

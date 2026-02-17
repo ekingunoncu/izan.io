@@ -25,7 +25,7 @@
     },
     {
       "action": "waitForSelector",
-      "selector": "li.pIav2d, div[data-resultid], ul[role='list'] li",
+      "selector": "li.pIav2d",
       "timeout": 20000,
       "label": "Wait for flight results"
     },

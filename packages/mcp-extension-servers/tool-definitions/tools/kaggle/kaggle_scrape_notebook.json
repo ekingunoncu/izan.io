@@ -1,0 +1,48 @@
+{
+  "id": "kaggle-scrape-notebook",
+  "name": "kaggle_scrape_notebook",
+  "description": "Scrape a Kaggle notebook/code page. Returns title, author, code snippets, votes, comments count, and linked datasets. Note: Kaggle renders notebooks in an iframe so full code extraction may be limited.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "notebook_url",
+      "type": "string",
+      "description": "Full Kaggle notebook URL (e.g. 'https://www.kaggle.com/code/username/notebook-name')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{notebook_url}}",
+      "label": "Open notebook page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "h1, [role='main']",
+      "timeout": 15000,
+      "label": "Wait for notebook page"
+    },
+    {
+      "action": "wait",
+      "ms": 4000,
+      "label": "Let notebook and iframe render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1500,
+      "label": "Scroll to load more content"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const title = document.querySelector('h1')?.textContent?.trim() || document.title.split('|')[0]?.trim() || ''; const authorEl = document.querySelector('a[href*=\"/code/\"]')?.closest('div')?.querySelector('a[href^=\"/\"]') || document.querySelector('a[href*=\"/users/\"]'); const author = authorEl?.textContent?.trim() || ''; const codeCells = []; const outputCells = []; document.querySelectorAll('pre code, pre, .CodeMirror-code, [class*=\"code\"] pre').forEach(el => { const text = el.textContent.trim(); if (text.length > 5 && text.length < 2000) codeCells.push(text.substring(0, 500)); }); document.querySelectorAll('[class*=\"output\"] pre, [class*=\"Output\"], [class*=\"result\"]').forEach(el => { const text = el.textContent.trim(); if (text.length > 5) outputCells.push(text.substring(0, 300)); }); const datasets = []; document.querySelectorAll('a[href*=\"/datasets/\"]').forEach(a => { const href = a.getAttribute('href'); if (href && href.match(/\\/datasets\\/[^/]+\\/[^/]+/)) { datasets.push({ name: a.textContent.trim(), url: 'https://www.kaggle.com' + href }); } }); const allText = document.body.innerText; const votes = allText.match(/(\\d+)\\s*votes?/i)?.[1] || ''; const comments = allText.match(/(\\d+)\\s*comments?/i)?.[1] || ''; return { title, author, votes, comments, code_cells: codeCells.slice(0, 10), outputs: outputCells.slice(0, 5), linked_datasets: datasets.slice(0, 5), url: window.location.href };",
+      "name": "page_data",
+      "label": "Extract notebook data"
+    }
+  ]
+}

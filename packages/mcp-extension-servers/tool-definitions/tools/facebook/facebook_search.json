@@ -19,7 +19,7 @@
     },
     {
       "action": "waitForSelector",
-      "selector": "[role='feed'], [role='main'], .x1yztbdb",
+      "selector": "[role='feed'], [role='main']",
       "timeout": 15000,
       "label": "Wait for search results"
     },

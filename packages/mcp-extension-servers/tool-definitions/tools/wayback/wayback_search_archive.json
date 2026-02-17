@@ -1,0 +1,38 @@
+{
+  "id": "wayback-search-archive",
+  "name": "wayback_search_archive",
+  "description": "Search Internet Archive collections.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "query",
+      "type": "string",
+      "description": "Search query",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://archive.org/search?query={{query}}",
+      "label": "Open Internet Archive search"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".results, .item-ia, .SRPs, [class*=\"search-results\"], .content",
+      "timeout": 15000,
+      "label": "Wait for page"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Let page render"
+    },
+    {
+      "action": "code",
+      "code": "const items = []; document.querySelectorAll('.item-ia, .result-item, [data-id], [class*=\"search-tile\"], .SRPItem, article').forEach((el, i) => { if (i < 15) { const titleEl = el.querySelector('.ttl, .title a, a[href*=\"/details/\"], .item-title, h4 a'); const typeEl = el.querySelector('.type, .mediatype, .item-mediatype'); const descEl = el.querySelector('.description, .item-description, p'); items.push({ title: titleEl?.textContent?.trim() || '', url: titleEl?.href || '', type: typeEl?.textContent?.trim() || '', description: descEl?.textContent?.trim()?.slice(0, 200) || '' }); } }); return { query: '{{query}}', item_count: items.length, items };",
+      "name": "result",
+      "label": "Extract data"
+    }
+  ]
+}

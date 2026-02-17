@@ -90,7 +90,7 @@
     },
     {
       "action": "code",
-      "code": "const sendBtn = document.querySelector('[aria-label*=\"Send\"]') || document.querySelector('.T-I.aoO'); if (sendBtn) { sendBtn.click(); } else { throw new Error('Send button not found'); } return { success: true, message: 'Email sent', to: `{{to}}`, subject: `{{subject}}` }",
+      "code": "const composeBox = document.querySelector('.M9, .AD'); const sendBtn = (composeBox && composeBox.querySelector('[aria-label*=\"Send\"]')) || document.querySelector('.T-I.aoO') || document.querySelector('.dC .T-I[aria-label*=\"Send\"]'); if (sendBtn) { sendBtn.click(); } else { throw new Error('Send button not found'); } return { success: true, message: 'Email sent', to: `{{to}}`, subject: `{{subject}}` }",
       "name": "result",
       "label": "Click send"
     },

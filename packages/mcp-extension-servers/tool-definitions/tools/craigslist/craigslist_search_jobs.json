@@ -1,0 +1,54 @@
+{
+  "id": "craigslist-search-jobs",
+  "name": "craigslist_search_jobs",
+  "description": "Search Craigslist job listings in a specific city. Returns jobs with title, location, date, and URL.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "city",
+      "type": "string",
+      "description": "City subdomain (e.g. 'newyork', 'sfbay', 'chicago')",
+      "required": true
+    },
+    {
+      "name": "query",
+      "type": "string",
+      "description": "Job search query (e.g. 'software engineer', 'barista')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://{{city}}.craigslist.org/search/jjj?query={{query}}",
+      "label": "Open jobs search"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".cl-search-result, .result-row, .cl-static-search-result, body",
+      "timeout": 15000,
+      "label": "Wait for content"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll for more"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const results = []; document.querySelectorAll('.cl-search-result, .result-row, .cl-static-search-result').forEach((el,i) => { if(i>=15) return; const titleEl = el.querySelector('a.posting-title, a.result-title, a.cl-app-anchor'); const locEl = el.querySelector('.result-hood, .meta'); const dateEl = el.querySelector('time, .result-date'); results.push({ title: titleEl?titleEl.textContent.trim():'', url: titleEl?titleEl.href:'', location: locEl?locEl.textContent.trim():'', date: dateEl?dateEl.textContent.trim():'' }); }); return { city: '{{city}}', query: '{{query}}', result_count: results.length, results }",
+      "name": "page_data",
+      "label": "Extract data"
+    }
+  ]
+}

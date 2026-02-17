@@ -1,0 +1,48 @@
+{
+  "id": "letterboxd-scrape-list",
+  "name": "letterboxd_scrape_list",
+  "description": "Scrape a Letterboxd list. Returns films with titles, years, and ratings.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "list_url",
+      "type": "string",
+      "description": "Letterboxd list URL",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{list_url}}",
+      "label": "Open page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "ul.poster-list, ul.film-list, .poster-container",
+      "timeout": 15000,
+      "label": "Wait for content"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll for more"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const listTitle = document.querySelector('h1')?.textContent?.trim()||document.querySelector('meta[property=\"og:title\"]')?.getAttribute('content')||''; const desc = document.querySelector('div.body-text p')?.textContent?.trim()?.substring(0,500)||document.querySelector('meta[property=\"og:description\"]')?.getAttribute('content')||''; const owner = document.querySelector('span[itemprop=\"name\"], a.name')?.textContent?.trim()||''; const films = Array.from(document.querySelectorAll('li.poster-container')).slice(0,50).map((el,i) => { const img = el.querySelector('img'); const link = el.querySelector('div.film-poster'); const slug = link?link.getAttribute('data-film-slug'):''; return { rank: i+1, title: img?img.getAttribute('alt'):'', url: slug?'https://letterboxd.com/film/'+slug+'/':'' }; }).filter(f=>f.title); return { list_title: listTitle, owner, description: desc, films, url: window.location.href }",
+      "name": "page_data",
+      "label": "Extract data"
+    }
+  ]
+}

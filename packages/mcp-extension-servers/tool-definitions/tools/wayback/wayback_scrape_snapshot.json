@@ -1,0 +1,44 @@
+{
+  "id": "wayback-scrape-snapshot",
+  "name": "wayback_scrape_snapshot",
+  "description": "View a specific Wayback Machine snapshot of a website.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "url",
+      "type": "string",
+      "description": "URL to look up",
+      "required": true
+    },
+    {
+      "name": "date",
+      "type": "string",
+      "description": "Date YYYYMMDD",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://web.archive.org/web/{{date}}/{{url}}",
+      "label": "Open Wayback Machine"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "body",
+      "timeout": 15000,
+      "label": "Wait for page"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Let page render"
+    },
+    {
+      "action": "code",
+      "code": "const title = document.title || ''; const text = document.body?.innerText?.slice(0, 2000) || ''; return { title, snapshot_date: '{{date}}', content_preview: text, url: window.location.href };",
+      "name": "result",
+      "label": "Extract data"
+    }
+  ]
+}

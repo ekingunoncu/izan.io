@@ -1,0 +1,50 @@
+{
+  "id": "bandcamp-bulk-search",
+  "name": "bandcamp_bulk_search",
+  "description": "Search multiple queries on Bandcamp in parallel using concurrent browser tabs. More efficient than calling bandcamp_search multiple times. Pass all search queries as a single comma-separated string.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "queries",
+      "type": "string",
+      "description": "Comma-separated search queries (e.g. 'aphex twin, boards of canada, autechre')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{queries}}`.split(',').map(q => ({ query: q.trim(), url: 'https://bandcamp.com/search?q=' + encodeURIComponent(q.trim()) }))",
+      "name": "items",
+      "label": "Build URL list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 3,
+      "maxItems": 10,
+      "waitUntil": "load",
+      "label": "Search in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": ".result-items li.searchresult, .result-items",
+          "timeout": 15000,
+          "label": "Wait for results"
+        },
+        {
+          "action": "wait",
+          "ms": 2000
+        },
+        {
+          "action": "code",
+          "code": "const results = []; document.querySelectorAll('.result-items li.searchresult').forEach((el, i) => { if (i < 10) { const info = el.querySelector('.result-info'); const titleEl = info?.querySelector('.heading a'); const typeEl = info?.querySelector('.itemtype'); const urlEl = info?.querySelector('.itemurl a'); const subheadEl = info?.querySelector('.subhead'); const genreEl = info?.querySelector('.genre'); const artEl = el.querySelector('.art img'); results.push({ name: titleEl?.textContent?.trim() || '', url: urlEl?.textContent?.trim() || titleEl?.href || '', type: typeEl?.textContent?.trim() || '', subhead: subheadEl?.textContent?.trim() || '', genre: genreEl?.textContent?.trim().replace(/^genre:\\s*/i, '') || '', image: artEl?.src || '' }); } }); const params = new URLSearchParams(window.location.search); return { query: params.get('q') || decodeURIComponent(window.location.search.replace('?q=', '')), result_count: results.length, results };",
+          "name": "results",
+          "label": "Extract results"
+        }
+      ]
+    }
+  ]
+}

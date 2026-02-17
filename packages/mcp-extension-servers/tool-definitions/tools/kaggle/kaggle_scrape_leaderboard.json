@@ -1,0 +1,48 @@
+{
+  "id": "kaggle-scrape-leaderboard",
+  "name": "kaggle_scrape_leaderboard",
+  "description": "Scrape a Kaggle competition leaderboard. Returns top entries with rank, team name, and score.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "competition_slug",
+      "type": "string",
+      "description": "Competition slug (e.g. 'titanic', 'spaceship-titanic')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://www.kaggle.com/competitions/{{competition_slug}}/leaderboard",
+      "label": "Open leaderboard page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "table, [role='table'], [role='grid'], [role='main']",
+      "timeout": 15000,
+      "label": "Wait for leaderboard table"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Let leaderboard render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll for more entries"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const entries = []; const table = document.querySelector('table'); if (table) { const rows = table.querySelectorAll('tbody tr'); rows.forEach((row, i) => { const cells = Array.from(row.querySelectorAll('td')).map(c => c.textContent.trim()); const link = row.querySelector('a'); const scoreCell = cells.find(t => t.match(/^-?\\d+\\.?\\d*$/)); entries.push({ rank: cells[0] || String(i + 1), team: link ? link.textContent.trim() : (cells[1] || ''), score: scoreCell || '', entries_count: cells[cells.length - 1] || '' }); }); } else { document.querySelectorAll('[role=\"row\"], li[class]').forEach((row, i) => { const text = row.textContent.trim(); const link = row.querySelector('a'); const numbers = text.match(/\\d+\\.?\\d*/g) || []; entries.push({ rank: numbers[0] || String(i + 1), team: link ? link.textContent.trim() : text.substring(0, 100), score: numbers.find(n => n.includes('.')) || numbers[1] || '' }); }); } const totalMatch = document.body.innerText.match(/(\\d[\\d,]*)\\s*teams?/i); return { competition: '{{competition_slug}}', total_teams: totalMatch ? totalMatch[1] : '', entries_count: entries.length, leaderboard: entries.slice(0, 50), url: window.location.href };",
+      "name": "page_data",
+      "label": "Extract leaderboard data"
+    }
+  ]
+}

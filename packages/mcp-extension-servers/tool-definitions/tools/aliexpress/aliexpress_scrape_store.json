@@ -1,6 +1,6 @@
 {
-  "id": "aliexpress-scrape-seller",
-  "name": "aliexpress_scrape_seller",
+  "id": "aliexpress-scrape-store",
+  "name": "aliexpress_scrape_store",
   "description": "Scrape a seller/store profile from AliExpress. Returns store name, rating, feedback score, followers, top products, and store age.",
   "version": "1.0.0",
   "parameters": [
@@ -15,8 +15,8 @@
     {
       "action": "code",
       "code": "const nameEl = document.querySelector('[class*=\"store-name\"], [class*=\"shop-name\"], h1'); const ratingEl = document.querySelector('[class*=\"store-rating\"], [class*=\"score\"]'); const followersEl = document.querySelector('[class*=\"followers\"], [class*=\"follower\"]'); const feedbackEl = document.querySelector('[class*=\"feedback\"], [class*=\"positive\"]'); const sinceEl = document.querySelector('[class*=\"since\"], [class*=\"open-date\"]'); const products = []; document.querySelectorAll('[class*=\"product-card\"], [class*=\"item-card\"], a[href*=\"/item/\"]').forEach(function(el) { const titleEl = el.querySelector('[class*=\"title\"], h3'); const priceEl = el.querySelector('[class*=\"price\"]'); const imgEl = el.querySelector('img'); const linkEl = el.tagName === 'A' ? el : el.querySelector('a'); if (products.length < 10) { products.push({ title: titleEl ? titleEl.textContent.trim().substring(0, 150) : '', price: priceEl ? priceEl.textContent.trim() : '', url: linkEl ? linkEl.href : '', image: imgEl ? imgEl.getAttribute('src') : '' }); } }); return { store_name: nameEl ? nameEl.textContent.trim() : '', rating: ratingEl ? ratingEl.textContent.trim() : '', followers: followersEl ? followersEl.textContent.trim() : '', feedback: feedbackEl ? feedbackEl.textContent.trim() : '', open_since: sinceEl ? sinceEl.textContent.trim() : '', product_count: products.length, top_products: products, url: window.location.href }",
-      "name": "seller_data",
-      "label": "Extract seller profile"
+      "name": "store_data",
+      "label": "Extract store profile"
     }
   ]
 }

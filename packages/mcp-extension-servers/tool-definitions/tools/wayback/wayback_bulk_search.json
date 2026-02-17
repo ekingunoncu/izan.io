@@ -1,0 +1,50 @@
+{
+  "id": "wayback-bulk-search",
+  "name": "wayback_bulk_search",
+  "description": "Look up multiple URLs on the Wayback Machine calendar view in parallel using concurrent browser tabs. Pass all URLs as a single comma-separated string.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "queries",
+      "type": "string",
+      "description": "Comma-separated URLs to look up (e.g. 'example.com,github.com,wikipedia.org')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{queries}}`.split(',').map(q => ({ url: 'https://web.archive.org/web/*/' + encodeURIComponent(q.trim()), query: q.trim() }))",
+      "name": "items",
+      "label": "Build URL list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 3,
+      "maxItems": 10,
+      "waitUntil": "load",
+      "label": "Search in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": "#wb-calendar, .calendar-grid, .calendar, [class*=\"CalendarMonth\"], .content",
+          "timeout": 15000,
+          "label": "Wait"
+        },
+        {
+          "action": "wait",
+          "ms": 2000
+        },
+        {
+          "action": "code",
+          "code": "const snapshots = document.querySelector('#wb-calendar, .calendar-grid, .calendar, [class*=\"CalendarMonth\"]')?.textContent?.trim()?.slice(0, 500) || ''; const sparkline = document.querySelector('.sparkline-container, [class*=\"captures\"], [class*=\"capture-count\"], .captures-range-info')?.textContent?.trim() || ''; const urlMatch = window.location.pathname.match(/\\/web\\/\\*\\/(.+)/); return { url_searched: urlMatch ? decodeURIComponent(urlMatch[1]) : window.location.href, calendar_summary: snapshots, captures_info: sparkline, page_url: window.location.href };",
+          "name": "results",
+          "label": "Extract"
+        }
+      ]
+    }
+  ]
+}

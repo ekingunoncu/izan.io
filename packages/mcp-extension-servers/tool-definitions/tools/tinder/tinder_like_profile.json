@@ -1,0 +1,31 @@
+{
+  "id": "tinder-like-profile",
+  "name": "tinder_like_profile",
+  "description": "Like the currently shown profile on Tinder. Requires login.",
+  "version": "1.0.0",
+  "parameters": [],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://tinder.com/app/recs",
+      "label": "Open Tinder"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[class*=\"recsCardboard\"], main",
+      "timeout": 15000,
+      "label": "Wait for cards"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let card render"
+    },
+    {
+      "action": "code",
+      "code": "const likeBtn = document.querySelector('[aria-label=\"Like\"], button[class*=\"recsGamepad__button--like\"], button[class*=\"like\"], button[class*=\"Bgi($g-ds-background-like)\"]'); if (likeBtn) { likeBtn.click(); return { success: true, action: 'liked' }; } return { success: false, message: 'Like button not found' };",
+      "name": "result",
+      "label": "Click like"
+    }
+  ]
+}

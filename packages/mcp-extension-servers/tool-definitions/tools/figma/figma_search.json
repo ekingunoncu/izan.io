@@ -40,7 +40,7 @@
     },
     {
       "action": "code",
-      "code": "const searchInput = document.querySelector('input[placeholder*=\"Search\"], [data-testid=\"search-input\"], [class*=\"search\"] input'); if (!searchInput) throw new Error('Search input not found'); searchInput.value = `{{query}}`; searchInput.dispatchEvent(new Event('input', { bubbles: true })); searchInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13, bubbles: true })); return { typed: true }",
+      "code": "const searchInput = document.querySelector('input[placeholder*=\"Search\"], [data-testid=\"search-input\"], [class*=\"search\"] input'); if (!searchInput) throw new Error('Search input not found'); searchInput.focus(); const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set; nativeSetter.call(searchInput, `{{query}}`); searchInput.dispatchEvent(new Event('input', { bubbles: true })); searchInput.dispatchEvent(new Event('change', { bubbles: true })); await new Promise(r => setTimeout(r, 300)); searchInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true })); return { typed: true }",
       "name": "type_result",
       "label": "Type search query"
     },

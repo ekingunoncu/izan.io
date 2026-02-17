@@ -1,0 +1,58 @@
+{
+  "id": "opensea-search",
+  "name": "opensea_search",
+  "description": "Search for NFTs and collections on OpenSea. Returns up to 15 results with name, floor price, and collection URL.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "query",
+      "type": "string",
+      "description": "Search query (e.g. 'bored ape', 'azuki', 'crypto punks')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://opensea.io/search?query={{query}}",
+      "label": "Open OpenSea search"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "a[data-id='Item'], a[href*='/collection/'], [class*='AssetCard'], [class*='collection']",
+      "timeout": 15000,
+      "label": "Wait for search results"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Let results render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll to load more results"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll further down"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const results = []; const items = document.querySelectorAll('a[data-id=\"Item\"], a[href*=\"/collection/\"], [class*=\"AssetCard\"], [class*=\"collection-card\"]'); const seen = new Set(); for (let i = 0; i < items.length && results.length < 15; i++) { const el = items[i]; const link = el.href || el.querySelector('a')?.href || ''; if (!link || seen.has(link)) continue; seen.add(link); const nameEl = el.querySelector('[data-testid=\"ItemCardFooter-name\"], [class*=\"name\"], h3, span'); const priceEl = el.querySelector('[data-testid=\"ItemCardPrice\"], [class*=\"price\"], [class*=\"floor\"]'); const imgEl = el.querySelector('img'); const name = nameEl?.textContent?.trim() || ''; if (!name) continue; results.push({ name: name, url: link, floor_price: priceEl?.textContent?.trim() || '', image: imgEl?.src || '' }); } return { query: `{{query}}`, result_count: results.length, results: results }",
+      "name": "search_results",
+      "label": "Extract search results"
+    }
+  ]
+}

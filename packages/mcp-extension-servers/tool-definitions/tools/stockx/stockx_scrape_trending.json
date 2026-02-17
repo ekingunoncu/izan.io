@@ -1,0 +1,31 @@
+{
+  "id": "stockx-scrape-trending",
+  "name": "stockx_scrape_trending",
+  "description": "Browse trending/most popular products on StockX.",
+  "version": "1.0.0",
+  "parameters": [],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://stockx.com/sneakers/most-popular",
+      "label": "Open StockX most popular"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[data-testid='product-card'], [class*='ProductCard'], [class*='tile']",
+      "timeout": 15000,
+      "label": "Wait for page"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Let page render"
+    },
+    {
+      "action": "code",
+      "code": "const items = []; document.querySelectorAll('[data-testid=\"product-card\"], [class*=\"ProductCard\"], [class*=\"tile\"]').forEach((el, i) => { if (i < 20) { const nameEl = el.querySelector('p, [class*=\"name\"], h3'); const priceEl = el.querySelector('[class*=\"price\"], [class*=\"amount\"]'); const imgEl = el.querySelector('img'); const linkEl = el.tagName === 'A' ? el : el.querySelector('a'); items.push({ name: nameEl?.textContent?.trim() || '', price: priceEl?.textContent?.trim() || '', image: imgEl?.src || '', url: linkEl?.href || '' }); } }); return { count: items.length, items };",
+      "name": "result",
+      "label": "Extract data"
+    }
+  ]
+}

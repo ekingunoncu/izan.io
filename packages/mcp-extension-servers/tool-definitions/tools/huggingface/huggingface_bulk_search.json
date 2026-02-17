@@ -1,0 +1,59 @@
+{
+  "id": "huggingface-bulk-search",
+  "name": "huggingface_bulk_search",
+  "description": "Search multiple queries on Hugging Face in parallel using concurrent browser tabs. Use this instead of calling huggingface_search multiple times.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "queries",
+      "type": "string",
+      "description": "Comma-separated search queries (e.g. 'llama,mistral,gemma')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{queries}}`.split(',').map(q => ({ url: `https://huggingface.co/models?search=${encodeURIComponent(q.trim())}`, query: q.trim() }))",
+      "name": "items",
+      "label": "Build search URL list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 3,
+      "maxItems": 10,
+      "waitUntil": "load",
+      "label": "Search each query in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": "h4, article",
+          "timeout": 15000,
+          "label": "Wait for results"
+        },
+        {
+          "action": "wait",
+          "ms": 2500
+        },
+        {
+          "action": "scroll",
+          "direction": "down",
+          "amount": 800
+        },
+        {
+          "action": "wait",
+          "ms": 1500
+        },
+        {
+          "action": "code",
+          "code": "const results = []; const cards = document.querySelectorAll('article, main a[href]:has(h4)'); for (let i = 0; i < Math.min(cards.length, 15); i++) { const card = cards[i]; const titleEl = card.querySelector('h4'); if (!titleEl) continue; const spans = Array.from(card.querySelectorAll('span')); const name = titleEl.textContent.trim(); const link = card.closest('a[href]') || card.querySelector('a[href]') || card; const url = link.href || ''; results.push({ name, url, meta: spans.slice(0, 5).map(s => s.textContent.trim()).filter(Boolean) }); } const params = new URLSearchParams(window.location.search); return { query: params.get('search') || '', result_count: results.length, results }",
+          "name": "search_results",
+          "label": "Extract results"
+        }
+      ]
+    }
+  ]
+}

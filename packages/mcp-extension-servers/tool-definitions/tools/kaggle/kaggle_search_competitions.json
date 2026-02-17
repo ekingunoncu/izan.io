@@ -1,0 +1,48 @@
+{
+  "id": "kaggle-search-competitions",
+  "name": "kaggle_search_competitions",
+  "description": "Search Kaggle competitions. Returns competition names, URLs, prizes, deadlines, and team counts.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "query",
+      "type": "string",
+      "description": "Competition search query (e.g. 'image classification', 'NLP', 'tabular')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://www.kaggle.com/competitions?search={{query}}",
+      "label": "Open competitions search"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "a[href*='/competitions/']",
+      "timeout": 15000,
+      "label": "Wait for competition results"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Let results render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 800,
+      "label": "Scroll for more results"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const results = []; const seen = new Set(); document.querySelectorAll('a[href*=\"/competitions/\"]').forEach(a => { const href = a.getAttribute('href') || ''; if (!href.match(/^\\/competitions\\/[^/]+$/) || seen.has(href)) return; seen.add(href); const title = a.textContent.trim(); if (!title || title.length > 200 || title.length < 3) return; const parent = a.closest('li') || a.closest('div[class]') || a.parentElement; const allText = parent ? parent.textContent : ''; const prizeMatch = allText.match(/\\$[\\d,]+/); const teamMatch = allText.match(/(\\d[\\d,]*)\\s*teams?/i); const spans = parent ? Array.from(parent.querySelectorAll('span, p')).map(e => e.textContent.trim()).filter(t => t.length > 5 && t !== title) : []; results.push({ title: title.substring(0, 200), url: 'https://www.kaggle.com' + href, prize: prizeMatch ? prizeMatch[0] : '', teams: teamMatch ? teamMatch[1] : '', metadata: spans.slice(0, 3).join(' | ') }); }); return { query: '{{query}}', result_count: results.length, results: results.slice(0, 15) };",
+      "name": "results",
+      "label": "Extract competitions"
+    }
+  ]
+}

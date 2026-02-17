@@ -19,7 +19,7 @@
     },
     {
       "action": "waitForSelector",
-      "selector": "table.cast_list, [class*='fullcredits'], [class*='Credits']",
+      "selector": "table.cast_list, [class*='fullcredits'], [class*='Credits'], .ipc-metadata-list",
       "timeout": 15000,
       "label": "Wait for credits page"
     },
@@ -40,7 +40,7 @@
     },
     {
       "action": "code",
-      "code": "const cast = []; const castRows = document.querySelectorAll('table.cast_list tr, [class*=\"CastList\"] [class*=\"CastItem\"]'); castRows.forEach(function(row) { const nameEl = row.querySelector('td:nth-child(2) a, a[href*=\"/name/\"]'); const charEl = row.querySelector('td.character, [class*=\"character\"]'); const imgEl = row.querySelector('img'); if (nameEl) { cast.push({ name: nameEl.textContent.trim(), character: charEl ? charEl.textContent.trim().replace(/\\s+/g, ' ') : '', image: imgEl ? imgEl.getAttribute('src') : '', url: nameEl.href || '' }); } }); const crew = {}; const headers = document.querySelectorAll('#fullcredits_content > h4, [class*=\"Credits\"] h4'); headers.forEach(function(h) { const role = h.textContent.trim().replace(/\\s+/g, ' '); const table = h.nextElementSibling; if (table && table.tagName === 'TABLE') { const names = []; table.querySelectorAll('tr').forEach(function(row) { const nameEl = row.querySelector('a[href*=\"/name/\"]'); if (nameEl) names.push(nameEl.textContent.trim()); }); if (names.length > 0) crew[role] = names.slice(0, 10); } }); const titleEl = document.querySelector('h3 a, [class*=\"parent\"] a'); return { title_id: '{{title_id}}', title: titleEl ? titleEl.textContent.trim() : '', cast_count: cast.length, cast: cast.slice(0, 30), crew: crew, url: window.location.href }",
+      "code": "const cast = []; const castRows = document.querySelectorAll('table.cast_list tr, [data-testid=\"title-cast-item\"]'); castRows.forEach(function(row) { const nameEl = row.querySelector('td:nth-child(2) a, [data-testid=\"title-cast-item__actor\"], a[href*=\"/name/\"]'); const charEl = row.querySelector('td.character, [data-testid=\"cast-item-characters-link\"], [class*=\"character\"]'); const imgEl = row.querySelector('img'); if (nameEl) { cast.push({ name: nameEl.textContent.trim(), character: charEl ? charEl.textContent.trim().replace(/\\s+/g, ' ') : '', image: imgEl ? imgEl.getAttribute('src') : '', url: nameEl.href || '' }); } }); const crew = {}; const headers = document.querySelectorAll('#fullcredits_content > h4, [class*=\"Credits\"] h4, .ipc-title__text'); headers.forEach(function(h) { const role = h.textContent.trim().replace(/\\s+/g, ' '); const table = h.nextElementSibling; if (table && table.tagName === 'TABLE') { const names = []; table.querySelectorAll('tr').forEach(function(row) { const nameEl = row.querySelector('a[href*=\"/name/\"]'); if (nameEl) names.push(nameEl.textContent.trim()); }); if (names.length > 0) crew[role] = names.slice(0, 10); } }); const titleEl = document.querySelector('h3 a, [class*=\"parent\"] a, [data-testid=\"hero-title-block__title\"]'); const titleIdMatch = window.location.pathname.match(/\\/title\\/(tt\\d+)/); return { title_id: titleIdMatch ? titleIdMatch[1] : '', title: titleEl ? titleEl.textContent.trim() : '', cast_count: cast.length, cast: cast.slice(0, 30), crew: crew, url: window.location.href }",
       "name": "cast_data",
       "label": "Extract cast and crew"
     }

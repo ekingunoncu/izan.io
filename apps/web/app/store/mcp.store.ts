@@ -67,6 +67,8 @@ interface MCPState {
   disabledBuiltinMCPIds: string[]
   /** Last agent we activated MCPs for (for re-activation when disabled changes) */
   lastActivatedAgent: Agent | null
+  /** Maps dynamic tool name → automation server ID (e.g. 'search_reddit' → 'reddit') */
+  dynamicToolServerMap: Map<string, string>
   isInitialized: boolean
   error: string | null
 
@@ -162,6 +164,7 @@ export const useMCPStore = create<MCPState>((set, get) => ({
   activeServerIds: new Set(),
   disabledBuiltinMCPIds: [],
   lastActivatedAgent: null,
+  dynamicToolServerMap: new Map(),
   isInitialized: false,
   error: null,
   isExtensionInstalled: false,
@@ -391,6 +394,24 @@ export const useMCPStore = create<MCPState>((set, get) => ({
           }
         }
 
+        // Build dynamic tool → automation server mapping for filtering in getToolsForAgent()
+        const dynamicToolServerMap = new Map<string, string>()
+        for (const tool of autoStore.tools) {
+          dynamicToolServerMap.set(tool.name, tool.serverId)
+        }
+        try {
+          const { getCachedManifest } = await import('~/lib/mcp/remote-tools')
+          const manifest = getCachedManifest()
+          if (manifest) {
+            for (const server of manifest.servers) {
+              for (const toolName of server.tools) {
+                dynamicToolServerMap.set(toolName, server.id)
+              }
+            }
+          }
+        } catch { /* ignore */ }
+        set({ dynamicToolServerMap })
+
         const { syncToolDefinitions, syncAutomationToExtension } = await import('~/lib/mcp/extension-bridge')
         syncToolDefinitions([...userToolDefs, ...prebuiltToolDefs])
         syncAutomationToExtension(autoStore.servers, autoStore.tools)
@@ -551,6 +572,24 @@ export const useMCPStore = create<MCPState>((set, get) => ({
             // ignore
           }
         }
+
+        // Update dynamic tool → automation server mapping (additive for linked agents)
+        const dynamicToolServerMap = new Map(get().dynamicToolServerMap)
+        for (const tool of autoStore.tools) {
+          dynamicToolServerMap.set(tool.name, tool.serverId)
+        }
+        try {
+          const { getCachedManifest } = await import('~/lib/mcp/remote-tools')
+          const manifest = getCachedManifest()
+          if (manifest) {
+            for (const server of manifest.servers) {
+              for (const toolName of server.tools) {
+                dynamicToolServerMap.set(toolName, server.id)
+              }
+            }
+          }
+        } catch { /* ignore */ }
+        set({ dynamicToolServerMap })
 
         const { syncToolDefinitions, syncAutomationToExtension } = await import('~/lib/mcp/extension-bridge')
         syncToolDefinitions([...userToolDefs, ...prebuiltToolDefs])
@@ -801,8 +840,9 @@ export const useMCPStore = create<MCPState>((set, get) => ({
       }
     }
 
-    // 2. Extension MCP tools
+    // 2. Extension MCP tools (skip ext-dynamic here — handled in step 4 with filtering)
     for (const mcpId of extensionIds) {
+      if (mcpId === 'ext-dynamic') continue
       const server = registry.getServer(mcpId)
       if (server?.status === 'connected') {
         server.tools.forEach(addUnique)
@@ -817,12 +857,19 @@ export const useMCPStore = create<MCPState>((set, get) => ({
       }
     }
 
-    // 4. Automation tools (ext-dynamic) when agent has automationServerIds
+    // 4. Automation tools (ext-dynamic) — filtered to only tools belonging to agent's automationServerIds
     const automationServerIds = (agent as { automationServerIds?: string[] }).automationServerIds ?? []
     if (automationServerIds.length > 0) {
       const dynServer = registry.getServer('ext-dynamic')
       if (dynServer?.status === 'connected') {
-        dynServer.tools.forEach(addUnique)
+        const { dynamicToolServerMap } = get()
+        const allowedServerIds = new Set(automationServerIds)
+        dynServer.tools
+          .filter(t => {
+            const toolServerId = dynamicToolServerMap.get(t.name)
+            return toolServerId != null && allowedServerIds.has(toolServerId)
+          })
+          .forEach(addUnique)
       }
     }
 

@@ -1,7 +1,7 @@
 {
   "id": "discord-delete-messages",
   "name": "discord_delete_messages",
-  "description": "Delete your own recent messages in a Discord channel. Only deletes messages sent by you.",
+  "description": "Delete your own recent messages in a Discord channel by right-clicking each message and selecting Delete. Only deletes messages sent by you.",
   "version": "1.0.0",
   "parameters": [
     {
@@ -25,7 +25,7 @@
     },
     {
       "action": "waitForSelector",
-      "selector": "[id^='message-content-']",
+      "selector": "ol[data-list-id='chat-messages']",
       "timeout": 15000,
       "label": "Wait for messages"
     },
@@ -35,9 +35,9 @@
     },
     {
       "action": "code",
-      "code": "const maxDelete = Math.min(parseInt('{{count}}') || 3, 10); const channelId = window.location.href.split('/').pop(); let token = ''; try { const iframe = document.createElement('iframe'); iframe.style.display = 'none'; document.body.appendChild(iframe); token = iframe.contentWindow.localStorage.getItem('token'); if (token) token = token.replace(/\"/g, ''); document.body.removeChild(iframe); } catch(e) {} if (!token) { try { const req = new XMLHttpRequest(); req.open('GET', '/api/v9/users/@me', false); req.send(); } catch(e) {} return { success: false, message: 'Could not retrieve auth token. Please ensure you are logged into Discord.' }; } let deleted = 0; try { const res = await fetch('/api/v9/channels/' + channelId + '/messages?limit=50', { headers: { 'Authorization': token } }); const msgs = await res.json(); const userRes = await fetch('/api/v9/users/@me', { headers: { 'Authorization': token } }); const user = await userRes.json(); const myMsgs = msgs.filter(m => m.author.id === user.id).slice(0, maxDelete); for (const msg of myMsgs) { await fetch('/api/v9/channels/' + channelId + '/messages/' + msg.id, { method: 'DELETE', headers: { 'Authorization': token } }); deleted++; await new Promise(r => setTimeout(r, 1000 + Math.random() * 1000)); } } catch(e) { return { success: false, deleted: deleted, error: e.message }; } return { success: true, deleted_count: deleted, message: 'Deleted ' + deleted + ' messages' }",
+      "code": "const maxDelete = Math.min(parseInt('{{count}}') || 3, 10); let deleted = 0; const chatList = document.querySelector('ol[data-list-id=\"chat-messages\"]'); if (!chatList) return { success: false, deleted_count: 0, message: 'Chat list not found' }; const msgEls = Array.from(chatList.querySelectorAll('li[id^=\"chat-messages-\"]')).reverse(); for (const el of msgEls) { if (deleted >= maxDelete) break; const hoverBtns = el.querySelector('div[role=\"toolbar\"], div[aria-label=\"Message Actions\"]'); if (!hoverBtns) { el.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true })); await new Promise(r => setTimeout(r, 500)); } const moreBtn = el.querySelector('button[aria-label=\"More\"], button[aria-label*=\"more\"]') || el.querySelector('div[role=\"toolbar\"] button:last-child'); if (!moreBtn) continue; moreBtn.click(); await new Promise(r => setTimeout(r, 500)); const menuItems = document.querySelectorAll('[role=\"menuitem\"], [id*=\"message-actions\"] [role=\"button\"]'); let deleteBtn = null; for (const item of menuItems) { const text = item.textContent.trim().toLowerCase(); if (text.includes('delete') && !text.includes('thread')) { deleteBtn = item; break; } } if (!deleteBtn) { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); continue; } deleteBtn.click(); await new Promise(r => setTimeout(r, 500)); const confirmBtn = document.querySelector('button[type=\"submit\"], div[role=\"dialog\"] button:last-child'); const allBtns = document.querySelectorAll('div[role=\"dialog\"] button'); for (const btn of allBtns) { const text = btn.textContent.trim().toLowerCase(); if (text.includes('delete') || text.includes('confirm')) { btn.click(); deleted++; break; } } await new Promise(r => setTimeout(r, 1500)); } return { success: true, deleted_count: deleted, message: 'Deleted ' + deleted + ' messages' }",
       "name": "result",
-      "label": "Delete own messages via API"
+      "label": "Delete own messages via context menu"
     }
   ]
 }

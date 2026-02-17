@@ -1,23 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
-  Bot,
-  Search,
-  Code,
-  Calendar,
-  Mail,
-  Database,
-  Globe,
-  FileText,
-  Puzzle,
-  Zap,
-  Shield,
   MessageSquare,
-  Lightbulb,
-  TrendingUp,
-  Briefcase,
-  MapPin,
-  Store,
   Plus,
   Trash2,
   ChevronLeft,
@@ -28,19 +12,6 @@ import {
   AlertCircle,
   CalendarClock,
 } from 'lucide-react'
-import {
-  JiraIcon,
-  SlackIcon,
-  GitHubIcon,
-  NotionIcon,
-  WhatsAppIcon,
-  TrelloIcon,
-  XIcon,
-  DiscordIcon,
-  LinkedInIcon,
-  RedditIcon,
-  GoogleMapsIcon,
-} from '~/components/ui/platform-icons'
 import { Button } from '~/components/ui/button'
 import {
   AlertDialog,
@@ -56,39 +27,9 @@ import { useAgentStore, useChatStore, useUIStore, useMCPStore } from '~/store'
 import type { Chat } from '~/store'
 import { cn } from '~/lib/utils'
 import { getAgentDisplayName, getAgentDisplayDescription } from '~/lib/agent-display'
-import { AgentSelector } from './AgentSelector'
+import { AgentSelector, AgentIconDisplay } from './AgentSelector'
 
-// Icon mapping for agents
-const agentIcons: Record<string, typeof Bot> = {
-  'bot': Bot,
-  'search': Search,
-  'code': Code,
-  'calendar': Calendar,
-  'mail': Mail,
-  'database': Database,
-  'globe': Globe,
-  'file-text': FileText,
-  'puzzle': Puzzle,
-  'zap': Zap,
-  'shield': Shield,
-  'message-square': MessageSquare,
-  'lightbulb': Lightbulb,
-  'trending-up': TrendingUp,
-  'briefcase': Briefcase,
-  'map-pin': MapPin,
-  'store': Store,
-  'twitter': XIcon,
-  'jira': JiraIcon,
-  'slack': SlackIcon,
-  'github': GitHubIcon,
-  'notion': NotionIcon,
-  'whatsapp': WhatsAppIcon,
-  'trello': TrelloIcon,
-  'discord': DiscordIcon,
-  'linkedin': LinkedInIcon,
-  'reddit': RedditIcon,
-  'google-maps': GoogleMapsIcon,
-}
+// Icon mapping removed — now using shared AgentIconDisplay from AgentSelector
 
 /** Get icon and style for a task status */
 function getTaskStatusIcon(status?: string): { Icon: typeof MessageSquare; iconClass: string } {
@@ -237,7 +178,7 @@ export function AgentSidebar() {
     setDeleteChatId(null)
   }
 
-  const AgentIcon = currentAgent ? (agentIcons[currentAgent.icon] || Bot) : Bot
+  const agentIconId = currentAgent?.icon || 'bot'
 
   const sidebarContent = (
     <>
@@ -250,7 +191,7 @@ export function AgentSidebar() {
               className="w-full flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-muted transition-colors text-left cursor-pointer"
             >
               <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                <AgentIcon className="h-4 w-4 text-primary" />
+                <AgentIconDisplay iconId={agentIconId} className="h-4 w-4 text-primary" emojiClassName="text-base leading-none" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="font-medium text-sm truncate">{getAgentDisplayName(currentAgent, t) || 'Agent'}</div>
@@ -279,7 +220,7 @@ export function AgentSidebar() {
               className="relative w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors cursor-pointer"
               title={getAgentDisplayName(currentAgent, t)}
             >
-              <AgentIcon className="h-5 w-5 text-primary" />
+              <AgentIconDisplay iconId={agentIconId} className="h-5 w-5 text-primary" emojiClassName="text-lg leading-none" />
             </button>
             {/* Collapsed agent selector (desktop only - collapse button hidden on mobile) */}
             {isAgentSelectorOpen && (

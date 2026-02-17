@@ -1,0 +1,50 @@
+{
+  "id": "kaggle-bulk-search",
+  "name": "kaggle_bulk_search",
+  "description": "Search multiple queries on Kaggle in parallel. Pass comma-separated queries. Returns results from each query.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "queries",
+      "type": "string",
+      "description": "Comma-separated search queries (e.g. 'titanic,image classification,NLP')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{queries}}`.split(',').map(q => ({ url: 'https://www.kaggle.com/search?q=' + encodeURIComponent(q.trim()), query: q.trim() }))",
+      "name": "items",
+      "label": "Build URL list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 3,
+      "maxItems": 10,
+      "waitUntil": "load",
+      "label": "Search each query in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": "a[href*='/datasets/'], a[href*='/competitions/'], a[href*='/code/'], ul[role='list']",
+          "timeout": 15000,
+          "label": "Wait for search results"
+        },
+        {
+          "action": "wait",
+          "ms": 3000
+        },
+        {
+          "action": "code",
+          "code": "const results = []; const seen = new Set(); document.querySelectorAll('a[href]').forEach(a => { const href = a.getAttribute('href') || ''; if (seen.has(href) || !href.startsWith('/')) return; const isMatch = href.match(/^\\/(?:datasets|competitions|code|models)\\/[^/]+(?:\\/[^/]+)?/); if (!isMatch) return; const title = a.textContent.trim(); if (!title || title.length > 200 || title.length < 3) return; seen.add(href); results.push({ title: title.substring(0, 200), url: 'https://www.kaggle.com' + href }); }); return { result_count: results.length, results: results.slice(0, 10) };",
+          "name": "search_results",
+          "label": "Extract search results"
+        }
+      ]
+    }
+  ]
+}

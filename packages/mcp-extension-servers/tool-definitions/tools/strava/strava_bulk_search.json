@@ -1,0 +1,50 @@
+{
+  "id": "strava-bulk-search",
+  "name": "strava_bulk_search",
+  "description": "Search multiple queries on Strava in parallel.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "queries",
+      "type": "string",
+      "description": "Comma-separated search queries",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{queries}}`.split(',').map(q => ({ url: 'https://www.strava.com/athletes/search?utf8=%E2%9C%93&text=' + encodeURIComponent(q.trim()) + '', query: q.trim() }))",
+      "name": "items",
+      "label": "Build URL list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 3,
+      "maxItems": 10,
+      "waitUntil": "load",
+      "label": "Search in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": ".athlete-list, .search-results, .content",
+          "timeout": 15000,
+          "label": "Wait"
+        },
+        {
+          "action": "wait",
+          "ms": 2000
+        },
+        {
+          "action": "code",
+          "code": "const results = []; document.querySelectorAll('.athlete-list li, .search-results .row, .text-headline a[href*=\"/athletes/\"]').forEach((el, i) => { if (i < 15) { const nameEl = el.querySelector('a[href*=\"/athletes/\"], .text-headline'); const locEl = el.querySelector('.location, .text-caption'); results.push({ name: nameEl?.textContent?.trim() || '', url: nameEl?.href || '', location: locEl?.textContent?.trim() || '' }); } }); return { query: new URLSearchParams(window.location.search).get('text') || '', result_count: results.length, results };",
+          "name": "results",
+          "label": "Extract"
+        }
+      ]
+    }
+  ]
+}

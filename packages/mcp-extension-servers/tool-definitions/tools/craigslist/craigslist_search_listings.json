@@ -1,0 +1,54 @@
+{
+  "id": "craigslist-search-listings",
+  "name": "craigslist_search_listings",
+  "description": "Search Craigslist for-sale listings in a specific city. Returns results with title, price, and URL.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "city",
+      "type": "string",
+      "description": "City slug (e.g. \"newyork\", \"sfbay\", \"chicago\", \"losangeles\")",
+      "required": true
+    },
+    {
+      "name": "query",
+      "type": "string",
+      "description": "Search query",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://{{city}}.craigslist.org/search/sss?query={{query}}",
+      "label": "Open Craigslist city search"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".cl-search-result, .result-row, .cl-static-search-result, body",
+      "timeout": 15000,
+      "label": "Wait for page"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll for more"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const results = []; document.querySelectorAll('.cl-search-result, .result-row, .cl-static-search-result').forEach((el, i) => { if (i < 20) { const titleEl = el.querySelector('a.posting-title, a.result-title, .titlestring, a.cl-app-anchor'); const priceEl = el.querySelector('.priceinfo, .result-price'); results.push({ title: titleEl?.textContent?.trim() || '', url: titleEl?.href || '', price: priceEl?.textContent?.trim() || '' }); } }); return { city: '{{city}}', query: '{{query}}', result_count: results.length, results };",
+      "name": "result",
+      "label": "Extract data"
+    }
+  ]
+}

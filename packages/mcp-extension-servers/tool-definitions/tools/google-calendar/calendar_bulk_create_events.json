@@ -1,22 +1,22 @@
 {
   "id": "calendar-bulk-create-events",
   "name": "calendar_bulk_create_events",
-  "description": "Create multiple Google Calendar events in parallel using concurrent browser tabs. Pass a JSON array of event objects, each with title, date (YYYY-MM-DD), and optional time (HH:MM). Use this instead of calling calendar_create_event multiple times.",
+  "description": "Create multiple Google Calendar events in parallel using concurrent browser tabs. Pass a JSON array of event objects, each with title, date (YYYY-MM-DD), and optional time (HH:MM) and duration in minutes. Use this instead of calling calendar_create_event multiple times.",
   "version": "1.0.0",
   "parameters": [
     {
       "name": "events_json",
       "type": "string",
-      "description": "JSON array of event objects, e.g. '[{\"title\":\"Meeting\",\"date\":\"2026-03-01\",\"time\":\"10:00\"},{\"title\":\"Lunch\",\"date\":\"2026-03-01\",\"time\":\"12:30\"}]'",
+      "description": "JSON array of event objects, e.g. '[{\"title\":\"Meeting\",\"date\":\"2026-03-01\",\"time\":\"10:00\"},{\"title\":\"Lunch\",\"date\":\"2026-03-01\",\"time\":\"12:30\",\"duration\":\"90\"}]'",
       "required": true
     }
   ],
   "steps": [
     {
       "action": "code",
-      "code": "const events = JSON.parse(`{{events_json}}`); return events.map(e => ({ url: 'https://calendar.google.com/calendar/r', title: e.title || 'Untitled Event', date: e.date || '', time: e.time || '' }))",
+      "code": "const events = JSON.parse(`{{events_json}}`); return events.map(e => { const title = e.title || 'Untitled Event'; const date = (e.date || '').replace(/-/g, ''); const dur = parseInt(e.duration) || 60; let dates = ''; if (e.time && date) { const [h, m] = e.time.split(':'); const startMin = parseInt(h) * 60 + (parseInt(m) || 0); const endMin = startMin + dur; const endH = String(Math.floor(endMin / 60) % 24).padStart(2, '0'); const endM = String(endMin % 60).padStart(2, '0'); dates = date + 'T' + String(h).padStart(2, '0') + String(m || '00').padStart(2, '0') + '00/' + date + 'T' + endH + endM + '00'; } else if (date) { const d = new Date(parseInt(date.slice(0,4)), parseInt(date.slice(4,6))-1, parseInt(date.slice(6,8))+1); const next = d.getFullYear() + String(d.getMonth()+1).padStart(2,'0') + String(d.getDate()).padStart(2,'0'); dates = date + '/' + next; } const p = new URLSearchParams(); p.set('text', title); if (dates) p.set('dates', dates); if (e.description) p.set('details', e.description); return { url: 'https://calendar.google.com/calendar/r/eventedit?' + p.toString(), title: title, date: e.date || '', time: e.time || '' }; })",
       "name": "items",
-      "label": "Parse events JSON into item list"
+      "label": "Parse events JSON and build eventedit URLs"
     },
     {
       "action": "forEachItem",
@@ -30,37 +30,20 @@
       "detailSteps": [
         {
           "action": "waitForSelector",
-          "selector": "[role='main'], [data-eventid], .FAxxKc",
+          "selector": "input[aria-label='Title'], [data-key='title'], input[placeholder='Add title'], input[aria-label='Add title'], [aria-label='Save']",
           "timeout": 20000,
-          "label": "Wait for calendar to load"
+          "label": "Wait for event creation form to load"
         },
         {
           "action": "wait",
           "ms": 2000,
-          "label": "Let calendar render"
+          "label": "Let form fully render with pre-filled data"
         },
         {
           "action": "code",
-          "code": "const createBtn = document.querySelector('[data-view=\"0\"] button, [aria-label=\"Create\"], button[data-tooltip=\"Create\"]'); if (createBtn) { createBtn.click(); } else { const fabBtn = document.querySelector('.h-fab, .FAB, [jsname=\"rhPCBd\"]'); if (fabBtn) fabBtn.click(); else return { error: 'Could not find Create button' }; } await new Promise(r => setTimeout(r, 2000)); return { form_opened: true }",
-          "name": "open_form",
-          "label": "Click Create button"
-        },
-        {
-          "action": "waitForSelector",
-          "selector": "input[aria-label='Title'], [data-key='title'], input[placeholder='Add title'], input[aria-label='Add title']",
-          "timeout": 10000,
-          "label": "Wait for event form"
-        },
-        {
-          "action": "wait",
-          "ms": 1000,
-          "label": "Let form render"
-        },
-        {
-          "action": "code",
-          "code": "const item = {{CURRENT_ITEM}}; const nativeSet = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set; const titleInput = document.querySelector('input[aria-label=\"Title\"], [data-key=\"title\"] input, input[placeholder=\"Add title\"], input[aria-label=\"Add title\"]'); if (!titleInput) return { error: 'Could not find title input' }; titleInput.focus(); titleInput.click(); await new Promise(r => setTimeout(r, 300)); nativeSet.call(titleInput, item.title); titleInput.dispatchEvent(new Event('input', { bubbles: true })); titleInput.dispatchEvent(new Event('change', { bubbles: true })); await new Promise(r => setTimeout(r, 500)); const moreBtn = document.querySelector('[aria-label=\"More options\"], button[data-tooltip=\"More options\"]'); if (moreBtn) { moreBtn.click(); await new Promise(r => setTimeout(r, 2500)); } if (item.date) { const dateInput = document.querySelector('input[aria-label*=\"date\" i], input[aria-label*=\"Start date\" i]'); if (dateInput) { const [y, m, d] = item.date.split('-'); const dateObj = new Date(parseInt(y), parseInt(m) - 1, parseInt(d)); const formatted = dateObj.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }); dateInput.focus(); dateInput.click(); await new Promise(r => setTimeout(r, 300)); nativeSet.call(dateInput, formatted); dateInput.dispatchEvent(new Event('input', { bubbles: true })); dateInput.dispatchEvent(new Event('change', { bubbles: true })); dateInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', keyCode: 13, bubbles: true })); await new Promise(r => setTimeout(r, 500)); } } if (item.time) { const timeInput = document.querySelector('input[aria-label*=\"Start time\" i], input[aria-label*=\"time\" i]'); if (timeInput) { const [h, min] = item.time.split(':'); const hrs = parseInt(h); const mins = parseInt(min) || 0; const ampm = hrs >= 12 ? 'PM' : 'AM'; const hr12 = hrs === 0 ? 12 : hrs > 12 ? hrs - 12 : hrs; const timeStr = hr12 + ':' + String(mins).padStart(2, '0') + ampm; timeInput.focus(); timeInput.click(); await new Promise(r => setTimeout(r, 300)); nativeSet.call(timeInput, timeStr); timeInput.dispatchEvent(new Event('input', { bubbles: true })); timeInput.dispatchEvent(new Event('change', { bubbles: true })); timeInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', keyCode: 13, bubbles: true })); await new Promise(r => setTimeout(r, 500)); } } await new Promise(r => setTimeout(r, 500)); const saveBtn = document.querySelector('[aria-label=\"Save\"], button[data-tooltip=\"Save\"]'); if (!saveBtn) { const allBtns = [...document.querySelectorAll('button, [role=\"button\"]')]; const save = allBtns.find(b => (b.textContent || '').trim().toLowerCase() === 'save'); if (save) save.click(); else return { error: 'Could not find Save button' }; } else { saveBtn.click(); } await new Promise(r => setTimeout(r, 2000)); return { success: true, title: item.title, date: item.date, time: item.time || 'all-day' }",
+          "code": "const saveBtn = document.querySelector('[aria-label=\"Save\"], button[data-tooltip=\"Save\"]'); if (!saveBtn) { const allBtns = [...document.querySelectorAll('button, [role=\"button\"]')]; const save = allBtns.find(b => (b.textContent || '').trim().toLowerCase() === 'save'); if (save) save.click(); else return { error: 'Could not find Save button' }; } else { saveBtn.click(); } await new Promise(r => setTimeout(r, 3000)); const params = new URLSearchParams(window.location.search); return { success: true, title: params.get('text') || '', url: window.location.href }",
           "name": "create_result",
-          "label": "Fill in event details and save"
+          "label": "Click Save to create the event"
         }
       ]
     }

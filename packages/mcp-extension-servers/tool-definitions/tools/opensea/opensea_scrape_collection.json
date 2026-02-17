@@ -1,0 +1,48 @@
+{
+  "id": "opensea-scrape-collection",
+  "name": "opensea_scrape_collection",
+  "description": "Scrape an NFT collection page on OpenSea. Returns collection name, description, stats (floor price, total volume, items, owners), and URL.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "collection_slug",
+      "type": "string",
+      "description": "Collection slug from URL (e.g. 'boredapeyachtclub', 'azuki', 'cryptopunks')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://opensea.io/collection/{{collection_slug}}",
+      "label": "Open OpenSea collection page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "h1, [data-testid], [class*='collection']",
+      "timeout": 15000,
+      "label": "Wait for collection page to load"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Let collection data render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 800,
+      "label": "Scroll to load stats"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const name = document.querySelector('h1')?.textContent?.trim() || ''; const descEl = document.querySelector('[class*=\"description\"], [class*=\"Description\"], p[class]'); const desc = descEl?.textContent?.trim()?.slice(0, 500) || ''; const stats = {}; const statElements = document.querySelectorAll('[class*=\"stat\"], [class*=\"Stat\"], [class*=\"StatsItem\"], [class*=\"stats\"] > div'); statElements.forEach(el => { const texts = el.querySelectorAll('span, div, p'); if (texts.length >= 2) { const value = texts[0]?.textContent?.trim() || ''; const label = texts[texts.length - 1]?.textContent?.trim()?.toLowerCase() || ''; if (label && value) stats[label] = value; } }); if (Object.keys(stats).length === 0) { const allText = document.body.innerText; const floorMatch = allText.match(/floor[\\s:]+([\\d.,]+\\s*(?:ETH|MATIC|SOL)?)/i); const volumeMatch = allText.match(/(?:total\\s+)?volume[\\s:]+([\\d.,]+\\s*(?:ETH|MATIC|SOL|K|M)?)/i); const itemsMatch = allText.match(/items?[\\s:]+([\\d.,K]+)/i); const ownersMatch = allText.match(/owners?[\\s:]+([\\d.,K]+)/i); if (floorMatch) stats['floor price'] = floorMatch[1]; if (volumeMatch) stats['total volume'] = volumeMatch[1]; if (itemsMatch) stats['items'] = itemsMatch[1]; if (ownersMatch) stats['owners'] = ownersMatch[1]; } const items = []; document.querySelectorAll('a[data-id=\"Item\"], [class*=\"AssetCard\"]').forEach((el, i) => { if (i < 10) { const nameEl = el.querySelector('[data-testid=\"ItemCardFooter-name\"], [class*=\"name\"], span'); const priceEl = el.querySelector('[data-testid=\"ItemCardPrice\"], [class*=\"price\"]'); items.push({ name: nameEl?.textContent?.trim() || '', price: priceEl?.textContent?.trim() || '', url: el.href || el.querySelector('a')?.href || '' }); } }); return { name: name, description: desc, stats: stats, sample_items: items, url: window.location.href }",
+      "name": "result",
+      "label": "Extract collection data"
+    }
+  ]
+}

@@ -1,0 +1,48 @@
+{
+  "id": "discogs-scrape-label",
+  "name": "discogs_scrape_label",
+  "description": "Scrape a Discogs label page. Returns name, profile, and catalog.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "label_url",
+      "type": "string",
+      "description": "Discogs label URL",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{label_url}}",
+      "label": "Open page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "h1, [class*=\"title\"], .profile",
+      "timeout": 15000,
+      "label": "Wait for content"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll for more"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const name = document.querySelector('h1')?.textContent?.trim()||''; const profile = document.querySelector('.profile, [class*=\"Profile\"]')?.textContent?.trim()?.substring(0,1000)||''; const releases = Array.from(document.querySelectorAll('table tbody tr')).slice(0,30).map(row => { const t = row.querySelector('a[href*=\"/release/\"], a[href*=\"/master/\"]'); const cat = row.querySelector('td:first-child')?.textContent?.trim()||''; const artist = row.querySelector('td:nth-child(2) a')?.textContent?.trim()||''; return { title: t?t.textContent.trim():'', catalog: cat, artist }; }).filter(r=>r.title); return { name, profile, catalog: releases, url: window.location.href }",
+      "name": "page_data",
+      "label": "Extract data"
+    }
+  ]
+}

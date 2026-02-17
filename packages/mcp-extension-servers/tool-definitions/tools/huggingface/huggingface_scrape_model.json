@@ -1,0 +1,48 @@
+{
+  "id": "huggingface-scrape-model",
+  "name": "huggingface_scrape_model",
+  "description": "Scrape a specific model page on Hugging Face. Returns model info, tags, downloads, and model card summary.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "model_id",
+      "type": "string",
+      "description": "Model ID (e.g. 'meta-llama/Llama-3-8B')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://huggingface.co/{{model_id}}",
+      "label": "Open model page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "h1, .prose, main",
+      "timeout": 15000,
+      "label": "Wait for page"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll for model card"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const title = document.querySelector('h1')?.textContent?.trim() || ''; const tags = Array.from(document.querySelectorAll('a[href*=\"/models?\"]')).slice(0, 10).map(t => t.textContent.trim()); const dlEl = document.querySelector('[title*=\"download\"], [title*=\"Download\"]'); const downloads = dlEl?.textContent?.trim() || ''; const likesEl = document.querySelector('button[title*=\"Like\"], button[title*=\"like\"]'); const likes = likesEl?.textContent?.trim() || ''; const card = document.querySelector('.prose')?.innerText?.substring(0, 2000) || ''; return { model_id: '{{model_id}}', title, tags, downloads, likes, model_card_summary: card, url: window.location.href };",
+      "name": "model_data",
+      "label": "Extract model info"
+    }
+  ]
+}

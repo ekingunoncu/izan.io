@@ -19,7 +19,7 @@
     },
     {
       "action": "waitForSelector",
-      "selector": "[id^='message-content-'], [class*='messageContent']",
+      "selector": "ol[data-list-id='chat-messages']",
       "timeout": 15000,
       "label": "Wait for messages to load"
     },
@@ -30,7 +30,7 @@
     },
     {
       "action": "code",
-      "code": "const messages = []; const msgEls = document.querySelectorAll('[id^=\"chat-messages-\"] > div[class*=\"message\"], li[id^=\"chat-messages-\"]'); for (let i = Math.max(0, msgEls.length - 20); i < msgEls.length; i++) { const el = msgEls[i]; const authorEl = el.querySelector('[class*=\"username\"], span[class*=\"headerText\"] span'); const contentEl = el.querySelector('[id^=\"message-content-\"], div[class*=\"messageContent\"]'); const timeEl = el.querySelector('time'); if (contentEl && contentEl.textContent.trim()) { messages.push({ author: authorEl ? authorEl.textContent.trim() : '', content: contentEl ? contentEl.textContent.trim() : '', timestamp: timeEl ? timeEl.getAttribute('datetime') || timeEl.textContent.trim() : '' }); } } return { message_count: messages.length, channel_url: window.location.href, messages: messages }",
+      "code": "const messages = []; const chatList = document.querySelector('ol[data-list-id=\"chat-messages\"]'); if (!chatList) return { message_count: 0, channel_url: window.location.href, messages: [] }; const msgEls = chatList.querySelectorAll('li[id^=\"chat-messages-\"]'); for (let i = Math.max(0, msgEls.length - 20); i < msgEls.length; i++) { const el = msgEls[i]; const headerEl = el.querySelector('h3'); const authorEl = headerEl ? headerEl.querySelector('span[id^=\"message-username-\"]') : null; const contentEl = el.querySelector('div[id^=\"message-content-\"]'); const timeEl = el.querySelector('time'); if (contentEl && contentEl.textContent.trim()) { messages.push({ author: authorEl ? authorEl.textContent.trim() : '', content: contentEl.textContent.trim(), timestamp: timeEl ? timeEl.getAttribute('datetime') || timeEl.textContent.trim() : '' }); } } return { message_count: messages.length, channel_url: window.location.href, messages: messages }",
       "name": "channel_messages",
       "label": "Extract messages"
     }

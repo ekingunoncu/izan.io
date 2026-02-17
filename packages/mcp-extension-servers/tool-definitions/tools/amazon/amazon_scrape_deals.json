@@ -7,7 +7,7 @@
   "steps": [
     {
       "action": "navigate",
-      "url": "https://www.amazon.com/deals",
+      "url": "https://www.amazon.com/gp/goldbox",
       "label": "Open Amazon deals page"
     },
     {

@@ -1,21 +1,24 @@
 {
   "id": "news-scrape-topic",
   "name": "news_scrape_topic",
-  "description": "Scrape news articles for a specific topic on Google News. Common topics include: WORLD, NATION, BUSINESS, TECHNOLOGY, ENTERTAINMENT, SPORTS, SCIENCE, HEALTH. Returns up to 20 articles with title, source, time, and URL.",
+  "description": "Scrape news articles for a specific topic on Google News. Pass any topic name like 'technology', 'business', 'sports', 'science', 'health', 'world', 'entertainment', 'politics', 'climate change', etc. Returns up to 20 articles with title, source, time, and URL.",
   "version": "1.0.0",
   "parameters": [
     {
       "name": "topic",
       "type": "string",
-      "description": "Topic slug (e.g. 'TECHNOLOGY', 'BUSINESS', 'SPORTS', 'SCIENCE', 'HEALTH', 'WORLD', 'NATION', 'ENTERTAINMENT')",
+      "description": "Topic name (e.g. 'technology', 'business', 'sports', 'science', 'health', 'world', 'entertainment', 'politics')",
       "required": true
     }
   ],
   "steps": [
     {
       "action": "navigate",
-      "url": "https://news.google.com/topics/{{topic}}",
-      "label": "Open Google News topic page"
+      "url": "https://news.google.com/search",
+      "urlParams": {
+        "q": "{{topic}}"
+      },
+      "label": "Search Google News for topic"
     },
     {
       "action": "waitForSelector",
@@ -40,7 +43,7 @@
     },
     {
       "action": "code",
-      "code": "const articles = []; const items = document.querySelectorAll('article, c-wiz article'); for (let i = 0; i < Math.min(items.length, 20); i++) { const item = items[i]; const linkEl = item.querySelector('a[href*=\"./articles/\"], a[href*=\"./read/\"], a[href^=\"https\"]'); const titleEl = linkEl ? linkEl.querySelector('h3, h4, .JtKRv') || linkEl : null; const sourceEl = item.querySelector('.vr1PYe, [data-n-tid], .wsn2rd, div > div > a[data-n-tid]'); const timeEl = item.querySelector('time, .hvbAAd, datetime'); const snippetEl = item.querySelector('.GI74Re, .xBbh9, .Y8wuc'); let url = ''; if (linkEl) { const href = linkEl.getAttribute('href') || ''; if (href.startsWith('./')) { url = 'https://news.google.com/' + href.slice(2); } else if (href.startsWith('http')) { url = href; } else { url = 'https://news.google.com/' + href; } } articles.push({ title: titleEl ? titleEl.textContent.trim() : '', source: sourceEl ? sourceEl.textContent.trim() : '', time: timeEl ? (timeEl.getAttribute('datetime') || timeEl.textContent.trim()) : '', snippet: snippetEl ? snippetEl.textContent.trim().slice(0, 300) : '', url: url }); } return { topic: '{{topic}}', source: 'Google News - Topic', article_count: articles.length, articles: articles }",
+      "code": "const articles = []; const items = document.querySelectorAll('article, c-wiz article'); for (let i = 0; i < Math.min(items.length, 20); i++) { const item = items[i]; const linkEl = item.querySelector('a[href*=\"./articles/\"], a[href*=\"./read/\"], a[href^=\"https\"]'); const titleEl = linkEl ? linkEl.querySelector('h3, h4, .JtKRv') || linkEl : null; const sourceEl = item.querySelector('.vr1PYe, [data-n-tid], .wsn2rd, div > div > a[data-n-tid]'); const timeEl = item.querySelector('time, .hvbAAd, datetime'); const snippetEl = item.querySelector('.GI74Re, .xBbh9, .Y8wuc'); let url = ''; if (linkEl) { const href = linkEl.getAttribute('href') || ''; if (href.startsWith('./')) { url = 'https://news.google.com/' + href.slice(2); } else if (href.startsWith('http')) { url = href; } else { url = 'https://news.google.com/' + href; } } articles.push({ title: titleEl ? titleEl.textContent.trim() : '', source: sourceEl ? sourceEl.textContent.trim() : '', time: timeEl ? (timeEl.getAttribute('datetime') || timeEl.textContent.trim()) : '', snippet: snippetEl ? snippetEl.textContent.trim().slice(0, 300) : '', url: url }); } const urlParams = new URLSearchParams(window.location.search); return { topic: urlParams.get('q') || '{{topic}}', source: 'Google News - Topic', article_count: articles.length, articles: articles }",
       "name": "topic_data",
       "label": "Extract topic articles"
     }

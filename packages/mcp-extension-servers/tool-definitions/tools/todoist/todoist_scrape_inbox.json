@@ -1,0 +1,41 @@
+{
+  "id": "todoist-scrape-inbox",
+  "name": "todoist_scrape_inbox",
+  "description": "Scrape the Todoist inbox. Returns all inbox tasks with titles, due dates, and priorities. Requires login.",
+  "version": "1.0.0",
+  "parameters": [],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://app.todoist.com/app/inbox",
+      "label": "Open page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".task_list_item, [class*=\"task_list_item\"], [data-testid=\"task\"]",
+      "timeout": 15000,
+      "label": "Wait for content"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll for more"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const tasks = Array.from(document.querySelectorAll('.task_list_item, [class*=\"task_list_item\"], [data-testid=\"task\"]')).slice(0,50).map(el => { const title = el.querySelector('.task_content, [class*=\"task_content\"], [data-testid=\"task-name\"]')?.textContent?.trim()||''; const due = el.querySelector('.date, [class*=\"due_date\"], time')?.textContent?.trim()||''; const priority = el.querySelector('[class*=\"priority\"]')?.className?.match(/priority_(\\d)/)?.[1]||''; const labels = Array.from(el.querySelectorAll('[class*=\"label\"], .tag')).map(l=>l.textContent.trim()); return { title, due_date: due, priority, labels }; }).filter(t=>t.title); return { project: 'Inbox', tasks }",
+      "name": "page_data",
+      "label": "Extract data"
+    }
+  ]
+}

@@ -19,7 +19,7 @@
     },
     {
       "action": "waitForSelector",
-      "selector": "[role='feed'], div[role='feed']",
+      "selector": "div[role='feed']",
       "timeout": 15000,
       "label": "Wait for results feed"
     },
@@ -41,7 +41,7 @@
     },
     {
       "action": "code",
-      "code": "const results = []; const feed = document.querySelector('[role=\"feed\"]'); if (!feed) return { result_count: 0, results: [] }; const items = feed.querySelectorAll('div[jsaction] a[href*=\"/maps/place/\"]'); const seen = new Set(); for (let i = 0; i < items.length && results.length < 10; i++) { const link = items[i]; const href = link.href; if (seen.has(href)) continue; seen.add(href); const container = link.closest('div[jsaction]'); if (!container) continue; const nameEl = container.querySelector('.fontHeadlineSmall, .qBF1Pd'); const ratingEl = container.querySelector('span[role=\"img\"]'); const categoryEl = container.querySelector('.fontBodyMedium span[style*=\"color\"]'); const addressEl = container.querySelectorAll('.fontBodyMedium span'); let address = ''; for (const sp of addressEl) { const t = sp.textContent.trim(); if (t.length > 10 && !t.includes('·') && !t.includes('star')) { address = t; break; } } results.push({ name: nameEl ? nameEl.textContent.trim() : 'Unknown', rating: ratingEl ? ratingEl.getAttribute('aria-label') : '', category: categoryEl ? categoryEl.textContent.trim() : '', address: address, url: href }); } return { result_count: results.length, results: results }",
+      "code": "const results = []; const feed = document.querySelector('[role=\"feed\"]'); if (!feed) return { result_count: 0, results: [] }; const items = feed.querySelectorAll('a.hfpxzc, div[jsaction] a[href*=\"/maps/place/\"]'); const seen = new Set(); for (let i = 0; i < items.length && results.length < 10; i++) { const link = items[i]; const href = link.href; if (seen.has(href)) continue; seen.add(href); const container = link.closest('div[jsaction]') || link.parentElement; if (!container) continue; const nameEl = container.querySelector('.qBF1Pd, .fontHeadlineSmall'); const ratingEl = container.querySelector('span[role=\"img\"]'); const categoryEl = container.querySelector('.fontBodyMedium span[style*=\"color\"]'); const addressEl = container.querySelectorAll('.fontBodyMedium span'); let address = ''; for (const sp of addressEl) { const t = sp.textContent.trim(); if (t.length > 10 && !t.includes('\\u00b7') && !t.includes('star')) { address = t; break; } } results.push({ name: nameEl ? nameEl.textContent.trim() : (link.getAttribute('aria-label') || 'Unknown'), rating: ratingEl ? ratingEl.getAttribute('aria-label') : '', category: categoryEl ? categoryEl.textContent.trim() : '', address: address, url: href }); } return { result_count: results.length, results: results }",
       "name": "search_results",
       "label": "Extract search results"
     }

@@ -1,0 +1,48 @@
+{
+  "id": "kaggle-search-models",
+  "name": "kaggle_search_models",
+  "description": "Search Kaggle ML models. Returns model names, URLs, frameworks, and download counts.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "query",
+      "type": "string",
+      "description": "Model search query (e.g. 'bert', 'resnet', 'llama')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://www.kaggle.com/models?search={{query}}",
+      "label": "Open models search"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "a[href*='/models/']",
+      "timeout": 15000,
+      "label": "Wait for model results"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Let results render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 800,
+      "label": "Scroll for more results"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const results = []; const seen = new Set(); document.querySelectorAll('a[href*=\"/models/\"]').forEach(a => { const href = a.getAttribute('href') || ''; if (!href.match(/^\\/models\\/[^/]+\\/[^/]+/) || seen.has(href)) return; seen.add(href); const title = a.textContent.trim(); if (!title || title.length > 200 || title.length < 3) return; const parent = a.closest('li') || a.parentElement; const metadata = parent ? Array.from(parent.querySelectorAll('span, p')).map(e => e.textContent.trim()).filter(t => t.length > 3 && t !== title).slice(0, 3) : []; results.push({ title: title.substring(0, 200), url: 'https://www.kaggle.com' + href, metadata: metadata.join(' | ') }); }); return { query: '{{query}}', result_count: results.length, results: results.slice(0, 15) };",
+      "name": "results",
+      "label": "Extract models"
+    }
+  ]
+}

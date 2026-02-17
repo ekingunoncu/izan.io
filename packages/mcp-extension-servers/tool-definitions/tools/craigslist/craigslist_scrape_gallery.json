@@ -1,0 +1,48 @@
+{
+  "id": "craigslist-scrape-gallery",
+  "name": "craigslist_scrape_gallery",
+  "description": "Scrape the gallery/thumbnail view of Craigslist search results with images.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "search_url",
+      "type": "string",
+      "description": "Craigslist search URL",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{search_url}}",
+      "label": "Open page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".cl-search-result, .result-row, .cl-static-search-result, body",
+      "timeout": 15000,
+      "label": "Wait for content"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll for more"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const results = []; document.querySelectorAll('.cl-search-result, .result-row, .cl-static-search-result').forEach((el,i) => { if(i>=20) return; const titleEl = el.querySelector('a.posting-title, a.result-title, a.cl-app-anchor'); const priceEl = el.querySelector('.priceinfo, .result-price'); const imgEl = el.querySelector('img'); results.push({ title: titleEl?titleEl.textContent.trim():'', url: titleEl?titleEl.href:'', price: priceEl?priceEl.textContent.trim():'', thumbnail: imgEl?imgEl.src:'' }); }); return { result_count: results.length, results, url: window.location.href }",
+      "name": "page_data",
+      "label": "Extract data"
+    }
+  ]
+}

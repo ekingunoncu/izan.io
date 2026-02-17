@@ -13,7 +13,7 @@
     {
       "name": "state",
       "type": "string",
-      "description": "Issue state: 'open', 'closed', 'all' (default: open)",
+      "description": "Issue state: 'open', 'closed' (default: open)",
       "required": false,
       "default": "open"
     }
@@ -29,7 +29,7 @@
     },
     {
       "action": "waitForSelector",
-      "selector": "[data-testid='issue-row'], .js-issue-row, .Box-row",
+      "selector": "[data-testid='issue-row'], .js-issue-row, .Box-row, [aria-label='Issues']",
       "timeout": 15000,
       "label": "Wait for issues list"
     },
@@ -40,7 +40,7 @@
     },
     {
       "action": "code",
-      "code": "const issues = []; const rows = document.querySelectorAll('[data-testid=\"issue-row\"], .js-issue-row, .Box-row'); for (let i = 0; i < Math.min(rows.length, 20); i++) { const row = rows[i]; const titleEl = row.querySelector('a[data-hovercard-type=\"issue\"], a.Link--primary'); const numberEl = row.querySelector('.opened-by, .text-small'); const labels = Array.from(row.querySelectorAll('a.IssueLabel, .lh-default .label')).map(l => l.textContent.trim()); const authorEl = row.querySelector('.opened-by a, a[data-hovercard-type=\"user\"]'); const timeEl = row.querySelector('relative-time'); issues.push({ title: titleEl ? titleEl.textContent.trim() : '', number: titleEl ? titleEl.href.split('/').pop() : '', labels: labels, author: authorEl ? authorEl.textContent.trim() : '', time: timeEl ? timeEl.getAttribute('datetime') || timeEl.textContent.trim() : '', url: titleEl ? titleEl.href : '' }); } return { repo: '{{repo}}', result_count: issues.length, issues: issues }",
+      "code": "const issues = []; const rows = document.querySelectorAll('[data-testid=\"issue-row\"], .js-issue-row, .Box-row'); for (let i = 0; i < Math.min(rows.length, 20); i++) { const row = rows[i]; const titleEl = row.querySelector('a[data-hovercard-type=\"issue\"], a.Link--primary, a[id^=\"issue_\"]'); const labels = Array.from(row.querySelectorAll('a.IssueLabel, a[data-name], .lh-default .label')).map(l => l.textContent.trim()); const authorEl = row.querySelector('a[data-hovercard-type=\"user\"], .opened-by a'); const timeEl = row.querySelector('relative-time'); const href = titleEl ? (titleEl.getAttribute('href') || '') : ''; const numberMatch = href.match(/\\/(\\d+)$/); issues.push({ title: titleEl ? titleEl.textContent.trim() : '', number: numberMatch ? numberMatch[1] : '', labels: labels, author: authorEl ? authorEl.textContent.trim() : '', time: timeEl ? timeEl.getAttribute('datetime') || timeEl.textContent.trim() : '', url: titleEl ? (titleEl.href || ('https://github.com' + href)) : '' }); } const repoPath = window.location.pathname.replace(/\\/issues.*/, '').substring(1); return { repo: repoPath, result_count: issues.length, issues: issues }",
       "name": "result",
       "label": "Extract issues from DOM"
     }

@@ -1,0 +1,31 @@
+{
+  "id": "tinder-scrape-matches",
+  "name": "tinder_scrape_matches",
+  "description": "Scrape match list on Tinder. Returns match names and last messages. Requires login.",
+  "version": "1.0.0",
+  "parameters": [],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://tinder.com/app/matches",
+      "label": "Open matches"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[class*=\"matchList\"], [class*=\"matches\"], .content",
+      "timeout": 15000,
+      "label": "Wait for matches"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Let matches render"
+    },
+    {
+      "action": "code",
+      "code": "const matches = []; const seen = new Set(); document.querySelectorAll('a[href*=\"/app/messages/\"], [class*=\"matchList\"] a, [class*=\"messageListItem\"] a, [class*=\"match\"] a').forEach((el) => { const href = el.href || ''; if (seen.has(href) || matches.length >= 20) return; seen.add(href); const nameEl = el.querySelector('[class*=\"name\"], span'); const msgEl = el.querySelector('[class*=\"message\"], [class*=\"preview\"], [class*=\"msg\"]'); matches.push({ name: nameEl?.textContent?.trim() || '', last_message: msgEl?.textContent?.trim() || '', url: href }); }); return { match_count: matches.length, matches };",
+      "name": "result",
+      "label": "Extract matches"
+    }
+  ]
+}

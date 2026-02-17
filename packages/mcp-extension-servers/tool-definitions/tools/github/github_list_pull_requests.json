@@ -13,7 +13,7 @@
     {
       "name": "state",
       "type": "string",
-      "description": "PR state: 'open', 'closed', 'all' (default: open)",
+      "description": "PR state: 'open', 'closed' (default: open)",
       "required": false,
       "default": "open"
     }
@@ -29,7 +29,7 @@
     },
     {
       "action": "waitForSelector",
-      "selector": ".js-issue-row, .Box-row, [data-testid='pull-request-row']",
+      "selector": ".js-issue-row, .Box-row, [data-testid='pull-request-row'], [aria-label='Pull Requests']",
       "timeout": 15000,
       "label": "Wait for PR list"
     },
@@ -40,7 +40,7 @@
     },
     {
       "action": "code",
-      "code": "const prs = []; const rows = document.querySelectorAll('.js-issue-row, .Box-row, [data-testid=\"pull-request-row\"]'); for (let i = 0; i < Math.min(rows.length, 20); i++) { const row = rows[i]; const titleEl = row.querySelector('a[data-hovercard-type=\"pull_request\"], a.Link--primary'); const labels = Array.from(row.querySelectorAll('a.IssueLabel, .lh-default .label')).map(l => l.textContent.trim()); const authorEl = row.querySelector('.opened-by a, a[data-hovercard-type=\"user\"]'); const timeEl = row.querySelector('relative-time'); prs.push({ title: titleEl ? titleEl.textContent.trim() : '', number: titleEl ? titleEl.href.split('/').pop() : '', labels: labels, author: authorEl ? authorEl.textContent.trim() : '', time: timeEl ? timeEl.getAttribute('datetime') || timeEl.textContent.trim() : '', url: titleEl ? titleEl.href : '' }); } return { repo: '{{repo}}', result_count: prs.length, pull_requests: prs }",
+      "code": "const prs = []; const rows = document.querySelectorAll('.js-issue-row, .Box-row, [data-testid=\"pull-request-row\"]'); for (let i = 0; i < Math.min(rows.length, 20); i++) { const row = rows[i]; const titleEl = row.querySelector('a[data-hovercard-type=\"pull_request\"], a.Link--primary, a[id^=\"issue_\"]'); const labels = Array.from(row.querySelectorAll('a.IssueLabel, a[data-name], .lh-default .label')).map(l => l.textContent.trim()); const authorEl = row.querySelector('a[data-hovercard-type=\"user\"], .opened-by a'); const timeEl = row.querySelector('relative-time'); const href = titleEl ? (titleEl.getAttribute('href') || '') : ''; const numberMatch = href.match(/\\/(\\d+)$/); prs.push({ title: titleEl ? titleEl.textContent.trim() : '', number: numberMatch ? numberMatch[1] : '', labels: labels, author: authorEl ? authorEl.textContent.trim() : '', time: timeEl ? timeEl.getAttribute('datetime') || timeEl.textContent.trim() : '', url: titleEl ? (titleEl.href || ('https://github.com' + href)) : '' }); } const repoPath = window.location.pathname.replace(/\\/pulls.*/, '').substring(1); return { repo: repoPath, result_count: prs.length, pull_requests: prs }",
       "name": "result",
       "label": "Extract PRs from DOM"
     }

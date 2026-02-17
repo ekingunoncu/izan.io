@@ -1,0 +1,50 @@
+{
+  "id": "lastfm-bulk-search",
+  "name": "lastfm_bulk_search",
+  "description": "Search multiple queries on Last.fm in parallel using concurrent browser tabs. More efficient than calling lastfm_search multiple times. Pass all search queries as a single comma-separated string.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "queries",
+      "type": "string",
+      "description": "Comma-separated search queries (e.g. 'Radiohead, Daft Punk, Björk')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{queries}}`.split(',').map(q => ({ query: q.trim(), url: 'https://www.last.fm/search?q=' + encodeURIComponent(q.trim()) }))",
+      "name": "items",
+      "label": "Build URL list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 3,
+      "maxItems": 10,
+      "waitUntil": "load",
+      "label": "Search each query in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": ".grid-items-item-details, .chartlist-row, .page-content",
+          "timeout": 15000,
+          "label": "Wait for results"
+        },
+        {
+          "action": "wait",
+          "ms": 2000
+        },
+        {
+          "action": "code",
+          "code": "const query = new URL(window.location.href).searchParams.get('q') || ''; const artists = []; document.querySelectorAll('.grid-items-item-details').forEach((el, i) => { if (i < 5) { const nameEl = el.querySelector('.grid-items-item-main-text a.link-block-target'); const auxEl = el.querySelector('.grid-items-item-aux-text'); artists.push({ name: nameEl?.textContent?.trim() || '', url: nameEl?.href || '', listeners: auxEl?.textContent?.trim() || '' }); } }); const tracks = []; document.querySelectorAll('.chartlist-row').forEach((el, i) => { if (i < 5) { const nameEl = el.querySelector('.chartlist-name a.link-block-target'); const artistEl = el.querySelector('.chartlist-artist a'); const countEl = el.querySelector('.chartlist-count-bar-value'); tracks.push({ name: nameEl?.textContent?.trim() || '', url: nameEl?.href || '', artist: artistEl?.textContent?.trim() || '', plays: countEl?.textContent?.trim() || '' }); } }); return { query, artist_count: artists.length, artists, track_count: tracks.length, tracks };",
+          "name": "results",
+          "label": "Extract results"
+        }
+      ]
+    }
+  ]
+}

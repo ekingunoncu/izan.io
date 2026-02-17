@@ -35,7 +35,7 @@
     },
     {
       "action": "code",
-      "code": "const searchBtn = document.querySelector('button[aria-label=\"Search\"], div[class*=\"search\"] button, [class*=\"searchBar\"]'); if (searchBtn) searchBtn.click(); else { const searchInput = document.querySelector('input[aria-label=\"Search\"], [class*=\"searchBar\"] input'); if (searchInput) searchInput.focus(); } return { clicked: true }",
+      "code": "const searchBtn = document.querySelector('button[aria-label=\"Search\"]'); if (searchBtn) { searchBtn.click(); } else { const toolbar = document.querySelector('[class*=\"toolbar\"]'); if (toolbar) { const btns = toolbar.querySelectorAll('button'); for (const b of btns) { if (b.querySelector('svg') && b.getAttribute('aria-label')?.toLowerCase().includes('search')) { b.click(); break; } } } } return { clicked: true }",
       "name": "open_search",
       "label": "Open search"
     },
@@ -45,7 +45,7 @@
     },
     {
       "action": "code",
-      "code": "const searchInput = document.querySelector('[class*=\"searchBar\"] input, input[aria-label=\"Search\"]'); if (searchInput) { searchInput.focus(); searchInput.value = `{{query}}`; searchInput.dispatchEvent(new Event('input', {bubbles: true})); await new Promise(r => setTimeout(r, 500)); searchInput.dispatchEvent(new KeyboardEvent('keydown', {key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true})); } return { searched: true }",
+      "code": "const query = `{{query}}`; const searchInput = document.querySelector('input[aria-label=\"Search\"], input[placeholder=\"Search\"]'); if (searchInput) { searchInput.focus(); const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set; nativeSetter.call(searchInput, query); searchInput.dispatchEvent(new Event('input', {bubbles: true})); searchInput.dispatchEvent(new Event('change', {bubbles: true})); await new Promise(r => setTimeout(r, 500)); searchInput.dispatchEvent(new KeyboardEvent('keydown', {key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true})); } return { searched: true }",
       "name": "type_search",
       "label": "Type search query"
     },
@@ -56,7 +56,7 @@
     },
     {
       "action": "code",
-      "code": "const results = []; const searchResults = document.querySelectorAll('[class*=\"searchResult\"], [id^=\"search-result\"]'); for (let i = 0; i < Math.min(searchResults.length, 10); i++) { const el = searchResults[i]; const authorEl = el.querySelector('[class*=\"username\"], span[class*=\"headerText\"] span'); const contentEl = el.querySelector('[id^=\"message-content-\"], [class*=\"messageContent\"], [class*=\"markup\"]'); const timeEl = el.querySelector('time'); results.push({ author: authorEl ? authorEl.textContent.trim() : '', content: contentEl ? contentEl.textContent.trim() : '', timestamp: timeEl ? timeEl.getAttribute('datetime') || '' : '' }); } return { result_count: results.length, results: results }",
+      "code": "const results = []; const searchPanel = document.querySelector('[aria-label=\"Search Results\"]') || document.querySelector('[class*=\"searchResult\"]')?.closest('[role=\"list\"]') || document.body; const msgEls = searchPanel.querySelectorAll('li[id^=\"search-result-\"], div[id^=\"search-result-\"]'); if (msgEls.length > 0) { for (let i = 0; i < Math.min(msgEls.length, 10); i++) { const el = msgEls[i]; const authorEl = el.querySelector('span[id^=\"message-username-\"]') || el.querySelector('h3 span'); const contentEl = el.querySelector('div[id^=\"message-content-\"]'); const timeEl = el.querySelector('time'); results.push({ author: authorEl ? authorEl.textContent.trim() : '', content: contentEl ? contentEl.textContent.trim() : '', timestamp: timeEl ? timeEl.getAttribute('datetime') || '' : '' }); } } else { const allMsgContent = document.querySelectorAll('div[id^=\"message-content-\"]'); for (let i = 0; i < Math.min(allMsgContent.length, 10); i++) { const contentEl = allMsgContent[i]; const container = contentEl.closest('li') || contentEl.closest('div[role=\"listitem\"]'); const authorEl = container ? container.querySelector('span[id^=\"message-username-\"]') || container.querySelector('h3 span') : null; const timeEl = container ? container.querySelector('time') : null; results.push({ author: authorEl ? authorEl.textContent.trim() : '', content: contentEl.textContent.trim(), timestamp: timeEl ? timeEl.getAttribute('datetime') || '' : '' }); } } return { result_count: results.length, results: results }",
       "name": "search_results",
       "label": "Extract search results"
     }

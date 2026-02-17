@@ -684,15 +684,15 @@
     {
       "id": "imdb",
       "name": "IMDb Automation",
-      "description": "Automate IMDb: search movies, scrape title details, read reviews, browse cast, track ratings, and compare films",
+      "description": "Automate IMDb: search movies, scrape title details, read reviews, browse cast, explore person profiles, and browse Top 250",
       "category": "web_search",
       "tools": [
         "imdb_search",
         "imdb_scrape_title",
         "imdb_scrape_reviews",
         "imdb_scrape_cast",
-        "imdb_scrape_ratings",
-        "imdb_compare_titles",
+        "imdb_scrape_person",
+        "imdb_scrape_top250",
         "imdb_bulk_search"
       ]
     },
@@ -744,16 +744,16 @@
     {
       "id": "bluesky",
       "name": "Bluesky Automation",
-      "description": "Automate Bluesky: search posts, scrape profiles, browse feeds, read replies, post content, and track trending",
+      "description": "Automate Bluesky: search posts, scrape profiles, browse feeds, scrape followers, create posts, and bulk scrape profiles",
       "category": "social_media",
       "tools": [
         "bluesky_search",
         "bluesky_scrape_profile",
         "bluesky_scrape_post",
         "bluesky_scrape_feed",
-        "bluesky_scrape_replies",
-        "bluesky_post",
-        "bluesky_bulk_search"
+        "bluesky_scrape_followers",
+        "bluesky_create_post",
+        "bluesky_bulk_scrape_profiles"
       ]
     },
     {
@@ -804,15 +804,15 @@
     {
       "id": "expedia",
       "name": "Expedia Automation",
-      "description": "Automate Expedia: search hotels, search flights, scrape hotel details, read reviews, browse packages, and compare deals",
+      "description": "Automate Expedia: search hotels, search flights, scrape hotel details, read reviews, browse packages, and compare prices",
       "category": "web_search",
       "tools": [
         "expedia_search_hotels",
         "expedia_search_flights",
         "expedia_scrape_hotel",
         "expedia_scrape_reviews",
-        "expedia_scrape_packages",
-        "expedia_compare_deals",
+        "expedia_search_packages",
+        "expedia_compare_prices",
         "expedia_bulk_search"
       ]
     },
@@ -849,15 +849,15 @@
     {
       "id": "canva",
       "name": "Canva Automation",
-      "description": "Automate Canva: search templates, scrape designs, browse categories, discover elements, track trending, and explore features",
+      "description": "Automate Canva: search templates, scrape designs, browse categories, discover elements, track trending, and explore brand resources",
       "category": "productivity",
       "tools": [
-        "canva_search",
+        "canva_search_templates",
         "canva_scrape_template",
-        "canva_scrape_category",
-        "canva_scrape_elements",
+        "canva_scrape_design",
+        "canva_search_elements",
         "canva_scrape_trending",
-        "canva_scrape_features",
+        "canva_scrape_brand",
         "canva_bulk_search"
       ]
     },
@@ -904,6 +904,316 @@
         "udemy_scrape_category",
         "udemy_compare_courses",
         "udemy_bulk_search"
+      ]
+    },
+    {
+      "id": "kaggle",
+      "name": "Kaggle Automation",
+      "description": "Automate Kaggle: search datasets, scrape competitions, browse notebooks, read leaderboards, and explore trending content",
+      "category": "web_search",
+      "tools": [
+        "kaggle_search",
+        "kaggle_search_datasets",
+        "kaggle_search_competitions",
+        "kaggle_search_models",
+        "kaggle_scrape_dataset",
+        "kaggle_scrape_competition",
+        "kaggle_scrape_notebook",
+        "kaggle_scrape_leaderboard",
+        "kaggle_scrape_profile",
+        "kaggle_scrape_trending",
+        "kaggle_bulk_search"
+      ]
+    },
+    {
+      "id": "huggingface",
+      "name": "Hugging Face Automation",
+      "description": "Automate Hugging Face: search models, scrape datasets, browse spaces, read papers, and explore trending AI/ML content",
+      "category": "web_search",
+      "tools": [
+        "huggingface_search_models",
+        "huggingface_search_datasets",
+        "huggingface_search_spaces",
+        "huggingface_scrape_model",
+        "huggingface_scrape_dataset",
+        "huggingface_scrape_space",
+        "huggingface_scrape_trending",
+        "huggingface_scrape_paper",
+        "huggingface_bulk_search",
+        "huggingface_bulk_search_models"
+      ]
+    },
+    {
+      "id": "strava",
+      "name": "Strava Automation",
+      "description": "Automate Strava: search athletes, scrape activities, browse segments, read clubs, and track routes",
+      "category": "social_media",
+      "tools": [
+        "strava_search",
+        "strava_scrape_activity",
+        "strava_scrape_athlete",
+        "strava_scrape_segment",
+        "strava_scrape_club",
+        "strava_scrape_route",
+        "strava_scrape_dashboard",
+        "strava_bulk_search"
+      ]
+    },
+    {
+      "id": "goodreads",
+      "name": "Goodreads Automation",
+      "description": "Automate Goodreads: search books, scrape reviews, browse authors, read lists, and explore genres",
+      "category": "web_search",
+      "tools": [
+        "goodreads_search",
+        "goodreads_scrape_book",
+        "goodreads_scrape_reviews",
+        "goodreads_scrape_author",
+        "goodreads_scrape_list",
+        "goodreads_scrape_genre",
+        "goodreads_bulk_search"
+      ]
+    },
+    {
+      "id": "coinbase",
+      "name": "Coinbase Automation",
+      "description": "Automate Coinbase: search assets, scrape prices, browse markets, track trending coins, and compare gainers/losers",
+      "category": "web_search",
+      "tools": [
+        "coinbase_search",
+        "coinbase_scrape_market",
+        "coinbase_scrape_trending",
+        "coinbase_scrape_asset_page",
+        "coinbase_scrape_gainers_losers",
+        "coinbase_bulk_search"
+      ]
+    },
+    {
+      "id": "discogs",
+      "name": "Discogs Automation",
+      "description": "Automate Discogs: search releases, scrape album details, browse artists, explore labels, and check marketplace prices",
+      "category": "social_media",
+      "tools": [
+        "discogs_search",
+        "discogs_scrape_release",
+        "discogs_scrape_artist",
+        "discogs_scrape_label",
+        "discogs_scrape_marketplace",
+        "discogs_scrape_master",
+        "discogs_bulk_search"
+      ]
+    },
+    {
+      "id": "letterboxd",
+      "name": "Letterboxd Automation",
+      "description": "Automate Letterboxd: search films, scrape movie details, read reviews, browse lists, and discover popular films",
+      "category": "web_search",
+      "tools": [
+        "letterboxd_search",
+        "letterboxd_scrape_film",
+        "letterboxd_scrape_reviews",
+        "letterboxd_scrape_list",
+        "letterboxd_scrape_member",
+        "letterboxd_scrape_popular",
+        "letterboxd_bulk_search"
+      ]
+    },
+    {
+      "id": "craigslist",
+      "name": "Craigslist Automation",
+      "description": "Automate Craigslist: search listings, scrape posts, browse categories, filter housing, and search jobs",
+      "category": "web_search",
+      "tools": [
+        "craigslist_search",
+        "craigslist_search_listings",
+        "craigslist_scrape_post",
+        "craigslist_browse_category",
+        "craigslist_search_housing",
+        "craigslist_search_jobs",
+        "craigslist_scrape_gallery",
+        "craigslist_bulk_search"
+      ]
+    },
+    {
+      "id": "todoist",
+      "name": "Todoist Automation",
+      "description": "Automate Todoist: view tasks, scrape projects, read labels, browse upcoming, and check productivity stats",
+      "category": "productivity",
+      "tools": [
+        "todoist_search",
+        "todoist_scrape_inbox",
+        "todoist_scrape_project",
+        "todoist_scrape_today",
+        "todoist_scrape_upcoming",
+        "todoist_scrape_labels",
+        "todoist_scrape_productivity",
+        "todoist_create_task",
+        "todoist_bulk_scrape_projects",
+        "todoist_bulk_search"
+      ]
+    },
+    {
+      "id": "myfitnesspal",
+      "name": "MyFitnessPal Automation",
+      "description": "Automate MyFitnessPal: search foods, scrape nutrition data, browse recipes, read exercises, and compare nutrients",
+      "category": "web_search",
+      "tools": [
+        "myfitnesspal_search",
+        "myfitnesspal_search_food",
+        "myfitnesspal_scrape_food",
+        "myfitnesspal_scrape_recipe",
+        "myfitnesspal_scrape_exercise",
+        "myfitnesspal_scrape_diary",
+        "myfitnesspal_browse_recipes",
+        "myfitnesspal_compare_foods",
+        "myfitnesspal_bulk_search"
+      ]
+    },
+    {
+      "id": "duolingo",
+      "name": "Duolingo Automation",
+      "description": "Automate Duolingo: search courses, scrape course details, browse leaderboards, and discover language learning content",
+      "category": "web_search",
+      "tools": [
+        "duolingo_search",
+        "duolingo_scrape_course",
+        "duolingo_scrape_leaderboard",
+        "duolingo_bulk_search"
+      ]
+    },
+    {
+      "id": "tinder",
+      "name": "Tinder Automation",
+      "description": "Automate Tinder: browse recommendations, like or pass profiles, scrape matches, and send messages",
+      "category": "social_media",
+      "tools": [
+        "tinder_scrape_recommendations",
+        "tinder_scrape_matches",
+        "tinder_like_profile",
+        "tinder_pass_profile",
+        "tinder_send_message"
+      ]
+    },
+    {
+      "id": "stockx",
+      "name": "StockX Automation",
+      "description": "Automate StockX: search products, scrape listings, browse trending items, and track sneaker prices",
+      "category": "web_search",
+      "tools": [
+        "stockx_search",
+        "stockx_scrape_product",
+        "stockx_scrape_trending",
+        "stockx_bulk_search"
+      ]
+    },
+    {
+      "id": "arxiv",
+      "name": "arXiv Automation",
+      "description": "Automate arXiv and PubMed: search papers, scrape abstracts, browse recent submissions, and discover research",
+      "category": "web_search",
+      "tools": [
+        "arxiv_search",
+        "arxiv_scrape_paper",
+        "arxiv_scrape_recent",
+        "arxiv_bulk_search",
+        "pubmed_search",
+        "pubmed_scrape_paper"
+      ]
+    },
+    {
+      "id": "wayback",
+      "name": "Wayback Machine Automation",
+      "description": "Automate Wayback Machine: search archived pages, scrape snapshots, browse archives, and explore web history",
+      "category": "web_search",
+      "tools": [
+        "wayback_search",
+        "wayback_search_archive",
+        "wayback_scrape_snapshot",
+        "wayback_bulk_search"
+      ]
+    },
+    {
+      "id": "bandcamp",
+      "name": "Bandcamp Automation",
+      "description": "Automate Bandcamp: search music, scrape album details, browse tags, and discover independent artists",
+      "category": "social_media",
+      "tools": [
+        "bandcamp_search",
+        "bandcamp_scrape_album",
+        "bandcamp_scrape_tag",
+        "bandcamp_bulk_search"
+      ]
+    },
+    {
+      "id": "lastfm",
+      "name": "Last.fm Automation",
+      "description": "Automate Last.fm: search music, scrape artist details, browse user profiles, and track listening history",
+      "category": "social_media",
+      "tools": [
+        "lastfm_search",
+        "lastfm_scrape_artist",
+        "lastfm_scrape_user",
+        "lastfm_bulk_search"
+      ]
+    },
+    {
+      "id": "opensea",
+      "name": "OpenSea Automation",
+      "description": "Automate OpenSea: search NFTs, scrape collections, browse rankings, and discover digital assets",
+      "category": "web_search",
+      "tools": [
+        "opensea_search",
+        "opensea_scrape_collection",
+        "opensea_scrape_rankings",
+        "opensea_bulk_search"
+      ]
+    },
+    {
+      "id": "untappd",
+      "name": "Untappd Automation",
+      "description": "Automate Untappd: search beers, scrape beer details, browse breweries, and discover craft beer ratings",
+      "category": "social_media",
+      "tools": [
+        "untappd_search",
+        "untappd_scrape_beer",
+        "untappd_scrape_brewery",
+        "untappd_bulk_search"
+      ]
+    },
+    {
+      "id": "transfermarkt",
+      "name": "Transfermarkt Automation",
+      "description": "Automate Transfermarkt: search players, scrape player details, browse transfer history, and track football market values",
+      "category": "web_search",
+      "tools": [
+        "transfermarkt_search",
+        "transfermarkt_scrape_player",
+        "transfermarkt_scrape_transfers",
+        "transfermarkt_bulk_search"
+      ]
+    },
+    {
+      "id": "vivino",
+      "name": "Vivino Automation",
+      "description": "Automate Vivino: search wines, scrape wine details, browse ratings, and discover wine reviews",
+      "category": "web_search",
+      "tools": [
+        "vivino_search",
+        "vivino_scrape_wine",
+        "vivino_bulk_search"
+      ]
+    },
+    {
+      "id": "espn",
+      "name": "ESPN Automation",
+      "description": "Automate ESPN: search sports content, scrape news, browse scores, track standings, and follow live games",
+      "category": "web_search",
+      "tools": [
+        "espn_search",
+        "espn_scrape_news",
+        "espn_scrape_scores",
+        "espn_scrape_standings",
+        "espn_bulk_search"
       ]
     }
   ]

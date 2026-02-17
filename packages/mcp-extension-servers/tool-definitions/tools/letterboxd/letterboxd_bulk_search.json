@@ -1,0 +1,59 @@
+{
+  "id": "letterboxd-bulk-search",
+  "name": "letterboxd_bulk_search",
+  "description": "Search multiple queries on Letterboxd in parallel using concurrent browser tabs. Use this instead of calling letterboxd_search multiple times.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "queries",
+      "type": "string",
+      "description": "Comma-separated search queries",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{queries}}`.split(',').map(q => ({ url: 'https://letterboxd.com/search/' + encodeURIComponent(q.trim()) + '/', query: q.trim() }))",
+      "name": "items",
+      "label": "Build search URL list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 3,
+      "maxItems": 10,
+      "waitUntil": "load",
+      "label": "Search each query in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": "ul.results, li.search-result",
+          "timeout": 15000,
+          "label": "Wait for results"
+        },
+        {
+          "action": "wait",
+          "ms": 2500
+        },
+        {
+          "action": "scroll",
+          "direction": "down",
+          "amount": 800
+        },
+        {
+          "action": "wait",
+          "ms": 1500
+        },
+        {
+          "action": "code",
+          "code": "const results = []; document.querySelectorAll('li.search-result').forEach((el,i) => { if(i>=5) return; const titleEl = el.querySelector('h2 a, span.film-title-wrapper a, a'); const yearEl = el.querySelector('small.metadata, span.metadata'); const dirEl = el.querySelector('p.film-metadata a, a.text-sluglist'); const link = titleEl?titleEl.getAttribute('href'):''; results.push({ title: titleEl?titleEl.textContent.trim():'', year: yearEl?yearEl.textContent.trim():'', director: dirEl?dirEl.textContent.trim():'', url: link?'https://letterboxd.com'+link:'' }); }); const pathParts = window.location.pathname.split('/search/'); const query = pathParts[1] ? decodeURIComponent(pathParts[1].replace(/\\/$/, '')) : ''; return { query, results }",
+          "name": "search_results",
+          "label": "Extract results"
+        }
+      ]
+    }
+  ]
+}

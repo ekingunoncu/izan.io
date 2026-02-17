@@ -19,7 +19,7 @@
     },
     {
       "action": "waitForSelector",
-      "selector": "[data-testid='property-card'], .sr_property_block, .c066246e13",
+      "selector": "[data-testid='property-card'], .sr_property_block",
       "timeout": 15000,
       "label": "Wait for search results"
     },

@@ -36,7 +36,7 @@
       "detailSteps": [
         {
           "action": "waitForSelector",
-          "selector": "div[role='textbox']",
+          "selector": "div[role='textbox'][contenteditable='true']",
           "timeout": 15000,
           "label": "Wait for message input"
         },
@@ -46,7 +46,7 @@
         },
         {
           "action": "code",
-          "code": "const el = document.querySelector('div[role=\"textbox\"][contenteditable=\"true\"]'); if (!el) return { status: 'input_not_found', channel: window.location.href }; el.focus(); document.execCommand('insertText', false, `{{message}}`); el.dispatchEvent(new Event('input', {bubbles: true})); await new Promise(r => setTimeout(r, 500)); el.dispatchEvent(new KeyboardEvent('keydown', {key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true})); return { status: 'sent', channel: window.location.href }",
+          "code": "const el = document.querySelector('div[role=\"textbox\"][contenteditable=\"true\"]'); if (!el) return { status: 'input_not_found', channel: window.location.href }; el.focus(); await new Promise(r => setTimeout(r, 200)); document.execCommand('insertText', false, `{{message}}`); el.dispatchEvent(new Event('input', {bubbles: true})); await new Promise(r => setTimeout(r, 500)); el.dispatchEvent(new KeyboardEvent('keydown', {key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true})); return { status: 'sent', channel: window.location.href }",
           "name": "send_result",
           "label": "Send message"
         }

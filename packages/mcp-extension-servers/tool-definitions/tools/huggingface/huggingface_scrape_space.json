@@ -1,0 +1,48 @@
+{
+  "id": "huggingface-scrape-space",
+  "name": "huggingface_scrape_space",
+  "description": "Scrape a Hugging Face Space demo page. Returns name, description, SDK, likes, and linked models.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "space_id",
+      "type": "string",
+      "description": "Space ID (e.g. 'stabilityai/stable-diffusion')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://huggingface.co/spaces/{{space_id}}",
+      "label": "Open page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "h1, main, iframe",
+      "timeout": 15000,
+      "label": "Wait for content"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll for more"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const title = document.querySelector('h1')?.textContent?.trim()||''; const desc = document.querySelector('main p')?.textContent?.trim()||''; const tags = Array.from(document.querySelectorAll('a[href*=\"/spaces?\"]')).slice(0,10).map(t=>t.textContent.trim()); const sdkEl = document.querySelector('a[href*=\"/spaces?sdk=\"], a[href*=\"sdk:\"]'); const sdk = sdkEl?.textContent?.trim()||''; const likesEl = document.querySelector('button[title*=\"Like\"], button[title*=\"like\"]'); const likes = likesEl?.textContent?.trim()||''; const linkedModels = Array.from(document.querySelectorAll('a[href]:not([href*=\"spaces\"])')).filter(a => { const h = a.getAttribute('href')||''; return h.match(/^\\/[^/]+\\/[^/]+$/) && !h.includes('/spaces/') && !h.includes('/datasets/'); }).slice(0,5).map(a => ({ name: a.textContent.trim(), url: 'https://huggingface.co' + a.getAttribute('href') })); return { title, description: desc, tags, sdk, likes, linked_models: linkedModels, url: window.location.href }",
+      "name": "page_data",
+      "label": "Extract data"
+    }
+  ]
+}

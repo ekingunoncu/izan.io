@@ -1,18 +1,18 @@
 {
   "id": "cmc-scrape-news",
   "name": "cmc_scrape_news",
-  "description": "Scrape the latest cryptocurrency news headlines from CoinMarketCap. Returns article title, source, date, summary, and link for recent crypto news articles.",
+  "description": "Scrape the latest cryptocurrency news headlines from CoinMarketCap Academy. Returns article title, source, date, summary, and link for recent crypto news articles.",
   "version": "1.0.0",
   "parameters": [],
   "steps": [
     {
       "action": "navigate",
-      "url": "https://coinmarketcap.com/headlines/news/",
-      "label": "Open CoinMarketCap news page"
+      "url": "https://coinmarketcap.com/academy/categories/cmc-crypto-news",
+      "label": "Open CoinMarketCap crypto news page"
     },
     {
       "action": "waitForSelector",
-      "selector": "a[href*='/headlines/'], article, [class*='news'], [class*='article']",
+      "selector": "a[href*='/academy/article/'], article, h2, h3",
       "timeout": 15000,
       "label": "Wait for news articles to load"
     },
@@ -43,7 +43,7 @@
     },
     {
       "action": "code",
-      "code": "const articles = []; const articleSelectors = [ 'article', '[class*=\"news-card\"]', '[class*=\"NewsCard\"]', '[class*=\"article-card\"]', '[class*=\"headline\"]', '.news-item', '[class*=\"newsItem\"]' ]; let articleEls = []; for (const sel of articleSelectors) { const found = document.querySelectorAll(sel); if (found.length > 2) { articleEls = found; break; } } if (articleEls.length === 0) { articleEls = document.querySelectorAll('[class*=\"news\"] a, [class*=\"headline\"] a'); } for (let i = 0; i < Math.min(articleEls.length, 20); i++) { const el = articleEls[i]; const titleEl = el.querySelector('h2, h3, h4, [class*=\"title\"], a'); const linkEl = el.querySelector('a[href]') || (el.tagName === 'A' ? el : null); const sourceEl = el.querySelector('[class*=\"source\"], [class*=\"provider\"], span[class*=\"name\"], small'); const dateEl = el.querySelector('time, [class*=\"date\"], [class*=\"time\"], [class*=\"ago\"]'); const summaryEl = el.querySelector('p, [class*=\"description\"], [class*=\"subtitle\"], [class*=\"excerpt\"]'); const imgEl = el.querySelector('img'); const title = titleEl ? titleEl.textContent.trim() : ''; if (!title || title.length < 5) continue; articles.push({ title: title, source: sourceEl ? sourceEl.textContent.trim() : '', date: dateEl ? (dateEl.getAttribute('datetime') || dateEl.textContent.trim()) : '', summary: summaryEl ? summaryEl.textContent.trim().substring(0, 300) : '', image: imgEl ? (imgEl.src || imgEl.dataset.src || '') : '', url: linkEl ? linkEl.href : '' }); } return { article_count: articles.length, articles: articles, url: window.location.href }",
+      "code": "const articles = []; const links = document.querySelectorAll('a[href*=\"/academy/article/\"]'); const seen = new Set(); for (let i = 0; i < links.length; i++) { const link = links[i]; const href = link.href; if (seen.has(href)) continue; seen.add(href); const container = link.closest('article, div, li') || link; const titleEl = container.querySelector('h2, h3, h4') || link.querySelector('h2, h3, h4'); const title = titleEl ? titleEl.textContent.trim() : link.textContent.trim(); if (!title || title.length < 5) continue; const dateEl = container.querySelector('time, [datetime]'); const summaryEl = container.querySelector('p'); const imgEl = container.querySelector('img'); articles.push({ title: title, date: dateEl ? (dateEl.getAttribute('datetime') || dateEl.textContent.trim()) : '', summary: summaryEl ? summaryEl.textContent.trim().substring(0, 300) : '', image: imgEl ? (imgEl.src || imgEl.dataset.src || '') : '', url: href }); if (articles.length >= 20) break; } return { article_count: articles.length, articles: articles, url: window.location.href }",
       "name": "news_data",
       "label": "Extract news articles"
     }

@@ -1,0 +1,31 @@
+{
+  "id": "tinder-pass-profile",
+  "name": "tinder_pass_profile",
+  "description": "Pass/Nope the currently shown profile on Tinder. Requires login.",
+  "version": "1.0.0",
+  "parameters": [],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://tinder.com/app/recs",
+      "label": "Open Tinder"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[class*=\"recsCardboard\"], main",
+      "timeout": 15000,
+      "label": "Wait for cards"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let card render"
+    },
+    {
+      "action": "code",
+      "code": "const nopeBtn = document.querySelector('[aria-label=\"Nope\"], button[class*=\"recsGamepad__button--nope\"], button[class*=\"nope\"], button[class*=\"Bgi($g-ds-background-nope)\"]'); if (nopeBtn) { nopeBtn.click(); return { success: true, action: 'passed' }; } return { success: false, message: 'Nope button not found' };",
+      "name": "result",
+      "label": "Click pass"
+    }
+  ]
+}

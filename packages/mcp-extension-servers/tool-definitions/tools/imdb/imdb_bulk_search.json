@@ -30,7 +30,7 @@
       "detailSteps": [
         {
           "action": "waitForSelector",
-          "selector": "[class*='ipc-metadata-list-summary-item'], [class*='find-result']",
+          "selector": ".ipc-metadata-list-summary-item, [data-testid='find-results-section-title'], [class*='find-result']",
           "timeout": 15000,
           "label": "Wait for results"
         },
@@ -40,7 +40,7 @@
         },
         {
           "action": "code",
-          "code": "const results = []; const items = document.querySelectorAll('[class*=\"ipc-metadata-list-summary-item\"], [class*=\"findResult\"]'); for (let i = 0; i < Math.min(items.length, 5); i++) { const el = items[i]; const titleEl = el.querySelector('a[href*=\"/title/\"], a[href*=\"/name/\"]'); const yearEl = el.querySelector('[class*=\"year\"], [class*=\"secondary\"] span, li'); const imgEl = el.querySelector('img'); results.push({ title: titleEl ? titleEl.textContent.trim() : '', year: yearEl ? yearEl.textContent.trim() : '', url: titleEl ? titleEl.href : '', image: imgEl ? imgEl.getAttribute('src') : '' }); } const params = new URLSearchParams(window.location.search); return { query: params.get('q') || '', result_count: results.length, results: results }",
+          "code": "const results = []; const items = document.querySelectorAll('.ipc-metadata-list-summary-item, [class*=\"ipc-metadata-list-summary-item\"]'); for (let i = 0; i < Math.min(items.length, 5); i++) { const el = items[i]; const titleEl = el.querySelector('.ipc-title__text, a[href*=\"/title/\"], a[href*=\"/name/\"]'); const metaItems = el.querySelectorAll('.ipc-inline-list__item, [class*=\"cli-title-metadata-item\"]'); let year = ''; for (const m of metaItems) { const t = m.textContent.trim(); if (/^\\d{4}/.test(t)) { year = t; break; } } const linkEl = el.querySelector('a[href*=\"/title/\"], a[href*=\"/name/\"]'); const imgEl = el.querySelector('img'); results.push({ title: titleEl ? titleEl.textContent.trim().replace(/^\\d+\\.\\s*/, '') : '', year: year, url: linkEl ? linkEl.href : '', image: imgEl ? imgEl.getAttribute('src') : '' }); } const params = new URLSearchParams(window.location.search); return { query: params.get('q') || '', result_count: results.length, results: results }",
           "name": "search_results",
           "label": "Extract results"
         }

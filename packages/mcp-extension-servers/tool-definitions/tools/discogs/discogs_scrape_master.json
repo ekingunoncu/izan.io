@@ -1,0 +1,48 @@
+{
+  "id": "discogs-scrape-master",
+  "name": "discogs_scrape_master",
+  "description": "Scrape a Discogs master release page. Returns title, artist, year, versions, and tracklist.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "master_url",
+      "type": "string",
+      "description": "Discogs master release URL",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{master_url}}",
+      "label": "Open page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "h1, [class*=\"title\"], .profile",
+      "timeout": 15000,
+      "label": "Wait for content"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll for more"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const title = document.querySelector('h1')?.textContent?.trim()||''; const artist = document.querySelector('h1 a')?.textContent?.trim()||''; const year = document.querySelector('[class*=\"year\"], .profile .content')?.textContent?.trim()||''; const tracks = Array.from(document.querySelectorAll('.tracklist_track, tr[class*=\"track\"]')).map(tr => ({ position: tr.querySelector('.tracklist_track_pos')?.textContent?.trim()||'', title: tr.querySelector('.tracklist_track_title a')?.textContent?.trim()||'', duration: tr.querySelector('.tracklist_track_duration')?.textContent?.trim()||'' })).filter(t=>t.title); const versions = Array.from(document.querySelectorAll('table.versions tbody tr')).slice(0,20).map(row => ({ title: row.querySelector('a')?.textContent?.trim()||'', format: row.querySelector('td:nth-child(3)')?.textContent?.trim()||'', country: row.querySelector('td:nth-child(4)')?.textContent?.trim()||'' })); return { title, artist, year, tracklist: tracks, versions, url: window.location.href }",
+      "name": "page_data",
+      "label": "Extract data"
+    }
+  ]
+}

@@ -1,0 +1,59 @@
+{
+  "id": "craigslist-bulk-search",
+  "name": "craigslist_bulk_search",
+  "description": "Search multiple queries on Craigslist in parallel using concurrent browser tabs. Use this instead of calling craigslist_search multiple times - it is faster and more efficient.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "queries",
+      "type": "string",
+      "description": "Comma-separated search queries (e.g. 'laptop,bicycle,couch')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{queries}}`.split(',').map(q => ({ url: 'https://www.craigslist.org/search/sss?query=' + encodeURIComponent(q.trim()), query: q.trim() }))",
+      "name": "items",
+      "label": "Build URL list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 3,
+      "maxItems": 10,
+      "waitUntil": "load",
+      "label": "Search in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": ".cl-search-result, .result-row, .cl-static-search-result, body",
+          "timeout": 15000,
+          "label": "Wait"
+        },
+        {
+          "action": "wait",
+          "ms": 2000
+        },
+        {
+          "action": "scroll",
+          "direction": "down",
+          "amount": 800
+        },
+        {
+          "action": "wait",
+          "ms": 1500
+        },
+        {
+          "action": "code",
+          "code": "const results = []; document.querySelectorAll('.cl-search-result, .result-row, .cl-static-search-result').forEach((el, i) => { if (i < 20) { const titleEl = el.querySelector('a.posting-title, a.result-title, .titlestring, a.cl-app-anchor'); const priceEl = el.querySelector('.priceinfo, .result-price'); const metaEl = el.querySelector('.meta, .result-date'); const dateEl = el.querySelector('time'); results.push({ title: titleEl?.textContent?.trim() || '', url: titleEl?.href || '', price: priceEl?.textContent?.trim() || '', date: dateEl?.textContent?.trim() || metaEl?.textContent?.trim() || '' }); } }); return { result_count: results.length, results };",
+          "name": "results",
+          "label": "Extract"
+        }
+      ]
+    }
+  ]
+}

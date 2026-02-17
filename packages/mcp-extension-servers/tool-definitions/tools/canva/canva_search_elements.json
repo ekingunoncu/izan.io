@@ -25,7 +25,7 @@
     },
     {
       "action": "waitForSelector",
-      "selector": "[class*='grid'] img, [class*='card'], [class*='element'], [class*='photo']",
+      "selector": "img, [role='list'], [role='listitem'], main a",
       "timeout": 15000,
       "label": "Wait for results"
     },
@@ -56,7 +56,7 @@
     },
     {
       "action": "code",
-      "code": "const results = []; const items = document.querySelectorAll('[class*=\"grid\"] a, [class*=\"card\"] a, [class*=\"element-card\"], [class*=\"photo-card\"]'); for (let i = 0; i < Math.min(items.length, 15); i++) { const el = items[i]; const imgEl = el.querySelector('img'); const titleEl = el.querySelector('[class*=\"title\"], [aria-label], [alt]'); const proEl = el.querySelector('[class*=\"pro\"], [class*=\"premium\"]'); const typeEl = el.querySelector('[class*=\"type\"], [class*=\"category\"]'); results.push({ title: titleEl ? (titleEl.getAttribute('aria-label') || titleEl.getAttribute('alt') || titleEl.textContent.trim()) : (imgEl ? (imgEl.getAttribute('alt') || '') : ''), type: typeEl ? typeEl.textContent.trim() : '{{element_type}}', is_premium: !!proEl, image: imgEl ? imgEl.getAttribute('src') : '', url: el.href || '' }); } return { query: `{{query}}`, element_type: `{{element_type}}`, result_count: results.length, results: results }",
+      "code": "const results = []; const seen = new Set(); const allLinks = document.querySelectorAll('main a[href], [role=\"list\"] a[href]'); for (let i = 0; i < allLinks.length && results.length < 15; i++) { const el = allLinks[i]; const href = el.href || ''; if (!href || seen.has(href) || href === window.location.href) continue; seen.add(href); const imgEl = el.querySelector('img'); if (!imgEl) continue; const ariaLabel = el.getAttribute('aria-label') || ''; const alt = imgEl.getAttribute('alt') || ''; const proEl = el.querySelector('[aria-label*=\"Pro\"], [aria-label*=\"premium\"]'); results.push({ title: ariaLabel || alt, is_premium: !!proEl, image: imgEl.getAttribute('src') || '', url: href }); } const params = new URLSearchParams(window.location.search); return { query: params.get('q') || `{{query}}`, element_type: window.location.pathname.split('/search/')[1] || `{{element_type}}`, result_count: results.length, results: results }",
       "name": "search_results",
       "label": "Extract element results"
     }

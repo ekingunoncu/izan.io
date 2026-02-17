@@ -1,0 +1,50 @@
+{
+  "id": "myfitnesspal-compare-foods",
+  "name": "myfitnesspal_compare_foods",
+  "description": "Compare nutrition data for multiple foods on MyFitnessPal in parallel.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "food_queries",
+      "type": "string",
+      "description": "Comma-separated food names to compare",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{food_queries}}`.split(',').map(q => ({ url: 'https://www.myfitnesspal.com/food/search?search=' + encodeURIComponent(q.trim()), food: q.trim() }))",
+      "name": "items",
+      "label": "Build food search URLs"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 3,
+      "maxItems": 10,
+      "waitUntil": "load",
+      "label": "Search each food in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": ".food-description, [class*=\"FoodItem\"], li",
+          "timeout": 15000,
+          "label": "Wait for results"
+        },
+        {
+          "action": "wait",
+          "ms": 2500
+        },
+        {
+          "action": "code",
+          "code": "const first = document.querySelector('.food-description a, [class*=\"FoodItem\"] a, li a'); const name = first?first.textContent.trim():''; const cal = document.querySelector('.food-calories, [class*=\"calories\"]')?.textContent?.trim()||''; return { food: name, calories: cal }",
+          "name": "food_data",
+          "label": "Extract first result"
+        }
+      ]
+    }
+  ]
+}

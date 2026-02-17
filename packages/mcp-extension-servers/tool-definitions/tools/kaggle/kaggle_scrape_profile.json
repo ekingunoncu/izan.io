@@ -1,0 +1,48 @@
+{
+  "id": "kaggle-scrape-profile",
+  "name": "kaggle_scrape_profile",
+  "description": "Scrape a Kaggle user profile. Returns display name, tier, bio, medals, and activity counts.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "username",
+      "type": "string",
+      "description": "Kaggle username (e.g. 'paultimothymooney')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://www.kaggle.com/{{username}}",
+      "label": "Open user profile"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "h1, [role='main'], img[alt]",
+      "timeout": 15000,
+      "label": "Wait for profile page"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Let profile render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 800,
+      "label": "Scroll for more info"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const name = document.querySelector('h1')?.textContent?.trim() || document.title.split('|')[0]?.trim() || ''; const allText = document.body.innerText; const bioEl = document.querySelector('[class*=\"bio\"], [class*=\"description\"], p'); const bio = bioEl ? bioEl.textContent.trim().substring(0, 300) : ''; const tierMatch = allText.match(/(Grandmaster|Master|Expert|Contributor|Novice)/i); const tier = tierMatch ? tierMatch[1] : ''; const datasets = []; const notebooks = []; document.querySelectorAll('a[href*=\"/datasets/\"]').forEach(a => { const text = a.textContent.trim(); if (text && text.length > 3 && text.length < 200) datasets.push({ title: text, url: 'https://www.kaggle.com' + a.getAttribute('href') }); }); document.querySelectorAll('a[href*=\"/code/\"]').forEach(a => { const text = a.textContent.trim(); if (text && text.length > 3 && text.length < 200) notebooks.push({ title: text, url: 'https://www.kaggle.com' + a.getAttribute('href') }); }); const medals = {}; const goldMatch = allText.match(/(\\d+)\\s*gold/i); const silverMatch = allText.match(/(\\d+)\\s*silver/i); const bronzeMatch = allText.match(/(\\d+)\\s*bronze/i); if (goldMatch) medals.gold = goldMatch[1]; if (silverMatch) medals.silver = silverMatch[1]; if (bronzeMatch) medals.bronze = bronzeMatch[1]; return { name, bio, tier, medals, datasets: datasets.slice(0, 5), notebooks: notebooks.slice(0, 5), url: window.location.href };",
+      "name": "profile_data",
+      "label": "Extract profile data"
+    }
+  ]
+}

@@ -19,7 +19,7 @@
     },
     {
       "action": "waitForSelector",
-      "selector": "div[role='textbox'], [class*='sidebar']",
+      "selector": "div[role='textbox'], nav[aria-label='Servers sidebar']",
       "timeout": 15000,
       "label": "Wait for server to load"
     },
@@ -29,7 +29,7 @@
     },
     {
       "action": "code",
-      "code": "const serverNameEl = document.querySelector('[class*=\"name\"][class*=\"header\"] h1, header[class*=\"header\"] h1, [class*=\"guilds\"] [class*=\"selected\"] [class*=\"name\"]'); const channels = []; const channelEls = document.querySelectorAll('[class*=\"channel\"] a[href*=\"/channels/\"], [data-list-item-id*=\"channels\"]'); const seen = new Set(); channelEls.forEach(el => { const name = el.textContent.trim(); if (name && !seen.has(name) && name.length < 50) { seen.add(name); channels.push(name); } }); const serverName = serverNameEl ? serverNameEl.textContent.trim() : document.querySelector('h1') ? document.querySelector('h1').textContent.trim() : 'Unknown'; const serverId = window.location.pathname.split('/')[2]; return { server_name: serverName, server_id: serverId, channel_count: channels.length, channels: channels.slice(0, 30), url: window.location.href }",
+      "code": "const serverNameEl = document.querySelector('h2[aria-label], header h1, [data-list-id=\"channels\"]')?.closest('nav')?.querySelector('h2, h1, header button span, header a span'); let serverName = ''; if (serverNameEl) { serverName = serverNameEl.textContent.trim(); } else { const headerBtn = document.querySelector('button[aria-label*=\"Server\"], header button'); if (headerBtn) serverName = headerBtn.textContent.trim().split('\\n')[0]; } const channels = []; const channelNav = document.querySelector('nav[aria-label*=\"channel\"], nav[aria-label*=\"Channel\"], div[data-list-id=\"channels\"]')?.closest('nav') || document.querySelector('[aria-label*=\"Channels\"]'); const channelEls = channelNav ? channelNav.querySelectorAll('a[data-list-item-id*=\"channels\"], a[href*=\"/channels/\"]') : document.querySelectorAll('a[href*=\"/channels/\"][data-list-item-id]'); const seen = new Set(); channelEls.forEach(el => { const nameEl = el.querySelector('span, div'); const name = nameEl ? nameEl.textContent.trim() : el.textContent.trim(); if (name && !seen.has(name) && name.length < 50) { seen.add(name); channels.push(name); } }); if (!serverName) serverName = document.title.replace(/\\s*[-|].*$/, '') || 'Unknown'; const serverId = window.location.pathname.split('/')[2]; return { server_name: serverName, server_id: serverId, channel_count: channels.length, channels: channels.slice(0, 30), url: window.location.href }",
       "name": "server_info",
       "label": "Extract server info"
     }

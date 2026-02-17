@@ -1,0 +1,38 @@
+{
+  "id": "goodreads-scrape-book",
+  "name": "goodreads_scrape_book",
+  "description": "Scrape a Goodreads book page.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "book_id",
+      "type": "string",
+      "description": "Book ID or slug",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://www.goodreads.com/book/show/{{book_id}}",
+      "label": "Open Goodreads"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "h1, [data-testid=\"bookTitle\"], .content",
+      "timeout": 15000,
+      "label": "Wait for page"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Let page render"
+    },
+    {
+      "action": "code",
+      "code": "let nd = null; try { const s = document.querySelector('script#__NEXT_DATA__'); if (s) nd = JSON.parse(s.textContent); } catch(e) {} const title = document.querySelector('[data-testid=\"bookTitle\"], h1#bookTitle, h1')?.textContent?.trim() || ''; const author = document.querySelector('[data-testid=\"name\"], a.ContributorLink, a.authorName, [itemprop=\"author\"]')?.textContent?.trim() || ''; const ratingEl = document.querySelector('[class*=\"RatingStatistics__rating\"], [itemprop=\"ratingValue\"]'); const rating = ratingEl?.textContent?.trim() || ''; const desc = document.querySelector('[data-testid=\"description\"] [class*=\"Formatted\"], [data-testid=\"description\"], #description span, .readable span[style]')?.textContent?.trim()?.slice(0, 1000) || ''; const genres = []; document.querySelectorAll('[data-testid=\"genresList\"] a, .bookPageGenreLink, a[href*=\"/genres/\"]').forEach(g => { const t = g.textContent?.trim(); if (t && !genres.includes(t)) genres.push(t); }); const pages = document.querySelector('[data-testid=\"pagesFormat\"], [itemprop=\"numberOfPages\"], p[data-testid=\"pagesFormat\"]')?.textContent?.trim() || ''; const ratingCount = document.querySelector('[data-testid=\"ratingsCount\"]')?.textContent?.trim() || ''; const reviewCount = document.querySelector('[data-testid=\"reviewsCount\"]')?.textContent?.trim() || ''; const img = document.querySelector('[class*=\"BookCover\"] img, #coverImage, img.bookCoverImg')?.src || ''; return { title, author, rating, rating_count: ratingCount, review_count: reviewCount, description: desc, genres, pages, cover_image: img, url: window.location.href };",
+      "name": "result",
+      "label": "Extract data"
+    }
+  ]
+}

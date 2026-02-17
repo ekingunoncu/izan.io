@@ -1,0 +1,54 @@
+{
+  "id": "craigslist-search-housing",
+  "name": "craigslist_search_housing",
+  "description": "Search Craigslist housing/apartment listings in a specific city. Returns apartments/rooms with price, location, and details.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "city",
+      "type": "string",
+      "description": "City subdomain (e.g. 'newyork', 'sfbay', 'chicago')",
+      "required": true
+    },
+    {
+      "name": "query",
+      "type": "string",
+      "description": "Search query (e.g. '2 bedroom', 'studio downtown')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://{{city}}.craigslist.org/search/apa?query={{query}}",
+      "label": "Open housing search"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".cl-search-result, .result-row, .cl-static-search-result, body",
+      "timeout": 15000,
+      "label": "Wait for content"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll for more"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const results = []; document.querySelectorAll('.cl-search-result, .result-row, .cl-static-search-result').forEach((el,i) => { if(i>=15) return; const titleEl = el.querySelector('a.posting-title, a.result-title, a.cl-app-anchor'); const priceEl = el.querySelector('.priceinfo, .result-price'); const meta = el.querySelector('.housing, .meta, .result-meta')?.textContent?.trim()||''; results.push({ title: titleEl?titleEl.textContent.trim():'', url: titleEl?titleEl.href:'', price: priceEl?priceEl.textContent.trim():'', details: meta }); }); return { city: '{{city}}', query: '{{query}}', result_count: results.length, results }",
+      "name": "page_data",
+      "label": "Extract data"
+    }
+  ]
+}

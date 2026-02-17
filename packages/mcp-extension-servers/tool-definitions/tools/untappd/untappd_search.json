@@ -1,0 +1,38 @@
+{
+  "id": "untappd-search",
+  "name": "untappd_search",
+  "description": "Search for beers on Untappd. Returns matching results with name, brewery, rating, and style.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "query",
+      "type": "string",
+      "description": "Search query",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://untappd.com/search?q={{query}}&type=beer",
+      "label": "Open Untappd search"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".results-container, .beer-item, .content",
+      "timeout": 15000,
+      "label": "Wait for results"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Let results render"
+    },
+    {
+      "action": "code",
+      "code": "const results = []; document.querySelectorAll('.beer-item, .results-container .beer, [class*=\"beer-result\"]').forEach((el, i) => { if (i < 15) { const nameEl = el.querySelector('.name a, .beer-name a, h3 a'); const breweryEl = el.querySelector('.brewery a, .beer-brewery a'); const ratingEl = el.querySelector('.rating, .num, [class*=\"rating\"]'); const styleEl = el.querySelector('.style, .beer-style'); results.push({ name: nameEl?.textContent?.trim() || '', url: nameEl?.href || '', brewery: breweryEl?.textContent?.trim() || '', rating: ratingEl?.textContent?.trim() || '', style: styleEl?.textContent?.trim() || '' }); } }); return { query: '{{query}}', result_count: results.length, results };",
+      "name": "search_results",
+      "label": "Extract results"
+    }
+  ]
+}

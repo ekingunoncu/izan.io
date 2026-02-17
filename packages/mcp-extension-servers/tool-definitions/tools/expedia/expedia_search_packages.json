@@ -32,13 +32,13 @@
   "steps": [
     {
       "action": "navigate",
-      "url": "https://www.expedia.com/Vacation-Packages?origin={{origin}}&destination={{destination}}&startDate={{departure_date}}&endDate={{return_date}}",
+      "url": "https://www.expedia.com/go/package/search/FlightHotel/{{departure_date}}/{{return_date}}?FromAirport={{origin}}&Destination={{destination}}&NumRoom=1&NumAdult=2",
       "label": "Search vacation packages"
     },
     {
       "action": "waitForSelector",
-      "selector": "[data-stid='property-listing'], [class*='package'], [class*='listing'], [class*='result']",
-      "timeout": 20000,
+      "selector": "[data-stid='lodging-card-responsive'], [data-stid='property-listing'], [data-stid='section-results'] li",
+      "timeout": 25000,
       "label": "Wait for package results"
     },
     {
@@ -68,7 +68,7 @@
     },
     {
       "action": "code",
-      "code": "const results = []; const items = document.querySelectorAll('[data-stid=\"property-listing\"], [class*=\"package-card\"], [class*=\"listing-item\"], [class*=\"result-card\"]'); for (let i = 0; i < Math.min(items.length, 15); i++) { const el = items[i]; const hotelEl = el.querySelector('h3, h2, [class*=\"hotel-name\"], [class*=\"property-name\"]'); const priceEl = el.querySelector('[class*=\"price\"] span, [class*=\"total-price\"], [class*=\"displayPrice\"]'); const savingsEl = el.querySelector('[class*=\"savings\"], [class*=\"discount\"], [class*=\"deal\"]'); const ratingEl = el.querySelector('[class*=\"rating\"] span, [class*=\"score\"]'); const imgEl = el.querySelector('img[src*=\"images\"], img'); const linkEl = el.querySelector('a[href*=\"Package\"], a[href*=\"package\"], a'); const flightEl = el.querySelector('[class*=\"flight\"], [class*=\"airline\"]'); results.push({ hotel_name: hotelEl ? hotelEl.textContent.trim() : '', price: priceEl ? priceEl.textContent.trim() : '', savings: savingsEl ? savingsEl.textContent.trim() : '', rating: ratingEl ? ratingEl.textContent.trim() : '', flight_info: flightEl ? flightEl.textContent.trim() : '', image: imgEl ? imgEl.getAttribute('src') : '', url: linkEl ? linkEl.href : '' }); } return { origin: `{{origin}}`, destination: `{{destination}}`, departure_date: `{{departure_date}}`, return_date: `{{return_date}}`, result_count: results.length, results: results }",
+      "code": "const results = []; const items = document.querySelectorAll('[data-stid=\"lodging-card-responsive\"], [data-stid=\"property-listing\"]'); for (let i = 0; i < Math.min(items.length, 15); i++) { const el = items[i]; const hotelEl = el.querySelector('h3, h2'); const priceEl = el.querySelector('[data-test-id=\"price-summary-message-line\"] span, [data-stid=\"price-lockup\"] span'); const savingsEl = el.querySelector('[data-stid*=\"savings\"], [aria-label*=\"savings\"], [data-stid*=\"discount\"]'); const ratingEl = el.querySelector('span.is-visually-hidden, [aria-label*=\"rating\"]'); const imgEl = el.querySelector('img'); const linkEl = el.querySelector('a[data-stid=\"open-hotel-information\"], a[href*=\"Hotel-Information\"], a[href*=\".h\"]'); const flightEl = el.querySelector('[data-stid*=\"flight\"], [aria-label*=\"flight\"]'); const url = linkEl ? (linkEl.href.startsWith('http') ? linkEl.href : 'https://www.expedia.com' + linkEl.getAttribute('href')) : ''; results.push({ hotel_name: hotelEl ? hotelEl.textContent.trim() : '', price: priceEl ? priceEl.textContent.trim() : '', savings: savingsEl ? savingsEl.textContent.trim() : '', rating: ratingEl ? ratingEl.textContent.trim() : '', flight_info: flightEl ? flightEl.textContent.trim() : '', image: imgEl ? imgEl.getAttribute('src') : '', url: url }); } return { origin: `{{origin}}`, destination: `{{destination}}`, departure_date: `{{departure_date}}`, return_date: `{{return_date}}`, result_count: results.length, results: results }",
       "name": "package_results",
       "label": "Extract package results"
     }

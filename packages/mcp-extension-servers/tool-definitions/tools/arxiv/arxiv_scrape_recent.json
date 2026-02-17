@@ -1,0 +1,38 @@
+{
+  "id": "arxiv-scrape-recent",
+  "name": "arxiv_scrape_recent",
+  "description": "Browse recent arXiv papers in a category.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "category",
+      "type": "string",
+      "description": "arXiv category (e.g. \"cs.AI\", \"cs.LG\")",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://arxiv.org/list/{{category}}/recent",
+      "label": "Open recent papers"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "#dlpage, .list-title",
+      "timeout": 15000,
+      "label": "Wait for list"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page render"
+    },
+    {
+      "action": "code",
+      "code": "const papers = []; document.querySelectorAll('dt').forEach((dt, i) => { if (i < 20) { const idEl = dt.querySelector('a[href*=\"/abs/\"]'); const dd = dt.nextElementSibling; const titleEl = dd?.querySelector('.list-title'); const authorsEl = dd?.querySelector('.list-authors'); papers.push({ arxiv_id: idEl?.textContent?.trim() || '', url: idEl?.href || '', title: titleEl?.textContent?.replace('Title:', '')?.trim() || '', authors: authorsEl?.textContent?.replace('Authors:', '')?.trim()?.slice(0, 200) || '' }); } }); return { category: '{{category}}', paper_count: papers.length, papers };",
+      "name": "results",
+      "label": "Extract recent papers"
+    }
+  ]
+}

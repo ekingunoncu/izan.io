@@ -1,0 +1,38 @@
+{
+  "id": "untappd-scrape-beer",
+  "name": "untappd_scrape_beer",
+  "description": "Scrape details for a specific beer on Untappd including name, brewery, style, ABV, rating, and description.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "beer_id",
+      "type": "string",
+      "description": "Beer numeric ID from Untappd URL (e.g. '1787965' from untappd.com/b/beer-name/1787965)",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://untappd.com/b/beer/{{beer_id}}",
+      "label": "Open Untappd"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "h1, .name, .content",
+      "timeout": 15000,
+      "label": "Wait for page"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Let page render"
+    },
+    {
+      "action": "code",
+      "code": "const name = document.querySelector('h1, .name h1')?.textContent?.trim() || ''; const brewery = document.querySelector('.brewery a, h2 a')?.textContent?.trim() || ''; const style = document.querySelector('.style, .beer-style')?.textContent?.trim() || ''; const abv = document.querySelector('.abv, [class*=\"abv\"]')?.textContent?.trim() || ''; const rating = document.querySelector('.num, .rating .num, [class*=\"rating-num\"]')?.textContent?.trim() || ''; const desc = document.querySelector('.beer-descrption, .beer-description, .desc p')?.textContent?.trim()?.slice(0, 500) || ''; return { name, brewery, style, abv, rating, description: desc, url: window.location.href };",
+      "name": "result",
+      "label": "Extract data"
+    }
+  ]
+}

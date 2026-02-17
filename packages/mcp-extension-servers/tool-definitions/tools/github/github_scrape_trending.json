@@ -30,7 +30,7 @@
     },
     {
       "action": "waitForSelector",
-      "selector": "article.Box-row, .explore-content .Box-row",
+      "selector": "article.Box-row, .Box .Box-row",
       "timeout": 15000,
       "label": "Wait for trending repos"
     },
@@ -41,7 +41,7 @@
     },
     {
       "action": "code",
-      "code": "const repos = []; const rows = document.querySelectorAll('article.Box-row, .Box-row'); for (let i = 0; i < Math.min(rows.length, 25); i++) { const row = rows[i]; const nameEl = row.querySelector('h2 a, h1 a'); const descEl = row.querySelector('p'); const langEl = row.querySelector('[itemprop=\"programmingLanguage\"], span.repo-language-color + span'); const starsEl = row.querySelector('a[href*=\"/stargazers\"], .mr-3 svg.octicon-star'); const starsText = starsEl?.parentElement?.textContent?.trim() || ''; const todayEl = row.querySelector('.float-sm-right, span.d-inline-block.float-sm-right'); repos.push({ name: nameEl ? nameEl.textContent.trim().replace(/\\s+/g, '') : '', description: descEl ? descEl.textContent.trim().substring(0, 200) : '', language: langEl ? langEl.textContent.trim() : '', stars: starsText, stars_today: todayEl ? todayEl.textContent.trim() : '', url: nameEl ? 'https://github.com' + nameEl.getAttribute('href') : '' }); } return { result_count: repos.length, repos: repos }",
+      "code": "const repos = []; const rows = document.querySelectorAll('article.Box-row'); for (let i = 0; i < Math.min(rows.length, 25); i++) { const row = rows[i]; const nameEl = row.querySelector('h2 a, h1 a'); const descEl = row.querySelector('p'); const langEl = row.querySelector('[itemprop=\"programmingLanguage\"]'); const allLinks = row.querySelectorAll('a'); let starsText = ''; let forksText = ''; let todayText = ''; for (const link of allLinks) { const href = link.getAttribute('href') || ''; if (href.endsWith('/stargazers')) starsText = link.textContent.trim(); if (href.endsWith('/forks')) forksText = link.textContent.trim(); } const spans = row.querySelectorAll('span.d-inline-block.float-sm-right, span.float-sm-right'); for (const s of spans) { const t = s.textContent.trim(); if (t.includes('star')) { todayText = t; break; } } if (!todayText) { const lastSpan = row.querySelector('span:last-child'); if (lastSpan && lastSpan.textContent.includes('star')) todayText = lastSpan.textContent.trim(); } repos.push({ name: nameEl ? nameEl.textContent.trim().replace(/\\s+/g, '') : '', description: descEl ? descEl.textContent.trim().substring(0, 200) : '', language: langEl ? langEl.textContent.trim() : '', stars: starsText, forks: forksText, stars_today: todayText, url: nameEl ? 'https://github.com' + nameEl.getAttribute('href') : '' }); } return { result_count: repos.length, repos: repos }",
       "name": "result",
       "label": "Extract trending repos"
     }

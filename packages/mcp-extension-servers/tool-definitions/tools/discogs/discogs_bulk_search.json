@@ -1,0 +1,50 @@
+{
+  "id": "discogs-bulk-search",
+  "name": "discogs_bulk_search",
+  "description": "Search multiple queries on Discogs in parallel.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "queries",
+      "type": "string",
+      "description": "Comma-separated search queries",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{queries}}`.split(',').map(q => ({ url: 'https://www.discogs.com/search/?q=' + encodeURIComponent(q.trim()) + '&type=all', query: q.trim() }))",
+      "name": "items",
+      "label": "Build URL list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 3,
+      "maxItems": 10,
+      "waitUntil": "load",
+      "label": "Search in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": "#search_results, .card, .content",
+          "timeout": 15000,
+          "label": "Wait"
+        },
+        {
+          "action": "wait",
+          "ms": 2000
+        },
+        {
+          "action": "code",
+          "code": "const results = []; document.querySelectorAll('#search_results .card, .search_result_card, [data-object-type]').forEach((el, i) => { if (i < 15) { const titleEl = el.querySelector('a.search_result_title, h4 a, .card-title a'); const subtitleEl = el.querySelector('.card-subtitle, .search_result_subtitle, span'); results.push({ title: titleEl?.textContent?.trim() || '', url: titleEl?.href || '', subtitle: subtitleEl?.textContent?.trim() || '' }); } }); const params = new URLSearchParams(window.location.search); return { query: decodeURIComponent(params.get('q') || ''), result_count: results.length, results };",
+          "name": "results",
+          "label": "Extract"
+        }
+      ]
+    }
+  ]
+}

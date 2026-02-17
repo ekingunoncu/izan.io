@@ -30,7 +30,7 @@
       "detailSteps": [
         {
           "action": "waitForSelector",
-          "selector": ".jobCard, .react-job-listing, [data-test=\"jobListing\"], .JobsList_jobListItem__wjTHv, li[data-jobid]",
+          "selector": ".jobCard, .react-job-listing, [data-test=\"jobListing\"], [class*=\"JobsList_jobListItem\"], li[data-jobid]",
           "timeout": 15000,
           "label": "Wait for results"
         },
@@ -50,7 +50,7 @@
         },
         {
           "action": "code",
-          "code": "const jobs = []; const cards = document.querySelectorAll('.jobCard, .react-job-listing, [data-test=\"jobListing\"], li[data-jobid], .JobsList_jobListItem__wjTHv'); for (let i = 0; i < Math.min(cards.length, 8); i++) { const card = cards[i]; const titleEl = card.querySelector('.job-title, .jobTitle, a[data-test=\"job-title\"], .JobCard_jobTitle__GLyJ1'); const companyEl = card.querySelector('.employer-name, .job-employer, [data-test=\"employer-name\"], .EmployerProfile_compactEmployerName__9MGcV'); const locationEl = card.querySelector('.location, [data-test=\"emp-location\"], .JobCard_location__rCz3x'); const salaryEl = card.querySelector('.salary-estimate, [data-test=\"detailSalary\"], .JobCard_salaryEstimate__QpbTW'); const linkEl = card.querySelector('a[href*=\"/job-listing/\"], a[href*=\"/partner/\"], a.jobTitle, a[data-test=\"job-title\"]'); let url = ''; if (linkEl) { const href = linkEl.getAttribute('href') || ''; url = href.startsWith('http') ? href : 'https://www.glassdoor.com' + href; } jobs.push({ title: titleEl ? titleEl.textContent.trim() : 'Unknown', company: companyEl ? companyEl.textContent.trim() : '', location: locationEl ? locationEl.textContent.trim() : '', salary_estimate: salaryEl ? salaryEl.textContent.trim() : 'Not listed', url: url }); } const urlParams = new URLSearchParams(window.location.search); return { query: urlParams.get('sc.keyword') || '', job_count: jobs.length, jobs: jobs }",
+          "code": "const jobs = []; const cards = document.querySelectorAll('.jobCard, .react-job-listing, [data-test=\"jobListing\"], li[data-jobid], [class*=\"JobsList_jobListItem\"]'); for (let i = 0; i < Math.min(cards.length, 8); i++) { const card = cards[i]; const titleEl = card.querySelector('.job-title, .jobTitle, a[data-test=\"job-title\"], [class*=\"JobCard_jobTitle\"]'); const companyEl = card.querySelector('.employer-name, .job-employer, [data-test=\"employer-name\"], [class*=\"EmployerProfile_compactEmployerName\"]'); const locationEl = card.querySelector('.location, [data-test=\"emp-location\"], [class*=\"JobCard_location\"]'); const salaryEl = card.querySelector('.salary-estimate, [data-test=\"detailSalary\"], [class*=\"JobCard_salaryEstimate\"]'); const linkEl = card.querySelector('a[href*=\"/job-listing/\"], a[href*=\"/partner/\"], a.jobTitle, a[data-test=\"job-title\"]'); let url = ''; if (linkEl) { const href = linkEl.getAttribute('href') || ''; url = href.startsWith('http') ? href : 'https://www.glassdoor.com' + href; } jobs.push({ title: titleEl ? titleEl.textContent.trim() : 'Unknown', company: companyEl ? companyEl.textContent.trim() : '', location: locationEl ? locationEl.textContent.trim() : '', salary_estimate: salaryEl ? salaryEl.textContent.trim() : 'Not listed', url: url }); } const urlParams = new URLSearchParams(window.location.search); return { query: urlParams.get('sc.keyword') || '', job_count: jobs.length, jobs: jobs }",
           "name": "search_results",
           "label": "Extract job results"
         }

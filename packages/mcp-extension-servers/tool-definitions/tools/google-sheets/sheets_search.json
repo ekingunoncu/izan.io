@@ -19,7 +19,7 @@
     },
     {
       "action": "waitForSelector",
-      "selector": "input[aria-label='Search'], input[type='search'], .docs-homescreen-search-input",
+      "selector": "input[aria-label='Search'], input[type='search'], [role='search'] input",
       "timeout": 15000,
       "label": "Wait for search input to appear"
     },
@@ -30,7 +30,7 @@
     },
     {
       "action": "click",
-      "selector": "input[aria-label='Search'], input[type='search'], .docs-homescreen-search-input",
+      "selector": "input[aria-label='Search'], input[type='search'], [role='search'] input",
       "label": "Click search input"
     },
     {
@@ -40,7 +40,7 @@
     },
     {
       "action": "code",
-      "code": "const searchInput = document.querySelector('input[aria-label=\"Search\"], input[type=\"search\"], .docs-homescreen-search-input'); if (!searchInput) return { error: 'Could not find search input' }; searchInput.focus(); const nativeSet = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set; nativeSet.call(searchInput, `{{query}}`); searchInput.dispatchEvent(new Event('input', { bubbles: true })); searchInput.dispatchEvent(new Event('change', { bubbles: true })); await new Promise(r => setTimeout(r, 500)); searchInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', keyCode: 13, code: 'Enter', bubbles: true })); searchInput.dispatchEvent(new KeyboardEvent('keypress', { key: 'Enter', keyCode: 13, code: 'Enter', bubbles: true })); searchInput.dispatchEvent(new KeyboardEvent('keyup', { key: 'Enter', keyCode: 13, code: 'Enter', bubbles: true })); return { searched: true }",
+      "code": "const searchInput = document.querySelector('input[aria-label=\"Search\"], input[type=\"search\"], [role=\"search\"] input'); if (!searchInput) return { error: 'Could not find search input' }; searchInput.focus(); searchInput.click(); await new Promise(r => setTimeout(r, 300)); searchInput.select(); document.execCommand('insertText', false, `{{query}}`); await new Promise(r => setTimeout(r, 500)); searchInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', keyCode: 13, code: 'Enter', bubbles: true })); return { searched: true }",
       "name": "search_trigger",
       "label": "Type query and press Enter"
     },

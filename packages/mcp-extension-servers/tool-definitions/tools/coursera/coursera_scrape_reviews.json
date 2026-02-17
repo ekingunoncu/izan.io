@@ -14,12 +14,12 @@
   "steps": [
     {
       "action": "navigate",
-      "url": "{{course_url}}#reviews",
-      "label": "Open course reviews"
+      "url": "{{course_url}}",
+      "label": "Open course page"
     },
     {
       "action": "waitForSelector",
-      "selector": "h1, [class*='course-title']",
+      "selector": "h1",
       "timeout": 15000,
       "label": "Wait for page to load"
     },
@@ -31,8 +31,8 @@
     {
       "action": "scroll",
       "direction": "down",
-      "amount": 4000,
-      "label": "Scroll to reviews section"
+      "amount": 3000,
+      "label": "Scroll toward reviews section"
     },
     {
       "action": "wait",
@@ -41,7 +41,17 @@
     {
       "action": "scroll",
       "direction": "down",
-      "amount": 2000,
+      "amount": 3000,
+      "label": "Scroll further to reviews"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 3000,
       "label": "Scroll to load more reviews"
     },
     {
@@ -50,7 +60,7 @@
     },
     {
       "action": "code",
-      "code": "const reviews = []; const reviewEls = document.querySelectorAll('[class*=\"review\"][class*=\"card\"], [data-testid=\"review\"], [class*=\"Review\"]'); for (let i = 0; i < Math.min(reviewEls.length, 20); i++) { const el = reviewEls[i]; const ratingEl = el.querySelector('[class*=\"rating\"] span, [class*=\"stars\"], [aria-label*=\"star\"]'); const contentEl = el.querySelector('[class*=\"review-text\"], [class*=\"body\"] p, [class*=\"content\"]'); const authorEl = el.querySelector('[class*=\"reviewer\"], [class*=\"author\"], [class*=\"name\"]'); const dateEl = el.querySelector('time, [class*=\"date\"], [class*=\"timestamp\"]'); const helpfulEl = el.querySelector('[class*=\"helpful\"] span, [class*=\"votes\"]'); if (contentEl && contentEl.textContent.trim().length > 0) { reviews.push({ rating: ratingEl ? (ratingEl.getAttribute('aria-label') || ratingEl.textContent.trim()) : '', content: contentEl.textContent.trim().substring(0, 500), author: authorEl ? authorEl.textContent.trim() : 'Anonymous', date: dateEl ? (dateEl.getAttribute('datetime') || dateEl.textContent.trim()) : '', helpful: helpfulEl ? helpfulEl.textContent.trim() : '' }); } } const overallEl = document.querySelector('[class*=\"overall-rating\"], [class*=\"average-rating\"]'); const totalEl = document.querySelector('[class*=\"review-count\"], [class*=\"total-reviews\"]'); return { overall_rating: overallEl ? overallEl.textContent.trim() : '', total_reviews: totalEl ? totalEl.textContent.trim() : '', scraped_count: reviews.length, reviews: reviews, url: window.location.href }",
+      "code": "const reviews = []; const allDivs = document.querySelectorAll('div'); const reviewContainers = []; allDivs.forEach(function(div) { const stars = div.querySelector('[role=\"meter\"], [aria-label*=\"star\"], [class*=\"cds-RatingStar\"]'); const text = div.querySelector('p, [class*=\"reviewText\"], [class*=\"review-body\"]'); if (stars && text && text.textContent.trim().length > 20) { const isNested = reviewContainers.some(function(c) { return c.contains(div); }); if (!isNested) reviewContainers.push(div); } }); for (let i = 0; i < Math.min(reviewContainers.length, 20); i++) { const el = reviewContainers[i]; const ratingEl = el.querySelector('[role=\"meter\"], [aria-label*=\"star\"], [class*=\"cds-RatingStar\"]'); const textEls = el.querySelectorAll('p'); let content = ''; textEls.forEach(function(p) { const t = p.textContent.trim(); if (t.length > 20 && t.length > content.length) content = t; }); const nameEls = el.querySelectorAll('strong, b, [class*=\"name\"], [class*=\"reviewer\"]'); let author = ''; nameEls.forEach(function(n) { const t = n.textContent.trim(); if (t && t.length < 60 && t.length > 1 && !author) author = t; }); const dateEl = el.querySelector('time, [class*=\"date\"], [class*=\"timestamp\"]'); const helpfulEl = el.querySelector('[class*=\"helpful\"] span, [class*=\"votes\"]'); if (content) { reviews.push({ rating: ratingEl ? (ratingEl.getAttribute('aria-label') || ratingEl.textContent.trim()) : '', content: content.substring(0, 500), author: author || 'Anonymous', date: dateEl ? (dateEl.getAttribute('datetime') || dateEl.textContent.trim()) : '', helpful: helpfulEl ? helpfulEl.textContent.trim() : '' }); } } const overallEl = document.querySelector('[role=\"meter\"], [aria-label*=\"stars\"]'); const allText = document.body.innerText; const totalMatch = allText.match(/(\\d[\\d,]+)\\s*reviews?/i); return { overall_rating: overallEl ? (overallEl.getAttribute('aria-label') || overallEl.textContent.trim()) : '', total_reviews: totalMatch ? totalMatch[1] : '', scraped_count: reviews.length, reviews: reviews, url: window.location.href }",
       "name": "reviews_data",
       "label": "Extract reviews"
     }

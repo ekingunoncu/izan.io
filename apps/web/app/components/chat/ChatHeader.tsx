@@ -7,74 +7,13 @@ import {
   Brain,
   Pencil,
   Menu,
-  Bot,
-  Search,
-  Code,
-  Calendar,
-  Mail,
-  Database,
-  Globe,
-  FileText,
-  Puzzle,
-  Zap,
-  Shield,
-  MessageSquare,
-  Lightbulb,
-  TrendingUp,
-  Briefcase,
-  MapPin,
-  Store,
 } from 'lucide-react'
-import {
-  JiraIcon,
-  SlackIcon,
-  GitHubIcon,
-  NotionIcon,
-  WhatsAppIcon,
-  TrelloIcon,
-  XIcon,
-  DiscordIcon,
-  LinkedInIcon,
-  RedditIcon,
-  GoogleMapsIcon,
-} from '~/components/ui/platform-icons'
 import { Button } from '~/components/ui/button'
 import { useModelStore, useAgentStore, useUIStore } from '~/store'
 import { useProvidersWithModels } from '~/lib/use-providers-with-models'
 import { getAgentDisplayName, getAgentDisplayDescription } from '~/lib/agent-display'
+import { AgentIconDisplay } from '~/components/agents/AgentSelector'
 import { cn, modelDisplayName } from '~/lib/utils'
-
-// Icon mapping for agents
-const agentIcons: Record<string, typeof Bot> = {
-  'bot': Bot,
-  'search': Search,
-  'code': Code,
-  'calendar': Calendar,
-  'mail': Mail,
-  'database': Database,
-  'globe': Globe,
-  'file-text': FileText,
-  'puzzle': Puzzle,
-  'zap': Zap,
-  'shield': Shield,
-  'message-square': MessageSquare,
-  'lightbulb': Lightbulb,
-  'trending-up': TrendingUp,
-  'briefcase': Briefcase,
-  'map-pin': MapPin,
-  'store': Store,
-  'twitter': XIcon,
-  'jira': JiraIcon,
-  'slack': SlackIcon,
-  'github': GitHubIcon,
-  'notion': NotionIcon,
-  'whatsapp': WhatsAppIcon,
-  'trello': TrelloIcon,
-  'discord': DiscordIcon,
-  'linkedin': LinkedInIcon,
-  'reddit': RedditIcon,
-  'google-maps': GoogleMapsIcon,
-}
 
 interface ModelQuickSelectProps {
   onClose: () => void
@@ -180,7 +119,7 @@ export function ChatHeader() {
     }
   }
 
-  const AgentIcon = currentAgent ? (agentIcons[currentAgent.icon] || Bot) : Bot
+  const agentIconId = currentAgent?.icon || 'bot'
 
   return (
     <header className="border-b px-3 sm:px-4 py-2.5 sm:py-3 flex items-center justify-between relative gap-2">
@@ -197,7 +136,7 @@ export function ChatHeader() {
         </Button>
 
         <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-          <AgentIcon className="h-4 w-4 text-primary" />
+          <AgentIconDisplay iconId={agentIconId} className="h-4 w-4 text-primary" emojiClassName="text-base leading-none" />
         </div>
         <div className="min-w-0">
           <h1 className="font-medium text-sm truncate">{getAgentDisplayName(currentAgent, t) || 'Agent'}</h1>

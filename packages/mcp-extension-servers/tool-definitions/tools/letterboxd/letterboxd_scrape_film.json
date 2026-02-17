@@ -1,0 +1,48 @@
+{
+  "id": "letterboxd-scrape-film",
+  "name": "letterboxd_scrape_film",
+  "description": "Scrape a Letterboxd film page. Returns title, year, director, rating, description, genres, and cast.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "film_slug",
+      "type": "string",
+      "description": "Film slug (e.g. 'parasite-2019')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://letterboxd.com/film/{{film_slug}}/",
+      "label": "Open page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "h1.primaryname, h1.filmtitle, h1",
+      "timeout": 15000,
+      "label": "Wait for content"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll for more"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const title = document.querySelector('h1.primaryname span.name, h1.filmtitle, h1')?.textContent?.trim()||''; const year = document.querySelector('div.releaseyear a, small.number a')?.textContent?.trim()||''; const director = document.querySelector('a.text-sluglist[href*=\"/director/\"], span.text-sluglist a, a[href*=\"/director/\"]')?.textContent?.trim()||''; const rating = document.querySelector('span.average-rating a, span.average-rating')?.textContent?.trim()||''; const tagline = document.querySelector('div.tagline')?.textContent?.trim()||''; const desc = document.querySelector('div.truncate p, div.body-text p')?.textContent?.trim()?.substring(0,1000)||''; const genres = Array.from(document.querySelectorAll('div#tab-genres a, a[href*=\"/films/genre/\"]')).map(g=>g.textContent.trim()); const cast = Array.from(document.querySelectorAll('div#tab-cast a.tooltip, a[href*=\"/actor/\"]')).slice(0,15).map(a=>a.textContent.trim()); return { title, year, director, rating, tagline, description: desc, genres, cast, url: window.location.href }",
+      "name": "page_data",
+      "label": "Extract data"
+    }
+  ]
+}

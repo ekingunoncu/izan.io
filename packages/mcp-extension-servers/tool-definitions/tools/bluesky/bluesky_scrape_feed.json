@@ -8,7 +8,7 @@
   ],
   "steps": [
     { "action": "navigate", "url": "https://bsky.app/profile/{{handle}}", "label": "Open user feed" },
-    { "action": "waitForSelector", "selector": "[data-testid='feedItem'], [data-testid='postText']", "timeout": 15000, "label": "Wait for feed" },
+    { "action": "waitForSelector", "selector": "[data-testid^='feedItem-by-'], [data-testid='postText']", "timeout": 15000, "label": "Wait for feed" },
     { "action": "wait", "ms": 2000 },
     { "action": "scroll", "direction": "down", "amount": 1500, "label": "Scroll for more posts" },
     { "action": "wait", "ms": 2000 },
@@ -16,7 +16,7 @@
     { "action": "wait", "ms": 1500 },
     {
       "action": "code",
-      "code": "const posts = []; const feedItems = document.querySelectorAll('[data-testid=\"feedItem\"], [data-testid=\"postThreadItem\"]'); for (let i = 0; i < Math.min(feedItems.length, 20); i++) { const el = feedItems[i]; const contentEl = el.querySelector('[data-testid=\"postText\"]'); const likesEl = el.querySelector('[data-testid=\"likeCount\"]'); const repostsEl = el.querySelector('[data-testid=\"repostCount\"]'); const repliesEl = el.querySelector('[data-testid=\"replyCount\"]'); const timeEl = el.querySelector('time'); const linkEl = el.querySelector('a[href*=\"/post/\"]'); const imgEl = el.querySelector('[data-testid=\"postMedia\"] img'); const isRepost = !!el.querySelector('[class*=\"repost\"][class*=\"indicator\"]'); posts.push({ content: contentEl ? contentEl.textContent.trim().substring(0, 500) : '', likes: likesEl ? likesEl.textContent.trim() : '', reposts: repostsEl ? repostsEl.textContent.trim() : '', replies: repliesEl ? repliesEl.textContent.trim() : '', time: timeEl ? timeEl.textContent.trim() : '', url: linkEl ? linkEl.href : '', has_image: !!imgEl, is_repost: isRepost }); } const nameEl = document.querySelector('[data-testid=\"profileHeaderDisplayName\"]'); return { handle: '{{handle}}', display_name: nameEl ? nameEl.textContent.trim() : '', post_count: posts.length, posts: posts, url: window.location.href }",
+      "code": "const posts = []; const feedItems = document.querySelectorAll('[data-testid^=\"feedItem-by-\"]'); for (let i = 0; i < Math.min(feedItems.length, 20); i++) { const el = feedItems[i]; const contentEl = el.querySelector('[data-testid=\"postText\"]'); const likeBtn = el.querySelector('[data-testid=\"likeBtn\"]'); const replyBtn = el.querySelector('[data-testid=\"replyBtn\"]'); const timeEl = el.querySelector('time'); const linkEl = el.querySelector('a[href*=\"/post/\"]'); const imgEl = el.querySelector('img[src*=\"feed_\"], img[src*=\"cdn\"]'); posts.push({ content: contentEl ? contentEl.textContent.trim().substring(0, 500) : '', likes: likeBtn ? (likeBtn.getAttribute('aria-label') || '') : '', replies: replyBtn ? (replyBtn.getAttribute('aria-label') || '') : '', time: timeEl ? (timeEl.getAttribute('datetime') || timeEl.textContent.trim()) : '', url: linkEl ? linkEl.href : '', has_image: !!imgEl }); } const nameEl = document.querySelector('[data-testid=\"profileHeaderDisplayName\"]'); return { handle: '{{handle}}', display_name: nameEl ? nameEl.textContent.trim() : '', post_count: posts.length, posts: posts, url: window.location.href }",
       "name": "feed_data",
       "label": "Extract feed posts"
     }

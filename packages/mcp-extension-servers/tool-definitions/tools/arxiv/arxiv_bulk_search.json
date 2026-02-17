@@ -1,0 +1,50 @@
+{
+  "id": "arxiv-bulk-search",
+  "name": "arxiv_bulk_search",
+  "description": "Search multiple queries on arXiv in parallel.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "queries",
+      "type": "string",
+      "description": "Comma-separated search queries",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "return `{{queries}}`.split(',').map(q => ({ url: 'https://arxiv.org/search/?searchtype=all&query=' + encodeURIComponent(q.trim()), query: q.trim() }))",
+      "name": "items",
+      "label": "Build URL list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 3,
+      "maxItems": 10,
+      "waitUntil": "load",
+      "label": "Search in parallel",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": "li.arxiv-result, ol.breathe-horizontal",
+          "timeout": 15000,
+          "label": "Wait"
+        },
+        {
+          "action": "wait",
+          "ms": 2000
+        },
+        {
+          "action": "code",
+          "code": "const results = []; document.querySelectorAll('li.arxiv-result').forEach((el, i) => { if (i < 5) { const titleEl = el.querySelector('p.title'); const idEl = el.querySelector('.list-title a[href*=\"/abs/\"]'); const authorsEl = el.querySelector('p.authors'); results.push({ title: titleEl?.textContent?.replace('Title:', '')?.trim() || '', arxiv_id: idEl?.textContent?.trim() || '', url: idEl?.href || '', authors: authorsEl?.textContent?.replace('Authors:', '')?.trim() || '' }); } }); return { result_count: results.length, results };",
+          "name": "results",
+          "label": "Extract"
+        }
+      ]
+    }
+  ]
+}

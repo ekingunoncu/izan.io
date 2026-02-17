@@ -12,7 +12,7 @@
     },
     {
       "action": "waitForSelector",
-      "selector": "[class*='template'], [class*='card'], [class*='grid'], a[href*='/templates/']",
+      "selector": "a[href*='/templates/'], [role='list'], main",
       "timeout": 15000,
       "label": "Wait for templates to load"
     },
@@ -43,7 +43,7 @@
     },
     {
       "action": "code",
-      "code": "const categories = []; const catEls = document.querySelectorAll('[class*=\"category\"] a, nav a[href*=\"/templates/\"], [class*=\"browse\"] a'); catEls.forEach(function(el) { const t = el.textContent.trim(); const href = el.getAttribute('href') || ''; if (t && t.length < 80 && !categories.find(c => c.name === t)) { categories.push({ name: t, url: href.startsWith('http') ? href : 'https://www.canva.com' + href }); } }); const templates = []; const templateEls = document.querySelectorAll('a[href*=\"/templates/\"], [class*=\"template\"] a, [class*=\"card\"] a[href*=\"template\"]'); for (let i = 0; i < Math.min(templateEls.length, 20); i++) { const el = templateEls[i]; const nameEl = el.querySelector('[class*=\"title\"], h3, h4, [aria-label]'); const imgEl = el.querySelector('img'); const proEl = el.querySelector('[class*=\"pro\"], [class*=\"premium\"]'); templates.push({ rank: i + 1, title: nameEl ? (nameEl.getAttribute('aria-label') || nameEl.textContent.trim()) : (el.getAttribute('aria-label') || ''), is_premium: !!proEl, image: imgEl ? imgEl.getAttribute('src') : '', url: el.href || '' }); } return { categories: categories.slice(0, 15), trending_count: templates.length, templates: templates, url: window.location.href }",
+      "code": "const categories = []; const catEls = document.querySelectorAll('nav a[href*=\"/templates/\"], a[href*=\"/templates/s/\"]'); catEls.forEach(function(el) { const t = el.textContent.trim(); const href = el.getAttribute('href') || ''; if (t && t.length < 80 && !categories.find(c => c.name === t)) { categories.push({ name: t, url: href.startsWith('http') ? href : 'https://www.canva.com' + href }); } }); const templates = []; const seen = new Set(); const templateEls = document.querySelectorAll('a[href*=\"/templates/\"]'); for (let i = 0; i < templateEls.length && templates.length < 20; i++) { const el = templateEls[i]; const href = el.href || ''; if (!href || seen.has(href)) continue; seen.add(href); const ariaLabel = el.getAttribute('aria-label') || ''; const nameEl = el.querySelector('h3, h4, [aria-label]'); const imgEl = el.querySelector('img'); const proEl = el.querySelector('[aria-label*=\"Pro\"], [aria-label*=\"premium\"]'); const title = ariaLabel || (nameEl ? (nameEl.getAttribute('aria-label') || nameEl.textContent.trim()) : ''); if (!title && !imgEl) continue; templates.push({ rank: templates.length + 1, title: title, is_premium: !!proEl, image: imgEl ? imgEl.getAttribute('src') : '', url: href }); } return { categories: categories.slice(0, 15), trending_count: templates.length, templates: templates, url: window.location.href }",
       "name": "trending_data",
       "label": "Extract trending templates"
     }

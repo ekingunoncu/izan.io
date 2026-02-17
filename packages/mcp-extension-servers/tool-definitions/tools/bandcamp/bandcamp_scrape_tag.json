@@ -1,0 +1,38 @@
+{
+  "id": "bandcamp-scrape-tag",
+  "name": "bandcamp_scrape_tag",
+  "description": "Browse music by genre/tag on Bandcamp. Extracts album data from the tag page's embedded data blob. Returns album names, artists, and URLs.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "tag",
+      "type": "string",
+      "description": "Genre tag (e.g. 'electronic', 'jazz', 'hip-hop-rap', 'ambient')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://bandcamp.com/tag/{{tag}}",
+      "label": "Open Bandcamp tag page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "#pagedata, .hub-columns",
+      "timeout": 15000,
+      "label": "Wait for tag page"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Let page fully render"
+    },
+    {
+      "action": "code",
+      "code": "const items = []; try { const pageData = document.querySelector('#pagedata'); if (pageData) { const blob = JSON.parse(pageData.getAttribute('data-blob') || '{}'); const tabs = blob?.hub?.tabs || []; for (const tab of tabs) { const collections = tab?.collections || []; for (const col of collections) { const colItems = col?.items || []; for (const item of colItems) { if (items.length < 20) { items.push({ title: item.title || '', artist: item.artist || item.band_name || '', url: item.tralbum_url || item.item_url || '', art_id: item.art_id || '', genre: item.genre || '' }); } } } } } } catch(e) {} if (items.length === 0) { document.querySelectorAll('.music-grid .music-grid-item, .item_list .item, li[data-item-id]').forEach((el, i) => { if (i < 20) { const linkEl = el.querySelector('a[href]'); const titleEl = el.querySelector('.title, .tralbum-name'); const artistEl = el.querySelector('.artist-override, .tralbum-artist'); items.push({ title: titleEl?.textContent?.trim() || linkEl?.textContent?.trim() || '', artist: artistEl?.textContent?.trim() || '', url: linkEl?.href || '' }); } }); } return { tag: '{{tag}}', item_count: items.length, items };",
+      "name": "result",
+      "label": "Extract tag results"
+    }
+  ]
+}

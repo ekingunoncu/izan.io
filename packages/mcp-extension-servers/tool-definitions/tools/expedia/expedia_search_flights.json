@@ -7,37 +7,37 @@
     {
       "name": "origin",
       "type": "string",
-      "description": "Origin airport code or city (e.g. 'LAX', 'New York')",
+      "description": "Origin airport code (e.g. 'LAX', 'JFK', 'ORD')",
       "required": true
     },
     {
       "name": "destination",
       "type": "string",
-      "description": "Destination airport code or city (e.g. 'JFK', 'London')",
+      "description": "Destination airport code (e.g. 'LHR', 'CDG', 'NRT')",
       "required": true
     },
     {
       "name": "departure_date",
       "type": "string",
-      "description": "Departure date in YYYY-MM-DD format (e.g. '2025-03-15')",
+      "description": "Departure date in M/D/YYYY format (e.g. '3/15/2025')",
       "required": true
     }
   ],
   "steps": [
     {
       "action": "navigate",
-      "url": "https://www.expedia.com/Flights-search/{{origin}}-{{destination}}/{{departure_date}}",
+      "url": "https://www.expedia.com/Flights-Search?leg1=from:{{origin}},to:{{destination}},departure:{{departure_date}}TANYT&passengers=adults:1&trip=oneway&mode=search",
       "label": "Search flights on Expedia"
     },
     {
       "action": "waitForSelector",
-      "selector": "[data-test-id='listing'], [class*='flight-module'], [class*='FlightCard'], li[class*='result']",
-      "timeout": 20000,
+      "selector": "[data-stid='section-results'] li, ul[data-stid='results-list'] li, [data-test-id='offer-listing']",
+      "timeout": 25000,
       "label": "Wait for flight results"
     },
     {
       "action": "wait",
-      "ms": 3000,
+      "ms": 4000,
       "label": "Let results render"
     },
     {
@@ -62,7 +62,7 @@
     },
     {
       "action": "code",
-      "code": "const results = []; const items = document.querySelectorAll('[data-test-id=\"listing\"], [class*=\"flight-module\"], [class*=\"FlightCard\"], li[class*=\"result\"]'); for (let i = 0; i < Math.min(items.length, 15); i++) { const el = items[i]; const airlineEl = el.querySelector('[data-test-id=\"airline-name\"], [class*=\"airline\"], [class*=\"carrier\"]'); const departTimeEl = el.querySelector('[data-test-id=\"departure-time\"], [class*=\"depart\"] [class*=\"time\"], [class*=\"departure-time\"]'); const arriveTimeEl = el.querySelector('[data-test-id=\"arrival-time\"], [class*=\"arrival\"] [class*=\"time\"], [class*=\"arrival-time\"]'); const durationEl = el.querySelector('[data-test-id=\"duration\"], [class*=\"duration\"]'); const stopsEl = el.querySelector('[data-test-id=\"stops\"], [class*=\"stops\"], [class*=\"layover\"]'); const priceEl = el.querySelector('[data-test-id=\"price\"], [class*=\"price\"] span, [class*=\"displayPrice\"]'); const linkEl = el.querySelector('a[href*=\"flight\"], button[data-test-id=\"select-button\"]'); const logoEl = el.querySelector('img[class*=\"airline\"], img[class*=\"logo\"]'); results.push({ airline: airlineEl ? airlineEl.textContent.trim() : '', departure_time: departTimeEl ? departTimeEl.textContent.trim() : '', arrival_time: arriveTimeEl ? arriveTimeEl.textContent.trim() : '', duration: durationEl ? durationEl.textContent.trim() : '', stops: stopsEl ? stopsEl.textContent.trim() : '', price: priceEl ? priceEl.textContent.trim() : '', logo: logoEl ? logoEl.getAttribute('src') : '', url: linkEl && linkEl.href ? linkEl.href : window.location.href }); } return { origin: `{{origin}}`, destination: `{{destination}}`, departure_date: `{{departure_date}}`, result_count: results.length, results: results }",
+      "code": "const results = []; const items = document.querySelectorAll('[data-test-id=\"offer-listing\"], ul[data-stid=\"results-list\"] > li, [data-stid=\"section-results\"] li'); for (let i = 0; i < Math.min(items.length, 15); i++) { const el = items[i]; const allText = el.textContent || ''; const spans = el.querySelectorAll('span'); const divs = el.querySelectorAll('div'); let airline = ''; let departTime = ''; let arriveTime = ''; let duration = ''; let stops = ''; let price = ''; for (let s = 0; s < spans.length; s++) { const t = spans[s].textContent.trim(); if (t.match(/^\\d{1,2}:\\d{2}\\s*(AM|PM|am|pm)$/)) { if (!departTime) departTime = t; else if (!arriveTime) arriveTime = t; } if (t.match(/^\\d+h\\s*\\d*m?$/) || t.match(/^\\d+\\s*hr/)) duration = t; if (t.match(/nonstop|Nonstop|\\d+\\s*stop/i)) stops = t; if (t.match(/^\\$[\\d,.]+$/)) price = t; } for (let d = 0; d < divs.length; d++) { const t = divs[d].textContent.trim(); if (!airline && t.match(/Airlines?|Airways?|Air\\s|United|Delta|American|Southwest|JetBlue|Spirit|Frontier|Alaska|Hawaiian/i) && t.length < 40) airline = t; } const linkEl = el.querySelector('a[href], button[data-test-id=\"select-button\"]'); const logoEl = el.querySelector('img[alt]'); if (!airline && logoEl) airline = logoEl.getAttribute('alt') || ''; results.push({ airline: airline, departure_time: departTime, arrival_time: arriveTime, duration: duration, stops: stops, price: price, url: linkEl && linkEl.href ? linkEl.href : window.location.href }); } return { origin: `{{origin}}`, destination: `{{destination}}`, departure_date: `{{departure_date}}`, result_count: results.length, results: results }",
       "name": "flight_results",
       "label": "Extract flight results"
     }

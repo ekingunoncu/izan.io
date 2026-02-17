@@ -1,7 +1,7 @@
 {
   "id": "bluesky-bulk-scrape-profiles",
   "name": "bluesky_bulk_scrape_profiles",
-  "description": "Scrape multiple Bluesky profiles in parallel using concurrent browser tabs. Use this instead of calling bluesky_scrape_profile multiple times.",
+  "description": "Scrape multiple Bluesky profiles in parallel using concurrent browser tabs. Pass all handles as a single comma-separated string. Use this instead of calling bluesky_scrape_profile multiple times.",
   "version": "1.0.0",
   "parameters": [
     { "name": "handles", "type": "string", "description": "Comma-separated Bluesky handles (e.g. 'user1.bsky.social,user2.bsky.social,custom.domain')", "required": true }
@@ -15,7 +15,7 @@
         { "action": "wait", "ms": 2000 },
         {
           "action": "code",
-          "code": "const nameEl = document.querySelector('[data-testid=\"profileHeaderDisplayName\"], h1'); const handleEl = document.querySelector('[data-testid=\"profileHeaderHandle\"], [class*=\"handle\"]'); const bioEl = document.querySelector('[data-testid=\"profileHeaderDescription\"]'); const avatarEl = document.querySelector('[data-testid=\"userAvatarImage\"]'); const stats = {}; document.querySelectorAll('[data-testid=\"profileHeaderFollowersButton\"], [data-testid=\"profileHeaderFollowsButton\"]').forEach(function(el) { const text = el.textContent.trim(); if (text.match(/follower/i)) stats.followers = text; else if (text.match(/following/i)) stats.following = text; }); return { display_name: nameEl ? nameEl.textContent.trim() : '', handle: handleEl ? handleEl.textContent.trim() : '', bio: bioEl ? bioEl.textContent.trim().substring(0, 300) : '', avatar: avatarEl ? avatarEl.getAttribute('src') : '', followers: stats.followers || '', following: stats.following || '', url: window.location.href }",
+          "code": "const nameEl = document.querySelector('[data-testid=\"profileHeaderDisplayName\"]'); const bioEl = document.querySelector('[data-testid=\"profileHeaderDescription\"]'); const avatarEl = document.querySelector('img[src*=\"avatar\"]'); const stats = {}; const followersBtn = document.querySelector('[data-testid=\"profileHeaderFollowersButton\"]'); const followsBtn = document.querySelector('[data-testid=\"profileHeaderFollowsButton\"]'); if (followersBtn) stats.followers = followersBtn.textContent.trim(); if (followsBtn) stats.following = followsBtn.textContent.trim(); let handle = ''; const handleLinks = document.querySelectorAll('a[href*=\"/profile/\"]'); for (const a of handleLinks) { const text = a.textContent.trim(); if (text.startsWith('@') || text.includes('.bsky.')) { handle = text; break; } } return { display_name: nameEl ? nameEl.textContent.trim() : '', handle: handle, bio: bioEl ? bioEl.textContent.trim().substring(0, 300) : '', avatar: avatarEl ? avatarEl.getAttribute('src') : '', followers: stats.followers || '', following: stats.following || '', url: window.location.href }",
           "name": "profile_data", "label": "Extract profile"
         }
       ]

@@ -30,7 +30,7 @@
       "detailSteps": [
         {
           "action": "waitForSelector",
-          "selector": "li.pIav2d, div[data-resultid], ul[role='list'] li",
+          "selector": "li.pIav2d",
           "timeout": 20000,
           "label": "Wait for flight results"
         },
@@ -49,7 +49,7 @@
         },
         {
           "action": "code",
-          "code": "const results = []; const flightCards = document.querySelectorAll('li.pIav2d, div[data-resultid], ul[role=\"list\"] li'); for (let i = 0; i < Math.min(flightCards.length, 5); i++) { const card = flightCards[i]; const priceEl = card.querySelector('div.YMlIz span, span[data-gs], .price-text span, span[aria-label*=\"$\"], span[aria-label*=\"EUR\"]'); const airlineEl = card.querySelector('div.sSHqwe span, .airline-name span'); const timesEl = card.querySelectorAll('div.wtDYl span, span.mv1WYe'); const durationEl = card.querySelector('div.gvkrdb, div[aria-label*=\"duration\"]'); const stopsEl = card.querySelector('div.EfT7Ae span, span[aria-label*=\"stop\"]'); const times = []; timesEl.forEach(t => { const txt = t.textContent.trim(); if (txt.match(/\\d{1,2}:\\d{2}/) || txt.match(/\\d{1,2}\\s*(AM|PM)/i)) times.push(txt); }); results.push({ airline: airlineEl ? airlineEl.textContent.trim() : '', price: priceEl ? priceEl.textContent.trim() : '', departure_time: times[0] || '', arrival_time: times[1] || '', duration: durationEl ? durationEl.textContent.trim() : '', stops: stopsEl ? stopsEl.textContent.trim() : '' }); } const params = new URLSearchParams(window.location.search); return { route: params.get('q') || decodeURIComponent(window.location.href.split('q=')[1] || '').split('&')[0], result_count: results.length, results: results }",
+          "code": "const results = []; const flightCards = document.querySelectorAll('li.pIav2d'); for (let i = 0; i < Math.min(flightCards.length, 5); i++) { const card = flightCards[i]; const priceEl = card.querySelector('div.FpEdX span, div.YMlIz span, span[data-gs]'); const airlineEl = card.querySelector('div.sSHqwe.tPgKwe.ogfYpf, div.sSHqwe span'); const depTimeEl = card.querySelector('span[aria-label^=\"Departure time\"], div.zxVSec span.eoY5cb'); const arrTimeEl = card.querySelector('span[aria-label^=\"Arrival time\"]'); const durationEl = card.querySelector('div[aria-label^=\"Total duration\"], div.gvkrdb'); const stopsEl = card.querySelector('div.hF6lYb span.rGRiKd, div.EfT7Ae span, span[aria-label*=\"stop\"]'); results.push({ airline: airlineEl ? airlineEl.textContent.trim() : '', price: priceEl ? priceEl.textContent.trim() : '', departure_time: depTimeEl ? depTimeEl.textContent.trim() : '', arrival_time: arrTimeEl ? arrTimeEl.textContent.trim() : '', duration: durationEl ? durationEl.textContent.trim() : '', stops: stopsEl ? stopsEl.textContent.trim() : '' }); } const params = new URLSearchParams(window.location.search); return { route: params.get('q') || decodeURIComponent(window.location.href.split('q=')[1] || '').split('&')[0], result_count: results.length, results: results }",
           "name": "flight_results",
           "label": "Extract flight results"
         }

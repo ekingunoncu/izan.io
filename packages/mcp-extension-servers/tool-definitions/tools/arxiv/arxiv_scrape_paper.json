@@ -1,0 +1,38 @@
+{
+  "id": "arxiv-scrape-paper",
+  "name": "arxiv_scrape_paper",
+  "description": "Scrape a specific arXiv paper. Returns title, authors, full abstract, categories, and PDF link.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "paper_id",
+      "type": "string",
+      "description": "arXiv paper ID (e.g. \"2301.07041\")",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://arxiv.org/abs/{{paper_id}}",
+      "label": "Open paper page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "h1.title, .title.mathjax",
+      "timeout": 15000,
+      "label": "Wait for page"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let page render"
+    },
+    {
+      "action": "code",
+      "code": "const title = document.querySelector('h1.title')?.textContent?.replace('Title:', '')?.trim() || ''; const authors = []; document.querySelectorAll('.authors a').forEach(a => authors.push(a.textContent?.trim())); const abstract = document.querySelector('blockquote.abstract')?.textContent?.replace('Abstract:', '')?.trim() || ''; const cats = document.querySelector('.tablecell.subjects')?.textContent?.trim() || ''; const dateEl = document.querySelector('.dateline')?.textContent?.trim() || ''; const pdfLink = 'https://arxiv.org/pdf/{{paper_id}}'; return { paper_id: '{{paper_id}}', title, authors, abstract, categories: cats, date: dateEl, pdf_link: pdfLink, url: window.location.href };",
+      "name": "paper_data",
+      "label": "Extract paper info"
+    }
+  ]
+}

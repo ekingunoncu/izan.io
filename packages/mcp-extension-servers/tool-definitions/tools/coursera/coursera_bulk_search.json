@@ -30,7 +30,7 @@
       "detailSteps": [
         {
           "action": "waitForSelector",
-          "selector": "[class*='result'], [class*='card'], [data-testid='search-result']",
+          "selector": "[class*='cds-CommonCard'], li[class*='ais-'], a[href*='/learn/']",
           "timeout": 15000,
           "label": "Wait for results"
         },
@@ -49,7 +49,7 @@
         },
         {
           "action": "code",
-          "code": "const results = []; const items = document.querySelectorAll('[data-testid=\"search-result\"], [class*=\"result-card\"], li[class*=\"ais-\"], [class*=\"ProductCard\"]'); for (let i = 0; i < Math.min(items.length, 5); i++) { const el = items[i]; const titleEl = el.querySelector('h3, h2, [class*=\"title\"]'); const providerEl = el.querySelector('[class*=\"partner\"], [class*=\"provider\"]'); const ratingEl = el.querySelector('[class*=\"rating\"] span'); const linkEl = el.querySelector('a[href*=\"/learn/\"], a[href*=\"/specializations/\"]'); results.push({ name: titleEl ? titleEl.textContent.trim() : '', provider: providerEl ? providerEl.textContent.trim() : '', rating: ratingEl ? ratingEl.textContent.trim() : '', url: linkEl ? linkEl.href : '' }); } const params = new URLSearchParams(window.location.search); return { query: params.get('query') || '', result_count: results.length, results: results }",
+          "code": "const results = []; const cards = document.querySelectorAll('[class*=\"cds-CommonCard\"], li[class*=\"ais-Hits\"]'); for (let i = 0; i < Math.min(cards.length, 5); i++) { const el = cards[i]; const titleEl = el.querySelector('h3[class*=\"cds-CommonCard-title\"], h3, h2'); const providerEl = el.querySelector('[class*=\"cds-ProductCard-partnerNames\"], [class*=\"partner\"] p, p + p'); const ratingEl = el.querySelector('[role=\"meter\"], [class*=\"cds-RatingStar\"], [aria-label*=\"stars\"]'); const linkEl = el.querySelector('a[href*=\"/learn/\"], a[href*=\"/specializations/\"]'); results.push({ name: titleEl ? titleEl.textContent.trim() : '', provider: providerEl ? providerEl.textContent.trim() : '', rating: ratingEl ? (ratingEl.getAttribute('aria-label') || ratingEl.textContent.trim()) : '', url: linkEl ? linkEl.href : '' }); } const params = new URLSearchParams(window.location.search); return { query: params.get('query') || '', result_count: results.length, results: results }",
           "name": "search_results",
           "label": "Extract results"
         }

@@ -7,7 +7,7 @@
   "steps": [
     {
       "action": "navigate",
-      "url": "https://www.booking.com/deals",
+      "url": "https://www.booking.com/dealspage.html",
       "label": "Open Booking.com deals page"
     },
     {

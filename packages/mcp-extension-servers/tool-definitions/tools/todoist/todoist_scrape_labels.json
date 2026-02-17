@@ -1,0 +1,41 @@
+{
+  "id": "todoist-scrape-labels",
+  "name": "todoist_scrape_labels",
+  "description": "Scrape all labels from Todoist. Requires login.",
+  "version": "1.0.0",
+  "parameters": [],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://app.todoist.com/app/filters-labels",
+      "label": "Open page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "a[href*=\"/label/\"], [class*=\"label\"]",
+      "timeout": 15000,
+      "label": "Wait for content"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll for more"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const labels = Array.from(document.querySelectorAll('a[href*=\"/label/\"], [class*=\"label_item\"]')).map(el => { const name = el.textContent?.trim()||''; const count = el.querySelector('.count, [class*=\"count\"]')?.textContent?.trim()||''; return { name, task_count: count }; }).filter(l=>l.name&&l.name.length<100); return { labels }",
+      "name": "page_data",
+      "label": "Extract data"
+    }
+  ]
+}

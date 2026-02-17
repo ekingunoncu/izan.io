@@ -83,6 +83,28 @@ import {
   ProductHuntIcon,
   CourseraIcon,
   UdemyIcon,
+  KaggleIcon,
+  HuggingFaceIcon,
+  StravaIcon,
+  GoodreadsIcon,
+  CoinbaseIcon,
+  DiscogsIcon,
+  LetterboxdIcon,
+  TodoistIcon,
+  CraigslistIcon,
+  MyFitnessPalIcon,
+  DuolingoIcon,
+  TinderIcon,
+  StockXIcon,
+  ArxivIcon,
+  WaybackIcon,
+  BandcampIcon,
+  LastfmIcon,
+  OpenSeaIcon,
+  UntappdIcon,
+  TransfermarktIcon,
+  VivinoIcon,
+  ESPNIcon,
 } from '~/components/ui/platform-icons'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
@@ -167,11 +189,54 @@ const agentIconMap: Record<string, typeof Bot> = {
   'producthunt': ProductHuntIcon,
   'coursera': CourseraIcon,
   'udemy': UdemyIcon,
+  'kaggle': KaggleIcon,
+  'huggingface': HuggingFaceIcon,
+  'strava': StravaIcon,
+  'goodreads': GoodreadsIcon,
+  'coinbase': CoinbaseIcon,
+  'discogs': DiscogsIcon,
+  'letterboxd': LetterboxdIcon,
+  'todoist': TodoistIcon,
+  'craigslist': CraigslistIcon,
+  'myfitnesspal': MyFitnessPalIcon,
+  'duolingo': DuolingoIcon,
+  'tinder': TinderIcon,
+  'stockx': StockXIcon,
+  'arxiv': ArxivIcon,
+  'wayback': WaybackIcon,
+  'bandcamp': BandcampIcon,
+  'lastfm': LastfmIcon,
+  'opensea': OpenSeaIcon,
+  'untappd': UntappdIcon,
+  'transfermarkt': TransfermarktIcon,
+  'vivino': VivinoIcon,
+  'espn': ESPNIcon,
   'store': Store,
 }
 
 export function getAgentIcon(iconId: string) {
-  return agentIconMap[iconId] || Bot
+  return agentIconMap[iconId] || null
+}
+
+/** Check if a string is an emoji (not a known Lucide/platform icon ID) */
+export function isEmojiIcon(iconId: string): boolean {
+  return !agentIconMap[iconId] && iconId.length > 0
+}
+
+/** Render an agent icon - either a Lucide/platform icon component or an emoji */
+export function AgentIconDisplay({ iconId, className, emojiClassName }: {
+  iconId: string
+  className?: string
+  emojiClassName?: string
+}) {
+  const Icon = agentIconMap[iconId]
+  if (Icon) {
+    return <Icon className={className} />
+  }
+  if (iconId && iconId.length > 0) {
+    return <span className={emojiClassName || className}>{iconId}</span>
+  }
+  return <Bot className={className} />
 }
 
 interface AgentSelectorProps {
@@ -334,8 +399,6 @@ function AgentListItem({
   onToggleFavorite: (e: React.MouseEvent) => void
 }) {
   const { t } = useTranslation('common')
-  // getAgentIcon returns a component from a fixed map, not created during render
-  const Icon = getAgentIcon(agent.icon)
 
   return (
     <div
@@ -352,8 +415,7 @@ function AgentListItem({
         'h-9 w-9 rounded-lg flex items-center justify-center flex-shrink-0',
         isSelected ? 'bg-primary/20' : 'bg-muted'
       )}>
-        {/* eslint-disable-next-line react-hooks/static-components -- Icon from fixed map, not created during render */}
-        <Icon className="h-4.5 w-4.5" />
+        <AgentIconDisplay iconId={agent.icon} className="h-4.5 w-4.5" emojiClassName="text-lg leading-none" />
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">

@@ -1,0 +1,41 @@
+{
+  "id": "todoist-scrape-today",
+  "name": "todoist_scrape_today",
+  "description": "Scrape today's tasks from Todoist. Requires login.",
+  "version": "1.0.0",
+  "parameters": [],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://app.todoist.com/app/today",
+      "label": "Open page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".task_list_item, [data-testid=\"task\"]",
+      "timeout": 15000,
+      "label": "Wait for content"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll for more"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const tasks = Array.from(document.querySelectorAll('.task_list_item, [data-testid=\"task\"]')).slice(0,50).map(el => { const title = el.querySelector('.task_content, [data-testid=\"task-name\"]')?.textContent?.trim()||''; const project = el.querySelector('[class*=\"project\"], .project_link')?.textContent?.trim()||''; const priority = el.querySelector('[class*=\"priority\"]')?.className?.match(/priority_(\\d)/)?.[1]||''; return { title, project, priority }; }).filter(t=>t.title); return { view: 'Today', tasks }",
+      "name": "page_data",
+      "label": "Extract data"
+    }
+  ]
+}

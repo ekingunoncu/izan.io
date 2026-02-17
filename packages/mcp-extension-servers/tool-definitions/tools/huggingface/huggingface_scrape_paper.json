@@ -1,0 +1,48 @@
+{
+  "id": "huggingface-scrape-paper",
+  "name": "huggingface_scrape_paper",
+  "description": "Scrape a Hugging Face paper page. Returns title, authors, abstract, and linked models.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "paper_id",
+      "type": "string",
+      "description": "Paper ID (arXiv ID e.g. '2401.02954')",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://huggingface.co/papers/{{paper_id}}",
+      "label": "Open page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "h1, main",
+      "timeout": 15000,
+      "label": "Wait for content"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Let page render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1000,
+      "label": "Scroll for more"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const title = document.querySelector('h1')?.textContent?.trim()||''; const authorEls = document.querySelectorAll('main a[href]'); const authors = []; authorEls.forEach(a => { const href = a.getAttribute('href')||''; if (href.match(/^\\/[a-zA-Z0-9_-]+$/) && !href.includes('/papers') && !href.includes('/models') && !href.includes('/datasets') && !href.includes('/spaces')) { const name = a.textContent.trim(); if (name && name.length < 60 && !name.includes('\\n')) authors.push(name); } }); const allPs = Array.from(document.querySelectorAll('main p')); const abstract = allPs.filter(p => p.textContent.trim().length > 100).map(p => p.textContent.trim()).join(' ').substring(0, 2000) || ''; const dateEl = Array.from(document.querySelectorAll('main *')).find(el => el.textContent.match(/Published on|Submitted/)); const date = dateEl?.textContent?.trim()||''; const arxiv = document.querySelector('a[href*=\"arxiv.org\"]')?.href||''; const linkedModels = Array.from(document.querySelectorAll('a[href*=\"/models\"], a[href]:not([href*=\"papers\"])')).filter(a => { const h = a.getAttribute('href')||''; return h.match(/^\\/[^/]+\\/[^/]+$/) && !h.includes('/papers/'); }).slice(0,10).map(a => a.textContent.trim()); return { title, authors: [...new Set(authors)].slice(0,20), abstract, date, arxiv_link: arxiv, linked_models: linkedModels, url: window.location.href }",
+      "name": "page_data",
+      "label": "Extract data"
+    }
+  ]
+}

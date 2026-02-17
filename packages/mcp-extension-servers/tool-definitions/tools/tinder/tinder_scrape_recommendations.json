@@ -1,0 +1,31 @@
+{
+  "id": "tinder-scrape-recommendations",
+  "name": "tinder_scrape_recommendations",
+  "description": "Scrape the current recommendation shown on Tinder. Returns name, age, bio, distance, and interests. Requires login.",
+  "version": "1.0.0",
+  "parameters": [],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://tinder.com/app/recs",
+      "label": "Open Tinder recommendations"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "[class*=\"recsCardboard\"], [class*=\"gamepad\"], main",
+      "timeout": 15000,
+      "label": "Wait for cards"
+    },
+    {
+      "action": "wait",
+      "ms": 3000,
+      "label": "Let profile render"
+    },
+    {
+      "action": "code",
+      "code": "const nameEl = document.querySelector('span[class*=\"Typs(display-1-strong)\"], h1, [itemprop=\"name\"], [class*=\"name\"] span'); const name = nameEl?.textContent?.trim() || ''; let age = ''; const nameParent = nameEl?.closest('div'); if (nameParent) { const ageSpan = nameParent.querySelector('span'); if (ageSpan && ageSpan !== nameEl && ageSpan.textContent?.trim()?.match(/^\\d{2}$/)) age = ageSpan.textContent.trim(); } if (!age) { document.querySelectorAll('span').forEach(s => { if (!age && s.textContent?.trim()?.match(/^\\d{2}$/)) age = s.textContent.trim(); }); } const bioEl = document.querySelector('div[class*=\"Px(16px)\"][class*=\"Py(12px)\"][class*=\"Us(t)\"], [class*=\"BreakWord\"], [class*=\"bio\"]'); const bio = bioEl?.textContent?.trim()?.slice(0, 500) || ''; const interests = []; document.querySelectorAll('div[class^=\"Bdrs(100px)\"] span, [class*=\"interest\"] span, [class*=\"passion\"] span, [class*=\"Pill\"] span').forEach(el => { const t = el.textContent?.trim(); if (t && !interests.includes(t)) interests.push(t); }); return { name, age, bio, interests, url: window.location.href };",
+      "name": "result",
+      "label": "Extract profile"
+    }
+  ]
+}

@@ -1,0 +1,48 @@
+{
+  "id": "letterboxd-search",
+  "name": "letterboxd_search",
+  "description": "Search Letterboxd films. Returns results with titles, URLs, and metadata.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "query",
+      "type": "string",
+      "description": "Search query for Letterboxd films",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://letterboxd.com/search/{{query}}/",
+      "label": "Search Letterboxd films"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "ul.results, li.search-result",
+      "timeout": 15000,
+      "label": "Wait for results"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Let results render"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 800,
+      "label": "Scroll for more"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "code",
+      "code": "const results = []; document.querySelectorAll('li.search-result').forEach((el,i) => { if(i>=10) return; const titleEl = el.querySelector('h2 a, span.film-title-wrapper a, a'); const yearEl = el.querySelector('small.metadata, span.metadata'); const dirEl = el.querySelector('p.film-metadata a, a.text-sluglist'); const link = titleEl?titleEl.getAttribute('href'):''; results.push({ title: titleEl?titleEl.textContent.trim():'', year: yearEl?yearEl.textContent.trim():'', director: dirEl?dirEl.textContent.trim():'', url: link?'https://letterboxd.com'+link:'' }); }); return { query: '{{query}}', results }",
+      "name": "search_results",
+      "label": "Extract results"
+    }
+  ]
+}

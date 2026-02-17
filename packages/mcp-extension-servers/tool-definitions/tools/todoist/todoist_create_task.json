@@ -1,0 +1,60 @@
+{
+  "id": "todoist-create-task",
+  "name": "todoist_create_task",
+  "description": "Create a new task in Todoist by clicking the Add Task button, typing the task name, and submitting. Requires login.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "task_name",
+      "type": "string",
+      "description": "Task name to create",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://app.todoist.com/app/today",
+      "label": "Open Todoist"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "main, .content, [class*=\"task\"]",
+      "timeout": 15000,
+      "label": "Wait for page"
+    },
+    {
+      "action": "wait",
+      "ms": 2500,
+      "label": "Let page render"
+    },
+    {
+      "action": "code",
+      "code": "const addBtn = document.querySelector('[data-testid=\"quick-add-task-button\"], button[class*=\"plus\"], .add_task, [class*=\"add_task\"], button[aria-label*=\"Add task\"], button[aria-label*=\"add task\"]'); if (addBtn) { addBtn.click(); return { clicked: true }; } document.dispatchEvent(new KeyboardEvent('keydown', { key: 'q', code: 'KeyQ', keyCode: 81, bubbles: true })); return { clicked: false, used_shortcut: true };",
+      "name": "open_add",
+      "label": "Click Add Task button"
+    },
+    {
+      "action": "wait",
+      "ms": 1500,
+      "label": "Wait for task editor"
+    },
+    {
+      "action": "code",
+      "code": "const input = document.querySelector('[data-testid=\"task-name-input\"], .task_editor__content_field, [contenteditable=\"true\"][class*=\"task\"], [class*=\"task_editor\"] [contenteditable], textarea[class*=\"task\"], [class*=\"quick_add\"] [contenteditable], [class*=\"quick_add\"] textarea, [class*=\"quick_add\"] input'); if (input) { input.focus(); if (input.tagName === 'TEXTAREA' || input.tagName === 'INPUT') { input.value = '{{task_name}}'; input.dispatchEvent(new Event('input', { bubbles: true })); } else { document.execCommand('insertText', false, '{{task_name}}'); } return { typed: true }; } return { typed: false, error: 'Could not find task input field' };",
+      "name": "type_task",
+      "label": "Type task name"
+    },
+    {
+      "action": "wait",
+      "ms": 1000,
+      "label": "Wait before submit"
+    },
+    {
+      "action": "code",
+      "code": "const submitBtn = document.querySelector('[data-testid=\"task-editor-submit-button\"], button[type=\"submit\"], .task_editor__submit_btn, [class*=\"task_editor\"] button[type=\"submit\"], [class*=\"quick_add\"] button[type=\"submit\"]'); if (submitBtn) { submitBtn.click(); return { submitted: true, task_name: '{{task_name}}' }; } return { submitted: false, error: 'Could not find submit button' };",
+      "name": "result",
+      "label": "Submit task"
+    }
+  ]
+}
