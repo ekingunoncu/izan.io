@@ -27,7 +27,8 @@ import { useAgentStore, useChatStore, useUIStore, useMCPStore } from '~/store'
 import type { Chat } from '~/store'
 import { cn } from '~/lib/utils'
 import { getAgentDisplayName, getAgentDisplayDescription } from '~/lib/agent-display'
-import { AgentSelector, AgentIconDisplay } from './AgentSelector'
+import { AgentSelector } from './AgentSelector'
+import { AgentIconDisplay } from '~/lib/agent-icons'
 
 // Icon mapping removed — now using shared AgentIconDisplay from AgentSelector
 

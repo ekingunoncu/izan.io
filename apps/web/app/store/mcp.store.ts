@@ -152,6 +152,35 @@ function syncServersFromRegistry(
   }))
 }
 
+/**
+ * Build a tool-name → automation-server-ID mapping from local automation tools
+ * and remote manifest. Falls back to fetching the manifest when the cache is empty.
+ */
+async function buildDynamicToolServerMap(
+  baseMap: Map<string, string> | null,
+  autoTools: { name: string; serverId: string }[],
+): Promise<Map<string, string>> {
+  const map = new Map(baseMap ?? [])
+  for (const tool of autoTools) {
+    map.set(tool.name, tool.serverId)
+  }
+  try {
+    const { getCachedManifest, fetchManifest } = await import('~/lib/mcp/remote-tools')
+    let manifest = getCachedManifest()
+    if (!manifest) {
+      manifest = await fetchManifest()
+    }
+    if (manifest) {
+      for (const server of manifest.servers) {
+        for (const toolName of server.tools) {
+          map.set(toolName, server.id)
+        }
+      }
+    }
+  } catch { /* ignore */ }
+  return map
+}
+
 /** Guard: true while activateAgentMCPs is running (prevents re-entrant calls) */
 let activatingMCPs = false
 /** Debounce timer for extension-ready → activateAgentMCPs */
@@ -395,22 +424,7 @@ export const useMCPStore = create<MCPState>((set, get) => ({
         }
 
         // Build dynamic tool → automation server mapping for filtering in getToolsForAgent()
-        const dynamicToolServerMap = new Map<string, string>()
-        for (const tool of autoStore.tools) {
-          dynamicToolServerMap.set(tool.name, tool.serverId)
-        }
-        try {
-          const { getCachedManifest } = await import('~/lib/mcp/remote-tools')
-          const manifest = getCachedManifest()
-          if (manifest) {
-            for (const server of manifest.servers) {
-              for (const toolName of server.tools) {
-                dynamicToolServerMap.set(toolName, server.id)
-              }
-            }
-          }
-        } catch { /* ignore */ }
-        set({ dynamicToolServerMap })
+        set({ dynamicToolServerMap: await buildDynamicToolServerMap(null, autoStore.tools) })
 
         const { syncToolDefinitions, syncAutomationToExtension } = await import('~/lib/mcp/extension-bridge')
         syncToolDefinitions([...userToolDefs, ...prebuiltToolDefs])
@@ -574,22 +588,7 @@ export const useMCPStore = create<MCPState>((set, get) => ({
         }
 
         // Update dynamic tool → automation server mapping (additive for linked agents)
-        const dynamicToolServerMap = new Map(get().dynamicToolServerMap)
-        for (const tool of autoStore.tools) {
-          dynamicToolServerMap.set(tool.name, tool.serverId)
-        }
-        try {
-          const { getCachedManifest } = await import('~/lib/mcp/remote-tools')
-          const manifest = getCachedManifest()
-          if (manifest) {
-            for (const server of manifest.servers) {
-              for (const toolName of server.tools) {
-                dynamicToolServerMap.set(toolName, server.id)
-              }
-            }
-          }
-        } catch { /* ignore */ }
-        set({ dynamicToolServerMap })
+        set({ dynamicToolServerMap: await buildDynamicToolServerMap(get().dynamicToolServerMap, autoStore.tools) })
 
         const { syncToolDefinitions, syncAutomationToExtension } = await import('~/lib/mcp/extension-bridge')
         syncToolDefinitions([...userToolDefs, ...prebuiltToolDefs])

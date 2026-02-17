@@ -37,7 +37,7 @@ import { usePlanStore } from "~/store/plan.store";
 import { useAgentStore } from "~/store/agent.store";
 import { useChatStore } from "~/store/chat.store";
 import { useMCPStore } from "~/store/mcp.store";
-import { getAgentIcon } from "~/components/agents/AgentSelector";
+import { getAgentIcon } from "~/lib/agent-icons";
 import { getAgentDisplayName } from "~/lib/agent-display";
 import type { ScheduledPlan, PlanScheduleType } from "~/lib/db";
 import { validateCron, describeCronNextRun } from "~/lib/scheduler/cron";

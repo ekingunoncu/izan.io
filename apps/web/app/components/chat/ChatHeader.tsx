@@ -12,7 +12,7 @@ import { Button } from '~/components/ui/button'
 import { useModelStore, useAgentStore, useUIStore } from '~/store'
 import { useProvidersWithModels } from '~/lib/use-providers-with-models'
 import { getAgentDisplayName, getAgentDisplayDescription } from '~/lib/agent-display'
-import { AgentIconDisplay } from '~/components/agents/AgentSelector'
+import { AgentIconDisplay } from '~/lib/agent-icons'
 import { cn, modelDisplayName } from '~/lib/utils'
 
 interface ModelQuickSelectProps {
