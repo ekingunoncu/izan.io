@@ -1,0 +1,58 @@
+{
+  "id": "linkedin-scrape-feed",
+  "name": "linkedin_scrape_feed",
+  "description": "Scrape your LinkedIn home feed to get the latest posts with author info, content, reactions, and comments count. Returns up to 15 posts.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "scroll_count",
+      "type": "number",
+      "description": "Number of times to scroll down to load more posts (1-5, default 2)",
+      "required": false
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://www.linkedin.com/feed/",
+      "label": "Open LinkedIn feed"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "div.feed-shared-update-v2",
+      "timeout": 15000,
+      "label": "Wait for feed posts"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let feed settle"
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1500,
+      "label": "Scroll for more posts"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "scroll",
+      "direction": "down",
+      "amount": 1500,
+      "label": "Scroll more"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "code",
+      "code": "const posts = []; const containers = document.querySelectorAll('div.feed-shared-update-v2'); containers.forEach((post, i) => { if (i >= 15) return; try { const authorEl = post.querySelector('.update-components-actor__title span[dir=\"ltr\"], .update-components-actor__title span[aria-hidden=\"true\"]'); const authorDescEl = post.querySelector('.update-components-actor__description span[aria-hidden=\"true\"], .update-components-actor__description'); const timeEl = post.querySelector('.update-components-actor__sub-description span[aria-hidden=\"true\"], .update-components-actor__sub-description'); const textEl = post.querySelector('.update-components-text span[dir=\"ltr\"], .update-components-text'); const reactionsEl = post.querySelector('.social-details-social-counts__reactions-count, .social-details-social-counts__reactions'); const commentsEl = post.querySelector('.social-details-social-counts__comments, button[aria-label*=\"comment\"]'); const linkEl = post.querySelector('.update-components-mini-update-v2__link-to-details-page, a[href*=\"/feed/update/\"]'); const urn = post.getAttribute('data-urn') || ''; const postId = urn.includes('activity:') ? urn.split('activity:')[1] : ''; const author = authorEl ? authorEl.textContent.trim() : ''; const text = textEl ? textEl.textContent.trim().slice(0, 500) : ''; if (!author && !text) return; posts.push({ rank: posts.length + 1, author: author, author_title: authorDescEl ? authorDescEl.textContent.trim() : '', timestamp: timeEl ? timeEl.textContent.trim() : '', text: text, reactions: reactionsEl ? reactionsEl.textContent.trim() : '0', comments: commentsEl ? commentsEl.textContent.trim().replace(/[^0-9]/g, '') || '0' : '0', post_id: postId, post_url: postId ? 'https://www.linkedin.com/feed/update/urn:li:activity:' + postId + '/' : (linkEl ? linkEl.href : '') }); } catch(e) {} }); return { count: posts.length, posts: posts }",
+      "name": "feed",
+      "label": "Extract feed posts"
+    }
+  ]
+}

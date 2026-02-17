@@ -40,11 +40,13 @@
     {
       "id": "linkedin",
       "name": "LinkedIn Automation",
-      "description": "Automate LinkedIn: search people, scrape profiles, send connections, message contacts, search and scrape jobs",
+      "description": "Automate LinkedIn: search people, scrape profiles, scrape feed, comment on posts, send connections, message contacts, search and scrape jobs",
       "category": "social_media",
       "tools": [
         "linkedin_search_people",
         "linkedin_scrape_profile",
+        "linkedin_scrape_feed",
+        "linkedin_comment_post",
         "linkedin_connect",
         "linkedin_send_message",
         "linkedin_search_jobs",

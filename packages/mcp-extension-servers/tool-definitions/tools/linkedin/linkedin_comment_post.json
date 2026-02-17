@@ -1,0 +1,70 @@
+{
+  "id": "linkedin-comment-post",
+  "name": "linkedin_comment_post",
+  "description": "Comment on a LinkedIn post. Provide the post URL and your comment text.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "post_url",
+      "type": "string",
+      "description": "LinkedIn post URL (e.g. 'https://www.linkedin.com/feed/update/urn:li:activity:123456789/')",
+      "required": true
+    },
+    {
+      "name": "comment",
+      "type": "string",
+      "description": "The comment text to post",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "{{post_url}}",
+      "label": "Open LinkedIn post"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "div.feed-shared-update-v2, .feed-shared-update-v2__content",
+      "timeout": 15000,
+      "label": "Wait for post to load"
+    },
+    {
+      "action": "wait",
+      "ms": 2000,
+      "label": "Let post settle"
+    },
+    {
+      "action": "code",
+      "code": "const commentBtn = document.querySelector('button[aria-label*=\"Comment\"], button[aria-label*=\"comment\"], button.comment-button, .social-actions-button[aria-label*=\"Comment\"]'); if (commentBtn) { commentBtn.click(); return { clicked: true }; } return { clicked: false, message: 'Comment button not found' }",
+      "name": "open_comment",
+      "label": "Click comment button"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".ql-editor[data-placeholder], div.comments-comment-texteditor .ql-editor, div[contenteditable='true'][data-placeholder*='comment' i], div[contenteditable='true'][data-placeholder*='Add' i], .ql-editor[contenteditable='true']",
+      "timeout": 10000,
+      "label": "Wait for comment input"
+    },
+    {
+      "action": "code",
+      "code": "const editor = document.querySelector('.ql-editor[data-placeholder], div.comments-comment-texteditor .ql-editor, div[contenteditable=\"true\"][data-placeholder*=\"comment\" i], div[contenteditable=\"true\"][data-placeholder*=\"Add\" i], .ql-editor[contenteditable=\"true\"]'); if (!editor) throw new Error('Comment editor not found'); editor.focus(); editor.innerHTML = ''; const p = document.createElement('p'); p.textContent = `{{comment}}`; editor.appendChild(p); editor.dispatchEvent(new Event('input', { bubbles: true })); editor.dispatchEvent(new Event('change', { bubbles: true })); return { typed: true }",
+      "name": "type_comment",
+      "label": "Type comment"
+    },
+    {
+      "action": "wait",
+      "ms": 1000
+    },
+    {
+      "action": "code",
+      "code": "const submitBtn = document.querySelector('button.comments-comment-box__submit-button, button[aria-label*=\"Post comment\"], button[data-control-name=\"comment_submit\"], form.comments-comment-box button[type=\"submit\"], button.comments-comment-box__submit-button--cr'); if (submitBtn && !submitBtn.disabled) { submitBtn.click(); return { success: true, message: 'Comment posted successfully' }; } const allBtns = document.querySelectorAll('button'); for (const btn of allBtns) { const text = btn.textContent.trim().toLowerCase(); const label = (btn.getAttribute('aria-label') || '').toLowerCase(); if ((text === 'post' || text === 'submit' || label.includes('post comment') || label.includes('submit')) && btn.closest('.comments-comment-box, .comments-comment-texteditor')) { btn.click(); return { success: true, message: 'Comment posted via fallback' }; } } return { success: false, message: 'Submit button not found or disabled - comment may not have been typed correctly' }",
+      "name": "result",
+      "label": "Submit comment"
+    }
+  ]
+}
