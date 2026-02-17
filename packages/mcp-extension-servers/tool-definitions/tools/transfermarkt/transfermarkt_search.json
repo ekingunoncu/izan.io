@@ -19,7 +19,7 @@
     },
     {
       "action": "waitForSelector",
-      "selector": ".responsive-table, .large-8, .content",
+      "selector": ".responsive-table, .box, .content",
       "timeout": 15000,
       "label": "Wait for results"
     },
@@ -30,7 +30,7 @@
     },
     {
       "action": "code",
-      "code": "const results = []; document.querySelectorAll('.responsive-table tbody tr, .large-8 tbody tr').forEach((el, i) => { if (i < 15) { const nameEl = el.querySelector('a[href*=\"/profil/\"], a[href*=\"/startseite/\"], td.hauptlink a'); const posEl = el.querySelector('.inline-table tr:last-child td, td:nth-child(2)'); const valueEl = el.querySelector('.rechts a, td.rechts'); results.push({ name: nameEl?.textContent?.trim() || '', url: nameEl?.href ? 'https://www.transfermarkt.com' + nameEl.getAttribute('href') : '', position: posEl?.textContent?.trim() || '', market_value: valueEl?.textContent?.trim() || '' }); } }); return { query: '{{query}}', result_count: results.length, results };",
+      "code": "const results = []; const boxes = document.querySelectorAll('.box'); let playersBox = null; for (const box of boxes) { const h2 = box.querySelector('h2'); if (h2 && /player/i.test(h2.textContent)) { playersBox = box; break; } } const container = playersBox || document; container.querySelectorAll('tbody tr.odd, tbody tr.even').forEach((el, i) => { if (i < 15) { const nameEl = el.querySelector('td.hauptlink a'); const posEl = el.querySelector('td.zentriert'); const clubEl = el.querySelector('img.tiny_wappen'); const valueEl = el.querySelector('td.rechts.hauptlink'); results.push({ name: nameEl?.getAttribute('title') || nameEl?.textContent?.trim() || '', url: nameEl?.href ? 'https://www.transfermarkt.com' + nameEl.getAttribute('href') : '', position: posEl?.textContent?.trim() || '', club: clubEl?.getAttribute('title') || '', market_value: valueEl?.textContent?.trim() || '' }); } }); return { query: '{{query}}', result_count: results.length, results };",
       "name": "search_results",
       "label": "Extract results"
     }

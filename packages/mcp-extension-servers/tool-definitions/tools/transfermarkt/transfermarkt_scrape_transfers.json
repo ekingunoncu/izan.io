@@ -12,7 +12,7 @@
     },
     {
       "action": "waitForSelector",
-      "selector": ".responsive-table, table, .content",
+      "selector": ".responsive-table, table.items, .content",
       "timeout": 15000,
       "label": "Wait for page"
     },
@@ -23,7 +23,7 @@
     },
     {
       "action": "code",
-      "code": "const transfers = []; document.querySelectorAll('.responsive-table tbody tr, table.items tbody tr').forEach((el, i) => { if (i < 20) { const playerEl = el.querySelector('a[href*=\"/profil/\"], .hauptlink a'); const fromEl = el.querySelectorAll('a[href*=\"/startseite/\"]')[0]; const toEl = el.querySelectorAll('a[href*=\"/startseite/\"]')[1]; const feeEl = el.querySelector('.rechts a, td.rechts'); transfers.push({ player: playerEl?.textContent?.trim() || '', from: fromEl?.textContent?.trim() || '', to: toEl?.textContent?.trim() || '', fee: feeEl?.textContent?.trim() || '' }); } }); return { transfer_count: transfers.length, transfers };",
+      "code": "const transfers = []; document.querySelectorAll('table.items tbody tr.odd, table.items tbody tr.even').forEach((el, i) => { if (i < 20) { const playerEl = el.querySelector('td.hauptlink a'); const clubImgs = el.querySelectorAll('img.tiny_wappen, img[class*=\"wappen\"]'); const fromClub = clubImgs[0]?.getAttribute('title') || ''; const toClub = clubImgs[1]?.getAttribute('title') || ''; const feeEl = el.querySelector('td.rechts a, td.rechts'); const ageEl = el.querySelector('td.zentriert'); transfers.push({ player: playerEl?.getAttribute('title') || playerEl?.textContent?.trim() || '', player_url: playerEl?.href ? 'https://www.transfermarkt.com' + playerEl.getAttribute('href') : '', from: fromClub, to: toClub, fee: feeEl?.textContent?.trim() || '', age: ageEl?.textContent?.trim() || '' }); } }); return { transfer_count: transfers.length, transfers };",
       "name": "result",
       "label": "Extract data"
     }

@@ -19,7 +19,7 @@
     },
     {
       "action": "waitForSelector",
-      "selector": "h1, .data-header, .content",
+      "selector": "h1.data-header__headline-wrapper, .data-header, .content",
       "timeout": 15000,
       "label": "Wait for page"
     },
@@ -30,7 +30,7 @@
     },
     {
       "action": "code",
-      "code": "const name = document.querySelector('h1, .data-header__headline-wrapper')?.textContent?.trim() || ''; const info = {}; document.querySelectorAll('.info-table .info-table__content, .spielerdatenundfakten li').forEach(el => { const label = el.querySelector('.info-table__content--regular, span:first-child')?.textContent?.trim()?.toLowerCase() || ''; const value = el.querySelector('.info-table__content--bold, span:last-child')?.textContent?.trim() || ''; if (label) info[label] = value; }); const value = document.querySelector('.tm-player-market-value-development__current-value, .dataMarktwert a')?.textContent?.trim() || ''; return { name, info, market_value: value, url: window.location.href };",
+      "code": "const headerEl = document.querySelector('h1.data-header__headline-wrapper'); const name = headerEl ? Array.from(headerEl.childNodes).filter(n => n.nodeType === 3 || n.tagName === 'STRONG').map(n => n.textContent.trim()).filter(Boolean).join(' ') : ''; const info = {}; const fields = ['Name in home country','Full name','Date of birth/Age','Place of birth','Height','Citizenship','Position','Foot','Player agent','Current club','Joined','Contract expires','Outfitter']; for (const field of fields) { const labelSpan = Array.from(document.querySelectorAll('span')).find(s => s.textContent.trim().startsWith(field)); if (labelSpan) { const valueSpan = labelSpan.nextElementSibling; if (valueSpan) { const imgs = valueSpan.querySelectorAll('img.flaggenrahmen'); if (imgs.length > 0) { info[field.toLowerCase().replace(/\\//g,'_')] = Array.from(imgs).map(img => img.getAttribute('title')).join(', '); } else { info[field.toLowerCase().replace(/\\//g,'_')] = valueSpan.textContent.trim(); } } } } const birthEl = document.querySelector('span[itemprop=\"birthDate\"]'); if (birthEl) info['date_of_birth'] = birthEl.textContent.trim(); const shirtEl = document.querySelector('span.data-header__shirt-number'); if (shirtEl) info['shirt_number'] = shirtEl.textContent.trim(); const clubEl = document.querySelector('span.data-header__club a'); if (clubEl) info['current_club'] = clubEl.textContent.trim(); const value = document.querySelector('a.data-header__market-value-wrapper')?.textContent?.trim()?.replace(/\\s+/g,' ') || document.querySelector('.tm-player-market-value-development__current-value')?.textContent?.trim() || ''; const imgEl = document.querySelector('img.data-header__profile-image'); const image = imgEl?.getAttribute('src') || ''; return { name, info, market_value: value, image, url: window.location.href };",
       "name": "result",
       "label": "Extract data"
     }
