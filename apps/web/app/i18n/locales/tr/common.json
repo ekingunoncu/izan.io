@@ -382,6 +382,8 @@
     "agentWaybackDesc": "Wayback Machine otomasyonu: arşivlenmiş siteleri ara, geçmiş anlık görüntüleri gör ve İnternet Arşivi'nde ara. Tarayıcı eklentisi gerektirir.",
     "agentMoreTitle": "Ve Daha Fazlası Yolda...",
     "agentMoreDesc": "Borsa, spor, haber, alışveriş - yeni agentlar bizim ve topluluk tarafından sürekli geliştiriliyor.",
+    "agentSeeAll": "Tüm Agentları Gör",
+    "agentShowLess": "Daha Az Göster",
     "howItWorks": "Nasıl Çalışır?",
     "step1Title": "AI Modelini Seç",
     "step1Desc": "OpenAI, Anthropic, Google ve 17+ sağlayıcıdan birini seçin. Kendi API key'inizi kullanın.",

@@ -382,6 +382,8 @@
     "agentWaybackDesc": "Wayback Machine automatisieren: Archivierte Websites suchen, historische Snapshots anzeigen und Internet Archive durchsuchen. Erfordert die Browser-Erweiterung.",
     "agentMoreTitle": "Und mehr unterwegs...",
     "agentMoreDesc": "Trading, Sport, Nachrichten, Shopping - neue Agenten werden von uns und der Community ständig entwickelt.",
+    "agentSeeAll": "Alle Agenten anzeigen",
+    "agentShowLess": "Weniger anzeigen",
     "howItWorks": "So funktioniert es",
     "step1Title": "KI-Modell wählen",
     "step1Desc": "Wählen Sie aus OpenAI, Anthropic, Google und 17+ Providern. Verwenden Sie Ihren eigenen API-Schlüssel.",

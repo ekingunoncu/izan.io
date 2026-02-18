@@ -382,6 +382,8 @@
     "agentWaybackDesc": "Automate Wayback Machine: look up archived websites, view historical snapshots, and search Internet Archive. Requires the browser extension.",
     "agentMoreTitle": "And More on the Way...",
     "agentMoreDesc": "Trading, sports, news, shopping - new agents are always being built by us and the community.",
+    "agentSeeAll": "See All Agents",
+    "agentShowLess": "Show Less",
     "howItWorks": "How It Works",
     "step1Title": "Choose Your AI Model",
     "step1Desc": "Pick from OpenAI, Anthropic, Google, and 17+ providers. Use your own API key.",

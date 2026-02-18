@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link, useParams, useLocation } from "react-router";
 import { useTranslation } from "react-i18next";
 import {
@@ -17,6 +18,8 @@ import {
   Monitor,
   Store,
   ArrowRight,
+  ChevronDown,
+  ChevronUp,
   Star,
   Check,
   MousePointerClick,
@@ -121,18 +124,98 @@ const HOME_SHOWCASE_AGENTS = BUILTIN_AGENT_DEFINITIONS.filter(
   color: def.homeShowcase!.color,
 }));
 
-const AGENTS = [
-  ...HOME_SHOWCASE_AGENTS,
-  {
-    titleKey: "home.agentMoreTitle",
-    descKey: "home.agentMoreDesc",
-    icon: Sparkles,
-    active: false,
-    agentId: null,
-    color:
-      "bg-amber-400/80 text-amber-900 dark:bg-amber-500/10 dark:text-amber-400",
-  },
+// Sorted by global platform popularity (MAU / user base)
+const AGENT_POPULARITY_ORDER = [
+  "youtube-agent",
+  "gmail-agent",
+  "whatsapp-manager",
+  "instagram-manager",
+  "facebook-manager",
+  "tiktok-agent",
+  "amazon-agent",
+  "maps-scout",
+  "x-manager",
+  "linkedin-manager",
+  "spotify-manager",
+  "reddit-manager",
+  "telegram-manager",
+  "pinterest-manager",
+  "discord-manager",
+  "wikipedia-agent",
+  "threads-manager",
+  "twitch-agent",
+  "slack-manager",
+  "notion-manager",
+  "github-manager",
+  "sheets-agent",
+  "calendar-agent",
+  "canva-agent",
+  "figma-agent",
+  "trello-manager",
+  "jira-manager",
+  "airtable-agent",
+  "airbnb-agent",
+  "booking-agent",
+  "expedia-agent",
+  "flights-agent",
+  "tripadvisor-agent",
+  "ebay-agent",
+  "walmart-agent",
+  "aliexpress-agent",
+  "etsy-agent",
+  "shopify-agent",
+  "news-agent",
+  "medium-agent",
+  "substack-agent",
+  "quora-agent",
+  "stackoverflow-agent",
+  "hackernews-agent",
+  "imdb-agent",
+  "rottentomatoes-agent",
+  "letterboxd-agent",
+  "indeed-agent",
+  "glassdoor-agent",
+  "yahoofinance-agent",
+  "zillow-agent",
+  "coinmarketcap-agent",
+  "coinbase-agent",
+  "tinder-agent",
+  "duolingo-agent",
+  "todoist-agent",
+  "coursera-agent",
+  "udemy-agent",
+  "soundcloud-agent",
+  "bluesky-manager",
+  "scholar-agent",
+  "producthunt-agent",
+  "espn-agent",
+  "strava-agent",
+  "myfitnesspal-agent",
+  "goodreads-agent",
+  "stockx-agent",
+  "kaggle-agent",
+  "huggingface-agent",
+  "arxiv-agent",
+  "craigslist-agent",
+  "lastfm-agent",
+  "bandcamp-agent",
+  "discogs-agent",
+  "transfermarkt-agent",
+  "vivino-agent",
+  "untappd-agent",
+  "opensea-agent",
+  "wayback-agent",
+  "play-store",
+  "web-fetch",
+  "domain-expert",
+  "general",
 ];
+
+const AGENTS = [...HOME_SHOWCASE_AGENTS].sort((a, b) => {
+  const aIdx = AGENT_POPULARITY_ORDER.indexOf(a.agentId!);
+  const bIdx = AGENT_POPULARITY_ORDER.indexOf(b.agentId!);
+  return (aIdx === -1 ? Infinity : aIdx) - (bIdx === -1 ? Infinity : bIdx);
+});
 
 const FEATURES = [
   { slug: "agents", titleKey: "home.featAgentsTitle", descKey: "home.featAgentsDesc", icon: Bot, color: "blue", wide: true },
@@ -371,10 +454,13 @@ const ROADMAP_ITEMS = [
   },
 ];
 
+const AGENT_INITIAL_COUNT = 12;
+
 export default function Home() {
   const { t } = useTranslation("common");
   const { lang } = useParams();
   const location = useLocation();
+  const [showAllAgents, setShowAllAgents] = useState(false);
 
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">
@@ -1073,8 +1159,11 @@ export default function Home() {
                 {t("home.agentShowcaseDesc")}
               </p>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 items-stretch">
-              {AGENTS.map((agent) => {
+            {(() => {
+              const visibleAgents = AGENTS.slice(0, AGENT_INITIAL_COUNT);
+              const restAgents = AGENTS.slice(AGENT_INITIAL_COUNT);
+
+              const renderAgentCard = (agent: typeof AGENTS[number]) => {
                 const Icon = agent.icon;
                 const content = (
                   <div
@@ -1135,8 +1224,51 @@ export default function Home() {
                     {content}
                   </div>
                 );
-              })}
-            </div>
+              };
+
+              return (
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 items-stretch">
+                    {visibleAgents.map(renderAgentCard)}
+                  </div>
+
+                  {restAgents.length > 0 && (
+                    <>
+                      <div
+                        className="overflow-hidden transition-[grid-template-rows] duration-500 ease-in-out"
+                        style={{ display: "grid", gridTemplateRows: showAllAgents ? "1fr" : "0fr" }}
+                      >
+                        <div className="min-h-0">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 items-stretch pt-3 sm:pt-4">
+                            {restAgents.map(renderAgentCard)}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mt-8 text-center">
+                        <button
+                          type="button"
+                          onClick={() => setShowAllAgents((prev) => !prev)}
+                          className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-6 py-2.5 text-sm font-medium text-white/80 hover:bg-white/10 hover:text-white transition-all duration-300"
+                        >
+                          {showAllAgents ? (
+                            <>
+                              {t("home.agentShowLess")}
+                              <ChevronUp className="h-4 w-4" />
+                            </>
+                          ) : (
+                            <>
+                              {t("home.agentSeeAll")} ({AGENTS.length})
+                              <ChevronDown className="h-4 w-4" />
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </>
+              );
+            })()}
           </div>
         </section>
 
