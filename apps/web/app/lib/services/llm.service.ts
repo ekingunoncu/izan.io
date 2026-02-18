@@ -3,7 +3,6 @@ import type {
   ChatCompletionMessageParam,
   ChatCompletionTool,
   ChatCompletionResult,
-  ChatCompletionMessageToolCall,
   LLMGenerationOptions,
   TokenUsage,
 } from './interfaces'
@@ -122,7 +121,7 @@ export class LLMService implements ILLMService {
   private model: string | null = null
   private apiKey: string | null = null
   private baseURL: string | null = null
-  private abortController: AbortController | null = null
+  private activeControllers: Set<AbortController> = new Set()
 
   configure(
     provider: string,
@@ -177,15 +176,18 @@ export class LLMService implements ILLMService {
       throw new Error('LLM not configured. Select a provider and model in settings.')
     }
 
-    this.abortController?.abort()
-    this.abortController = new AbortController()
-
     const url = this.url
     if (!url) {
       throw new Error('Invalid provider configuration')
     }
 
-    return this.streamDirect(messages, onChunk, options)
+    const controller = new AbortController()
+    this.activeControllers.add(controller)
+    try {
+      return await this.streamDirect(messages, onChunk, controller, options)
+    } finally {
+      this.activeControllers.delete(controller)
+    }
   }
 
   /** Models that require max_completion_tokens instead of max_tokens (OpenAI o1, o3, o4) */
@@ -210,7 +212,7 @@ export class LLMService implements ILLMService {
   }
 
   /** Fetch with abort and network error handling */
-  private async fetchApi(url: string, body: Record<string, unknown>, extraInit?: RequestInit): Promise<Response> {
+  private async fetchApi(url: string, body: Record<string, unknown>, controller: AbortController, extraInit?: RequestInit): Promise<Response> {
     let response: Response
     try {
       response = await fetch(url, {
@@ -219,13 +221,13 @@ export class LLMService implements ILLMService {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${this.apiKey}`,
         },
-        signal: this.abortController!.signal,
+        signal: controller.signal,
         cache: 'no-store',
         ...extraInit,
         body: JSON.stringify(body),
       })
     } catch (err) {
-      if (this.abortController?.signal.aborted) throw err
+      if (controller.signal.aborted) throw err
       throw new LLMNetworkError(err instanceof Error ? err.message : String(err))
     }
 
@@ -251,6 +253,7 @@ export class LLMService implements ILLMService {
   private async streamDirect(
     messages: ChatCompletionMessageParam[],
     onChunk: (chunk: string) => void,
+    controller: AbortController,
     options?: LLMGenerationOptions,
   ): Promise<TokenUsage | null> {
     const normalizedMessages = normalizeMessagesForStrictRoles(messages)
@@ -265,13 +268,13 @@ export class LLMService implements ILLMService {
     }
     this.applyOptions(body, options, !!isResponsesApi)
 
-    const response = await this.fetchApi(requestUrl, body)
+    const response = await this.fetchApi(requestUrl, body, controller)
 
     const reader = response.body?.getReader()
     if (!reader) throw new Error('Response body is not readable')
 
     let usage: TokenUsage | null = null
-    const isAborted = () => this.abortController?.signal.aborted ?? false
+    const isAborted = () => controller.signal.aborted
     if (isResponsesApi) {
       for await (const parsed of parseSSEStream(reader, isAborted)) {
         const err = parsed.error as { message?: string } | undefined
@@ -315,6 +318,7 @@ export class LLMService implements ILLMService {
     messages: ChatCompletionMessageParam[],
     tools: ChatCompletionTool[],
     onChunk: (chunk: string) => void,
+    controller: AbortController,
     options?: LLMGenerationOptions,
   ): Promise<ChatCompletionResult> {
     const body: Record<string, unknown> = {
@@ -325,7 +329,7 @@ export class LLMService implements ILLMService {
     }
     this.applyOptions(body, options)
 
-    const response = await this.fetchApi(this.url, body)
+    const response = await this.fetchApi(this.url, body, controller)
     const reader = response.body?.getReader()
     if (!reader) throw new Error('Response body is not readable')
 
@@ -334,7 +338,7 @@ export class LLMService implements ILLMService {
     let finishReason = 'stop'
     let usage: TokenUsage | null = null
 
-    const isAborted = () => this.abortController?.signal.aborted ?? false
+    const isAborted = () => controller.signal.aborted
     for await (const parsed of parseSSEStream(reader, isAborted)) {
       const err = parsed.error as { message?: string } | undefined
       if (err) throw new Error(err.message || 'API error')
@@ -380,23 +384,22 @@ export class LLMService implements ILLMService {
       }
     }
 
-    const toolCalls: ChatCompletionMessageToolCall[] | null =
-      finishReason === 'tool_calls' && Object.keys(toolCallsAccum).length > 0
-        ? Object.keys(toolCallsAccum)
-            .map(Number)
-            .sort((a, b) => a - b)
-            .map((idx) => {
-              const acc = toolCallsAccum[idx]
-              return {
-                id: acc.id ?? `call_${idx}`,
-                type: 'function' as const,
-                function: {
-                  name: acc.function?.name ?? '',
-                  arguments: acc.function?.arguments ?? '{}',
-                },
-              }
-            })
-        : null
+    const accumulatedToolCalls = Object.keys(toolCallsAccum)
+      .map(Number)
+      .sort((a, b) => a - b)
+      .filter((idx) => toolCallsAccum[idx].function?.name)
+      .map((idx) => {
+        const acc = toolCallsAccum[idx]
+        return {
+          id: acc.id ?? `call_${idx}`,
+          type: 'function' as const,
+          function: {
+            name: acc.function?.name ?? '',
+            arguments: acc.function?.arguments ?? '{}',
+          },
+        }
+      })
+    const toolCalls = accumulatedToolCalls.length > 0 ? accumulatedToolCalls : null
 
     return {
       content: fullContent || null,
@@ -415,10 +418,13 @@ export class LLMService implements ILLMService {
       throw new Error('LLM not configured. Select a provider and model in settings.')
     }
 
-    this.abortController?.abort()
-    this.abortController = new AbortController()
-
-    return this.chatWithToolsDirect(messages, tools, options)
+    const controller = new AbortController()
+    this.activeControllers.add(controller)
+    try {
+      return await this.chatWithToolsDirect(messages, tools, controller, options)
+    } finally {
+      this.activeControllers.delete(controller)
+    }
   }
 
   async streamChatWithTools(
@@ -431,15 +437,19 @@ export class LLMService implements ILLMService {
       throw new Error('LLM not configured. Select a provider and model in settings.')
     }
 
-    this.abortController?.abort()
-    this.abortController = new AbortController()
-
-    return this.streamDirectWithTools(messages, tools, onChunk, options)
+    const controller = new AbortController()
+    this.activeControllers.add(controller)
+    try {
+      return await this.streamDirectWithTools(messages, tools, onChunk, controller, options)
+    } finally {
+      this.activeControllers.delete(controller)
+    }
   }
 
   private async chatWithToolsDirect(
     messages: ChatCompletionMessageParam[],
     tools: ChatCompletionTool[],
+    controller: AbortController,
     options?: LLMGenerationOptions,
   ): Promise<ChatCompletionResult> {
     const body: Record<string, unknown> = {
@@ -447,7 +457,7 @@ export class LLMService implements ILLMService {
     }
     this.applyOptions(body, options)
 
-    const response = await this.fetchApi(this.url, body)
+    const response = await this.fetchApi(this.url, body, controller)
 
     const data = (await response.json()) as {
       choices?: Array<{
@@ -486,10 +496,10 @@ export class LLMService implements ILLMService {
   }
 
   abort(): void {
-    if (this.abortController) {
-      this.abortController.abort()
-      this.abortController = null
+    for (const controller of this.activeControllers) {
+      controller.abort()
     }
+    this.activeControllers.clear()
   }
 }
 

@@ -225,3 +225,49 @@ export function onRecordingComplete(callback: (detail: RecordingCompleteDetail) 
   globalThis.addEventListener(EXTENSION_EVENT_RECORDING_COMPLETE, handler)
   return () => globalThis.removeEventListener(EXTENSION_EVENT_RECORDING_COMPLETE, handler)
 }
+
+// ─── Link Preview ─────────────────────────────────────────────────────────────
+
+export interface LinkPreviewData {
+  title?: string
+  description?: string
+  image?: string
+}
+
+/**
+ * Fetch OG metadata for a URL via the extension.
+ * Returns null if the extension is unavailable or the fetch fails.
+ */
+export function fetchLinkPreview(url: string, signal?: AbortSignal): Promise<LinkPreviewData | null> {
+  if (globalThis.window === undefined || !extensionDetected) return Promise.resolve(null)
+
+  const requestId = crypto.randomUUID()
+
+  return new Promise<LinkPreviewData | null>((resolve) => {
+    const timeout = setTimeout(() => { cleanup(); resolve(null) }, 10_000)
+
+    function onAbort() { cleanup(); resolve(null) }
+    signal?.addEventListener('abort', onAbort, { once: true })
+
+    function cleanup() {
+      clearTimeout(timeout)
+      window.removeEventListener('message', handler)
+      signal?.removeEventListener('abort', onAbort)
+    }
+
+    function handler(evt: MessageEvent) {
+      const msg = evt.data
+      if (
+        msg?.source !== 'izan-extension' ||
+        msg?.channel !== 'fetch-link-preview-response' ||
+        msg?.requestId !== requestId
+      ) return
+      cleanup()
+      const d = msg.data as LinkPreviewData | null
+      resolve(d && (d.title || d.description || d.image) ? d : null)
+    }
+
+    window.addEventListener('message', handler)
+    window.postMessage({ source: 'izan-page', channel: 'fetch-link-preview', url, requestId }, '*')
+  })
+}

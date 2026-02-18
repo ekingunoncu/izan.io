@@ -39,6 +39,7 @@ import {
 } from '~/components/ui/alert-dialog'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
+import { ExpandableTextarea } from '~/components/ui/expandable-textarea'
 import { useAgentStore, useUIStore, useMCPStore } from '~/store'
 import { useAutomationStore } from '~/store/automation.store'
 import { DEFAULT_MCP_SERVERS } from '~/lib/mcp/config'
@@ -325,11 +326,12 @@ export function AgentEditPanel() {
             isOpen={expandedSection === 'prompt'}
             onToggle={() => toggleSection('prompt')}
           >
-            <textarea
+            <ExpandableTextarea
               value={basePrompt}
               onChange={(e) => setBasePrompt(e.target.value)}
               placeholder={t('agents.basePromptPlaceholder')}
-              className="w-full min-h-[120px] rounded-md border bg-background px-3 py-2 text-sm resize-y focus:outline-none focus:ring-2 focus:ring-ring"
+              label={t('agents.basePrompt')}
+              className="min-h-[120px]"
               rows={5}
             />
           </CollapsibleSection>

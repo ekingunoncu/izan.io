@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Bot, User, Wrench, Loader2, ExternalLink, ChevronDown } from 'lucide-react'
+import { Bot, User, Wrench, Loader2, ExternalLink, ChevronDown, ChevronsRight } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { cn, stripThinkTags } from '~/lib/utils'
+import { fetchLinkPreview, type LinkPreviewData } from '~/lib/mcp/extension-bridge'
 
 interface ChatMessage {
   id: string
@@ -138,7 +139,7 @@ function AgentCallBadge({ agentId }: { agentId: string }) {
 
 function AgentResponseBlock({ content, isStreaming }: { content: string; isStreaming?: boolean }) {
   const { t } = useTranslation('common')
-  const [expanded, setExpanded] = useState(false)
+  const [expanded, setExpanded] = useState(true)
   const contentRef = useRef<HTMLDivElement>(null)
   const [isOverflowing, setIsOverflowing] = useState(false)
 
@@ -161,8 +162,8 @@ function AgentResponseBlock({ content, isStreaming }: { content: string; isStrea
             collapsible && !expanded ? 'max-h-28' : 'max-h-[80vh]',
           )}
         >
-          <div className="markdown-content min-w-0 text-xs sm:text-sm text-foreground/85 [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1 [&_li]:ml-4 [&_pre]:my-2 [&_pre]:p-2 [&_pre]:rounded-lg [&_pre]:bg-muted-foreground/10 [&_pre]:overflow-x-auto [&_code]:bg-muted-foreground/10 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_table]:w-full [&_td]:px-2 [&_td]:py-1 [&_th]:px-2 [&_th]:py-1 break-words">
-            <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ a: LinkRenderer }}>
+          <div className="markdown-content min-w-0 text-xs sm:text-sm text-foreground/85 [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1 [&_li]:ml-4 [&_pre]:my-2 [&_pre]:p-2 [&_pre]:rounded-lg [&_pre]:bg-muted-foreground/10 [&_pre]:overflow-x-auto [&_code]:bg-muted-foreground/10 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_td]:px-2 [&_td]:py-1 [&_th]:px-2 [&_th]:py-1 break-words">
+            <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ a: LinkRenderer, table: ScrollableTable }}>
               {content}
             </ReactMarkdown>
           </div>
@@ -186,33 +187,19 @@ function AgentResponseBlock({ content, isStreaming }: { content: string; isStrea
   )
 }
 
-const linkPreviewCache = new Map<string, MicrolinkData | null>()
-
-type MicrolinkData = {
-  title?: string
-  description?: string
-  image?: { url: string }
-  publisher?: string
-}
+const linkPreviewCache = new Map<string, LinkPreviewData | null>()
 
 function LinkPreview({ url }: { url: string }) {
-  const [data, setData] = useState<MicrolinkData | null>(() => linkPreviewCache.get(url) ?? null)
+  const [data, setData] = useState<LinkPreviewData | null>(() => linkPreviewCache.get(url) ?? null)
   const [loading, setLoading] = useState(!linkPreviewCache.has(url))
 
   useEffect(() => {
     if (linkPreviewCache.has(url)) return
     const ctrl = new AbortController()
-    const apiUrl = `https://api.microlink.io/?url=${encodeURIComponent(url)}&screenshot=false`
-    fetch(apiUrl, { signal: ctrl.signal })
-      .then((r) => r.json())
-      .then((res) => {
-        if (res.status === 'success' && res.data) {
-          const d = res.data as MicrolinkData
-          linkPreviewCache.set(url, d)
-          setData(d)
-        } else {
-          linkPreviewCache.set(url, null)
-        }
+    fetchLinkPreview(url, ctrl.signal)
+      .then((d) => {
+        linkPreviewCache.set(url, d)
+        setData(d)
       })
       .catch(() => linkPreviewCache.set(url, null))
       .finally(() => setLoading(false))
@@ -220,8 +207,7 @@ function LinkPreview({ url }: { url: string }) {
   }, [url])
 
   if (loading || !data) return null
-  const hasContent = data.title || data.description || data.image?.url
-  if (!hasContent) return null
+  if (!data.title && !data.description && !data.image) return null
 
   return (
     <a
@@ -230,21 +216,21 @@ function LinkPreview({ url }: { url: string }) {
       rel="noopener noreferrer"
       className="mt-2 flex gap-3 rounded-lg border bg-background/80 overflow-hidden hover:border-primary/30 transition-colors no-underline text-inherit max-w-full min-w-0"
     >
-      {data.image?.url && (
+      {data.image && (
         <img
-          src={data.image.url}
+          src={data.image}
           alt=""
           className="w-20 h-20 sm:w-24 sm:h-24 object-cover flex-shrink-0"
         />
       )}
-      <div className="min-w-0 flex-1 py-2 pr-2 flex flex-col justify-center gap-0.5">
+      <span className="min-w-0 flex-1 py-2 pr-2 flex flex-col justify-center gap-0.5">
         {data.title && (
           <span className="font-medium text-sm line-clamp-2 text-foreground">{data.title}</span>
         )}
         {data.description && (
           <span className="text-xs text-muted-foreground line-clamp-2">{data.description}</span>
         )}
-      </div>
+      </span>
     </a>
   )
 }
@@ -290,6 +276,48 @@ function ToolLoadingIndicator({ loadingText }: { loadingText?: string }) {
     <div className="flex items-center gap-2 text-xs text-muted-foreground">
       <Loader2 className="h-3.5 w-3.5 animate-spin" />
       <span>{text}</span>
+    </div>
+  )
+}
+
+/** Table wrapper with scroll fade hint + polished styling */
+function ScrollableTable({ children, ...props }: React.ComponentPropsWithoutRef<'table'>) {
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const [canScroll, setCanScroll] = useState(false)
+  const [atEnd, setAtEnd] = useState(false)
+  const [atStart, setAtStart] = useState(true)
+
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+    const check = () => {
+      const hasOverflow = el.scrollWidth > el.clientWidth + 1
+      setCanScroll(hasOverflow)
+      setAtStart(el.scrollLeft < 1)
+      setAtEnd(hasOverflow && el.scrollLeft + el.clientWidth >= el.scrollWidth - 1)
+    }
+    check()
+    el.addEventListener('scroll', check, { passive: true })
+    const ro = new ResizeObserver(check)
+    ro.observe(el)
+    return () => { el.removeEventListener('scroll', check); ro.disconnect() }
+  }, [children])
+
+  return (
+    <div className="my-2.5 relative rounded-xl border border-border/60 shadow-sm overflow-hidden">
+      <div ref={scrollRef} className="overflow-x-auto">
+        <table {...props}>{children}</table>
+      </div>
+      {/* Right fade */}
+      {canScroll && !atEnd && (
+        <div className="absolute top-0 right-0 bottom-0 w-10 pointer-events-none bg-gradient-to-l from-background via-background/60 to-transparent flex items-center justify-end pr-1">
+          <ChevronsRight className="h-3.5 w-3.5 text-muted-foreground/60 animate-pulse" />
+        </div>
+      )}
+      {/* Left fade */}
+      {canScroll && !atStart && (
+        <div className="absolute top-0 left-0 bottom-0 w-6 pointer-events-none bg-gradient-to-r from-background/60 to-transparent" />
+      )}
     </div>
   )
 }
@@ -343,11 +371,7 @@ function MarkdownMessage({
             remarkPlugins={[remarkGfm]}
             components={{
               a: LinkRenderer,
-              table: ({ children, ...props }) => (
-                <div className="my-2 overflow-x-auto rounded-lg border border-border">
-                  <table {...props}>{children}</table>
-                </div>
-              ),
+              table: ScrollableTable,
               td: ({ children, ...props }) => {
                 const text = extractText(children)
                 return <td {...props} title={text.length > 30 ? text : undefined}>{children}</td>

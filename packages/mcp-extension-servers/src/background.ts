@@ -46,7 +46,7 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 })
 
 // Listen for plan alarm management messages from content script
-chrome.runtime.onMessage.addListener((msg: { type: string; planId?: string; fireAt?: number; alarms?: Array<{ planId: string; fireAt: number }> }, _sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((msg: { type: string; planId?: string; fireAt?: number; alarms?: Array<{ planId: string; fireAt: number }>; url?: string }, _sender, sendResponse) => {
   if (msg.type === 'izan-plan-alarm-register' && msg.planId && msg.fireAt) {
     const delayMinutes = Math.max((msg.fireAt - Date.now()) / 60_000, 0.1)
     chrome.alarms.create(`${PLAN_ALARM_PREFIX}${msg.planId}`, { delayInMinutes: delayMinutes })
@@ -79,8 +79,106 @@ chrome.runtime.onMessage.addListener((msg: { type: string; planId?: string; fire
     return true // async
   }
 
+  if (msg.type === 'izan-fetch-link-preview' && msg.url) {
+    const url = msg.url
+    fetchLinkPreviewData(url)
+      .then((data) => sendResponse({ ok: true, data }))
+      .catch((err) => sendResponse({ ok: false, error: String(err) }))
+    return true // async
+  }
+
   return false
 })
+
+// ─── Link Preview Fetching ────────────────────────────────────────────────────
+
+type LinkPreviewResult = { title?: string; description?: string; image?: string }
+
+const OEMBED_HOSTS: Record<string, string> = {
+  'x.com': 'https://publish.twitter.com/oembed',
+  'twitter.com': 'https://publish.twitter.com/oembed',
+  'youtube.com': 'https://www.youtube.com/oembed',
+  'www.youtube.com': 'https://www.youtube.com/oembed',
+  'youtu.be': 'https://www.youtube.com/oembed',
+}
+
+async function fetchLinkPreviewData(url: string): Promise<LinkPreviewResult> {
+  try {
+    const host = new URL(url).hostname.replace(/^www\./, '')
+    const oembedBase = OEMBED_HOSTS[host]
+    if (oembedBase) {
+      const oembedUrl = `${oembedBase}?url=${encodeURIComponent(url)}&format=json&omit_script=true`
+      return fetchViaOembed(oembedUrl, url)
+    }
+  } catch { /* invalid URL, fall through */ }
+  return fetchViaOGMeta(url)
+}
+
+async function fetchViaOembed(oembedUrl: string, originalUrl: string): Promise<LinkPreviewResult> {
+  const res = await fetch(oembedUrl)
+  if (!res.ok) return fetchViaOGMeta(originalUrl) // fallback
+  const json = await res.json() as { author_name?: string; title?: string; html?: string; thumbnail_url?: string }
+  const title = json.title || json.author_name
+  const description = json.html?.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 280) || undefined
+  const image = json.thumbnail_url
+  if (!title && !description && !image) return {}
+  return { title, description, image }
+}
+
+async function fetchViaOGMeta(url: string): Promise<LinkPreviewResult> {
+  const res = await fetch(url, { redirect: 'follow' })
+  const html = await res.text()
+  const og = parseOGMeta(html)
+  if (og.title || og.description || og.image) return og
+
+  // OG tags empty (SPA shell) — try oEmbed discovery as fallback
+  const oembedUrl = discoverOembedUrl(html)
+  if (oembedUrl) {
+    try {
+      const oRes = await fetch(oembedUrl)
+      if (oRes.ok) {
+        const json = await oRes.json() as { author_name?: string; title?: string; html?: string; thumbnail_url?: string }
+        const t = json.title || json.author_name
+        const d = json.html?.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 280) || undefined
+        const i = json.thumbnail_url
+        if (t || d || i) return { title: t, description: d, image: i }
+      }
+    } catch { /* oEmbed failed, return empty og */ }
+  }
+
+  return og
+}
+
+/** Look for <link rel="alternate" type="application/json+oembed" href="..."> in HTML */
+function discoverOembedUrl(html: string): string | null {
+  const match = html.match(
+    /<link[^>]+type=["']application\/json\+oembed["'][^>]+href=["']([^"']+)["']/i,
+  ) ?? html.match(
+    /<link[^>]+href=["']([^"']+)["'][^>]+type=["']application\/json\+oembed["']/i,
+  )
+  return match?.[1]?.replace(/&amp;/g, '&') ?? null
+}
+
+function parseOGMeta(html: string): LinkPreviewResult {
+  const get = (property: string): string | undefined => {
+    const re = new RegExp(
+      `<meta[^>]+(?:property|name)=["']${property}["'][^>]+content=["']([^"']*?)["']`,
+      'i',
+    )
+    const alt = new RegExp(
+      `<meta[^>]+content=["']([^"']*?)["'][^>]+(?:property|name)=["']${property}["']`,
+      'i',
+    )
+    return re.exec(html)?.[1] ?? alt.exec(html)?.[1] ?? undefined
+  }
+
+  const title = get('og:title') ?? get('twitter:title') ?? html.match(/<title[^>]*>([^<]*)<\/title>/i)?.[1]?.trim()
+  const description = get('og:description') ?? get('twitter:description') ?? get('description')
+  const image = get('og:image') ?? get('twitter:image')
+
+  if (!title && !description && !image) return {}
+  return { title, description, image }
+}
 
 // ─── Side panel & recording bridge ───────────────────────────────────────────
 
@@ -626,9 +724,11 @@ function resolveElOrThrow(sel: string): string {
 type R = { success: true; data?: unknown } | { success: false; error: string }
 type P = Record<string, unknown>
 
+const DEFAULT_VIEWPORT = { width: 1280, height: 800 }
+
 async function handleOpen(p: P): Promise<R> {
   const url = p.url as string
-  const viewport = p.viewport as { width: number; height: number } | undefined
+  const viewport = (p.viewport as { width: number; height: number } | undefined) ?? DEFAULT_VIEWPORT
   // Always open in foreground
   const background = false
   // Use a small physical window; actual viewport is emulated via CDP

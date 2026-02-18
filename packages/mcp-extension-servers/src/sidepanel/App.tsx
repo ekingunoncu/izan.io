@@ -144,6 +144,10 @@ export function App() {
   const [codeResult, setCodeResult] = useState<{ success: boolean; data?: unknown; error?: string } | null>(null)
   const [codeParamMeta, setCodeParamMeta] = useState<Map<string, { description: string; defaultValue: string }>>(new Map())
 
+  // Per-step code test (for CodeStepExpanded test button)
+  const [stepTestRunning, setStepTestRunning] = useState(false)
+  const [stepTestResult, setStepTestResult] = useState<{ success: boolean; data?: unknown; error?: string } | null>(null)
+
   // Connection
   const [connectionError, setConnectionError] = useState<string | null>(null)
 
@@ -496,8 +500,14 @@ export function App() {
           downloadJson(exportData, `${slugify(raw.server.name)}-server.json`)
         }
       } else if (type === 'evaluateCodePreview-result') {
-        setCodeRunning(false)
-        setCodeResult({ success: msg.success as boolean, data: msg.data, error: msg.error as string | undefined })
+        const result = { success: msg.success as boolean, data: msg.data, error: msg.error as string | undefined }
+        if (codeTestSourceRef.current === 'step') {
+          setStepTestRunning(false)
+          setStepTestResult(result)
+        } else {
+          setCodeRunning(false)
+          setCodeResult(result)
+        }
       } else if (type === 'importAutomationServerDone' || type === 'importAutomationToolDone') {
         if (msg.error) {
           setImportError(msg.error as string)
@@ -1133,15 +1143,30 @@ export function App() {
     return params
   }, [codeValue])
 
+  const codeTestSourceRef = useRef<'inline' | 'step'>('inline')
+
   const handleTestCode = () => {
     if (!codeValue.trim() || codeRunning) return
     if (!portRef.current) {
       setCodeResult({ success: false, error: 'Extension not connected' })
       return
     }
+    codeTestSourceRef.current = 'inline'
     setCodeRunning(true)
     setCodeResult(null)
     portRef.current.postMessage({ type: 'evaluateCodePreview', code: codeValue })
+  }
+
+  const handleTestCodeForStep = (code: string) => {
+    if (!code.trim() || stepTestRunning) return
+    if (!portRef.current) {
+      setStepTestResult({ success: false, error: 'Extension not connected' })
+      return
+    }
+    codeTestSourceRef.current = 'step'
+    setStepTestRunning(true)
+    setStepTestResult(null)
+    portRef.current.postMessage({ type: 'evaluateCodePreview', code })
   }
 
   const handleAddCodeStep = (isEditMode: boolean) => {
@@ -1635,6 +1660,9 @@ export function App() {
                   const src = editSteps.find(s => s.action === 'extract' && s.name === step.sourceExtract)
                   return (src?.fields as Array<{ key: string }> | undefined)?.map(f => f.key) ?? []
                 })() : undefined}
+                onTestCode={step.action === 'code' ? handleTestCodeForStep : undefined}
+                testRunning={stepTestRunning}
+                testResult={stepTestResult}
               />
             ))}
             <div ref={stepsEndRef} />
@@ -2402,6 +2430,9 @@ export function App() {
                   const src = steps.find(s => s.action === 'extract' && s.name === step.sourceExtract)
                   return (src?.fields as Array<{ key: string }> | undefined)?.map(f => f.key) ?? []
                 })() : undefined}
+                onTestCode={step.action === 'code' ? handleTestCodeForStep : undefined}
+                testRunning={stepTestRunning}
+                testResult={stepTestResult}
               />
             ))}
             <div ref={stepsEndRef} />
@@ -3056,6 +3087,7 @@ function StepCard({
   onDragStart, onDragOver, onDrop, onToggleParam, onDescriptionChange,
   onParamNameChange, onWaitUntilChange, onUpdateFields, onSubActions,
   onUpdateStepProps, onTrySelector, trySelectorResult, sourceFieldKeys,
+  onTestCode, testRunning, testResult,
 }: {
   step: Step
   index: number
@@ -3078,6 +3110,9 @@ function StepCard({
   trySelectorResult?: 'found' | 'not_found' | null
   /** Field keys from the source extract step (for forEachItem filter dropdowns) */
   sourceFieldKeys?: string[]
+  onTestCode?: (code: string) => void
+  testRunning?: boolean
+  testResult?: { success: boolean; data?: unknown; error?: string } | null
 }) {
   const Icon = STEP_ICONS[step.action] ?? Wrench
   const detail = stepDetail(step)
@@ -3609,7 +3644,7 @@ function StepCard({
 
         {/* Code step expanded editor */}
         {step.action === 'code' && expanded && onUpdateStepProps && (
-          <CodeStepExpanded step={step} onUpdateStepProps={onUpdateStepProps} />
+          <CodeStepExpanded step={step} onUpdateStepProps={onUpdateStepProps} onTestCode={onTestCode} testRunning={testRunning} testResult={testResult} />
         )}
       </div>
 
@@ -4061,7 +4096,13 @@ function formatPreviewValue(v: unknown): string {
 
 // ─── CodeStepExpanded ────────────────────────────────────────────────────────
 
-function CodeStepExpanded({ step, onUpdateStepProps }: { step: Step; onUpdateStepProps: (props: Partial<Step>) => void }) {
+function CodeStepExpanded({ step, onUpdateStepProps, onTestCode, testRunning, testResult }: {
+  step: Step
+  onUpdateStepProps: (props: Partial<Step>) => void
+  onTestCode?: (code: string) => void
+  testRunning?: boolean
+  testResult?: { success: boolean; data?: unknown; error?: string } | null
+}) {
   const code = (step.code as string) ?? ''
   const codeParams = (step._codeParams ?? undefined) as Record<string, { description?: string; defaultValue?: string }> | undefined
 
@@ -4114,10 +4155,27 @@ function CodeStepExpanded({ step, onUpdateStepProps }: { step: Step; onUpdateSte
           onChange={(v) => onUpdateStepProps({ code: v })}
           placeholder="// JavaScript to run in page context"
           minHeight="60px"
+          onRun={onTestCode ? () => onTestCode(code) : undefined}
         />
       </Suspense>
       {detectedParams.length > 0 && (
         <CodeParamCards params={detectedParams} meta={metaMap} onUpdate={handleParamUpdate} />
+      )}
+      {onTestCode && (
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => onTestCode(code)} disabled={testRunning || !code.trim()}>
+            {testRunning ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />} Test
+          </Button>
+        </div>
+      )}
+      {testResult && (
+        <div className={cn('px-3 py-2 rounded-md text-xs break-all', testResult.success ? 'bg-green-500/10 text-green-400' : 'bg-destructive/10 text-destructive')}>
+          {testResult.success
+            ? testResult.data !== undefined && testResult.data !== null
+              ? <pre className="font-mono whitespace-pre-wrap">{JSON.stringify(testResult.data, null, 2)}</pre>
+              : <span className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5" /> Ran successfully (no return value)</span>
+            : testResult.error}
+        </div>
       )}
     </div>
   )

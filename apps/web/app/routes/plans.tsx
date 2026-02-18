@@ -32,6 +32,7 @@ import {
   AlertDialogTitle,
 } from "~/components/ui/alert-dialog";
 import { Button } from "~/components/ui/button";
+import { ExpandableTextarea } from "~/components/ui/expandable-textarea";
 import { IzanLogo } from "~/components/ui/izan-logo";
 import { usePlanStore } from "~/store/plan.store";
 import { useAgentStore } from "~/store/agent.store";
@@ -531,12 +532,12 @@ function PlanFormDialog({
               <label className="text-sm font-medium text-foreground mb-1.5 block">
                 {t("plans.prompt")}
               </label>
-              <textarea
+              <ExpandableTextarea
                 value={form.prompt}
                 onChange={(e) => setForm({ ...form, prompt: e.target.value })}
                 placeholder={t("plans.promptPlaceholder")}
+                label={t("plans.prompt")}
                 rows={3}
-                className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
               />
             </div>
 

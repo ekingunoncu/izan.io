@@ -238,6 +238,24 @@ async function bootstrap(): Promise<void> {
           type: 'izan-plan-alarm-sync',
           alarms: data.alarms,
         }).catch(() => {})
+      } else if (data.channel === 'fetch-link-preview' && data.url && data.requestId) {
+        chrome.runtime.sendMessage({ type: 'izan-fetch-link-preview', url: data.url })
+          .then((resp) => {
+            globalThis.postMessage({
+              source: 'izan-extension',
+              channel: 'fetch-link-preview-response',
+              requestId: data.requestId,
+              data: resp?.ok ? resp.data : null,
+            }, location.origin)
+          })
+          .catch(() => {
+            globalThis.postMessage({
+              source: 'izan-extension',
+              channel: 'fetch-link-preview-response',
+              requestId: data.requestId,
+              data: null,
+            }, location.origin)
+          })
       } else if (data.channel === 'request-automation-data') {
         // Page is requesting fresh automation data (e.g. settings page opened)
         chrome.storage.local.get('izan_automation').then((result) => {

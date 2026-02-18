@@ -573,6 +573,12 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   loadChats: async (agentId: string) => {
+    // Clear current chat if it belongs to a different agent
+    const { currentChat } = get()
+    if (currentChat && currentChat.agentId !== agentId) {
+      set({ currentChatId: null, currentChat: null, messages: [] })
+    }
+
     set({ isLoadingChats: true })
     try {
       const chats = await storageService.getChats(agentId)

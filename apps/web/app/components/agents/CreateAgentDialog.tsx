@@ -20,6 +20,7 @@ import {
 } from 'lucide-react'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
+import { ExpandableTextarea } from '~/components/ui/expandable-textarea'
 import { useAgentStore, useUIStore, useMCPStore } from '~/store'
 import { cn } from '~/lib/utils'
 
@@ -187,11 +188,12 @@ export function CreateAgentDialog() {
           {/* System Prompt */}
           <div className="space-y-1.5">
             <label className="text-sm font-medium">{t('agents.basePrompt')}</label>
-            <textarea
+            <ExpandableTextarea
               value={basePrompt}
               onChange={(e) => setBasePrompt(e.target.value)}
               placeholder={t('agents.basePromptPlaceholder')}
-              className="w-full min-h-[100px] rounded-md border bg-background px-3 py-2 text-sm resize-y focus:outline-none focus:ring-2 focus:ring-ring"
+              label={t('agents.basePrompt')}
+              className="min-h-[100px]"
               rows={4}
             />
           </div>
