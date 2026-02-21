@@ -24,6 +24,12 @@
   <a href="https://izan.io">🌐 Live ausprobieren → izan.io</a>
 </p>
 
+<br />
+
+<p align="center">
+  <img src="https://izan-media.s3.eu-west-1.amazonaws.com/izan-demo.gif?v=2" alt="izan.io demo" width="720" />
+</p>
+
 ---
 
 ## ⚡ Was ist das?
