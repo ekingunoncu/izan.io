@@ -89,6 +89,8 @@
     "automationBrowserTitle": "Automatisierungs-Browser",
     "automationBrowserForeground": "Automatisierungs-Browser in den Vordergrund bringen",
     "automationBrowserForegroundDesc": "Wenn aktiviert, wird das Automatisierungs-Browserfenster im Vordergrund statt hinter dem aktuellen Fenster geöffnet.",
+    "automationViewport": "Fensterauflösung",
+    "automationViewportDesc": "Die emulierte Viewport-Auflösung für Automatisierungs-Browserfenster.",
     "chatStorageTitle": "Chat-Speicher",
     "chatStorageDesc": "Ihre Chats werden lokal auf Ihrem Gerät gespeichert. Legen Sie Limits fest, um den Speicher unter Kontrolle zu halten.",
     "chatMessageLimit": "Nachrichten pro Chat",
@@ -2095,6 +2097,8 @@
     "noMacrosAssigned": "Noch keine Makros zugewiesen.",
     "noAvailableMCPs": "Keine MCP-Server zum Hinzufügen. Fügen Sie neue MCPs in den Einstellungen hinzu.",
     "noAvailableAgents": "Keine anderen Agenten zum Verknüpfen verfügbar.",
+    "searchAgents": "Agenten suchen...",
+    "noSearchResults": "Keine Agenten entsprechen Ihrer Suche.",
     "exportAgent": "Agent exportieren",
     "importFromFile": "Agent aus Datei importieren",
     "importError": "Agent konnte nicht importiert werden. Bitte überprüfen Sie das Dateiformat.",
@@ -2216,6 +2220,11 @@
     "viewChat": "Chat anzeigen",
     "errorLastRun": "Letzter Fehler: {{error}}",
     "browserWarning": "Installieren Sie die izan.io Chrome-Erweiterung, um geplante Pläne zu aktivieren. Die Erweiterung führt Pläne im Hintergrund aus, solange Chrome geöffnet ist - dieser Tab muss nicht offen bleiben.",
-    "browserWarningExtension": "Geplante Pläne laufen über die Chrome-Erweiterung im Hintergrund. Chrome muss nur geöffnet sein - Sie können diesen Tab schließen."
+    "browserWarningExtension": "Geplante Pläne laufen über die Chrome-Erweiterung im Hintergrund. Chrome muss nur geöffnet sein - Sie können diesen Tab schließen.",
+    "model": "Modell",
+    "useCurrentModel": "Aktuelles Modell verwenden",
+    "selectProvider": "Provider auswählen",
+    "selectModel": "Modell auswählen",
+    "noApiKeys": "Keine API-Schlüssel konfiguriert. Fügen Sie Schlüssel in den Einstellungen hinzu."
   }
 }

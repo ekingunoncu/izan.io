@@ -726,11 +726,25 @@ type P = Record<string, unknown>
 
 const DEFAULT_VIEWPORT = { width: 1280, height: 800 }
 
+/** Read automation preferences from chrome.storage.local */
+async function getAutomationPrefs(): Promise<{ foreground: boolean; viewport: { width: number; height: number } }> {
+  try {
+    const result = await chrome.storage.local.get(['izan_pref_automationBrowserForeground', 'izan_pref_automationViewport'])
+    const foreground = result.izan_pref_automationBrowserForeground !== false // default true
+    const vp = result.izan_pref_automationViewport as { width: number; height: number } | undefined
+    return {
+      foreground,
+      viewport: vp && vp.width > 0 && vp.height > 0 ? vp : DEFAULT_VIEWPORT,
+    }
+  } catch {
+    return { foreground: true, viewport: DEFAULT_VIEWPORT }
+  }
+}
+
 async function handleOpen(p: P): Promise<R> {
   const url = p.url as string
-  const viewport = (p.viewport as { width: number; height: number } | undefined) ?? DEFAULT_VIEWPORT
-  // Always open in foreground
-  const background = false
+  const prefs = await getAutomationPrefs()
+  const viewport = (p.viewport as { width: number; height: number } | undefined) ?? prefs.viewport
   // Use a small physical window; actual viewport is emulated via CDP
   const opts = { width: 400, height: 300 }
   const laneId = getLaneId(p)
@@ -758,9 +772,6 @@ async function handleOpen(p: P): Promise<R> {
       if (viewport) {
         await cdpSetViewport(existingTab, viewport.width, viewport.height)
       }
-      if (!background && automationWindowId != null) {
-        await chrome.windows.update(automationWindowId, { focused: true })
-      }
       return { success: true, data: { tabId: existingTab } }
     } catch {
       laneTabs.delete(laneId)
@@ -787,9 +798,6 @@ async function handleOpen(p: P): Promise<R> {
     // Window exists (possibly created by another lane) - add a tab
     const tab = await chrome.tabs.create({ windowId: automationWindowId, url, active: true })
     tid = tab.id!
-    if (!background) {
-      await chrome.windows.update(automationWindowId, { focused: true })
-    }
   } else {
     // First lane - create the window under a lock
     let resolveCreation!: () => void
@@ -801,7 +809,7 @@ async function handleOpen(p: P): Promise<R> {
         type: 'normal',
         width: opts.width,
         height: opts.height,
-        focused: !background,
+        focused: prefs.foreground,
       })
       if (!win) return { success: false, error: 'Failed to create window' }
       tid = win.tabs?.[0]?.id ?? null
@@ -833,8 +841,12 @@ async function handleAttachActiveTab(p: P): Promise<R> {
   if (existingTab != null) {
     return { success: true, data: { tabId: existingTab } }
   }
-  const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true })
-  if (!tab?.id) return { success: false, error: 'No active tab found' }
+  // Only attach to tabs inside the automation window - never touch the user's browsing tabs
+  if (automationWindowId == null) {
+    return { success: false, error: 'No automation window open. Add a navigate step first.' }
+  }
+  const [tab] = await chrome.tabs.query({ active: true, windowId: automationWindowId })
+  if (!tab?.id) return { success: false, error: 'No active tab in automation window' }
   try {
     await cdpAttach(tab.id)
   } catch {
@@ -877,11 +889,6 @@ async function handleNavigate(p: P): Promise<R> {
   const url = p.url as string
   await chrome.tabs.update(tid, { url, active: false })
   await waitForTab(tid, 15_000)
-  // Always bring automation window to front after navigation
-  const tab = await chrome.tabs.get(tid)
-  if (tab.windowId != null) {
-    await chrome.windows.update(tab.windowId, { focused: true })
-  }
   return { success: true }
 }
 

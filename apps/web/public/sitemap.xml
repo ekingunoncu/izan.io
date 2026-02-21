@@ -3,6 +3,16 @@
         xmlns:xhtml="http://www.w3.org/1999/xhtml">
 
   <url>
+    <loc>https://izan.io/</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://izan.io/de" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://izan.io/en" />
+    <priority>1.0</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
     <loc>https://izan.io/tr</loc>
     <xhtml:link rel="alternate" hreflang="tr" href="https://izan.io/tr" />
     <xhtml:link rel="alternate" hreflang="en" href="https://izan.io/en" />

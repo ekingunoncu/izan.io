@@ -2,27 +2,43 @@
   <img src="thumbnail.png" alt="izan.io" width="280" />
 </p>
 
+<h1 align="center">izan.io</h1>
 <p align="center">
+  <strong>Open-Source AI Assistant — 17+ Providers, MCP Tools, Browser Automation</strong>
+</p>
+
+<p align="center">
+  <a href="https://github.com/ekingunoncu/izan.io/stargazers">
+    <img src="https://img.shields.io/github/stars/ekingunoncu/izan.io?style=social&label=Star" alt="GitHub stars" />
+  </a>
+  &nbsp;&nbsp;
   <img src="https://img.shields.io/badge/license-AGPL--3.0-blue.svg" alt="AGPL-3.0" />
   <img src="https://img.shields.io/badge/TypeScript-007ACC?logo=typescript&logoColor=white" alt="TypeScript" />
   <img src="https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black" alt="React 19" />
   <img src="https://img.shields.io/badge/MCP-Protocol-green" alt="MCP" />
 </p>
 
-<h1 align="center">izan.io</h1>
 <p align="center">
-  <strong>Local AI Assistant - Open Source, Transparent, Free</strong>
-</p>
-<p align="center">
-  <em>Wisdom • Understanding • Intellect</em>
+  <a href="README.tr.md">Turkce</a> · <a href="README.de.md">Deutsch</a>
 </p>
 
 <p align="center">
-  <a href="README.tr.md">Türkçe</a> · <a href="README.de.md">Deutsch</a>
+  <a href="https://izan.io"><strong>Try it live → izan.io</strong></a>
 </p>
+
+<br />
+
 <p align="center">
-  <a href="https://izan.io">🌐 Try it live → izan.io</a>
+  <img src="https://izan-media.s3.eu-west-1.amazonaws.com/izan-demo.gif" alt="izan.io demo" width="720" />
 </p>
+
+---
+
+## Why izan.io?
+
+- **Zero setup** — Open the browser, paste your API key, start chatting. No backend to deploy, no Docker, no config files.
+- **Privacy-first** — API keys and conversations never leave your browser. Everything is stored in IndexedDB, client-side only.
+- **No-code automation** — Record browser actions, turn them into MCP tools, and let agents run them. Build workflows without writing a single line of code.
 
 ---
 
@@ -30,7 +46,7 @@
 
 **izan.io** is an open-source AI assistant platform that brings all AI models into one place while keeping your privacy first. Use your own API keys and your own data.
 
-> 🚨 **Copyleft:** This project is licensed under [AGPL-3.0](./LICENSE). If you fork, modify, or create derivative works, **you must make your code open source too**. Derivatives offered over a network must make their source code available. See [LICENSE](./LICENSE) for details.
+> **Copyleft:** This project is licensed under [AGPL-3.0](./LICENSE). If you fork, modify, or create derivative works, **you must make your code open source too**. Derivatives offered over a network must make their source code available. See [LICENSE](./LICENSE) for details.
 
 ---
 
@@ -38,20 +54,37 @@
 
 | Feature | Description |
 |---------|-------------|
-| 🔐 **Privacy** | API keys stored only in your browser. Never sent to our servers. |
-| 🧠 **Multi-Provider** | 17+ AI providers supported (see below). |
-| 🤖 **Smart Agents** | MCP-connected agents - web search, code, and more. |
-| 🔗 **Multi-Agent Orchestration** | Chain agents together - one agent's output becomes another's input. Up to 3 levels deep. |
-| 🌐 **MCP** | Built-in and custom MCP servers. |
-| 🎬 **Action Recorder** | Record browser actions, extract data via CSS or accessibility tree, and save as MCP tools; no coding required (see [docs/visual-mcp-tool-builder.md](docs/visual-mcp-tool-builder.md)). |
-| ⏱️ **Long Running Tasks** | Agents work in the background on complex research and multi-step workflows. Get notified when results are ready. |
-| 📅 **Scheduled Automations** | Run agent tasks on a schedule - price tracking, data collection, and recurring workflows on autopilot. |
+| **Privacy** | API keys stored only in your browser. Never sent to our servers. |
+| **Multi-Provider** | 17+ AI providers supported (see below). |
+| **Smart Agents** | MCP-connected agents - web search, code, and more. |
+| **Multi-Agent Orchestration** | Chain agents together - one agent's output becomes another's input. Up to 3 levels deep. |
+| **MCP** | Built-in and custom MCP servers. |
+| **Action Recorder** | Record browser actions, extract data via CSS or accessibility tree, and save as MCP tools; no coding required (see [docs/visual-mcp-tool-builder.md](docs/visual-mcp-tool-builder.md)). |
+| **Long Running Tasks** | Agents work in the background on complex research and multi-step workflows. Get notified when results are ready. |
+| **Scheduled Automations** | Run agent tasks on a schedule - price tracking, data collection, and recurring workflows on autopilot. |
 
 ---
 
 ## 🔌 Supported Providers
 
 **OpenAI** · **Google** (Gemini) · **Groq** · **Mistral** · **xAI** (Grok) · **DeepSeek** · **Qwen** (DashScope) · **Together AI** · **Fireworks AI** · **Perplexity** · **Cerebras** · **Deep Infra** · **Cohere** · **Moonshot AI** (Kimi) · **MiniMax** · **OpenRouter** (hundreds of models) · **Ollama** (local) · **Custom** (OpenAI-compatible endpoints)
+
+---
+
+## 🚀 Quick Start
+
+**Requirements:** Node.js 18+, npm 10+
+
+```bash
+git clone https://github.com/ekingunoncu/izan.io.git
+cd izan.io
+npm install
+npm run dev
+```
+
+Open `http://localhost:5173`. Add a provider and API key in settings, then start chatting.
+
+See `apps/web/.env.example` for optional env vars. API keys are stored in the browser.
 
 ---
 
@@ -72,23 +105,6 @@ izan.io/
 ```
 
 **Action recorder:** The extension (`mcp-extension-servers`) provides a side panel to record clicks, typing, and scrolls; parameterize URL/path segments; and extract data via CSS selectors or the accessibility tree (ARIA roles, full-page snapshot). The element picker works with or without an active recording. Recordings become MCP tool definitions (stored as JSON in IndexedDB or loaded from S3). A built-in `accessibility_snapshot` tool is always available to agents. See [docs/visual-mcp-tool-builder.md](docs/visual-mcp-tool-builder.md).
-
----
-
-## 🚀 Quick Start
-
-**Requirements:** Node.js 18+, npm 10+
-
-```bash
-git clone https://github.com/ekingunoncu/izan.io.git
-cd izan.io
-npm install
-npm run dev
-```
-
-Open `http://localhost:5173`. Add a provider and API key in settings, then start chatting.
-
-See `apps/web/.env.example` for optional env vars. API keys are stored in the browser.
 
 ---
 
@@ -130,17 +146,17 @@ PRs welcome. See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
 
 **GNU Affero General Public License v3.0 (AGPL-3.0)**
 
-- ✅ Use, modify, distribute
-- ⚠️ Derivatives must be AGPL-3.0
-- ⚠️ Network-hosted derivatives must offer source
+- Use, modify, distribute
+- Derivatives must be AGPL-3.0
+- Network-hosted derivatives must offer source
 
 See [LICENSE](./LICENSE).
 
 ---
 
 <p align="center">
-  <strong>izan.io</strong> - Wisdom • Understanding • Intellect
+  <strong>izan.io</strong> — Wisdom · Understanding · Intellect
 </p>
 <p align="center">
-  <sub>Fork it, build it, share it.</sub>
+  <sub>If izan.io is useful to you, consider giving it a ⭐</sub>
 </p>

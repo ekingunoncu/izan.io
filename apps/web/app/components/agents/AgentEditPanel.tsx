@@ -95,6 +95,7 @@ export function AgentEditPanel() {
   const [expandedSection, setExpandedSection] = useState<string | null>('info')
   const [resetDialogOpen, setResetDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [linkedAgentSearch, setLinkedAgentSearch] = useState('')
   // Sync local state when current agent changes (e.g. user switches agent)
   useEffect(() => {
     if (!currentAgent) return;
@@ -179,7 +180,13 @@ export function AgentEditPanel() {
   }
 
   const toggleSection = (section: string) => {
-    setExpandedSection(prev => prev === section ? null : section)
+    setExpandedSection(prev => {
+      const next = prev === section ? null : section
+      if (section === 'linked-agents' && next !== 'linked-agents') {
+        setLinkedAgentSearch('')
+      }
+      return next
+    })
   }
 
   // Available MCPs for adding (use local state)
@@ -202,6 +209,13 @@ export function AgentEditPanel() {
   const availableAgentsForLinking = agents.filter(
     a => a.id !== currentAgent.id && a.enabled && !linkedAgentIds.includes(a.id)
   )
+  const filteredAvailableAgents = linkedAgentSearch
+    ? availableAgentsForLinking.filter(a => {
+        const q = linkedAgentSearch.toLowerCase()
+        return getAgentDisplayName(a, t).toLowerCase().includes(q) ||
+          getAgentDisplayDescription(a, t).toLowerCase().includes(q)
+      })
+    : availableAgentsForLinking
   const linkedAgentsList = agents.filter(
     a => linkedAgentIds.includes(a.id)
   )
@@ -631,14 +645,29 @@ export function AgentEditPanel() {
                 <p className="text-sm text-muted-foreground text-center py-2">{t('agents.noLinkedAgents')}</p>
               )}
 
+              {availableAgentsForLinking.length > 3 && (
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    value={linkedAgentSearch}
+                    onChange={(e) => setLinkedAgentSearch(e.target.value)}
+                    placeholder={t('agents.searchAgents')}
+                    className="pl-8 h-8 text-sm"
+                  />
+                </div>
+              )}
+
               {availableAgentsForLinking.length > 0 && (
                 <div className="pt-1 space-y-1">
-                  {availableAgentsForLinking.map(agent => {
+                  {filteredAvailableAgents.map(agent => {
                     const Icon = getIcon(agent.icon)
                     return (
                       <button
                         key={agent.id}
-                        onClick={() => setLinkedAgentIds(prev => [...prev, agent.id])}
+                        onClick={() => {
+                          setLinkedAgentIds(prev => [...prev, agent.id])
+                          setLinkedAgentSearch('')
+                        }}
                         className="w-full flex items-center gap-2 rounded-lg border border-dashed p-2.5 text-sm text-muted-foreground hover:bg-muted transition-colors cursor-pointer"
                       >
                         <Link2 className="h-3.5 w-3.5 flex-shrink-0" />
@@ -647,6 +676,9 @@ export function AgentEditPanel() {
                       </button>
                     )
                   })}
+                  {filteredAvailableAgents.length === 0 && linkedAgentSearch && (
+                    <p className="text-xs text-muted-foreground text-center py-2">{t('agents.noSearchResults')}</p>
+                  )}
                 </div>
               )}
 

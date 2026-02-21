@@ -89,6 +89,8 @@
     "automationBrowserTitle": "Otomasyon Tarayıcısı",
     "automationBrowserForeground": "Otomasyon tarayıcısını ön plana getir",
     "automationBrowserForegroundDesc": "Etkinleştirildiğinde otomasyon tarayıcı penceresi mevcut pencerenin arkasında değil, ön planda açılır.",
+    "automationViewport": "Pencere Çözünürlüğü",
+    "automationViewportDesc": "Otomasyon tarayıcı pencerelerinin emüle edilen viewport çözünürlüğü.",
     "chatStorageTitle": "Sohbet Depolama",
     "chatStorageDesc": "Sohbetleriniz cihazınızda yerel olarak saklanır. Depolamayı kontrol altında tutmak için limit belirleyin.",
     "chatMessageLimit": "Chat başına mesaj sayısı",
@@ -2095,6 +2097,8 @@
     "noMacrosAssigned": "Henüz makro atanmadı.",
     "noAvailableMCPs": "Eklenebilecek MCP sunucusu yok. Ayarlardan yeni MCP ekleyin.",
     "noAvailableAgents": "Bağlanabilecek başka agent yok.",
+    "searchAgents": "Agent ara...",
+    "noSearchResults": "Aramanızla eşleşen agent bulunamadı.",
     "exportAgent": "Agenti dışa aktar",
     "importFromFile": "Dosyadan agent içe aktar",
     "importError": "Agent içe aktarılamadı. Lütfen dosya formatını kontrol edin.",
@@ -2216,6 +2220,11 @@
     "viewChat": "Sohbeti Gör",
     "errorLastRun": "Son hata: {{error}}",
     "browserWarning": "Zamanlanmış planları kullanmak için izan.io Chrome eklentisini yükleyin. Chrome açık olduğu sürece planlar arka planda çalışır - bu sekmeyi açık tutmanıza gerek yok.",
-    "browserWarningExtension": "Zamanlanmış planlar Chrome eklentisi aracılığıyla arka planda çalışır. Chrome açık olsun yeter - bu sekmeyi kapatabilirsiniz."
+    "browserWarningExtension": "Zamanlanmış planlar Chrome eklentisi aracılığıyla arka planda çalışır. Chrome açık olsun yeter - bu sekmeyi kapatabilirsiniz.",
+    "model": "Model",
+    "useCurrentModel": "Mevcut modeli kullan",
+    "selectProvider": "Provider seçin",
+    "selectModel": "Model seçin",
+    "noApiKeys": "API anahtarı yapılandırılmamış. Ayarlar'dan ekleyin."
   }
 }

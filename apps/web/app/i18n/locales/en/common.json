@@ -89,6 +89,8 @@
     "automationBrowserTitle": "Automation Browser",
     "automationBrowserForeground": "Bring automation browser to front",
     "automationBrowserForegroundDesc": "When enabled, the automation browser window will appear in the foreground instead of opening behind the current window.",
+    "automationViewport": "Window Resolution",
+    "automationViewportDesc": "The emulated viewport resolution for automation browser windows.",
     "chatStorageTitle": "Chat Storage",
     "chatStorageDesc": "Your chats are stored locally on your device. Set limits to keep storage in check.",
     "chatMessageLimit": "Messages per chat",
@@ -2095,6 +2097,8 @@
     "noMacrosAssigned": "No macros assigned yet.",
     "noAvailableMCPs": "No MCP servers to add. Add new MCPs from settings.",
     "noAvailableAgents": "No other agents available to link.",
+    "searchAgents": "Search agents...",
+    "noSearchResults": "No agents match your search.",
     "exportAgent": "Export agent",
     "importFromFile": "Import agent from file",
     "importError": "Failed to import agent. Please check the file format.",
@@ -2216,6 +2220,11 @@
     "viewChat": "View Chat",
     "errorLastRun": "Last error: {{error}}",
     "browserWarning": "Install the izan.io Chrome extension to enable scheduled plans. The extension runs plans in the background as long as Chrome is open - no need to keep this tab open.",
-    "browserWarningExtension": "Scheduled plans run in the background via the Chrome extension. Just keep Chrome running - you can close this tab."
+    "browserWarningExtension": "Scheduled plans run in the background via the Chrome extension. Just keep Chrome running - you can close this tab.",
+    "model": "Model",
+    "useCurrentModel": "Use current model",
+    "selectProvider": "Select provider",
+    "selectModel": "Select model",
+    "noApiKeys": "No API keys configured. Add keys in Settings."
   }
 }

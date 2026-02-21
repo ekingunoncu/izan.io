@@ -350,7 +350,8 @@
         "gmail_search",
         "gmail_archive",
         "gmail_label",
-        "gmail_bulk_archive"
+        "gmail_bulk_archive",
+        "gmail_bulk_send_email"
       ]
     },
     {

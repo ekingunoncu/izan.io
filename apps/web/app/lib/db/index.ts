@@ -99,6 +99,20 @@ export class IzanDB extends Dexie {
       planExecutions: 'id, planId, chatId, startedAt',
     })
 
+    // v8: Add providerId/modelId to scheduledPlans (no new indexes needed)
+    this.version(8).stores({
+      chats: 'id, agentId, updatedAt, [agentId+updatedAt]',
+      messages: 'id, chatId, timestamp, [chatId+timestamp]',
+      preferences: 'id',
+      mcpServers: 'id',
+      agents: 'id, source, category, enabled',
+      automationTools: 'id, name, serverId, updatedAt',
+      automationServers: 'id, updatedAt',
+      usageRecords: 'id, chatId, agentId, modelId, providerId, timestamp',
+      scheduledPlans: 'id, agentId, status, nextRunAt',
+      planExecutions: 'id, planId, chatId, startedAt',
+    })
+
     // Note: Chat also has optional taskStatus/taskCurrentStep/taskTotalSteps fields
     // (unindexed, so no schema version bump needed)
   }

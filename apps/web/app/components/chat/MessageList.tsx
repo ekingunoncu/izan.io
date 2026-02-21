@@ -89,6 +89,35 @@ function parseContent(content: string): {
   return { toolCalls, agentCalls, agentResponses, text: textLines.join('\n').trim(), isLoading, loadingText }
 }
 
+/** Humanize snake_case/kebab-case tool names → Title Case */
+function humanizeToolName(name: string): string {
+  return name
+    .replace(/[-_]/g, ' ')
+    .replace(/\b\w/g, c => c.toUpperCase())
+}
+
+/** Pick the most relevant argument value to display as a short summary */
+function summarizeArgs(argsJson: string): { summary: string; fullDetails: string } {
+  try {
+    const parsed = JSON.parse(argsJson) as Record<string, unknown>
+    const entries = Object.entries(parsed).filter(([, v]) => v !== undefined && v !== '')
+    if (entries.length === 0) return { summary: '', fullDetails: '' }
+
+    // Full details for tooltip
+    const fullDetails = entries.map(([k, v]) => `${k}: ${typeof v === 'string' ? v : JSON.stringify(v)}`).join(', ')
+
+    // Pick the first string value as the primary summary, or fall back to first value
+    const primary = entries.find(([, v]) => typeof v === 'string') ?? entries[0]
+    const val = primary[1]
+    const raw = typeof val === 'string' ? val : JSON.stringify(val)
+    const summary = raw.length > 50 ? raw.slice(0, 47) + '…' : raw
+
+    return { summary, fullDetails }
+  } catch {
+    return { summary: '', fullDetails: '' }
+  }
+}
+
 function ToolCallBadge({ call }: { call: string }) {
   const { t } = useTranslation('common')
   // Parse: "tool_name({...})"
@@ -96,28 +125,17 @@ function ToolCallBadge({ call }: { call: string }) {
   const rawToolName = match ? match[1] : call
   const toolName = t(`chat.toolNames.${rawToolName}`) !== `chat.toolNames.${rawToolName}`
     ? t(`chat.toolNames.${rawToolName}`)
-    : rawToolName
-  let args = ''
-  if (match) {
-    try {
-      const parsed = JSON.parse(match[2]) as Record<string, unknown>
-      // User-friendly: key names (e.g. domain, query) -> short values
-      args = Object.entries(parsed)
-        .filter(([, v]) => v !== undefined && v !== '')
-        .map(([k, v]) => `${k}: ${v}`)
-        .join(', ')
-    } catch {
-      args = match[2]
-    }
-  }
+    : humanizeToolName(rawToolName)
+
+  const { summary, fullDetails } = match ? summarizeArgs(match[2]) : { summary: '', fullDetails: '' }
 
   return (
-    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-200/90 dark:bg-blue-950 border border-blue-300 dark:border-blue-800 text-xs">
+    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-200/90 dark:bg-blue-950 border border-blue-300 dark:border-blue-800 text-xs" title={fullDetails || undefined}>
       <Wrench className="h-3.5 w-3.5 text-blue-700 dark:text-blue-400 flex-shrink-0" />
       <span className="font-medium text-blue-900 dark:text-blue-300">{toolName}</span>
-      {args && (
-        <span className="text-blue-700 dark:text-blue-400 truncate max-w-[min(12rem,90vw)]" title={args}>
-          {args}
+      {summary && (
+        <span className="text-blue-700/70 dark:text-blue-400/70 truncate max-w-[min(14rem,70vw)]">
+          · {summary}
         </span>
       )}
     </div>
@@ -143,12 +161,17 @@ function AgentResponseBlock({ content, isStreaming }: { content: string; isStrea
   const contentRef = useRef<HTMLDivElement>(null)
   const [isOverflowing, setIsOverflowing] = useState(false)
 
+  // Parse trailing tool activity marker (⏳ toolName...)
+  const toolActivityMatch = content.match(/\n\n⏳\s*(.+?)\.\.\.\s*$/)
+  const activeToolName = toolActivityMatch ? toolActivityMatch[1] : null
+  const displayContent = activeToolName ? content.replace(/\n\n⏳\s*.+?\.\.\.\s*$/, '') : content
+
   useEffect(() => {
     const el = contentRef.current
     if (!el) return
     // Check if content overflows the collapsed max-height (6rem ≈ 96px)
     setIsOverflowing(el.scrollHeight > 112)
-  }, [content])
+  }, [displayContent])
 
   const collapsible = isOverflowing && !isStreaming
 
@@ -162,11 +185,19 @@ function AgentResponseBlock({ content, isStreaming }: { content: string; isStrea
             collapsible && !expanded ? 'max-h-28' : 'max-h-[80vh]',
           )}
         >
-          <div className="markdown-content min-w-0 text-xs sm:text-sm text-foreground/85 [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1 [&_li]:ml-4 [&_pre]:my-2 [&_pre]:p-2 [&_pre]:rounded-lg [&_pre]:bg-muted-foreground/10 [&_pre]:overflow-x-auto [&_code]:bg-muted-foreground/10 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_td]:px-2 [&_td]:py-1 [&_th]:px-2 [&_th]:py-1 break-words">
-            <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ a: LinkRenderer, table: ScrollableTable }}>
-              {content}
-            </ReactMarkdown>
-          </div>
+          {displayContent && (
+            <div className="markdown-content min-w-0 text-xs sm:text-sm text-foreground/85 [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1 [&_li]:ml-4 [&_pre]:my-2 [&_pre]:p-2 [&_pre]:rounded-lg [&_pre]:bg-muted-foreground/10 [&_pre]:overflow-x-auto [&_code]:bg-muted-foreground/10 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_td]:px-2 [&_td]:py-1 [&_th]:px-2 [&_th]:py-1 break-words">
+              <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ a: LinkRenderer, table: ScrollableTable }}>
+                {displayContent}
+              </ReactMarkdown>
+            </div>
+          )}
+          {activeToolName && (
+            <div className={cn('flex items-center gap-2 text-xs text-muted-foreground py-1', displayContent && 'mt-2 pt-2 border-t border-border/40')}>
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              <span>{activeToolName}...</span>
+            </div>
+          )}
         </div>
         {/* Gradient fade when collapsed */}
         {collapsible && !expanded && (

@@ -14,6 +14,8 @@ const instanceCache = new Map<string, BrowserWindow>()
 
 export class BrowserWindow {
   private tabId: number | null = null
+  /** True when the tab was obtained via attachActiveTab (user's existing tab, not created by us) */
+  private _attachedOnly = false
   readonly laneId: string
 
   constructor(laneId = 'main') {
@@ -80,6 +82,7 @@ export class BrowserWindow {
   async open(url: string, opts: { viewport?: { width: number; height: number } } = {}): Promise<number> {
     const r = await this.send('open', { url, viewport: opts.viewport }) as { tabId: number }
     this.tabId = r.tabId
+    this._attachedOnly = false
     return this.tabId
   }
 
@@ -87,6 +90,7 @@ export class BrowserWindow {
   async attachActiveTab(): Promise<number> {
     const r = await this.send('attachActiveTab', {}) as { tabId: number }
     this.tabId = r.tabId
+    this._attachedOnly = true
     return this.tabId
   }
 
@@ -94,11 +98,14 @@ export class BrowserWindow {
     if (!this.tabId) return
     await this.send('close')
     this.tabId = null
+    this._attachedOnly = false
   }
 
   async navigate(url: string): Promise<void> { await this.send('navigate', { url }) }
   async getUrl(): Promise<string> { return (await this.send('getUrl')) as string }
   isOpen(): boolean { return this.tabId !== null }
+  /** Whether the current tab is a user's existing tab (not created by automation) */
+  isAttachedOnly(): boolean { return this._attachedOnly }
   getTabId(): number | null { return this.tabId }
 
   // ─── DOM ────────────────────────────────────────────────────────

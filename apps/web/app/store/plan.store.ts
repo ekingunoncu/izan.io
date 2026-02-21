@@ -19,8 +19,10 @@ interface PlanStoreState {
     scheduleType: PlanScheduleType
     cronExpression: string | null
     scheduledAt: number | null
+    providerId?: string | null
+    modelId?: string | null
   }) => Promise<ScheduledPlan>
-  updatePlan: (planId: string, updates: Partial<Pick<ScheduledPlan, 'name' | 'description' | 'agentId' | 'prompt' | 'scheduleType' | 'cronExpression' | 'scheduledAt' | 'status'>>) => Promise<void>
+  updatePlan: (planId: string, updates: Partial<Pick<ScheduledPlan, 'name' | 'description' | 'agentId' | 'prompt' | 'scheduleType' | 'cronExpression' | 'scheduledAt' | 'status' | 'providerId' | 'modelId'>>) => Promise<void>
   deletePlan: (planId: string) => Promise<void>
   togglePlanStatus: (planId: string) => Promise<void>
   executePlan: (planId: string) => Promise<void>
@@ -98,6 +100,8 @@ export const usePlanStore = create<PlanStoreState>((set, get) => ({
       scheduleType: data.scheduleType,
       cronExpression: data.cronExpression,
       scheduledAt: data.scheduledAt,
+      providerId: data.providerId ?? null,
+      modelId: data.modelId ?? null,
       status: 'active',
       lastRunAt: null,
       nextRunAt: null,
@@ -209,6 +213,8 @@ export const usePlanStore = create<PlanStoreState>((set, get) => ({
         plan.prompt,
         plan.name,
         plan.id,
+        plan.providerId ?? undefined,
+        plan.modelId ?? undefined,
       )
 
       const now = Date.now()

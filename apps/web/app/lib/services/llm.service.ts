@@ -495,6 +495,23 @@ export class LLMService implements ILLMService {
     }
   }
 
+  /**
+   * Temporarily override provider/model/apiKey for a scoped execution.
+   * Saves current state, applies override, runs fn, then restores.
+   */
+  async withOverride<T>(provider: string, model: string, apiKey: string, fn: () => Promise<T>): Promise<T> {
+    const prev = { provider: this.provider, model: this.model, apiKey: this.apiKey, baseURL: this.baseURL }
+    this.configure(provider, model, apiKey)
+    try {
+      return await fn()
+    } finally {
+      this.provider = prev.provider
+      this.model = prev.model
+      this.apiKey = prev.apiKey
+      this.baseURL = prev.baseURL
+    }
+  }
+
   abort(): void {
     for (const controller of this.activeControllers) {
       controller.abort()

@@ -57,7 +57,7 @@ import { useAgentStore } from "~/store/agent.store";
 import { storageService } from "~/lib/services";
 import { useAutomationStore } from "~/store/automation.store";
 import { DEFAULT_MCP_SERVERS } from "~/lib/mcp/config";
-import { requestAutomationData } from "~/lib/mcp/extension-bridge";
+import { requestAutomationData, sendPreferenceToExtension } from "~/lib/mcp/extension-bridge";
 import { cn } from "~/lib/utils";
 import { type SupportedLanguage, setStoredLanguagePreference } from "~/i18n";
 import { useProvidersWithModels } from "~/lib/use-providers-with-models";
@@ -365,8 +365,102 @@ function AutomationToolsSection() {
   );
 }
 
+const VIEWPORT_PRESETS = [
+  { label: "1280 x 800", width: 1280, height: 800 },
+  { label: "1366 x 768", width: 1366, height: 768 },
+  { label: "1440 x 900", width: 1440, height: 900 },
+  { label: "1920 x 1080", width: 1920, height: 1080 },
+] as const;
+
 function AutomationBrowserSection() {
-  return null;
+  const { t } = useTranslation("common");
+  const isExtensionInstalled = useMCPStore((s) => s.isExtensionInstalled);
+  const [foreground, setForeground] = useState(true);
+  const [viewport, setViewport] = useState({ width: 1280, height: 800 });
+  const [loaded, setLoaded] = useState(false);
+
+  // Load saved preferences from IndexedDB
+  useEffect(() => {
+    storageService.getPreferences().then((prefs) => {
+      setForeground(prefs.automationBrowserForeground !== false);
+      setLoaded(true);
+    });
+  }, []);
+
+  if (!loaded || !isExtensionInstalled) return null;
+
+  const handleForegroundChange = (value: boolean) => {
+    setForeground(value);
+    storageService.updatePreferences({ automationBrowserForeground: value });
+    // Sync to extension
+    sendPreferenceToExtension("automationBrowserForeground", value);
+  };
+
+  const handleViewportChange = (w: number, h: number) => {
+    setViewport({ width: w, height: h });
+    sendPreferenceToExtension("automationViewport", { width: w, height: h });
+  };
+
+  const currentPreset = VIEWPORT_PRESETS.find(
+    (p) => p.width === viewport.width && p.height === viewport.height
+  );
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Cog className="h-5 w-5" />
+          {t("settings.automationBrowserTitle")}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Foreground toggle */}
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-sm font-medium">{t("settings.automationBrowserForeground")}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{t("settings.automationBrowserForegroundDesc")}</p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={foreground}
+            onClick={() => handleForegroundChange(!foreground)}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0 ${
+              foreground ? "bg-primary" : "bg-muted-foreground/30"
+            }`}
+          >
+            <span
+              className={`inline-block h-4.5 w-4.5 rounded-full bg-white shadow-sm transition-transform ${
+                foreground ? "translate-x-5.5" : "translate-x-0.5"
+              }`}
+            />
+          </button>
+        </div>
+
+        {/* Viewport resolution */}
+        <div>
+          <p className="text-sm font-medium mb-1.5">{t("settings.automationViewport")}</p>
+          <p className="text-xs text-muted-foreground mb-2">{t("settings.automationViewportDesc")}</p>
+          <div className="flex flex-wrap gap-1.5">
+            {VIEWPORT_PRESETS.map((preset) => (
+              <button
+                key={preset.label}
+                type="button"
+                onClick={() => handleViewportChange(preset.width, preset.height)}
+                className={`px-3 py-1.5 text-xs rounded-md border transition-colors ${
+                  currentPreset?.label === preset.label
+                    ? "bg-primary/10 border-primary/30 text-primary font-medium"
+                    : "bg-muted/50 border-border hover:bg-muted"
+                }`}
+              >
+                {preset.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
 }
 
 function getAgentIcon(iconId: string) {

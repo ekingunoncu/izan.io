@@ -19,6 +19,7 @@ import {
   Bot,
   Info,
   X,
+  Cpu,
 } from "lucide-react";
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
@@ -36,10 +37,12 @@ import { ExpandableTextarea } from "~/components/ui/expandable-textarea";
 import { IzanLogo } from "~/components/ui/izan-logo";
 import { usePlanStore } from "~/store/plan.store";
 import { useAgentStore } from "~/store/agent.store";
+import { useModelStore } from "~/store/model.store";
 import { useChatStore } from "~/store/chat.store";
 import { useMCPStore } from "~/store/mcp.store";
 import { getAgentIcon } from "~/lib/agent-icons";
 import { getAgentDisplayName } from "~/lib/agent-display";
+import { PROVIDERS } from "~/lib/providers";
 import type { ScheduledPlan, PlanScheduleType } from "~/lib/db";
 import { validateCron, describeCronNextRun } from "~/lib/scheduler/cron";
 
@@ -327,6 +330,8 @@ interface PlanFormData {
   scheduleType: PlanScheduleType;
   cronExpression: string;
   scheduledAt: string; // datetime-local string
+  providerId: string; // '' = use current model
+  modelId: string; // '' = use current model
 }
 
 function PlanFormDialog({
@@ -341,10 +346,17 @@ function PlanFormDialog({
   const { t } = useTranslation("common");
   const { agents, initialize: initAgents } = useAgentStore();
   const { createPlan, updatePlan } = usePlanStore();
+  const { providerKeys, initialize: initModel } = useModelStore();
 
   const enabledAgents = useMemo(
     () => agents.filter((a) => a.enabled),
     [agents]
+  );
+
+  // Providers that have an API key configured
+  const configuredProviders = useMemo(
+    () => PROVIDERS.filter((p) => !!providerKeys[p.id]),
+    [providerKeys]
   );
 
   const [form, setForm] = useState<PlanFormData>({
@@ -355,16 +367,26 @@ function PlanFormDialog({
     scheduleType: "once",
     cronExpression: "",
     scheduledAt: "",
+    providerId: "",
+    modelId: "",
   });
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
-  // Initialize agent store when dialog opens (agents may not be loaded yet)
+  // Initialize agent + model store when dialog opens
   useEffect(() => {
     if (open) {
       initAgents();
+      initModel();
     }
-  }, [open, initAgents]);
+  }, [open, initAgents, initModel]);
+
+  // Models filtered by selected provider
+  const providerModels = useMemo(() => {
+    if (!form.providerId) return [];
+    const provider = PROVIDERS.find((p) => p.id === form.providerId);
+    return provider?.models ?? [];
+  }, [form.providerId]);
 
   // Reset form when opening
   useEffect(() => {
@@ -380,6 +402,8 @@ function PlanFormDialog({
         scheduledAt: editPlan.scheduledAt
           ? toLocalInput(new Date(editPlan.scheduledAt))
           : "",
+        providerId: editPlan.providerId ?? "",
+        modelId: editPlan.modelId ?? "",
       });
     } else {
       setForm({
@@ -390,6 +414,8 @@ function PlanFormDialog({
         scheduleType: "once",
         cronExpression: "",
         scheduledAt: "",
+        providerId: "",
+        modelId: "",
       });
     }
     setError("");
@@ -451,6 +477,8 @@ function PlanFormDialog({
           scheduleType: form.scheduleType,
           cronExpression: form.scheduleType === "recurring" ? form.cronExpression : null,
           scheduledAt: form.scheduleType === "once" ? new Date(form.scheduledAt).getTime() : null,
+          providerId: form.providerId || null,
+          modelId: form.modelId || null,
         });
       } else {
         await createPlan({
@@ -461,6 +489,8 @@ function PlanFormDialog({
           scheduleType: form.scheduleType,
           cronExpression: form.scheduleType === "recurring" ? form.cronExpression : null,
           scheduledAt: form.scheduleType === "once" ? new Date(form.scheduledAt).getTime() : null,
+          providerId: form.providerId || null,
+          modelId: form.modelId || null,
         });
       }
       onClose();
@@ -525,6 +555,48 @@ function PlanFormDialog({
                 value={form.agentId}
                 onChange={(agentId) => setForm({ ...form, agentId })}
               />
+            </div>
+
+            {/* Model selection */}
+            <div>
+              <label className="text-sm font-medium text-foreground mb-1.5 block">
+                {t("plans.model")}
+              </label>
+              <div className="flex gap-2">
+                {/* Provider select */}
+                <select
+                  value={form.providerId}
+                  onChange={(e) => {
+                    const pid = e.target.value;
+                    const firstModel = pid ? PROVIDERS.find((p) => p.id === pid)?.models[0]?.id ?? "" : "";
+                    setForm({ ...form, providerId: pid, modelId: firstModel });
+                  }}
+                  className="flex-1 rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                >
+                  <option value="">{t("plans.useCurrentModel")}</option>
+                  {configuredProviders.map((p) => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+
+                {/* Model select (only shown when provider is selected) */}
+                {form.providerId && (
+                  <select
+                    value={form.modelId}
+                    onChange={(e) => setForm({ ...form, modelId: e.target.value })}
+                    className="flex-1 rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  >
+                    {providerModels.map((m) => (
+                      <option key={m.id} value={m.id}>{m.name}</option>
+                    ))}
+                  </select>
+                )}
+              </div>
+              {configuredProviders.length === 0 && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  {t("plans.noApiKeys")}
+                </p>
+              )}
             </div>
 
             {/* Prompt */}
@@ -723,6 +795,14 @@ function PlanCard({ plan }: { plan: ScheduledPlan }) {
     [agent]
   );
 
+  // Resolve pinned model display name
+  const modelDisplay = useMemo(() => {
+    if (!plan.providerId || !plan.modelId) return null;
+    const provider = PROVIDERS.find((p) => p.id === plan.providerId);
+    const model = provider?.models.find((m) => m.id === plan.modelId);
+    return { providerName: provider?.name ?? plan.providerId, modelName: model?.name ?? plan.modelId };
+  }, [plan.providerId, plan.modelId]);
+
   const handleRunNow = async () => {
     setExecuting(true);
     try {
@@ -762,6 +842,12 @@ function PlanCard({ plan }: { plan: ScheduledPlan }) {
               </div>
               <span className="truncate">{agent ? getAgentDisplayName(agent, t) : plan.agentId}</span>
             </div>
+            {modelDisplay && (
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Cpu className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">{modelDisplay.providerName} / {modelDisplay.modelName}</span>
+              </div>
+            )}
             <div className="flex items-center gap-2 text-muted-foreground">
               <Clock className="h-3.5 w-3.5 shrink-0" />
               <span>

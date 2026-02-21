@@ -187,6 +187,24 @@ export class IzanStack extends cdk.Stack {
 function handler(event) {
   var request = event.request;
   var uri = request.uri;
+
+  // Root: 301 redirect to detected language
+  if (uri === '/') {
+    var lang = 'en';
+    var al = request.headers['accept-language'];
+    if (al) {
+      var v = al.value.toLowerCase();
+      if (v.substring(0, 2) === 'de') lang = 'de';
+      else if (v.substring(0, 2) === 'tr') lang = 'tr';
+    }
+    return {
+      statusCode: 301,
+      statusDescription: 'Moved Permanently',
+      headers: { location: { value: '/' + lang } }
+    };
+  }
+
+  // Directory → index.html rewrite
   if (uri.endsWith('/')) {
     request.uri += 'index.html';
   } else if (!uri.includes('.')) {
@@ -195,7 +213,7 @@ function handler(event) {
   return request;
 }
       `.trim()),
-      comment: 'Rewrite path to index.html for React Router prerendered routes',
+      comment: 'Root 301 redirect + rewrite path to index.html for React Router prerendered routes',
     })
 
     const distribution = new cloudfront.Distribution(this, 'Distribution', {
@@ -215,7 +233,6 @@ function handler(event) {
         ],
       },
       additionalBehaviors: mcpBehaviors,
-      defaultRootObject: 'index.html',
       errorResponses: [
         {
           httpStatus: 403,

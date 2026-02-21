@@ -64,7 +64,7 @@ interface ChatState {
   clearTaskStatus: (chatId: string) => void
   enableNotifyOnCompletion: (chatId: string) => void
   /** Execute a plan message in the background without affecting UI state */
-  executePlanMessage: (agentId: string, prompt: string, planName: string, planId?: string) => Promise<{ chatId: string; success: boolean; error?: string }>
+  executePlanMessage: (agentId: string, prompt: string, planName: string, planId?: string, providerId?: string, modelId?: string) => Promise<{ chatId: string; success: boolean; error?: string }>
 }
 
 function generateChatTitle(content: string): string {
@@ -153,11 +153,12 @@ async function executeToolCall(
   mcpTools: MCPToolInfo[],
   mcpStore: ReturnType<typeof useMCPStore.getState>,
   onLinkedAgentChunk?: (chunk: string) => void,
+  onToolActivity?: (toolName: string, running: boolean) => void,
 ): Promise<string> {
   if (fnName.startsWith('ask_agent_')) {
     const targetAgentId = fnName.replace('ask_agent_', '')
     const question = (fnArgs.question as string) || ''
-    return executeLinkedAgentCall(targetAgentId, question, 0, onLinkedAgentChunk)
+    return executeLinkedAgentCall(targetAgentId, question, 0, onLinkedAgentChunk, onToolActivity)
   }
   const toolInfo = mcpTools.find(t => t.name === fnName)
   if (!toolInfo) {
@@ -221,16 +222,13 @@ async function runToolCallingLoop(
   onUsage?: (usage: TokenUsage, toolCallNames: string[]) => void,
   getMaxRounds: () => number = () => DEFAULT_MAX_ITERATIONS,
   onProgress?: (current: number, total: number) => void,
+  isDeepTask?: boolean,
 ): Promise<void> {
   let rounds = 0
   const statusParts: string[] = []
-  // Track nudges: consecutive text rounds (no tools) AND total nudges sent across the whole task
-  let consecutiveTextRounds = 0
-  let totalNudgesSent = 0
-  const MAX_CONSECUTIVE_TEXT = 2  // accept as done after 2 text-only rounds in a row
-  const MAX_TOTAL_NUDGES = 3     // stop nudging after 3 total nudges across the task
-  // Track nudge message indices so we can remove them when model resumes tool calling
-  let nudgeMessageIndices: number[] = []
+  // Self-evaluation: instead of blindly nudging, ask the model to review its progress
+  let evaluationsSent = 0
+  const MAX_EVALUATIONS = isDeepTask ? 3 : 2
 
   while (rounds < getMaxRounds()) {
     if (isAborted()) break
@@ -257,14 +255,6 @@ async function runToolCallingLoop(
     if (isAborted()) break
 
     if (result.toolCalls && result.toolCalls.length > 0) {
-      consecutiveTextRounds = 0 // model is actively working, reset counter
-      // Remove synthetic nudge messages to keep context clean
-      if (nudgeMessageIndices.length > 0) {
-        for (let i = nudgeMessageIndices.length - 1; i >= 0; i--) {
-          chatMessages.splice(nudgeMessageIndices[i], 1)
-        }
-        nudgeMessageIndices = []
-      }
       chatMessages.push({
         role: 'assistant',
         content: result.content ?? '',
@@ -304,12 +294,34 @@ async function runToolCallingLoop(
         // For linked agents, stream their response to the UI in real-time (with markers for collapsible UI)
         const statusPrefix = statusParts.join('\n') + '\n'
         let linkedAgentStreamed = ''
+        let linkedAgentToolStatus = ''
+
         const onLinkedAgentChunk = isLinkedAgent ? (chunk: string) => {
+          linkedAgentToolStatus = '' // LLM is streaming text, clear tool status
           linkedAgentStreamed += chunk
           updateAssistantMsg(statusPrefix + `[agent-response]\n${linkedAgentStreamed}\n[/agent-response]`)
         } : undefined
 
-        const toolResultText = await executeToolCall(fnName, fnArgs, mcpTools, mcpStore, onLinkedAgentChunk)
+        const onLinkedAgentToolActivity = isLinkedAgent ? (toolName: string, running: boolean) => {
+          if (running) {
+            linkedAgentToolStatus = `\n\n⏳ ${toolName}...`
+          } else {
+            linkedAgentToolStatus = ''
+          }
+          if (linkedAgentStreamed) {
+            // Text already streamed: show tool status inside agent-response block
+            updateAssistantMsg(statusPrefix + `[agent-response]\n${linkedAgentStreamed}${linkedAgentToolStatus}\n[/agent-response]`)
+          } else {
+            // No text yet: show tool status outside agent-response block (hits ToolLoadingIndicator)
+            if (running) {
+              updateAssistantMsg(statusParts.join('\n') + '\n\n⏳ ' + toolName + '...')
+            } else {
+              updateAssistantMsg(statusParts.join('\n') + '\n\n⏳ ' + i18n.t('chat.agentResponding'))
+            }
+          }
+        } : undefined
+
+        const toolResultText = await executeToolCall(fnName, fnArgs, mcpTools, mcpStore, onLinkedAgentChunk, onLinkedAgentToolActivity)
         dedupeCache.set(dedupeKey, toolResultText)
 
         // Keep linked agent's response visible in the message (wrapped in markers for collapsible UI)
@@ -329,32 +341,24 @@ async function runToolCallingLoop(
     }
 
     // Model gave a text response with no tool calls
-    // Continuation check: if this is a long task (3+ rounds done), nudge the model to keep using tools
-    // Skip nudging when extension/automation tools are involved - they open browser tabs and are expensive
+    // Self-evaluation: ask the model to review its progress against the original request
+    // Skip when extension/automation tools are involved - they open browser tabs and are expensive
     const hasExtensionTools = mcpTools.some(t => t.serverId.startsWith('ext-'))
-    if (!hasExtensionTools && rounds >= 3 && consecutiveTextRounds < MAX_CONSECUTIVE_TEXT && totalNudgesSent < MAX_TOTAL_NUDGES && rounds < getMaxRounds()) {
-      consecutiveTextRounds++
-      totalNudgesSent++
+    if (!hasExtensionTools && rounds > 1 && evaluationsSent < MAX_EVALUATIONS && rounds < getMaxRounds()) {
+      evaluationsSent++
 
-      // Do NOT put the model's text in chatMessages - when the model sees its own
-      // "shall I continue?" text, it anchors to it and keeps generating text.
-      // Instead, push a short continuation-oriented assistant message so the model's
-      // last context is tool results + "continue" instruction → resumes tool calling.
-      //
-      // Count actual tool calls made so far to give the model concrete context.
-      const toolCallCount = statusParts.filter(s => s.startsWith('[🔧')).length
-      nudgeMessageIndices.push(chatMessages.length) // track for later cleanup
-      chatMessages.push({
-        role: 'assistant',
-        content: `I have made ${toolCallCount} tool calls so far. Continuing with more tool calls.`,
-      })
-      nudgeMessageIndices.push(chatMessages.length)
+      // Include the model's actual text so it has context for self-evaluation
+      chatMessages.push({ role: 'assistant', content: result.content ?? '' })
+
+      const originalRequest = chatMessages.find(m => m.role === 'user')?.content ?? ''
+      const toolCallCount = statusParts.filter(s => s.startsWith('[🔧') || s.startsWith('[🤖')).length
+
       chatMessages.push({
         role: 'user',
-        content: `You stopped too early - you only made ${toolCallCount} tool calls. Keep making tool calls to complete the task. Do not list results without tool calls, do not ask whether to continue. Call the next tool now.`,
+        content: `Review your progress on the original task. You have made ${toolCallCount} tool call${toolCallCount !== 1 ? 's' : ''} so far.\n\nOriginal request: "${typeof originalRequest === 'string' ? originalRequest.slice(0, 500) : ''}"\n\nIf the task is fully complete, provide your final summary. If there is more work to do, continue making tool calls - do not ask for permission, just call the next tool.`,
       })
 
-      // But DO show the model's text in UI so user sees it
+      // Show model's text + evaluation status in UI
       if (result.content) {
         statusParts.push(result.content)
       }
@@ -387,6 +391,7 @@ async function executeLinkedAgentCall(
   question: string,
   depth: number,
   onChunk?: (chunk: string) => void,
+  onToolActivity?: (toolName: string, running: boolean) => void,
 ): Promise<string> {
   if (depth >= MAX_AGENT_DEPTH) {
     return i18n.t('chat.maxAgentDepth')
@@ -451,7 +456,9 @@ async function executeLinkedAgentCall(
             try { fnArgs = JSON.parse(tc.function.arguments) } catch { fnArgs = { raw: tc.function.arguments } }
 
             if (isDev) console.log('[linked-agent] Executing tool:', fnName, fnArgs)
-            const toolResultText = await executeToolCall(fnName, fnArgs, mcpTools, mcpStore)
+            if (onToolActivity) onToolActivity(fnName, true)
+            const toolResultText = await executeToolCall(fnName, fnArgs, mcpTools, mcpStore, onChunk, onToolActivity)
+            if (onToolActivity) onToolActivity(fnName, false)
             if (isDev) console.log('[linked-agent] Tool result:', fnName, '→', toolResultText.slice(0, 300) + (toolResultText.length > 300 ? '...' : ''), `(${toolResultText.length} chars)`)
 
             messages.push({
@@ -762,7 +769,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       const basePrompt = agent?.basePrompt || 'You are a helpful AI assistant.'
       let systemContent = basePrompt + '\n\nRespond in the same language the user writes in.'
       if (hasTools) {
-        systemContent += '\n\nWhen a task requires multiple operations, keep making tool calls until the task is fully complete. Do not stop partway and ask the user if you should continue - just keep going until done. Never present fabricated or unverified results - always use the available tools to obtain real data.'
+        systemContent += '\n\nWhen a task requires multiple operations, keep making tool calls until the task is fully complete. Do not stop partway and ask the user if you should continue - just keep going until done. Never present fabricated or unverified results - always use the available tools to obtain real data. When you believe the task is complete, provide a clear final summary of what was accomplished.'
       }
 
       // Build message history
@@ -850,6 +857,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
                 storageService.updateChat(activeChatId!, { taskCurrentStep: current, taskTotalSteps: total } as Partial<Chat>).catch(() => {})
               }
             },
+            options?.deepTask,
           )
         } catch (toolLoopError) {
           if (isAborted()) return
@@ -1035,12 +1043,25 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }
   },
 
-  executePlanMessage: async (agentId: string, prompt: string, planName: string, planId?: string) => {
+  executePlanMessage: async (agentId: string, prompt: string, planName: string, planId?: string, providerId?: string, modelId?: string) => {
     if (!llmService.isConfigured()) {
       return { chatId: '', success: false, error: i18n.t('chat.llmNotConfigured') }
     }
 
+    // Resolve API key for pinned model (if specified)
+    let overrideApiKey: string | undefined
+    if (providerId && modelId) {
+      const { useModelStore } = await import('./model.store')
+      overrideApiKey = useModelStore.getState().getApiKey(providerId) ?? undefined
+      if (!overrideApiKey) {
+        return { chatId: '', success: false, error: `No API key configured for provider: ${providerId}` }
+      }
+    }
+
+    const runExecution = async () => {
     try {
+      const effectiveModelId = modelId ?? llmService.getModel() ?? undefined
+
       // Create chat in storage without affecting UI state
       const chat = await storageService.createChat({
         agentId,
@@ -1054,7 +1075,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         chatId: chat.id,
         role: 'user',
         content: prompt,
-        modelId: llmService.getModel() || undefined,
+        modelId: effectiveModelId,
       })
 
       // Create assistant message placeholder
@@ -1062,7 +1083,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         chatId: chat.id,
         role: 'assistant',
         content: '',
-        modelId: llmService.getModel() || undefined,
+        modelId: effectiveModelId,
       })
 
       // Get agent and activate MCPs
@@ -1090,7 +1111,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       const basePrompt = agent?.basePrompt || 'You are a helpful AI assistant.'
       let systemContent = basePrompt + '\n\nRespond in the same language the user writes in.'
       if (hasTools) {
-        systemContent += '\n\nWhen a task requires multiple operations, keep making tool calls until the task is fully complete. Do not stop partway and ask the user if you should continue - just keep going until done. Never present fabricated or unverified results - always use the available tools to obtain real data.'
+        systemContent += '\n\nWhen a task requires multiple operations, keep making tool calls until the task is fully complete. Do not stop partway and ask the user if you should continue - just keep going until done. Never present fabricated or unverified results - always use the available tools to obtain real data. When you believe the task is complete, provide a clear final summary of what was accomplished.'
       }
 
       const chatMessages: ChatCompletionMessageParam[] = [
@@ -1106,8 +1127,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
         storageService.updateMessage(assistantMessage.id, content)
 
       const llmOptions = getAgentGenerationOptions(agent)
-      const capturedProviderId = llmService.getProvider() || 'unknown'
-      const capturedModelId = llmService.getModel() || 'unknown'
+      const capturedProviderId = providerId ?? llmService.getProvider() ?? 'unknown'
+      const capturedModelId = modelId ?? llmService.getModel() ?? 'unknown'
 
       if (hasTools) {
         await runToolCallingLoop(
@@ -1123,6 +1144,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
             persistUsageRecord(usage, chat.id, agentId, toolCallNames, capturedProviderId, capturedModelId)
           },
           () => agent?.maxIterations ?? DEFAULT_MAX_ITERATIONS,
+          undefined, // onProgress
+          true, // isDeepTask - plan execution is always a deep task
         )
       } else {
         const usage = await streamPlainChat(chatMessages, updateAssistantMsg, persistMessage, () => false, llmOptions)
@@ -1136,6 +1159,13 @@ export const useChatStore = create<ChatState>((set, get) => ({
       const errorMsg = error instanceof Error ? error.message : String(error)
       return { chatId: '', success: false, error: errorMsg }
     }
+    }
+
+    // If a pinned model is specified, scope the entire execution to that model
+    if (providerId && modelId && overrideApiKey) {
+      return llmService.withOverride(providerId, modelId, overrideApiKey, runExecution)
+    }
+    return runExecution()
   },
 
   stopGenerating: () => {

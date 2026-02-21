@@ -489,6 +489,10 @@ export async function startDynamicServer(): Promise<boolean> {
     },
     async (args: { url: string }) => {
       const bw = BrowserWindow.getInstance()
+      // If attached to user's tab (not automation tab), detach first
+      if (bw.isOpen() && bw.isAttachedOnly()) {
+        await bw.close()
+      }
       if (bw.isOpen()) {
         await bw.navigate(args.url)
       } else {

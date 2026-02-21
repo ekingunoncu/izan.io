@@ -268,6 +268,10 @@ export interface ScheduledPlan {
   cronExpression: string | null
   /** Epoch ms timestamp (for one-time plans) */
   scheduledAt: number | null
+  /** Pinned LLM provider ID (e.g. 'openai'). null = use global model at execution time */
+  providerId: string | null
+  /** Pinned model ID (e.g. 'gpt-4o'). null = use global model at execution time */
+  modelId: string | null
   status: PlanStatus
   lastRunAt: number | null
   /** Computed next execution time (epoch ms), indexed for efficient querying */

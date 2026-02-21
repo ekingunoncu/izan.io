@@ -1,0 +1,104 @@
+{
+  "id": "gmail-bulk-send-email",
+  "name": "gmail_bulk_send_email",
+  "description": "Send multiple emails via Gmail in sequence using separate browser tabs. Each email is composed and sent independently. Pass all emails as a JSON array string. Use this instead of calling gmail_send_email multiple times - it is faster and more efficient. You must be logged in to Gmail.",
+  "version": "1.0.0",
+  "parameters": [
+    {
+      "name": "emails",
+      "type": "string",
+      "description": "JSON array string of emails to send. Each object must have 'to', 'subject', and 'body' fields. Example: [{\"to\":\"a@b.com\",\"subject\":\"Hi\",\"body\":\"Hello\"}]",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "action": "code",
+      "code": "const items = JSON.parse(`{{emails}}`); if (!Array.isArray(items) || items.length === 0) throw new Error('emails must be a non-empty JSON array'); return items.map(e => ({ to: e.to, subject: e.subject, body: e.body, url: 'https://mail.google.com/mail/u/0/#inbox' }))",
+      "name": "items",
+      "label": "Parse email list"
+    },
+    {
+      "action": "forEachItem",
+      "sourceExtract": "items",
+      "openMethod": "url",
+      "urlField": "url",
+      "concurrency": 1,
+      "maxItems": 10,
+      "waitUntil": "load",
+      "label": "Send each email",
+      "detailSteps": [
+        {
+          "action": "waitForSelector",
+          "selector": "[gh='cm'], .T-I.T-I-KE[role='button']",
+          "timeout": 15000,
+          "label": "Wait for Gmail to load"
+        },
+        {
+          "action": "wait",
+          "ms": 2000,
+          "label": "Let Gmail fully initialize"
+        },
+        {
+          "action": "code",
+          "code": "const composeBtn = document.querySelector('[gh=\"cm\"]') || document.querySelector('.T-I.T-I-KE[role=\"button\"]'); if (composeBtn) { composeBtn.click(); } else { throw new Error('Compose button not found'); } return { clicked: true }",
+          "name": "open_compose",
+          "label": "Click compose button"
+        },
+        {
+          "action": "wait",
+          "ms": 2000,
+          "label": "Wait for compose window to open"
+        },
+        {
+          "action": "waitForSelector",
+          "selector": "[aria-label='To recipients'], input[name='to']",
+          "timeout": 10000,
+          "label": "Wait for compose form"
+        },
+        {
+          "action": "code",
+          "code": "const toInput = document.querySelector('[aria-label=\"To recipients\"]') || document.querySelector('input[name=\"to\"]') || document.querySelector('textarea[name=\"to\"]'); if (toInput) { toInput.focus(); await new Promise(r => setTimeout(r, 300)); document.execCommand('insertText', false, `{{@item.to}}`); toInput.dispatchEvent(new Event('input', { bubbles: true })); await new Promise(r => setTimeout(r, 500)); toInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', code: 'Tab', keyCode: 9, which: 9, bubbles: true })); } return { to_filled: true }",
+          "name": "fill_to",
+          "label": "Fill in recipient"
+        },
+        {
+          "action": "wait",
+          "ms": 500
+        },
+        {
+          "action": "code",
+          "code": "const subjectInput = document.querySelector('input[name=\"subjectbox\"]'); if (subjectInput) { subjectInput.focus(); await new Promise(r => setTimeout(r, 300)); document.execCommand('insertText', false, `{{@item.subject}}`); subjectInput.dispatchEvent(new Event('input', { bubbles: true })); } return { subject_filled: true }",
+          "name": "fill_subject",
+          "label": "Fill in subject"
+        },
+        {
+          "action": "wait",
+          "ms": 500
+        },
+        {
+          "action": "code",
+          "code": "const bodyDiv = document.querySelector('div[aria-label=\"Message Body\"]') || document.querySelector('.Am.Al.editable'); if (bodyDiv) { bodyDiv.focus(); await new Promise(r => setTimeout(r, 300)); document.execCommand('insertText', false, `{{@item.body}}`); bodyDiv.dispatchEvent(new Event('input', { bubbles: true })); } return { body_filled: true }",
+          "name": "fill_body",
+          "label": "Fill in message body"
+        },
+        {
+          "action": "wait",
+          "ms": 1000,
+          "label": "Wait before sending"
+        },
+        {
+          "action": "code",
+          "code": "const composeBox = document.querySelector('.M9, .AD'); const sendBtn = (composeBox && composeBox.querySelector('[aria-label*=\"Send\"]')) || document.querySelector('.T-I.aoO') || document.querySelector('.dC .T-I[aria-label*=\"Send\"]'); if (sendBtn) { sendBtn.click(); } else { throw new Error('Send button not found'); } return { status: 'sent', to: `{{@item.to}}`, subject: `{{@item.subject}}` }",
+          "name": "result",
+          "label": "Click send"
+        },
+        {
+          "action": "wait",
+          "ms": 2000,
+          "label": "Wait for email to be sent"
+        }
+      ]
+    }
+  ]
+}

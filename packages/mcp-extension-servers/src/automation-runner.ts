@@ -148,9 +148,16 @@ export class AutomationRunner {
     let hasError = false
     let sourceUrl: string | undefined
 
-    // If the first step isn't navigate and we have no open tab, attach to the active tab
+    // If the first step isn't navigate and we have no open tab, try to attach to
+    // the automation window's active tab. If no automation window exists yet,
+    // open a blank page so code/extract steps have a JS execution context.
     if (steps.length > 0 && steps[0].action !== 'navigate' && !bw.isOpen()) {
-      await bw.attachActiveTab()
+      try {
+        await bw.attachActiveTab()
+      } catch {
+        // No automation window - open a blank page for JS execution context
+        await bw.open('about:blank', { viewport })
+      }
     }
 
     console.log(`[izan-ext] executeLane: ${steps.length} steps, bw.open=${bw.isOpen()}`)
@@ -354,6 +361,12 @@ export class AutomationRunner {
       }
       const qs = params.toString()
       if (qs) url += (url.includes('?') ? '&' : '?') + qs
+    }
+
+    // If we're attached to the user's existing tab (not an automation tab),
+    // detach first and open a proper automation window instead of navigating their tab away.
+    if (bw.isOpen() && bw.isAttachedOnly()) {
+      await bw.close()
     }
 
     // Open tab if not already open, then navigate
