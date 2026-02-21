@@ -27,7 +27,9 @@
 <br />
 
 <p align="center">
-  <img src="https://izan-media.s3.eu-west-1.amazonaws.com/izan-demo.gif?v=2" alt="izan.io demo" width="720" />
+  <a href="https://www.youtube.com/watch?v=jyZmNIUs-oE">
+    <img src="https://img.youtube.com/vi/jyZmNIUs-oE/maxresdefault.jpg" alt="izan.io demo" width="720" />
+  </a>
 </p>
 
 ---
