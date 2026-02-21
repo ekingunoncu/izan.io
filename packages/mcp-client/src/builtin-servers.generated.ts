@@ -31,6 +31,14 @@ export const BUILTIN_CLIENT_SERVERS: BuiltinServerMetadata[] = [
     "category": "general",
     "urlType": "client",
     "url": "tab://izan-general"
+  },
+  {
+    "id": "image-gen",
+    "name": "Image Generation",
+    "description": "Generate images using DALL-E 3 or Google Imagen. Requires an OpenAI or Google API key.",
+    "category": "general",
+    "urlType": "client",
+    "url": "tab://izan-image-gen"
   }
 ]
 

@@ -45,3 +45,28 @@ Nicht alle Modelle bieten dieselben Funktionen. izan.io kennzeichnet die Faehigk
 ## Flexibler Einsatz
 
 Jedes Modell kann mit **jedem Agenten** kombiniert werden. Sie koennen beispielsweise den Domain-Experten mit einem guenstigen Modell fuer einfache Abfragen nutzen und fuer anspruchsvolle Aufgaben auf ein leistungsfaehigeres Modell wechseln -- alles innerhalb derselben Oberflaeche.
+
+## Ersatzmodell (Fallback)
+
+Sie koennen ein **Ersatzmodell** konfigurieren, das automatisch uebernimmt, wenn der primaere Anbieter mit einem voruebergehenden Fehler ausfaellt (Rate-Limit, Serverfehler oder Netzwerkproblem).
+
+### Einrichtung
+
+1. Oeffnen Sie die **Einstellungen**
+2. Finden Sie die Karte **Ersatzmodell** (unterhalb der API-Schluessel)
+3. Waehlen Sie einen **Ersatz-Provider** aus der Dropdown-Liste (nur Anbieter mit gespeichertem API-Schluessel werden angezeigt)
+4. Waehlen Sie ein **Ersatzmodell** dieses Anbieters
+
+### Funktionsweise
+
+- Wenn das primaere Modell einen **429** (Rate-Limit), **500+** (Serverfehler) oder einen **Netzwerkfehler** zurueckgibt, wiederholt izan.io die Anfrage automatisch mit dem Ersatzmodell
+- Im Chat wird ein Hinweis angezeigt: "Primaeres Modell fehlgeschlagen. Erneuter Versuch mit Provider / Modell..."
+- **Authentifizierungsfehler** (401, 403) loesen kein Fallback aus -- diese deuten auf ein Schluesselproblem hin
+- Wenn auch das Ersatzmodell fehlschlaegt, wird der Fehler wie gewohnt angezeigt (kein weiterer Versuch)
+- Wenn Ersatz-Provider und -Modell mit dem primaeren identisch sind, ist das Fallback deaktiviert
+
+### Tipps
+
+- Waehlen Sie ein Fallback von einem **anderen Anbieter** fuer maximale Ausfallsicherheit (z. B. primaer OpenAI, Fallback Anthropic)
+- Kostenlose Anbieter wie **Groq** oder **Cerebras** eignen sich hervorragend als Fallback
+- Das Ersatzmodell muss keine Tool-Unterstuetzung haben -- ohne Tools wird das Gespraech als reiner Chat fortgesetzt

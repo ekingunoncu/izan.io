@@ -9,6 +9,6 @@ export const definition: BuiltinAgentDefinition = {
   basePrompt:
     'You are a helpful AI assistant. Respond in English. Be kind and informative to the user.',
   category: 'general',
-  implicitMCPIds: ['general'],
+  implicitMCPIds: ['general', 'image-gen'],
   color: 'bg-blue-400/80 text-blue-900 dark:bg-blue-500/10 dark:text-blue-400',
 }

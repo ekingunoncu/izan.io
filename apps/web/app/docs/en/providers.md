@@ -46,3 +46,28 @@ Not all models support the same features. izan.io tracks three key capability fl
 - **Reasoning** -- the model supports extended chain-of-thought reasoning
 
 Capability indicators are shown next to each model in the selection dropdown. You can use **any model with any agent**, but agents that rely on tools will work best with tool-capable models.
+
+## Fallback Model
+
+You can configure a **fallback model** that automatically takes over when the primary provider fails with a retryable error (rate limit, server error, or network issue).
+
+### Setting Up
+
+1. Go to **Settings**
+2. Find the **Fallback Model** card (below the provider keys)
+3. Select a **fallback provider** from the dropdown (only providers with saved API keys are shown)
+4. Select a **fallback model** from that provider
+
+### How It Works
+
+- When the primary model returns a **429** (rate limit), **500+** (server error), or a **network error**, izan.io automatically retries the request with the fallback model
+- A notice is shown in the chat indicating the switch: "Primary model failed. Retrying with Provider / Model..."
+- **Auth errors** (401, 403) do **not** trigger fallback -- these indicate a key problem, not a transient issue
+- If the fallback model also fails, the error is shown as usual (no further retries)
+- If the fallback provider and model are the same as the primary, fallback is disabled (no point retrying the same endpoint)
+
+### Tips
+
+- Choose a fallback from a **different provider** for maximum resilience (e.g., primary on OpenAI, fallback on Anthropic)
+- Free-tier providers like **Groq** or **Cerebras** make great fallbacks since they don't cost anything
+- The fallback model doesn't need to support tools -- if it doesn't, the conversation continues as plain chat

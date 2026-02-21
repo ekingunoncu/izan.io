@@ -100,6 +100,8 @@ const OEMBED_HOSTS: Record<string, string> = {
   'youtube.com': 'https://www.youtube.com/oembed',
   'www.youtube.com': 'https://www.youtube.com/oembed',
   'youtu.be': 'https://www.youtube.com/oembed',
+  'tiktok.com': 'https://www.tiktok.com/oembed',
+  'www.tiktok.com': 'https://www.tiktok.com/oembed',
 }
 
 async function fetchLinkPreviewData(url: string): Promise<LinkPreviewResult> {
@@ -726,18 +728,22 @@ type P = Record<string, unknown>
 
 const DEFAULT_VIEWPORT = { width: 1280, height: 800 }
 
+const DEFAULT_WINDOW_SIZE = { width: 400, height: 300 }
+
 /** Read automation preferences from chrome.storage.local */
-async function getAutomationPrefs(): Promise<{ foreground: boolean; viewport: { width: number; height: number } }> {
+async function getAutomationPrefs(): Promise<{ foreground: boolean; viewport: { width: number; height: number }; windowSize: { width: number; height: number } }> {
   try {
-    const result = await chrome.storage.local.get(['izan_pref_automationBrowserForeground', 'izan_pref_automationViewport'])
+    const result = await chrome.storage.local.get(['izan_pref_automationBrowserForeground', 'izan_pref_automationViewport', 'izan_pref_automationWindowSize'])
     const foreground = result.izan_pref_automationBrowserForeground !== false // default true
     const vp = result.izan_pref_automationViewport as { width: number; height: number } | undefined
+    const ws = result.izan_pref_automationWindowSize as { width: number; height: number } | undefined
     return {
       foreground,
       viewport: vp && vp.width > 0 && vp.height > 0 ? vp : DEFAULT_VIEWPORT,
+      windowSize: ws && ws.width > 0 && ws.height > 0 ? ws : DEFAULT_WINDOW_SIZE,
     }
   } catch {
-    return { foreground: true, viewport: DEFAULT_VIEWPORT }
+    return { foreground: true, viewport: DEFAULT_VIEWPORT, windowSize: DEFAULT_WINDOW_SIZE }
   }
 }
 
@@ -745,8 +751,8 @@ async function handleOpen(p: P): Promise<R> {
   const url = p.url as string
   const prefs = await getAutomationPrefs()
   const viewport = (p.viewport as { width: number; height: number } | undefined) ?? prefs.viewport
-  // Use a small physical window; actual viewport is emulated via CDP
-  const opts = { width: 400, height: 300 }
+  // Physical window size; actual viewport is emulated via CDP
+  const opts = prefs.windowSize
   const laneId = getLaneId(p)
 
   // Check if the automation window still exists

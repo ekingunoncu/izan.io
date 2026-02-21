@@ -5,14 +5,16 @@ import type {
   ChatCompletionMessageParam,
   ChatCompletionTool,
   LLMGenerationOptions,
+  ThinkingLevel,
   TokenUsage,
 } from '~/lib/services/interfaces'
 import { storageService, llmService } from '~/lib/services'
-import { LLMApiError, LLMNetworkError } from '~/lib/services/llm.service'
-import type { Chat, Message, Agent, TaskStatus, UsageRecord } from '~/lib/db'
+import { LLMApiError, LLMNetworkError, isRetryableForFallback } from '~/lib/services/llm.service'
+import type { Chat, Message, MessageAttachment, Agent, TaskStatus, UsageRecord } from '~/lib/db'
 import { PROVIDERS } from '~/lib/providers'
 import { useMCPStore } from './mcp.store'
 import { useAgentStore } from './agent.store'
+import { useModelStore } from './model.store'
 import type { MCPToolInfo } from '@izan/mcp-client'
 
 /** Background task tracking info */
@@ -45,6 +47,8 @@ interface ChatState {
   longTaskStartedAt: Record<string, number>
   /** Per-chat token/cost usage aggregates */
   chatUsage: Record<string, { tokens: number; cost: number }>
+  /** Whether a compaction is currently in progress */
+  isCompacting: boolean
 
   loadChats: (agentId: string) => Promise<void>
   loadChatUsage: (chatIds: string[]) => Promise<void>
@@ -52,7 +56,7 @@ interface ChatState {
   selectChat: (chatId: string) => Promise<void>
   deleteChat: (chatId: string) => Promise<void>
   updateChatTitle: (chatId: string, title: string) => Promise<void>
-  sendMessage: (content: string, agentId: string, options?: { deepTask?: boolean }) => Promise<void>
+  sendMessage: (content: string, agentId: string, options?: { deepTask?: boolean; thinkingLevel?: ThinkingLevel; attachments?: MessageAttachment[] }) => Promise<void>
   stopGenerating: () => void
   clearCurrentChat: () => void
   clearAllChats: () => Promise<void>
@@ -65,6 +69,7 @@ interface ChatState {
   enableNotifyOnCompletion: (chatId: string) => void
   /** Execute a plan message in the background without affecting UI state */
   executePlanMessage: (agentId: string, prompt: string, planName: string, planId?: string, providerId?: string, modelId?: string) => Promise<{ chatId: string; success: boolean; error?: string }>
+  compactChat: (chatId: string, keepLast?: number) => Promise<void>
 }
 
 function generateChatTitle(content: string): string {
@@ -146,6 +151,14 @@ const MAX_AGENT_DEPTH = 3
 /** Module-level AbortController so stopGenerating can signal sendMessage */
 let currentAbortController: AbortController | null = null
 
+/** Result from executeToolCall with separate display/LLM content and optional image attachments */
+interface ToolCallResult {
+  /** Text to send to LLM (no base64 images - saves tokens) */
+  llm: string
+  /** Image attachments extracted from tool results */
+  attachments: MessageAttachment[]
+}
+
 /** Execute a tool call (MCP or linked agent) during chat */
 async function executeToolCall(
   fnName: string,
@@ -154,37 +167,65 @@ async function executeToolCall(
   mcpStore: ReturnType<typeof useMCPStore.getState>,
   onLinkedAgentChunk?: (chunk: string) => void,
   onToolActivity?: (toolName: string, running: boolean) => void,
-): Promise<string> {
+  isDeepTask?: boolean,
+): Promise<ToolCallResult> {
   if (fnName.startsWith('ask_agent_')) {
     const targetAgentId = fnName.replace('ask_agent_', '')
     const question = (fnArgs.question as string) || ''
-    return executeLinkedAgentCall(targetAgentId, question, 0, onLinkedAgentChunk, onToolActivity)
+    const text = await executeLinkedAgentCall(targetAgentId, question, 0, onLinkedAgentChunk, onToolActivity, isDeepTask)
+    return { llm: text, attachments: [] }
   }
   const toolInfo = mcpTools.find(t => t.name === fnName)
   if (!toolInfo) {
-    return i18n.t('chat.toolNotFound', { name: fnName, available: mcpTools.map(t => t.name).join(', ') || i18n.t('chat.noTools') })
+    const text = i18n.t('chat.toolNotFound', { name: fnName, available: mcpTools.map(t => t.name).join(', ') || i18n.t('chat.noTools') })
+    return { llm: text, attachments: [] }
   }
   if (import.meta.env?.DEV) {
     console.log('[chat] MCP tool call:', toolInfo.serverId, fnName, fnArgs)
   }
   const toolResult = await mcpStore.callTool(toolInfo.serverId, fnName, fnArgs)
-  const resultText = toolResult.success
-    ? toolResult.content
-        .filter((c): c is { type: 'text'; text: string } => c.type === 'text')
-        .map(c => c.text)
-        .join('\n')
-    : i18n.t('chat.errorWithMessage', { message: toolResult.error ?? i18n.t('chat.unknownError') })
+
+  if (!toolResult.success) {
+    const text = i18n.t('chat.errorWithMessage', { message: toolResult.error ?? i18n.t('chat.unknownError') })
+    if (import.meta.env?.DEV) {
+      console.error('[chat] MCP tool error:', toolInfo.serverId, fnName, toolResult.error)
+    }
+    return { llm: text, attachments: [] }
+  }
+
+  // Extract text parts for LLM
+  const resultText = toolResult.content
+    .filter((c): c is { type: 'text'; text: string } => c.type === 'text')
+    .map(c => c.text)
+    .join('\n')
+
+  // Extract image parts as attachments
+  const attachments: MessageAttachment[] = toolResult.content
+    .filter((c): c is { type: 'image'; data: string; mimeType: string } => c.type === 'image')
+    .map(c => ({
+      id: crypto.randomUUID(),
+      type: 'image' as const,
+      mimeType: c.mimeType,
+      data: c.data,
+    }))
 
   if (import.meta.env?.DEV) {
-    if (!toolResult.success) {
-      console.error('[chat] MCP tool error:', toolInfo.serverId, fnName, toolResult.error)
-    } else if (fnName === 'fetch_url') {
+    if (fnName === 'fetch_url') {
       console.log('[chat] fetch_url result preview:', resultText.slice(0, 200) + (resultText.length > 200 ? '...' : ''))
     } else if (!resultText && toolInfo.serverId.startsWith('ext-')) {
       console.warn('[chat] Extension tool returned empty. Raw content:', toolResult.content)
     }
+    if (attachments.length > 0) {
+      console.log('[chat] Tool returned', attachments.length, 'image(s)')
+    }
   }
-  return resultText
+
+  // LLM gets text + a note about images (no base64 to save tokens)
+  const llmText = attachments.length > 0
+    ? resultText + (resultText ? '\n' : '') + `[${attachments.length} image(s) generated and displayed to user]`
+    : resultText
+
+  return { llm: llmText, attachments }
 }
 
 /** Stream a plain chat response (no tools) and persist to storage */
@@ -223,6 +264,7 @@ async function runToolCallingLoop(
   getMaxRounds: () => number = () => DEFAULT_MAX_ITERATIONS,
   onProgress?: (current: number, total: number) => void,
   isDeepTask?: boolean,
+  onAttachments?: (attachments: MessageAttachment[]) => void,
 ): Promise<void> {
   let rounds = 0
   const statusParts: string[] = []
@@ -321,8 +363,14 @@ async function runToolCallingLoop(
           }
         } : undefined
 
-        const toolResultText = await executeToolCall(fnName, fnArgs, mcpTools, mcpStore, onLinkedAgentChunk, onLinkedAgentToolActivity)
+        const toolCallResult = await executeToolCall(fnName, fnArgs, mcpTools, mcpStore, onLinkedAgentChunk, onLinkedAgentToolActivity, isDeepTask)
+        const toolResultText = toolCallResult.llm
         dedupeCache.set(dedupeKey, toolResultText)
+
+        // Collect image attachments from tool results
+        if (toolCallResult.attachments.length > 0 && onAttachments) {
+          onAttachments(toolCallResult.attachments)
+        }
 
         // Keep linked agent's response visible in the message (wrapped in markers for collapsible UI)
         if (isLinkedAgent && toolResultText) {
@@ -392,6 +440,7 @@ async function executeLinkedAgentCall(
   depth: number,
   onChunk?: (chunk: string) => void,
   onToolActivity?: (toolName: string, running: boolean) => void,
+  isDeepTask?: boolean,
 ): Promise<string> {
   if (depth >= MAX_AGENT_DEPTH) {
     return i18n.t('chat.maxAgentDepth')
@@ -430,9 +479,13 @@ async function executeLinkedAgentCall(
     if (allTools.length > 0) {
       // Tool-calling loop for the linked agent (streaming)
       let rounds = 0
-      while (rounds < DEFAULT_MAX_ITERATIONS) {
+      const maxRounds = targetAgent.maxIterations ?? DEFAULT_MAX_ITERATIONS
+      const MAX_EVALUATIONS = isDeepTask ? 3 : 0
+      let evaluationsSent = 0
+
+      while (rounds < maxRounds) {
         rounds++
-        if (isDev) console.log('[linked-agent] Round', rounds, 'messages:', messages.length)
+        if (isDev) console.log('[linked-agent] Round', rounds, 'messages:', messages.length, 'isDeepTask:', isDeepTask)
         const t0 = performance.now()
 
         let streamedContent = ''
@@ -457,7 +510,8 @@ async function executeLinkedAgentCall(
 
             if (isDev) console.log('[linked-agent] Executing tool:', fnName, fnArgs)
             if (onToolActivity) onToolActivity(fnName, true)
-            const toolResultText = await executeToolCall(fnName, fnArgs, mcpTools, mcpStore, onChunk, onToolActivity)
+            const toolCallResult = await executeToolCall(fnName, fnArgs, mcpTools, mcpStore, onChunk, onToolActivity, isDeepTask)
+            const toolResultText = toolCallResult.llm
             if (onToolActivity) onToolActivity(fnName, false)
             if (isDev) console.log('[linked-agent] Tool result:', fnName, '→', toolResultText.slice(0, 300) + (toolResultText.length > 300 ? '...' : ''), `(${toolResultText.length} chars)`)
 
@@ -470,12 +524,29 @@ async function executeLinkedAgentCall(
           continue
         }
 
+        // Model gave a text response with no tool calls — self-evaluation for deep tasks
+        if (rounds > 1 && evaluationsSent < MAX_EVALUATIONS && rounds < maxRounds) {
+          evaluationsSent++
+          if (isDev) console.log('[linked-agent] Self-evaluation', evaluationsSent, '/', MAX_EVALUATIONS)
+
+          messages.push({ role: 'assistant', content: result.content ?? '' })
+
+          const originalRequest = messages.find(m => m.role === 'user')?.content ?? ''
+          const toolCallCount = messages.filter(m => m.role === 'tool').length
+
+          messages.push({
+            role: 'user',
+            content: `Review your progress on the original task. You have made ${toolCallCount} tool call${toolCallCount !== 1 ? 's' : ''} so far.\n\nOriginal request: "${typeof originalRequest === 'string' ? originalRequest.slice(0, 500) : ''}"\n\nIf the task is fully complete, provide your final summary. If there is more work to do, continue making tool calls - do not ask for permission, just call the next tool.`,
+          })
+          continue
+        }
+
         // Final text response (already streamed to UI via onChunk)
         const finalResponse = result.content ?? streamedContent
         if (isDev) console.log('[linked-agent] Final response:', finalResponse.slice(0, 300) + (finalResponse.length > 300 ? '...' : ''), `(${finalResponse.length} chars)`)
         return finalResponse
       }
-      if (isDev) console.warn('[linked-agent] Hit DEFAULT_MAX_ITERATIONS:', DEFAULT_MAX_ITERATIONS)
+      if (isDev) console.warn('[linked-agent] Hit max iterations:', maxRounds)
       return i18n.t('chat.maxStepsReached')
     } else {
       // No tools, just a simple chat
@@ -555,6 +626,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   currentProgress: null,
   longTaskStartedAt: {},
   chatUsage: {},
+  isCompacting: false,
 
   addTokenUsage: (usage: TokenUsage) => {
     set(state => ({
@@ -667,7 +739,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }))
   },
 
-  sendMessage: async (content: string, agentId: string, options?: { deepTask?: boolean }) => {
+  sendMessage: async (content: string, agentId: string, options?: { deepTask?: boolean; thinkingLevel?: ThinkingLevel; attachments?: MessageAttachment[] }) => {
     const { currentChatId, currentChat, messages } = get()
 
     if (!llmService.isConfigured()) {
@@ -702,6 +774,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       role: 'user',
       content,
       modelId: llmService.getModel() || undefined,
+      attachments: options?.attachments,
     })
 
     set(state => ({ messages: [...state.messages, userMessage] }))
@@ -768,6 +841,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       // Build system prompt (append instruction to respond in user's language)
       const basePrompt = agent?.basePrompt || 'You are a helpful AI assistant.'
       let systemContent = basePrompt + '\n\nRespond in the same language the user writes in.'
+      systemContent += '\nWhen the user requests visual output such as charts, diagrams, tables, or interactive elements, generate complete self-contained HTML wrapped in a ```canvas code block.'
       if (hasTools) {
         systemContent += '\n\nWhen a task requires multiple operations, keep making tool calls until the task is fully complete. Do not stop partway and ask the user if you should continue - just keep going until done. Never present fabricated or unverified results - always use the available tools to obtain real data. When you believe the task is complete, provide a clear final summary of what was accomplished.'
       }
@@ -789,10 +863,21 @@ export const useChatStore = create<ChatState>((set, get) => ({
         { role: 'system', content: systemContent },
         ...allMessages
           .filter(msg => msg.role !== 'system')
-          .map(msg => ({
-            role: normalizeRole(msg.role),
-            content: msg.content,
-          })),
+          .map(msg => {
+            const role = normalizeRole(msg.role)
+            // Build structured content for user messages with image attachments (vision)
+            if (role === 'user' && msg.attachments && msg.attachments.length > 0) {
+              const parts: Array<{ type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string; detail?: 'auto' } }> = [
+                { type: 'text', text: msg.content },
+                ...msg.attachments.map(att => ({
+                  type: 'image_url' as const,
+                  image_url: { url: `data:${att.mimeType};base64,${att.data}`, detail: 'auto' as const },
+                })),
+              ]
+              return { role, content: parts }
+            }
+            return { role, content: msg.content }
+          }),
       ]
 
       const isAborted = () => abortController.signal.aborted
@@ -816,6 +901,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
         storageService.updateMessage(assistantMessage.id, content)
 
       const llmOptions = getAgentGenerationOptions(agent)
+      if (options?.thinkingLevel) {
+        llmOptions.thinkingLevel = options.thinkingLevel
+      }
 
       // Capture provider/model now so background tasks don't use stale values if user switches models
       const capturedProviderId = llmService.getProvider() || 'unknown'
@@ -823,59 +911,112 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
       const { addTokenUsage } = get()
 
-      // Execute
+      // Execute (with fallback model support)
       const isBackground = () => backgroundChatIds.has(activeChatId!)
-      if (hasTools) {
-        try {
-          await runToolCallingLoop(
-            chatMessages,
-            allOpenAITools,
-            mcpTools,
-            mcpStore,
-            updateAssistantMsg,
-            persistMessage,
-            isAborted,
-            llmOptions,
-            (usage, toolCallNames) => {
+
+      // Collect image attachments from tool results during the loop
+      const collectedAttachments: MessageAttachment[] = []
+
+      /** Run the primary LLM execution (tools or plain chat) */
+      const runPrimaryExecution = async (usageProviderId: string, usageModelId: string) => {
+        if (hasTools) {
+          try {
+            await runToolCallingLoop(
+              chatMessages,
+              allOpenAITools,
+              mcpTools,
+              mcpStore,
+              updateAssistantMsg,
+              persistMessage,
+              isAborted,
+              llmOptions,
+              (usage, toolCallNames) => {
+                addTokenUsage(usage)
+                persistUsageRecord(usage, activeChatId!, agentId, toolCallNames, usageProviderId, usageModelId)
+              },
+              () => agent?.maxIterations ?? DEFAULT_MAX_ITERATIONS,
+              (current, total) => {
+                if (!isBackground()) {
+                  set({ currentProgress: { current, total } })
+                }
+                if (isBackground()) {
+                  set(state => ({
+                    backgroundTasks: {
+                      ...state.backgroundTasks,
+                      [activeChatId!]: { ...state.backgroundTasks[activeChatId!], currentStep: current, totalSteps: total },
+                    },
+                  }))
+                  storageService.updateChat(activeChatId!, { taskCurrentStep: current, taskTotalSteps: total } as Partial<Chat>).catch(() => {})
+                }
+              },
+              options?.deepTask,
+              (atts) => { collectedAttachments.push(...atts) },
+            )
+          } catch (toolLoopError) {
+            if (isAborted()) return
+            if (import.meta.env?.DEV) {
+              console.warn('[chat] Tool-calling loop failed, falling back to plain chat:', toolLoopError)
+            }
+            const usage = await streamPlainChat(chatMessages, updateAssistantMsg, persistMessage, isAborted, llmOptions)
+            if (usage) {
               addTokenUsage(usage)
-              persistUsageRecord(usage, activeChatId!, agentId, toolCallNames, capturedProviderId, capturedModelId)
-            },
-            () => agent?.maxIterations ?? DEFAULT_MAX_ITERATIONS,
-            (current, total) => {
-              // Update foreground progress
-              if (!isBackground()) {
-                set({ currentProgress: { current, total } })
-              }
-              if (isBackground()) {
-                // Update background task progress
-                set(state => ({
-                  backgroundTasks: {
-                    ...state.backgroundTasks,
-                    [activeChatId!]: { ...state.backgroundTasks[activeChatId!], currentStep: current, totalSteps: total },
-                  },
-                }))
-                storageService.updateChat(activeChatId!, { taskCurrentStep: current, taskTotalSteps: total } as Partial<Chat>).catch(() => {})
-              }
-            },
-            options?.deepTask,
-          )
-        } catch (toolLoopError) {
-          if (isAborted()) return
-          if (import.meta.env?.DEV) {
-            console.warn('[chat] Tool-calling loop failed, falling back to plain chat:', toolLoopError)
+              persistUsageRecord(usage, activeChatId!, agentId, [], usageProviderId, usageModelId)
+            }
           }
+        } else {
           const usage = await streamPlainChat(chatMessages, updateAssistantMsg, persistMessage, isAborted, llmOptions)
           if (usage) {
             addTokenUsage(usage)
-            persistUsageRecord(usage, activeChatId!, agentId, [], capturedProviderId, capturedModelId)
+            persistUsageRecord(usage, activeChatId!, agentId, [], usageProviderId, usageModelId)
           }
         }
-      } else {
-        const usage = await streamPlainChat(chatMessages, updateAssistantMsg, persistMessage, isAborted, llmOptions)
-        if (usage) {
-          addTokenUsage(usage)
-          persistUsageRecord(usage, activeChatId!, agentId, [], capturedProviderId, capturedModelId)
+      }
+
+      try {
+        await runPrimaryExecution(capturedProviderId, capturedModelId)
+      } catch (primaryError) {
+        if (isAborted()) throw primaryError
+        if (!isRetryableForFallback(primaryError)) throw primaryError
+
+        // Get fallback chain and try each
+        const fallbackChain = useModelStore.getState().getFallbackChain()
+        if (fallbackChain.length === 0) throw primaryError
+
+        let lastError: unknown = primaryError
+        for (const fb of fallbackChain) {
+          if (isAborted()) throw lastError
+
+          // Notify user about fallback attempt
+          const fbProviderName = PROVIDERS.find(p => p.id === fb.provider)?.name ?? fb.provider
+          const fallbackNote = '\n\n[' + i18n.t('chat.fallbackRetrying', { provider: fbProviderName, model: fb.model }) + ']\n\n'
+          const currentContent = get().messages.find(m => m.id === assistantMessage.id)?.content ?? ''
+          updateAssistantMsg(currentContent + fallbackNote)
+
+          try {
+            await llmService.withOverride(
+              fb.provider, fb.model, fb.apiKey,
+              () => runPrimaryExecution(fb.provider, fb.model),
+            )
+            lastError = null
+            break // Success
+          } catch (fbError) {
+            lastError = fbError
+            if (!isRetryableForFallback(fbError)) break
+            // Continue to next fallback
+          }
         }
+        if (lastError) throw lastError
+      }
+
+      // Persist image attachments on the assistant message (if any from tool results)
+      if (collectedAttachments.length > 0) {
+        await storageService.updateMessageAttachments(assistantMessage.id, collectedAttachments)
+        // Update UI state with attachments
+        set(state => ({
+          messages: state.messages.map(m =>
+            m.id === assistantMessage.id ? { ...m, attachments: collectedAttachments } : m
+          ),
+        }))
       }
     } catch (error) {
       if (abortController.signal.aborted) {
@@ -1215,6 +1356,57 @@ export const useChatStore = create<ChatState>((set, get) => ({
       set(state => ({
         chats: state.chats.filter(c => !affectedSet.has(c.agentId)),
       }))
+    }
+  },
+
+  compactChat: async (chatId: string, keepLast = 4) => {
+    if (!llmService.isConfigured()) return
+    set({ isCompacting: true })
+    try {
+      const allMessages = await storageService.getMessages(chatId)
+      if (allMessages.length <= keepLast + 2) {
+        set({ isCompacting: false })
+        return
+      }
+
+      // Split: messages to summarize vs messages to keep
+      const toSummarize = allMessages.slice(0, allMessages.length - keepLast)
+      const toKeep = allMessages.slice(allMessages.length - keepLast)
+
+      // Build transcript for summarization
+      const transcript = toSummarize
+        .filter(m => m.role !== 'system')
+        .map(m => `${m.role}: ${m.content}`)
+        .join('\n\n')
+
+      // Summarize via LLM
+      let summary = ''
+      await llmService.streamChat(
+        [
+          { role: 'system', content: 'You are a helpful assistant. Summarize the following conversation concisely, preserving key information, decisions, and context needed to continue the conversation.' },
+          { role: 'user', content: transcript },
+        ],
+        (chunk) => { summary += chunk },
+      )
+
+      // Mark old messages as compacted
+      const idsToCompact = toSummarize.map(m => m.id)
+      await storageService.markMessagesCompacted(idsToCompact)
+
+      // Create summary message
+      const summaryContent = `${i18n.t('chat.compactSummaryPrefix')}\n\n${summary}`
+      const summaryMessage = await storageService.createMessage({
+        chatId,
+        role: 'assistant',
+        content: summaryContent,
+        modelId: llmService.getModel() || undefined,
+      })
+
+      // Update UI state
+      set({ messages: [summaryMessage, ...toKeep], isCompacting: false })
+    } catch (error) {
+      console.error('Failed to compact chat:', error)
+      set({ isCompacting: false })
     }
   },
 }))

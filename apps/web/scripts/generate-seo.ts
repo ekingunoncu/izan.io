@@ -55,11 +55,11 @@ Sitemap: ${SITE_URL}/sitemap.xml
 function generateSitemapXml(): string {
   const urls: string[] = [];
 
-  // Root URL with hreflang annotations
+  // Root URL with hreflang annotations (English uses root /)
   const rootAlternates = LANGUAGES.map(
-    (l) => `    <xhtml:link rel="alternate" hreflang="${l}" href="${SITE_URL}/${l}" />`
+    (l) => `    <xhtml:link rel="alternate" hreflang="${l}" href="${l === DEFAULT_LANG ? `${SITE_URL}/` : `${SITE_URL}/${l}`}" />`
   ).join("\n");
-  const rootXDefault = `    <xhtml:link rel="alternate" hreflang="x-default" href="${SITE_URL}/${DEFAULT_LANG}" />`;
+  const rootXDefault = `    <xhtml:link rel="alternate" hreflang="x-default" href="${SITE_URL}/" />`;
   urls.push(`  <url>
     <loc>${SITE_URL}/</loc>
 ${rootAlternates}

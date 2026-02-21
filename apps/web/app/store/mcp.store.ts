@@ -17,6 +17,10 @@ import {
   ensureGeneralServer,
   shutdownGeneralServer,
 } from '~/lib/mcp/general-server'
+import {
+  ensureImageGenServer,
+  shutdownImageGenServer,
+} from '~/lib/mcp/image-gen-server'
 import { storageService } from '~/lib/services'
 import {
   listenForExtension,
@@ -388,6 +392,18 @@ export const useMCPStore = create<MCPState>((set, get) => ({
     } else {
       browserServerOps.push(shutdownDomainCheckServer())
     }
+    if (neededIds.has('image-gen')) {
+      // Inject API key resolver from model store
+      const { useModelStore } = await import('./model.store')
+      const modelStore = useModelStore.getState()
+      browserServerOps.push(ensureImageGenServer((provider) => {
+        if (provider === 'openai') return modelStore.getApiKey('openai')
+        if (provider === 'google') return modelStore.getApiKey('google')
+        return null
+      }))
+    } else {
+      browserServerOps.push(shutdownImageGenServer())
+    }
     // Disconnect unneeded servers in parallel
     const removeOps = [...activeServerIds]
       .filter(sid => !neededIds.has(sid))
@@ -565,6 +581,15 @@ export const useMCPStore = create<MCPState>((set, get) => ({
     const browserServerOps: Promise<void>[] = []
     if (neededIds.has('general')) browserServerOps.push(ensureGeneralServer())
     if (neededIds.has('domain-check-client')) browserServerOps.push(ensureDomainCheckServer())
+    if (neededIds.has('image-gen')) {
+      const { useModelStore } = await import('./model.store')
+      const modelStore = useModelStore.getState()
+      browserServerOps.push(ensureImageGenServer((provider) => {
+        if (provider === 'openai') return modelStore.getApiKey('openai')
+        if (provider === 'google') return modelStore.getApiKey('google')
+        return null
+      }))
+    }
     await Promise.all(browserServerOps)
 
     // Sync automation tools BEFORE connecting ext-dynamic (same as activateAgentMCPs)
@@ -856,8 +881,11 @@ export const useMCPStore = create<MCPState>((set, get) => ({
       }
     }
 
-    // 4. Automation tools (ext-dynamic) — filtered to only tools belonging to agent's automationServerIds
+    // 4. Automation tools (ext-dynamic)
+    // If agent has automationServerIds, filter to only those tools.
+    // If agent explicitly lists ext-dynamic in extensionMCPIds but has no automationServerIds, include all tools.
     const automationServerIds = (agent as { automationServerIds?: string[] }).automationServerIds ?? []
+    const agentWantsExtDynamic = extensionIds.includes('ext-dynamic')
     if (automationServerIds.length > 0) {
       const dynServer = registry.getServer('ext-dynamic')
       if (dynServer?.status === 'connected') {
@@ -869,6 +897,12 @@ export const useMCPStore = create<MCPState>((set, get) => ({
             return toolServerId != null && allowedServerIds.has(toolServerId)
           })
           .forEach(addUnique)
+      }
+    } else if (agentWantsExtDynamic) {
+      // Agent explicitly requested ext-dynamic but has no automationServerIds — include all its tools
+      const dynServer = registry.getServer('ext-dynamic')
+      if (dynServer?.status === 'connected') {
+        dynServer.tools.forEach(addUnique)
       }
     }
 

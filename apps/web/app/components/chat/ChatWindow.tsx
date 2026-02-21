@@ -12,8 +12,12 @@ import { useChatStore, useModelStore, useAgentStore } from '~/store'
 import { useProvidersWithModels } from '~/lib/use-providers-with-models'
 import { getAgentDisplayName } from '~/lib/agent-display'
 import { modelDisplayName } from '~/lib/utils'
+import { useSpeechRecognition } from '~/lib/hooks/use-speech-recognition'
+import { useSpeechSynthesis } from '~/lib/hooks/use-speech-synthesis'
+import { storageService } from '~/lib/services'
+import type { ThinkingLevel } from '~/lib/services/interfaces'
 import type { ModelInfo } from '~/lib/providers'
-import type { Message } from '~/lib/db'
+import type { Message, MessageAttachment } from '~/lib/db'
 
 function formatTokens(n: number): string {
   if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M'
@@ -31,6 +35,7 @@ type ChatMessage = {
   role: 'user' | 'assistant' | 'system'
   content: string
   timestamp?: number
+  attachments?: MessageAttachment[]
 }
 
 function messageToChatMessage(message: Message): ChatMessage {
@@ -39,6 +44,7 @@ function messageToChatMessage(message: Message): ChatMessage {
     role: message.role,
     content: message.content,
     timestamp: message.timestamp,
+    attachments: message.attachments,
   }
 }
 
@@ -134,12 +140,32 @@ export function ChatWindow({ initialPrompt }: ChatWindowProps = {}) {
   }
 
   const [deepTask, setDeepTask] = useState(false)
+  const [thinkingLevel, setThinkingLevel] = useState<ThinkingLevel>('off')
 
-  const handleSendMessage = async (content: string) => {
+  // Speech language preference (null = browser default)
+  const [speechLanguage, setSpeechLanguage] = useState<string | null>(null)
+  useEffect(() => {
+    storageService.getPreferences().then((prefs) => {
+      setSpeechLanguage(prefs.speechLanguage ?? null)
+    })
+  }, [])
+
+  // STT hook
+  const stt = useSpeechRecognition()
+  // TTS hook
+  const tts = useSpeechSynthesis()
+
+  const handleSendMessage = async (content: string, attachments?: import('~/lib/db/schema').MessageAttachment[]) => {
     if (!currentAgentId) return
     try {
-      await sendMessage(content, currentAgentId, { deepTask })
+      if (stt.isListening) stt.stopListening()
+      await sendMessage(content, currentAgentId, {
+        deepTask,
+        thinkingLevel: thinkingLevel !== 'off' ? thinkingLevel : undefined,
+        attachments,
+      })
       setDeepTask(false)
+      setThinkingLevel('off')
     } catch (error) {
       console.error('Failed to send message:', error)
     }
@@ -197,7 +223,7 @@ export function ChatWindow({ initialPrompt }: ChatWindowProps = {}) {
           onDismiss={() => { if (currentChatId) bannerDispatch({ type: 'dismiss', chatId: currentChatId }) }}
         />
       )}
-      <MessageList messages={chatMessages} isGenerating={isGenerating} />
+      <MessageList messages={chatMessages} isGenerating={isGenerating} tts={tts} speechLanguage={speechLanguage} />
       <RecordingControls />
 
       <div className="border-t bg-background/80 backdrop-blur-sm p-4 sm:p-6 flex-shrink-0 pb-[env(safe-area-inset-bottom)]">
@@ -214,6 +240,14 @@ export function ChatWindow({ initialPrompt }: ChatWindowProps = {}) {
           }
           deepTask={deepTask}
           onDeepTaskToggle={() => setDeepTask(prev => !prev)}
+          thinkingLevel={thinkingLevel}
+          onThinkingLevelChange={setThinkingLevel}
+          showThinking={!!modelInfo?.canReason}
+          supportsVision={!!modelInfo?.supportsVision}
+          sttSupported={stt.isSupported}
+          sttListening={stt.isListening}
+          onSttToggle={() => stt.isListening ? stt.stopListening() : stt.startListening(speechLanguage || undefined)}
+          sttTranscript={stt.transcript}
         />
         {!configured && (
           <p className="text-xs text-muted-foreground text-center mt-3">

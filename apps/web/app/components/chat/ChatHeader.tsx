@@ -7,9 +7,13 @@ import {
   Brain,
   Pencil,
   Menu,
+  Minimize2,
+  Loader2,
 } from 'lucide-react'
 import { Button } from '~/components/ui/button'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip'
 import { useModelStore, useAgentStore, useUIStore } from '~/store'
+import { useChatStore } from '~/store'
 import { useProvidersWithModels } from '~/lib/use-providers-with-models'
 import { getAgentDisplayName, getAgentDisplayDescription } from '~/lib/agent-display'
 import { AgentIconDisplay } from '~/lib/agent-icons'
@@ -104,6 +108,8 @@ export function ChatHeader() {
   const { selectedProvider, selectedModel, isConfigured } = useModelStore()
   const { currentAgent } = useAgentStore()
   const { openModelSelector, openAgentEdit, openMobileSidebar } = useUIStore()
+  const { currentChatId, messages, isGenerating, isCompacting, compactChat } = useChatStore()
+  const canCompact = currentChatId && messages.length > 6 && !isGenerating && !isCompacting
 
   const currentProvider = providers.find(p => p.id === selectedProvider)
   const modelInfo = selectedProvider && selectedModel && currentProvider
@@ -144,8 +150,37 @@ export function ChatHeader() {
         </div>
       </div>
 
-      {/* Right: Edit + Model selector */}
+      {/* Right: Compact + Edit + Model selector */}
       <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+        {/* Compact chat button */}
+        {canCompact && (
+          <TooltipProvider delayDuration={300}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-11 w-11 min-h-[44px] min-w-[44px] sm:h-9 sm:w-9"
+                  onClick={() => {
+                    if (currentChatId && confirm(t('chat.compactConfirm'))) {
+                      compactChat(currentChatId)
+                    }
+                  }}
+                  disabled={isCompacting}
+                >
+                  {isCompacting
+                    ? <Loader2 className="h-4 w-4 animate-spin" />
+                    : <Minimize2 className="h-4 w-4" />
+                  }
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                <p>{t('chat.compactChat')}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
+
         {/* Edit agent button */}
         <Button
           variant="ghost"

@@ -23,6 +23,7 @@ import {
   Star,
   Check,
   MousePointerClick,
+  Workflow,
   BookOpen,
   CalendarClock,
   CheckCircle2,
@@ -36,33 +37,36 @@ import {
 import { BUILTIN_AGENT_DEFINITIONS } from "@izan/agents";
 import { getAgentIcon } from "~/components/agents/AgentSelector";
 import { PROVIDERS } from "~/lib/providers";
-import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip";
 import { GitHubStarButton } from "~/components/GitHubStarButton";
 import { Button } from "~/components/ui/button";
 import { IzanLogo } from "~/components/ui/izan-logo";
 import type { Route } from "./+types/home";
 
-export function meta({ params }: Route.MetaArgs) {
-  const lang = params.lang || "en";
+export const HOME_TITLES: Record<string, string> = {
+  en: "izan.io - Open Source AI Agent Platform | Browser Automation, MCP Tools, 17+ Providers",
+  tr: "izan.io - Açık Kaynak AI Agent Platformu | Tarayıcı Otomasyonu, MCP Araçları, 17+ Sağlayıcı",
+  de: "izan.io - Open Source KI-Agent-Plattform | Browser-Automatisierung, MCP-Tools, 17+ Anbieter",
+};
 
-  const titles: Record<string, string> = {
-    en: "izan.io - Open Source AI Agent Platform | Browser Automation, MCP Tools, 17+ Providers",
-    tr: "izan.io - Açık Kaynak AI Agent Platformu | Tarayıcı Otomasyonu, MCP Araçları, 17+ Sağlayıcı",
-    de: "izan.io - Open Source KI-Agent-Plattform | Browser-Automatisierung, MCP-Tools, 17+ Anbieter",
-  };
+export const HOME_DESCRIPTIONS: Record<string, string> = {
+  en: "Build and deploy AI agents with browser automation, Chrome extension macros, MCP protocol tools, and 17+ AI providers. Open source, privacy-first. Create custom agents, schedule tasks, extract web data.",
+  tr: "Tarayıcı otomasyonu, Chrome uzantısı makroları, MCP protokol araçları ve 17+ AI sağlayıcı ile AI agentlar oluşturun. Açık kaynak, gizlilik öncelikli. Özel agentlar yaratın, görevleri planlayın, web verisi çekin.",
+  de: "Erstellen Sie KI-Agenten mit Browser-Automatisierung, Chrome-Extension-Makros, MCP-Protokoll-Tools und 17+ KI-Anbietern. Open Source, Datenschutz zuerst. Agenten erstellen, Aufgaben planen, Web-Daten extrahieren.",
+};
 
-  const descriptions: Record<string, string> = {
-    en: "Build and deploy AI agents with browser automation, Chrome extension macros, MCP protocol tools, and 17+ AI providers. Open source, privacy-first. Create custom agents, schedule tasks, extract web data.",
-    tr: "Tarayıcı otomasyonu, Chrome uzantısı makroları, MCP protokol araçları ve 17+ AI sağlayıcı ile AI agentlar oluşturun. Açık kaynak, gizlilik öncelikli. Özel agentlar yaratın, görevleri planlayın, web verisi çekin.",
-    de: "Erstellen Sie KI-Agenten mit Browser-Automatisierung, Chrome-Extension-Makros, MCP-Protokoll-Tools und 17+ KI-Anbietern. Open Source, Datenschutz zuerst. Agenten erstellen, Aufgaben planen, Web-Daten extrahieren.",
-  };
+/** Canonical URL: English uses root /, others use /{lang} */
+export function getCanonicalUrl(lang: string): string {
+  return lang === "en" ? "https://izan.io/" : `https://izan.io/${lang}`;
+}
 
-  const jsonLd = {
+export function buildHomeJsonLd(lang: string) {
+  return {
     "@context": "https://schema.org",
     "@type": "WebApplication",
     name: "izan.io",
-    url: `https://izan.io/${lang}`,
-    description: descriptions[lang] || descriptions.en,
+    url: getCanonicalUrl(lang),
+    description: HOME_DESCRIPTIONS[lang] || HOME_DESCRIPTIONS.en,
     applicationCategory: "UtilitiesApplication",
     operatingSystem: "Web Browser",
     offers: {
@@ -93,23 +97,29 @@ export function meta({ params }: Route.MetaArgs) {
       "https://www.youtube.com/@izan_io",
     ],
   };
+}
+
+export function meta({ params }: Route.MetaArgs) {
+  const lang = params.lang || "en";
+  const canonicalUrl = getCanonicalUrl(lang);
 
   return [
-    { title: titles[lang] || titles.en },
-    { name: "description", content: descriptions[lang] || descriptions.en },
-    { property: "og:title", content: titles[lang] || titles.en },
+    { title: HOME_TITLES[lang] || HOME_TITLES.en },
+    { name: "description", content: HOME_DESCRIPTIONS[lang] || HOME_DESCRIPTIONS.en },
+    { property: "og:title", content: HOME_TITLES[lang] || HOME_TITLES.en },
     {
       property: "og:description",
-      content: descriptions[lang] || descriptions.en,
+      content: HOME_DESCRIPTIONS[lang] || HOME_DESCRIPTIONS.en,
     },
     { property: "og:type", content: "website" },
-    { property: "og:url", content: `https://izan.io/${lang}` },
-    { name: "twitter:title", content: titles[lang] || titles.en },
+    { property: "og:url", content: canonicalUrl },
+    { name: "twitter:title", content: HOME_TITLES[lang] || HOME_TITLES.en },
     {
       name: "twitter:description",
-      content: descriptions[lang] || descriptions.en,
+      content: HOME_DESCRIPTIONS[lang] || HOME_DESCRIPTIONS.en,
     },
-    { "script:ld+json": jsonLd },
+    { tagName: "link", rel: "canonical", href: canonicalUrl },
+    { "script:ld+json": buildHomeJsonLd(lang) },
   ];
 }
 
@@ -456,9 +466,8 @@ const ROADMAP_ITEMS = [
 
 const AGENT_INITIAL_COUNT = 12;
 
-export default function Home() {
+export function HomePage({ lang }: { lang: string }) {
   const { t } = useTranslation("common");
-  const { lang } = useParams();
   const location = useLocation();
   const [showAllAgents, setShowAllAgents] = useState(false);
 
@@ -476,7 +485,8 @@ export default function Home() {
               izan.io
             </span>
           </Link>
-          <nav className="flex flex-wrap items-center justify-end gap-2 sm:gap-3 flex-shrink-0">
+          <nav className="flex items-center justify-end gap-1 sm:gap-3 flex-shrink-0">
+            <TooltipProvider delayDuration={300}>
             <div className="hidden sm:block">
               <GitHubStarButton />
             </div>
@@ -490,33 +500,62 @@ export default function Home() {
                 <span className="hidden sm:inline">{t("nav.docs")}</span>
               </Button>
             </Link>
-            <Link to={`/${lang}/plans`} state={{ from: location.pathname }}>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-11 w-11 min-h-[44px] min-w-[44px] sm:h-9 sm:w-9 sm:min-h-0 sm:min-w-0 rounded-lg"
-              >
-                <CalendarClock className="h-5 w-5" />
-              </Button>
-            </Link>
-            <Link to={`/${lang}/analytics`} state={{ from: location.pathname }}>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-11 w-11 min-h-[44px] min-w-[44px] sm:h-9 sm:w-9 sm:min-h-0 sm:min-w-0 rounded-lg"
-              >
-                <BarChart3 className="h-5 w-5" />
-              </Button>
-            </Link>
-            <Link to={`/${lang}/settings`} state={{ from: location.pathname }}>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-11 w-11 min-h-[44px] min-w-[44px] sm:h-9 sm:w-9 sm:min-h-0 sm:min-w-0 rounded-lg"
-              >
-                <Settings className="h-5 w-5" />
-              </Button>
-            </Link>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Link to={`/${lang}/plans`} state={{ from: location.pathname }} className="hidden sm:block">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9 rounded-lg"
+                  >
+                    <CalendarClock className="h-5 w-5" />
+                  </Button>
+                </Link>
+              </TooltipTrigger>
+              <TooltipContent>{t("nav.plans")}</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Link to={`/${lang}/analytics`} state={{ from: location.pathname }} className="hidden sm:block">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9 rounded-lg"
+                  >
+                    <BarChart3 className="h-5 w-5" />
+                  </Button>
+                </Link>
+              </TooltipTrigger>
+              <TooltipContent>{t("nav.analytics")}</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Link to={`/${lang}/orchestration`} state={{ from: location.pathname }} className="hidden sm:block">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9 rounded-lg"
+                  >
+                    <Workflow className="h-5 w-5" />
+                  </Button>
+                </Link>
+              </TooltipTrigger>
+              <TooltipContent>{t("nav.orchestration")}</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Link to={`/${lang}/settings`} state={{ from: location.pathname }}>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-11 w-11 min-h-[44px] min-w-[44px] sm:h-9 sm:w-9 sm:min-h-0 sm:min-w-0 rounded-lg"
+                  >
+                    <Settings className="h-5 w-5" />
+                  </Button>
+                </Link>
+              </TooltipTrigger>
+              <TooltipContent>{t("nav.settings")}</TooltipContent>
+            </Tooltip>
             <Link to={`/${lang}/agents`}>
               <Button
                 variant="ghost"
@@ -534,6 +573,7 @@ export default function Home() {
                 {t("nav.startChat")}
               </Button>
             </Link>
+            </TooltipProvider>
           </nav>
         </div>
       </header>
@@ -1405,4 +1445,9 @@ export default function Home() {
       </footer>
     </div>
   );
+}
+
+export default function Home() {
+  const { lang } = useParams();
+  return <HomePage lang={lang || "en"} />;
 }

@@ -1,0 +1,6 @@
+{
+  "id": "image-gen",
+  "name": "Image Generation",
+  "description": "Generate images using DALL-E 3 or Google Imagen. Requires an OpenAI or Google API key.",
+  "category": "general"
+}

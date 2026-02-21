@@ -43,7 +43,7 @@ export function meta({ params: _params }: Route.MetaArgs) {
     tagName: "link" as const,
     rel: "alternate",
     hrefLang: l,
-    href: `https://izan.io/${l}`,
+    href: l === "en" ? "https://izan.io/" : `https://izan.io/${l}`,
   }));
 
   return [
@@ -52,7 +52,7 @@ export function meta({ params: _params }: Route.MetaArgs) {
       tagName: "link" as const,
       rel: "alternate",
       hrefLang: "x-default",
-      href: "https://izan.io/en",
+      href: "https://izan.io/",
     },
   ];
 }

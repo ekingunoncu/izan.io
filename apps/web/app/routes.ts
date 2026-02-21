@@ -16,6 +16,7 @@ export default [
       route(":slug", "routes/docs-page.tsx"),
     ]),
     route("settings", "routes/settings.tsx"),
+    route("orchestration", "routes/orchestration.tsx"),
     route("analytics", "routes/analytics.tsx"),
     route("plans", "routes/plans.tsx"),
     route("privacy", "routes/privacy.tsx"),

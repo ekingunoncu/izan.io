@@ -6,21 +6,49 @@ Agents are **specialized AI assistants** equipped with built-in tools via MCP (M
 
 ## Built-in Agents
 
-### General Assistant
+izan.io ships with **80+ built-in agents** spanning a wide range of categories. Each agent comes pre-configured with a tailored system prompt and, where applicable, dedicated MCP tools or browser automation macros.
 
-The default agent with access to everyday utility tools:
+### Core Agents
 
-- **Time and date** queries
-- **Calculator** for math operations
-- **Password generator** with configurable strength
-- **UUID generator** for unique identifiers
+- **General Assistant** -- everyday utility tools (time, calculator, password generator, UUID)
+- **Domain Expert** -- domain name research via RDAP and DNS-over-HTTPS
+- **Web Fetch** -- fetch and extract content from any URL
 
-### Domain Expert
+### Platform Managers (require Chrome extension)
 
-A specialized agent for domain name research:
+Agents that can interact with web platforms via recorded browser macros:
 
-- **Domain search** across multiple TLDs
-- **Availability checking** via RDAP and DNS-over-HTTPS lookups
+- **GitHub Manager**, **Gmail Agent**, **Slack Manager**, **Notion Manager**, **Jira Manager**, **Trello Manager**, **Todoist Agent**
+- **X (Twitter) Manager**, **LinkedIn Manager**, **Instagram Manager**, **Facebook Manager**, **Discord Manager**, **Reddit Manager**, **Bluesky Manager**, **Threads Manager**, **WhatsApp Manager**, **Telegram Manager**, **Pinterest Manager**
+- **Spotify Manager**, **Sheets Agent**, **Calendar Agent**
+
+### Research & Knowledge
+
+- **Google Scholar**, **arXiv Agent**, **Wikipedia Agent**, **Hacker News Agent**, **Stack Overflow Agent**, **Kaggle Agent**, **HuggingFace Agent**, **Wayback Agent**
+- **Google News Agent**, **News Agent**, **Medium Agent**, **Substack Agent**, **Quora Agent**, **Product Hunt Agent**
+
+### Shopping & Travel
+
+- **Amazon Agent**, **eBay Agent**, **Etsy Agent**, **Walmart Agent**, **AliExpress Agent**, **StockX Agent**, **Shopify Agent**
+- **Google Flights Agent**, **Flights Agent**, **Booking Agent**, **Expedia Agent**, **Airbnb Agent**, **TripAdvisor Agent**, **Zillow Agent**
+
+### Entertainment & Media
+
+- **YouTube Agent**, **Spotify Manager**, **IMDb Agent**, **Rotten Tomatoes Agent**, **Letterboxd Agent**, **Goodreads Agent**
+- **SoundCloud Agent**, **Bandcamp Agent**, **Last.fm Agent**, **Twitch Agent**, **TikTok Agent**
+
+### Finance & Data
+
+- **Yahoo Finance Agent**, **CoinMarketCap Agent**, **Coinbase Agent**, **OpenSea Agent**
+- **Transfermarkt Agent**, **ESPN Agent**
+
+### And More
+
+- **Glassdoor Agent**, **Indeed Agent**, **Coursera Agent**, **Udemy Agent**, **Duolingo Agent**
+- **Yelp Agent**, **Craigslist Agent**, **Strava Agent**, **MyFitnessPal Agent**, **Untappd Agent**, **Vivino Agent**, **Tinder Agent**
+- **Figma Agent**, **Canva Agent**, **Play Store Agent**, **Maps Scout**
+
+Browse the full catalog on the **Agents** page. New agents are added regularly.
 
 ## Creating Custom Agents
 
@@ -33,6 +61,24 @@ You can build your own agents from the **Agents** page by clicking **Create Agen
 ## Multi-Agent Orchestration
 
 Agents can **call other agents as tools**. When you link agents together, one agent can delegate tasks to another using `ask_agent_{id}` tool calls. This creates a chain of specialized assistants working together, with a **maximum nesting depth of 3 levels** to prevent runaway loops.
+
+### Flow Orchestration Editor
+
+The **Orchestration** page provides a visual canvas for designing and managing multi-agent workflows. Access it from the **Agents** page.
+
+**Canvas features:**
+
+- **Root agent selector** -- choose which agent serves as the entry point for your workflow
+- **Visual graph** -- see the full agent tree: root agent, its linked agents, and all nested links recursively. Circular links are handled safely (each agent appears only once)
+- **Link Agent button** -- connect new agents to the root directly from the toolbar
+- **Auto-layout** -- nodes are automatically arranged using a left-to-right hierarchical layout
+- **Drag and drop** -- reposition nodes freely on the canvas
+- **Drill-down navigation** -- double-click any linked agent to explore its own sub-tree, with a back button to return
+- **Category colors** -- nodes are color-coded by category (blue for general, green for web search, purple for code, orange for custom)
+- **Test Chat** -- click the chat button in the header to start a conversation with the current root agent
+- **Click to edit** -- single-click any node to open its edit panel
+
+**Edge connections** between agents are drawn as animated lines showing the link direction. Double-click an edge to unlink two agents.
 
 ## Deep Task Mode
 

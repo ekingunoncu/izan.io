@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { llmService, storageService } from '~/lib/services'
-import { getProvider } from '~/lib/providers'
+import { getProvider, PROVIDERS } from '~/lib/providers'
 
 /**
  * ModelState - State interface for provider/model management
@@ -14,10 +14,14 @@ interface ModelState {
   providerKeys: Record<string, string>
   isInitialized: boolean
   error: string | null
+  fallbackProvider: string | null
+  fallbackModel: string | null
 
   // Computed helpers
   isConfigured: () => boolean
   getApiKey: (providerId: string) => string | null
+  getFallbackConfig: () => { provider: string; model: string; apiKey: string } | null
+  getFallbackChain: () => Array<{ provider: string; model: string; apiKey: string }>
 
   // Actions
   initialize: () => Promise<void>
@@ -25,6 +29,9 @@ interface ModelState {
   setModel: (modelId: string) => Promise<void>
   setApiKey: (providerId: string, apiKey: string) => Promise<void>
   removeApiKey: (providerId: string) => Promise<void>
+  setFallbackProvider: (providerId: string | null) => Promise<void>
+  setFallbackModel: (modelId: string | null) => Promise<void>
+  clearFallback: () => Promise<void>
   clearError: () => void
 }
 
@@ -38,6 +45,8 @@ export const useModelStore = create<ModelState>((set, get) => ({
   providerKeys: {},
   isInitialized: false,
   error: null,
+  fallbackProvider: null,
+  fallbackModel: null,
 
   // Computed helpers
   isConfigured: () => {
@@ -48,6 +57,47 @@ export const useModelStore = create<ModelState>((set, get) => ({
 
   getApiKey: (providerId: string) => {
     return get().providerKeys[providerId] ?? null
+  },
+
+  getFallbackConfig: () => {
+    const chain = get().getFallbackChain()
+    return chain.length > 0 ? chain[0] : null
+  },
+
+  getFallbackChain: () => {
+    const { fallbackProvider, fallbackModel, providerKeys, selectedProvider, selectedModel } = get()
+    const chain: Array<{ provider: string; model: string; apiKey: string }> = []
+    const seen = new Set<string>()
+    const primaryKey = `${selectedProvider}:${selectedModel}`
+    seen.add(primaryKey)
+
+    // 1. User-configured fallback first
+    if (fallbackProvider && fallbackModel) {
+      const fbKey = `${fallbackProvider}:${fallbackModel}`
+      if (!seen.has(fbKey)) {
+        const apiKey = providerKeys[fallbackProvider]
+        if (apiKey) {
+          chain.push({ provider: fallbackProvider, model: fallbackModel, apiKey })
+          seen.add(fbKey)
+        }
+      }
+    }
+
+    // 2. Auto-discover other configured providers (up to 2 more)
+    for (const provider of PROVIDERS) {
+      if (chain.length >= 3) break
+      const apiKey = providerKeys[provider.id]
+      if (!apiKey) continue
+      // Pick the first model with tool support from this provider
+      const model = provider.models.find(m => m.supportsTools) ?? provider.models[0]
+      if (!model) continue
+      const key = `${provider.id}:${model.id}`
+      if (seen.has(key)) continue
+      chain.push({ provider: provider.id, model: model.id, apiKey })
+      seen.add(key)
+    }
+
+    return chain
   },
 
   // Initialize from stored preferences
@@ -65,6 +115,8 @@ export const useModelStore = create<ModelState>((set, get) => ({
         selectedModel: model,
         providerKeys: keys,
         isInitialized: true,
+        fallbackProvider: prefs.fallbackProvider ?? null,
+        fallbackModel: prefs.fallbackModel ?? null,
       })
 
       // Configure LLM service if we have everything
@@ -144,6 +196,29 @@ export const useModelStore = create<ModelState>((set, get) => ({
     set({ providerKeys: newKeys })
 
     await storageService.updatePreferences({ providerKeys: newKeys })
+  },
+
+  setFallbackProvider: async (providerId: string | null) => {
+    if (!providerId) {
+      set({ fallbackProvider: null, fallbackModel: null })
+      await storageService.updatePreferences({ fallbackProvider: null, fallbackModel: null })
+      return
+    }
+    const provider = getProvider(providerId)
+    if (!provider) return
+    const firstModel = provider.models[0]?.id ?? null
+    set({ fallbackProvider: providerId, fallbackModel: firstModel })
+    await storageService.updatePreferences({ fallbackProvider: providerId, fallbackModel: firstModel })
+  },
+
+  setFallbackModel: async (modelId: string | null) => {
+    set({ fallbackModel: modelId })
+    await storageService.updatePreferences({ fallbackModel: modelId })
+  },
+
+  clearFallback: async () => {
+    set({ fallbackProvider: null, fallbackModel: null })
+    await storageService.updatePreferences({ fallbackProvider: null, fallbackModel: null })
   },
 
   clearError: () => {

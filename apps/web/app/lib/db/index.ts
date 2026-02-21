@@ -272,5 +272,5 @@ export async function clearDatabase(): Promise<void> {
 }
 
 // Re-export types
-export type { Agent, Chat, Message, TaskStatus, UserPreferences, UserMCPServer, AutomationTool, AutomationServer, UsageRecord, ScheduledPlan, PlanExecution, PlanScheduleType, PlanStatus } from './schema'
+export type { Agent, Chat, Message, MessageAttachment, TaskStatus, UserPreferences, UserMCPServer, AutomationTool, AutomationServer, UsageRecord, ScheduledPlan, PlanExecution, PlanScheduleType, PlanStatus } from './schema'
 export { DEFAULT_AGENTS, DEFAULT_PREFERENCES, slugify } from './schema'

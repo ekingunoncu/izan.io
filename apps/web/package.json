@@ -12,6 +12,7 @@
     "typecheck": "react-router typegen && tsc"
   },
   "dependencies": {
+    "@dagrejs/dagre": "^2.0.4",
     "@izan/agents": "*",
     "@izan/mcp-browser-servers": "*",
     "@izan/mcp-client": "*",
@@ -21,6 +22,7 @@
     "@radix-ui/react-tooltip": "^1.2.8",
     "@react-router/node": "^7.13.0",
     "@react-router/serve": "^7.13.0",
+    "@xyflow/react": "^12.10.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cron-parser": "^5.5.0",

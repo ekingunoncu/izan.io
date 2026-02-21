@@ -20,10 +20,12 @@ Hemen denemek icin ucretli bir API anahtarina ihtiyaciniz yok. Su saglayicilar u
 
 ## Temel Ozellikler
 
-- **Agentlar**: Yerlesik veya ozel olusturulmus uzman AI asistanlari
+- **80+ Yerlesik Agent**: Sosyal medya, arastirma, alisveris, seyahat, finans ve daha fazlasi icin uzman asistanlar
 - **MCP Sunuculari**: Agentlara arac kazandiran standart protokol sunuculari
 - **Makrolar**: Chrome eklentisi ile kaydedilen tarayici otomasyon makrolari
 - **Ozel Agentlar**: Kendi sistem prompt'unuz, model parametreleriniz ve arac atamalarinizla ozellestirilmis agentlar
-- **Coklu Agent Orkestrasyonu**: Agentlari birbirine baglayarak karmasik gorevleri cozme
+- **Orkestrasyon Editoru**: Coklu agent is akislarini surukle-birak, otomatik duzenleme ve detaya inme ile gorsel olarak tasarlayin
+- **Yedek Model**: Birincil model basarisiz oldugunda otomatik olarak yedek provider'a gecis
+- **Zamanlanmis Planlar**: Agentlari tek seferlik veya tekrarlayan zamanlamalarla otomasyona alma
 - **Analitik**: Model, agent ve sohbet bazinda token kullanimi ve maliyet takibi
 - **Agent Dis/Ic Aktarim**: Agent yapilandirmalarini JSON dosyasi olarak paylasma

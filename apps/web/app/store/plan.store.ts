@@ -129,6 +129,15 @@ export const usePlanStore = create<PlanStoreState>((set, get) => ({
       if (error) throw new Error(`Invalid cron expression: ${error}`)
     }
 
+    // Auto-reactivate: if the schedule changed on a completed/error plan, reset to active
+    // so the toggle and next-run logic work correctly (e.g. once→recurring edit)
+    const scheduleChanged = (updates.scheduleType && updates.scheduleType !== plan.scheduleType)
+      || (updates.cronExpression !== undefined && updates.cronExpression !== plan.cronExpression)
+      || (updates.scheduledAt !== undefined && updates.scheduledAt !== plan.scheduledAt)
+    if (scheduleChanged && (plan.status === 'completed' || plan.status === 'error') && !updates.status) {
+      updates = { ...updates, status: 'active' }
+    }
+
     const merged = { ...plan, ...updates, updatedAt: Date.now() }
     merged.nextRunAt = computeNextRunAt(merged)
 

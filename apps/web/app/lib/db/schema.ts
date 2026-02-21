@@ -77,6 +77,17 @@ export interface Chat {
   updatedAt: number
 }
 
+/** Attachment on a message (e.g. image from tool result or user upload) */
+export interface MessageAttachment {
+  id: string
+  type: 'image'
+  mimeType: string
+  /** base64-encoded data */
+  data: string
+  width?: number
+  height?: number
+}
+
 /**
  * Message represents a single message in a chat
  */
@@ -86,6 +97,10 @@ export interface Message {
   role: MessageRole
   content: string
   modelId?: string // Which model generated this message
+  /** Soft-deleted by compaction (summarized into a context summary message) */
+  compacted?: boolean
+  /** Optional attachments (images from tools or user uploads). Stored inline, no schema bump needed. */
+  attachments?: MessageAttachment[]
   timestamp: number
 }
 
@@ -140,6 +155,18 @@ export interface UserPreferences {
   chatHistoryLimit?: number
   /** Whether automation browser opens in foreground (default: true = foreground) */
   automationBrowserForeground?: boolean
+  /** Physical automation browser window size in pixels (default: 400x300) */
+  automationWindowSize?: { width: number; height: number }
+  /** Emulated viewport resolution for automation browser (default: 1280x800) */
+  automationViewport?: { width: number; height: number }
+  /** Persisted node positions for the flow orchestration editor */
+  flowNodePositions?: Record<string, { x: number; y: number }>
+  /** Fallback LLM provider ID (used when primary fails with retryable error) */
+  fallbackProvider?: string | null
+  /** Fallback model ID within the fallback provider */
+  fallbackModel?: string | null
+  /** BCP-47 language override for speech recognition & synthesis. null/undefined = browser default */
+  speechLanguage?: string | null
 }
 
 // ─── Usage Analytics Types ────────────────────────────────────────────────────
@@ -350,4 +377,6 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   dismissedChatBannerAgentIds: {},
   chatMessageLimit: 0,
   chatHistoryLimit: 0,
+  automationWindowSize: { width: 400, height: 300 },
+  automationViewport: { width: 1280, height: 800 },
 }

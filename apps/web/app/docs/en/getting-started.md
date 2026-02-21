@@ -25,9 +25,12 @@ You can get started without spending anything. Several providers offer generous 
 
 ## Key Features
 
-- **Agents** -- specialized assistants with built-in tools and custom system prompts
+- **80+ Built-in Agents** -- specialized assistants for social media, research, shopping, travel, finance, and more
 - **MCP Servers** -- connect any MCP-compatible tool server to expand agent capabilities
 - **Macros** -- record browser automations and let agents execute them
 - **Custom Agents** -- create your own agents with tailored instructions, model settings, and tool assignments
+- **Flow Orchestration** -- visual canvas for designing multi-agent workflows with drag-and-drop, auto-layout, and drill-down navigation
+- **Fallback Model** -- automatic failover to a backup provider when the primary model fails
+- **Scheduled Plans** -- automate agents on a schedule with one-time or recurring execution
 - **Analytics** -- track token usage and costs per model, agent, and conversation
 - **Agent Export/Import** -- share agent configurations as JSON files

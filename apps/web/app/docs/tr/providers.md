@@ -51,3 +51,28 @@ Her modelin farkli yetenekleri vardir. izan.io bu yetenekleri otomatik olarak ta
 - **Muhakeme**: Karmasik problemlerde adim adim dusunme yetenegi (o1, o3, DeepSeek-R1 gibi modeller)
 
 Arac destegi olmayan modeller agentlarla birlikte kullanildiginda MCP araclarini cagiramazlar. Arac gerektiren gorevler icin arac destegi olan bir model sectiginizden emin olun.
+
+## Yedek Model
+
+Birincil saglayici gecici bir hatayla basarisiz oldugunda (rate limit, sunucu hatasi veya ag sorunu) otomatik olarak devreye giren bir **yedek model** yapilandirabilirsiniz.
+
+### Kurulum
+
+1. **Ayarlar** sayfasina gidin
+2. **Yedek Model** kartini bulun (provider key'lerinin altinda)
+3. Dropdown'dan bir **yedek provider** secin (sadece API key'i kayitli provider'lar gosterilir)
+4. O provider'dan bir **yedek model** secin
+
+### Nasil Calisir
+
+- Birincil model **429** (rate limit), **500+** (sunucu hatasi) veya **ag hatasi** dondurdugunde, izan.io istegi otomatik olarak yedek modelle tekrar dener
+- Sohbette gecis hakkinda bir bilgi notu gosterilir: "Birincil model basarisiz oldu. Provider / Model ile yeniden deneniyor..."
+- **Kimlik dogrulama hatalari** (401, 403) yedek modeli tetiklemez -- bunlar gecici degil, anahtar sorunlarini isaret eder
+- Yedek model de basarisiz olursa, hata her zamanki gibi gosterilir (ikinci deneme yapilmaz)
+- Yedek provider ve model birincil ile ayniysa, yedek devre disi kalir
+
+### Ipuclari
+
+- Maksimum dayaniklilik icin **farkli bir provider'dan** yedek secin (orn. birincil OpenAI, yedek Anthropic)
+- **Groq** veya **Cerebras** gibi ucretsiz saglayicilar harika yedekler olabilir
+- Yedek modelin arac destegi olmasi gerekmez -- yoksa sohbet duzyazi olarak devam eder

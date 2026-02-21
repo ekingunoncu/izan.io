@@ -1,49 +1,59 @@
-import { redirect, useNavigate } from "react-router";
+import { redirect } from "react-router";
 import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import type { Route } from "./+types/lang-redirect";
 import { detectBrowserLanguage } from "~/i18n";
+import {
+  HomePage,
+  HOME_TITLES,
+  HOME_DESCRIPTIONS,
+  buildHomeJsonLd,
+} from "./home";
 
 export function meta() {
+  const lang = "en";
   return [
-    { title: "izan.io - Open Source AI Agent Platform | Browser Automation, MCP Tools, 17+ Providers" },
-    { name: "description", content: "Build and deploy AI agents with browser automation, Chrome extension macros, MCP protocol tools, and 17+ AI providers. Open source, privacy-first." },
-    { property: "og:title", content: "izan.io - Open Source AI Agent Platform" },
-    { property: "og:description", content: "Build and deploy AI agents with browser automation, Chrome extension macros, MCP protocol tools, and 17+ AI providers." },
+    { title: HOME_TITLES[lang] },
+    { name: "description", content: HOME_DESCRIPTIONS[lang] },
+    { property: "og:title", content: HOME_TITLES[lang] },
+    { property: "og:description", content: HOME_DESCRIPTIONS[lang] },
     { property: "og:type", content: "website" },
     { property: "og:url", content: "https://izan.io/" },
-    { tagName: "link", rel: "canonical", href: "https://izan.io/en" },
-    { tagName: "link", rel: "alternate", hrefLang: "en", href: "https://izan.io/en" },
+    { tagName: "link", rel: "canonical", href: "https://izan.io/" },
+    { tagName: "link", rel: "alternate", hrefLang: "en", href: "https://izan.io/" },
     { tagName: "link", rel: "alternate", hrefLang: "tr", href: "https://izan.io/tr" },
     { tagName: "link", rel: "alternate", hrefLang: "de", href: "https://izan.io/de" },
-    { tagName: "link", rel: "alternate", hrefLang: "x-default", href: "https://izan.io/en" },
+    { tagName: "link", rel: "alternate", hrefLang: "x-default", href: "https://izan.io/" },
+    { name: "twitter:title", content: HOME_TITLES[lang] },
+    { name: "twitter:description", content: HOME_DESCRIPTIONS[lang] },
+    { "script:ld+json": buildHomeJsonLd(lang) },
   ];
 }
 
-// Server (prerender): return data instead of redirect so SPA fallback gets 200
-export function loader({ request }: Route.LoaderArgs) {
-  const acceptLang = request.headers.get("Accept-Language") || "";
-  let lang = "en";
-  if (acceptLang.startsWith("de")) lang = "de";
-  else if (acceptLang.startsWith("tr")) lang = "tr";
-  else if (acceptLang.startsWith("en")) lang = "en";
-  return { redirectTo: `/${lang}` };
+// Server (prerender): return English lang data so prerendered HTML contains the full home page
+export function loader() {
+  return { lang: "en" as const };
 }
 
-// Client: redirect on navigation to /
+// Client: detect browser language. Non-English → redirect, English → stay
 export function clientLoader() {
   const lang = detectBrowserLanguage();
-  return redirect(`/${lang}`);
+  if (lang !== "en") {
+    return redirect(`/${lang}`);
+  }
+  return { lang: "en" as const };
 }
 
+clientLoader.hydrate = true as const;
+
 export default function LangRedirect({ loaderData }: Route.ComponentProps) {
-  const navigate = useNavigate();
-  const redirectTo = loaderData?.redirectTo;
+  const { i18n } = useTranslation();
 
   useEffect(() => {
-    if (redirectTo) {
-      navigate(redirectTo, { replace: true });
+    if (i18n.language !== "en") {
+      i18n.changeLanguage("en");
     }
-  }, [redirectTo, navigate]);
+  }, [i18n]);
 
-  return null;
+  return <HomePage lang={loaderData?.lang || "en"} />;
 }

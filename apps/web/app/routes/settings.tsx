@@ -27,6 +27,8 @@ import {
   HardDrive,
   MessageSquare,
   Archive,
+  RefreshCw,
+  Volume2,
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip";
@@ -365,6 +367,15 @@ function AutomationToolsSection() {
   );
 }
 
+const DEFAULT_WINDOW_SIZE = { width: 400, height: 300 };
+const DEFAULT_VIEWPORT = { width: 1280, height: 800 };
+
+const WINDOW_SIZE_PRESETS = [
+  { label: "400 x 300", width: 400, height: 300 },
+  { label: "800 x 600", width: 800, height: 600 },
+  { label: "1024 x 768", width: 1024, height: 768 },
+] as const;
+
 const VIEWPORT_PRESETS = [
   { label: "1280 x 800", width: 1280, height: 800 },
   { label: "1366 x 768", width: 1366, height: 768 },
@@ -372,17 +383,182 @@ const VIEWPORT_PRESETS = [
   { label: "1920 x 1080", width: 1920, height: 1080 },
 ] as const;
 
+type SizeMode = "preset" | "custom" | "screen";
+
+function CustomSizeInputs({
+  value,
+  onChange,
+}: {
+  value: { width: number; height: number };
+  onChange: (w: number, h: number) => void;
+}) {
+  const [draft, setDraft] = useState({ w: String(value.width), h: String(value.height) });
+
+  const commit = (wStr: string, hStr: string) => {
+    const w = Math.max(200, Math.min(3840, parseInt(wStr, 10) || value.width));
+    const h = Math.max(200, Math.min(2160, parseInt(hStr, 10) || value.height));
+    setDraft({ w: String(w), h: String(h) });
+    onChange(w, h);
+  };
+
+  // Use key to reset draft when value changes externally — rendered via key={`${value.width}-${value.height}`}
+  return (
+    <div className="flex items-center gap-2 mt-2">
+      <input
+        type="number"
+        min={200}
+        max={3840}
+        value={draft.w}
+        onChange={(e) => setDraft((d) => ({ ...d, w: e.target.value }))}
+        onBlur={() => commit(draft.w, draft.h)}
+        onKeyDown={(e) => { if (e.key === "Enter") commit(draft.w, draft.h); }}
+        className="w-20 px-2 py-1.5 text-xs rounded-md border border-border bg-muted/50 text-center"
+      />
+      <span className="text-xs text-muted-foreground">x</span>
+      <input
+        type="number"
+        min={200}
+        max={2160}
+        value={draft.h}
+        onChange={(e) => setDraft((d) => ({ ...d, h: e.target.value }))}
+        onBlur={() => commit(draft.w, draft.h)}
+        onKeyDown={(e) => { if (e.key === "Enter") commit(draft.w, draft.h); }}
+        className="w-20 px-2 py-1.5 text-xs rounded-md border border-border bg-muted/50 text-center"
+      />
+      <span className="text-xs text-muted-foreground">px</span>
+    </div>
+  );
+}
+
+function ResolutionPicker({
+  label,
+  description,
+  presets,
+  value,
+  defaultValue,
+  mode,
+  onChange,
+  onModeChange,
+  customLabel,
+  screenLabel,
+  defaultLabel,
+}: {
+  label: string;
+  description: string;
+  presets: ReadonlyArray<{ label: string; width: number; height: number }>;
+  value: { width: number; height: number };
+  defaultValue: { width: number; height: number };
+  mode: SizeMode;
+  onChange: (w: number, h: number) => void;
+  onModeChange: (mode: SizeMode) => void;
+  customLabel: string;
+  screenLabel: string;
+  defaultLabel: string;
+}) {
+  const currentPreset = presets.find(
+    (p) => p.width === value.width && p.height === value.height
+  );
+  const isDefault = value.width === defaultValue.width && value.height === defaultValue.height;
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1.5">
+        <p className="text-sm font-medium">{label}</p>
+        {!isDefault && (
+          <button
+            type="button"
+            onClick={() => {
+              onModeChange("preset");
+              onChange(defaultValue.width, defaultValue.height);
+            }}
+            className="text-[11px] text-muted-foreground hover:text-primary transition-colors"
+          >
+            {defaultLabel}
+          </button>
+        )}
+      </div>
+      <p className="text-xs text-muted-foreground mb-2">{description}</p>
+      <div className="flex flex-wrap gap-1.5">
+        {presets.map((preset) => (
+          <button
+            key={preset.label}
+            type="button"
+            onClick={() => {
+              onModeChange("preset");
+              onChange(preset.width, preset.height);
+            }}
+            className={`px-3 py-1.5 text-xs rounded-md border transition-colors ${
+              mode === "preset" && currentPreset?.label === preset.label
+                ? "bg-primary/10 border-primary/30 text-primary font-medium"
+                : "bg-muted/50 border-border hover:bg-muted"
+            }`}
+          >
+            {preset.label}
+          </button>
+        ))}
+        <button
+          type="button"
+          onClick={() => {
+            onModeChange("screen");
+            onChange(window.screen.width, window.screen.height);
+          }}
+          className={`px-3 py-1.5 text-xs rounded-md border transition-colors ${
+            mode === "screen"
+              ? "bg-primary/10 border-primary/30 text-primary font-medium"
+              : "bg-muted/50 border-border hover:bg-muted"
+          }`}
+        >
+          {screenLabel}
+        </button>
+        <button
+          type="button"
+          onClick={() => onModeChange("custom")}
+          className={`px-3 py-1.5 text-xs rounded-md border transition-colors ${
+            mode === "custom"
+              ? "bg-primary/10 border-primary/30 text-primary font-medium"
+              : "bg-muted/50 border-border hover:bg-muted"
+          }`}
+        >
+          {customLabel}
+        </button>
+      </div>
+      {mode === "custom" && (
+        <CustomSizeInputs key={`${value.width}-${value.height}`} value={value} onChange={onChange} />
+      )}
+    </div>
+  );
+}
+
+function detectMode(
+  value: { width: number; height: number },
+  presets: ReadonlyArray<{ label: string; width: number; height: number }>,
+): SizeMode {
+  if (presets.some((p) => p.width === value.width && p.height === value.height)) return "preset";
+  if (value.width === window.screen.width && value.height === window.screen.height) return "screen";
+  return "custom";
+}
+
 function AutomationBrowserSection() {
   const { t } = useTranslation("common");
   const isExtensionInstalled = useMCPStore((s) => s.isExtensionInstalled);
   const [foreground, setForeground] = useState(true);
-  const [viewport, setViewport] = useState({ width: 1280, height: 800 });
+  const [viewport, setViewport] = useState(DEFAULT_VIEWPORT);
+  const [windowSize, setWindowSize] = useState(DEFAULT_WINDOW_SIZE);
+  const [viewportMode, setViewportMode] = useState<SizeMode>("preset");
+  const [windowSizeMode, setWindowSizeMode] = useState<SizeMode>("preset");
   const [loaded, setLoaded] = useState(false);
 
-  // Load saved preferences from IndexedDB
   useEffect(() => {
     storageService.getPreferences().then((prefs) => {
       setForeground(prefs.automationBrowserForeground !== false);
+      if (prefs.automationWindowSize) {
+        setWindowSize(prefs.automationWindowSize);
+        setWindowSizeMode(detectMode(prefs.automationWindowSize, WINDOW_SIZE_PRESETS));
+      }
+      if (prefs.automationViewport) {
+        setViewport(prefs.automationViewport);
+        setViewportMode(detectMode(prefs.automationViewport, VIEWPORT_PRESETS));
+      }
       setLoaded(true);
     });
   }, []);
@@ -392,18 +568,20 @@ function AutomationBrowserSection() {
   const handleForegroundChange = (value: boolean) => {
     setForeground(value);
     storageService.updatePreferences({ automationBrowserForeground: value });
-    // Sync to extension
     sendPreferenceToExtension("automationBrowserForeground", value);
   };
 
   const handleViewportChange = (w: number, h: number) => {
     setViewport({ width: w, height: h });
+    storageService.updatePreferences({ automationViewport: { width: w, height: h } });
     sendPreferenceToExtension("automationViewport", { width: w, height: h });
   };
 
-  const currentPreset = VIEWPORT_PRESETS.find(
-    (p) => p.width === viewport.width && p.height === viewport.height
-  );
+  const handleWindowSizeChange = (w: number, h: number) => {
+    setWindowSize({ width: w, height: h });
+    storageService.updatePreferences({ automationWindowSize: { width: w, height: h } });
+    sendPreferenceToExtension("automationWindowSize", { width: w, height: h });
+  };
 
   return (
     <Card>
@@ -437,27 +615,35 @@ function AutomationBrowserSection() {
           </button>
         </div>
 
+        {/* Physical window size */}
+        <ResolutionPicker
+          label={t("settings.automationWindowSize")}
+          description={t("settings.automationWindowSizeDesc")}
+          presets={WINDOW_SIZE_PRESETS}
+          value={windowSize}
+          defaultValue={DEFAULT_WINDOW_SIZE}
+          mode={windowSizeMode}
+          onChange={handleWindowSizeChange}
+          onModeChange={setWindowSizeMode}
+          customLabel={t("settings.automationViewportCustom")}
+          screenLabel={t("settings.automationScreenResolution")}
+          defaultLabel={t("settings.automationResetDefault")}
+        />
+
         {/* Viewport resolution */}
-        <div>
-          <p className="text-sm font-medium mb-1.5">{t("settings.automationViewport")}</p>
-          <p className="text-xs text-muted-foreground mb-2">{t("settings.automationViewportDesc")}</p>
-          <div className="flex flex-wrap gap-1.5">
-            {VIEWPORT_PRESETS.map((preset) => (
-              <button
-                key={preset.label}
-                type="button"
-                onClick={() => handleViewportChange(preset.width, preset.height)}
-                className={`px-3 py-1.5 text-xs rounded-md border transition-colors ${
-                  currentPreset?.label === preset.label
-                    ? "bg-primary/10 border-primary/30 text-primary font-medium"
-                    : "bg-muted/50 border-border hover:bg-muted"
-                }`}
-              >
-                {preset.label}
-              </button>
-            ))}
-          </div>
-        </div>
+        <ResolutionPicker
+          label={t("settings.automationViewport")}
+          description={t("settings.automationViewportDesc")}
+          presets={VIEWPORT_PRESETS}
+          value={viewport}
+          defaultValue={DEFAULT_VIEWPORT}
+          mode={viewportMode}
+          onChange={handleViewportChange}
+          onModeChange={setViewportMode}
+          customLabel={t("settings.automationViewportCustom")}
+          screenLabel={t("settings.automationScreenResolution")}
+          defaultLabel={t("settings.automationResetDefault")}
+        />
       </CardContent>
     </Card>
   );
@@ -827,6 +1013,75 @@ function ChatStorageSection() {
   );
 }
 
+const VOICE_LANGUAGES = [
+  { code: "en-US", label: "English" },
+  { code: "tr-TR", label: "Türkçe" },
+  { code: "de-DE", label: "Deutsch" },
+  { code: "es-ES", label: "Español" },
+  { code: "fr-FR", label: "Français" },
+  { code: "ja-JP", label: "日本語" },
+  { code: "ko-KR", label: "한국어" },
+  { code: "zh-CN", label: "中文" },
+  { code: "ar-SA", label: "العربية" },
+  { code: "ru-RU", label: "Русский" },
+  { code: "pt-BR", label: "Português" },
+  { code: "it-IT", label: "Italiano" },
+  { code: "hi-IN", label: "हिन्दी" },
+] as const;
+
+function VoiceLanguageSection() {
+  const { t } = useTranslation("common");
+  const [speechLanguage, setSpeechLanguage] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    storageService.getPreferences().then((prefs) => {
+      setSpeechLanguage(prefs.speechLanguage ?? null);
+      setLoaded(true);
+    });
+  }, []);
+
+  if (!loaded) return null;
+
+  const handleChange = (code: string | null) => {
+    setSpeechLanguage(code);
+    storageService.updatePreferences({ speechLanguage: code });
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Volume2 className="h-5 w-5" />
+          {t("settings.voiceLanguage")}
+        </CardTitle>
+        <CardDescription>{t("settings.voiceLanguageDesc")}</CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-wrap gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          className={cn(!speechLanguage ? "bg-muted font-medium" : "")}
+          onClick={() => handleChange(null)}
+        >
+          {t("settings.voiceLanguageAuto")}
+        </Button>
+        {VOICE_LANGUAGES.map((l) => (
+          <Button
+            key={l.code}
+            variant="outline"
+            size="sm"
+            className={cn(speechLanguage === l.code ? "bg-muted font-medium" : "")}
+            onClick={() => handleChange(l.code)}
+          >
+            {l.label}
+          </Button>
+        ))}
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function Settings() {
   const { t } = useTranslation("common");
   const { lang } = useParams();
@@ -852,6 +1107,11 @@ export default function Settings() {
     setApiKey,
     removeApiKey,
     initialize: initModel,
+    fallbackProvider,
+    fallbackModel,
+    setFallbackProvider,
+    setFallbackModel,
+    clearFallback,
   } = useModelStore();
 
   // Ensure model store is initialized when Settings mounts
@@ -1105,6 +1365,82 @@ export default function Settings() {
                   </div>
                 );
               })()}
+            </CardContent>
+          </Card>
+
+          {/* Fallback Model */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <RefreshCw className="h-5 w-5" />
+                {t("settings.fallbackTitle")}
+              </CardTitle>
+              <CardDescription>
+                {t("settings.fallbackDesc")}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {/* Fallback Provider */}
+              <div>
+                <label className="text-xs font-medium block mb-1.5">
+                  {t("settings.fallbackProvider")}
+                </label>
+                <select
+                  value={fallbackProvider ?? ""}
+                  onChange={(e) => setFallbackProvider(e.target.value || null)}
+                  className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  <option value="">{t("settings.fallbackNone")}</option>
+                  {providers
+                    .filter((p) => providerKeys[p.id])
+                    .map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                </select>
+              </div>
+
+              {/* Fallback Model */}
+              {fallbackProvider && (
+                <div>
+                  <label className="text-xs font-medium block mb-1.5">
+                    {t("settings.fallbackModel")}
+                  </label>
+                  <select
+                    value={fallbackModel ?? ""}
+                    onChange={(e) => setFallbackModel(e.target.value || null)}
+                    className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  >
+                    {providers
+                      .find((p) => p.id === fallbackProvider)
+                      ?.models.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.name}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Clear button */}
+              {fallbackProvider && (
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                    <CheckCircle className="h-3.5 w-3.5" />
+                    {t("settings.fallbackActive")}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs text-muted-foreground hover:text-destructive gap-1.5"
+                    onClick={() => clearFallback()}
+                  >
+                    <X className="h-3.5 w-3.5" />
+                    {t("settings.fallbackNone")}
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -1505,6 +1841,9 @@ export default function Settings() {
 
           {/* Chat Storage */}
           <ChatStorageSection />
+
+          {/* Voice Language */}
+          <VoiceLanguageSection />
 
           {/* Language */}
           <Card>

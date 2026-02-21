@@ -4,21 +4,49 @@ Agentlar, izan.io'nun temel yapisini olusturan **uzman AI asistanlaridir**. Her 
 
 ## Yerlesik Agentlar
 
-### Genel Asistan
+izan.io, genis bir kategori yelpazesini kapsayan **80'den fazla yerlesik agent** ile gelir. Her agent, ozel bir sistem prompt'u ve gerektiginde MCP araclari veya tarayici otomasyon makrolariyla onceden yapilandirilmistir.
 
-Gunluk gorevler icin tasarlanmis cok amacli bir agenttir. Sahip oldugu araclar:
+### Temel Agentlar
 
-- **Saat**: Guncel tarih ve saat bilgisi
-- **Hesaplama**: Matematiksel islemler
-- **Sifre Uretici**: Guvenli rastgele sifre olusturma
-- **UUID Uretici**: Benzersiz tanimlayici uretme
+- **Genel Asistan** -- gunluk araclar (saat, hesap makinesi, sifre uretici, UUID)
+- **Domain Uzmani** -- RDAP ve DNS-over-HTTPS ile domain arastirmasi
+- **Web Fetch** -- herhangi bir URL'den icerik cekme
 
-### Domain Uzmani
+### Platform Yoneticileri (Chrome eklentisi gerektirir)
 
-Alan adi aramalari ve uygunluk kontrolu icin ozellestirilmis agenttir:
+Kayitli tarayici makrolari araciligiyla web platformlariyla etkilesim kurabilen agentlar:
 
-- **Domain Arama**: RDAP ve DoH protokolleri ile domain sorgulama
-- **Uygunluk Kontrolu**: Bir alan adinin kayit icin musait olup olmadigini kontrol etme
+- **GitHub**, **Gmail**, **Slack**, **Notion**, **Jira**, **Trello**, **Todoist**
+- **X (Twitter)**, **LinkedIn**, **Instagram**, **Facebook**, **Discord**, **Reddit**, **Bluesky**, **Threads**, **WhatsApp**, **Telegram**, **Pinterest**
+- **Spotify**, **Sheets**, **Calendar**
+
+### Arastirma & Bilgi
+
+- **Google Scholar**, **arXiv**, **Wikipedia**, **Hacker News**, **Stack Overflow**, **Kaggle**, **HuggingFace**, **Wayback**
+- **Google News**, **News**, **Medium**, **Substack**, **Quora**, **Product Hunt**
+
+### Alisveris & Seyahat
+
+- **Amazon**, **eBay**, **Etsy**, **Walmart**, **AliExpress**, **StockX**, **Shopify**
+- **Google Flights**, **Flights**, **Booking**, **Expedia**, **Airbnb**, **TripAdvisor**, **Zillow**
+
+### Eglence & Medya
+
+- **YouTube**, **Spotify**, **IMDb**, **Rotten Tomatoes**, **Letterboxd**, **Goodreads**
+- **SoundCloud**, **Bandcamp**, **Last.fm**, **Twitch**, **TikTok**
+
+### Finans & Veri
+
+- **Yahoo Finance**, **CoinMarketCap**, **Coinbase**, **OpenSea**
+- **Transfermarkt**, **ESPN**
+
+### Ve Daha Fazlasi
+
+- **Glassdoor**, **Indeed**, **Coursera**, **Udemy**, **Duolingo**
+- **Yelp**, **Craigslist**, **Strava**, **MyFitnessPal**, **Untappd**, **Vivino**, **Tinder**
+- **Figma**, **Canva**, **Play Store**, **Maps Scout**
+
+Tam katalogu **Agentlar** sayfasindan gorebilirsiniz. Duzentli olarak yeni agentlar eklenmektedir.
 
 ## Ozel Agent Olusturma
 
@@ -31,6 +59,24 @@ Kendi agentlarinizi olusturmak icin **Agentlar** sayfasina gidin ve yeni bir age
 ## Agentlari Birbirine Baglama
 
 izan.io, **coklu agent orkestrasyonu** destekler. Bir agenti baska bir agentin araci olarak atayabilirsiniz. Ornegin, bir "Proje Yoneticisi" agenti hem "Kod Analisti" hem de "Domain Uzmani" agentlarini cagirabilir. Sistem **maksimum 3 seviye derinlige** kadar zincirleme agent cagrilarini destekler.
+
+### Orkestrasyon Editoru
+
+**Orkestrasyon** sayfasi, coklu agent is akislarini gorsel olarak tasarlamak ve yonetmek icin bir kanvas sunar. **Agentlar** sayfasindan erisebilirsiniz.
+
+**Kanvas ozellikleri:**
+
+- **Kok agent secici** -- is akisinizin giris noktasi olacak agenti secin
+- **Gorsel graf** -- kok agent, bagli agentlari ve tum alt baglantilari ozyinelemeli olarak gorun. Dongusel baglantilar guvenli sekilde islenir (her agent sadece bir kez gorunur)
+- **Agent Bagla butonu** -- araç cubugundan dogrudan yeni agentlari koke baglayin
+- **Otomatik duzenleme** -- dugumler soldan saga hiyerarsik olarak otomatik yerlestirilir
+- **Surukle birak** -- dugumleri kanvas uzerinde serbestce konumlandirin
+- **Detaya inme** -- herhangi bir bagli agente cift tiklayarak kendi alt agacini kesfedin, geri donmek icin geri butonu kullanin
+- **Kategori renkleri** -- dugumler kategoriye gore renklendirilir (mavi: genel, yesil: web arama, mor: kod, turuncu: ozel)
+- **Sohbeti Test Et** -- ust cubuktan mevcut kok agentle sohbet baslatin
+- **Tikla ve duzenle** -- herhangi bir dugume tek tiklayarak duzenleme panelini acin
+
+Agentlar arasi **baglanti cizgileri** animasyonlu olarak cizilir ve baglanti yonunu gosterir. Bir cizgiye cift tiklayarak iki agentin bagini kaldirabilirsiniz.
 
 ## Derin Gorev Modu (Deep Task)
 

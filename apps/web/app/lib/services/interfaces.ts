@@ -12,7 +12,7 @@ export interface IStorageService {
   deleteChat(chatId: string): Promise<void>
   
   // Message operations
-  getMessages(chatId: string): Promise<Message[]>
+  getMessages(chatId: string, includeCompacted?: boolean): Promise<Message[]>
   createMessage(message: Omit<Message, 'id' | 'timestamp'>): Promise<Message>
   updateMessage(messageId: string, content: string): Promise<void>
   deleteMessage(messageId: string): Promise<void>
@@ -30,12 +30,17 @@ export interface IStorageService {
   updatePreferences(updates: Partial<UserPreferences>): Promise<void>
 }
 
+/** Structured content part for multimodal messages (vision) */
+export type MessageContentPart =
+  | { type: 'text'; text: string }
+  | { type: 'image_url'; image_url: { url: string; detail?: 'auto' | 'low' | 'high' } }
+
 /**
  * Chat message in OpenAI-compatible format (used across the app)
  */
 export interface ChatCompletionMessageParam {
   role: 'system' | 'user' | 'assistant' | 'tool'
-  content: string
+  content: string | MessageContentPart[]
   tool_calls?: ChatCompletionMessageToolCall[]
   tool_call_id?: string
 }
@@ -74,11 +79,15 @@ export interface ChatCompletionResult {
   usage: TokenUsage | null
 }
 
+/** Thinking/reasoning depth for models that support configurable reasoning */
+export type ThinkingLevel = 'off' | 'low' | 'medium' | 'high'
+
 /** Optional model hyperparameters for chat completion */
 export interface LLMGenerationOptions {
   temperature?: number
   max_tokens?: number
   top_p?: number
+  thinkingLevel?: ThinkingLevel
 }
 
 /**

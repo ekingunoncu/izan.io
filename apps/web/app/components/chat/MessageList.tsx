@@ -1,34 +1,53 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Bot, User, Wrench, Loader2, ExternalLink, ChevronDown, ChevronsRight } from 'lucide-react'
+import { Bot, User, Wrench, Loader2, ExternalLink, ChevronDown, ChevronsRight, Volume2, VolumeX } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { cn, stripThinkTags } from '~/lib/utils'
 import { fetchLinkPreview, type LinkPreviewData } from '~/lib/mcp/extension-bridge'
+import { CanvasBlock } from './CanvasBlock'
+import { ImageAttachment } from './ImageAttachment'
+import type { SpeechSynthesisHook } from '~/lib/hooks/use-speech-synthesis'
+import type { MessageAttachment } from '~/lib/db/schema'
 
 interface ChatMessage {
   id: string
   role: 'user' | 'assistant' | 'system'
   content: string
   timestamp?: number
+  attachments?: MessageAttachment[]
 }
 
 interface MessageListProps {
   messages: ChatMessage[]
   isGenerating?: boolean
+  tts?: SpeechSynthesisHook
+  speechLanguage?: string | null
 }
 
-/** Parse tool call, agent call, and agent response blocks from message content (strips <think> tags for display) */
+/** Canvas fence regex: ```canvas or ```html:canvas */
+const CANVAS_FENCE_RE = /```(?:canvas|html:canvas)\n([\s\S]*?)```/g
+
+/** Parse tool call, agent call, agent response, and canvas blocks from message content (strips <think> tags for display) */
 function parseContent(content: string): {
   toolCalls: string[]
   agentCalls: string[]
   agentResponses: string[]
+  canvasBlocks: string[]
   text: string
   isLoading: boolean
   loadingText?: string
 } {
   const cleaned = stripThinkTags(content)
-  const lines = cleaned.split('\n')
+
+  // Extract canvas blocks before line parsing
+  const canvasBlocks: string[] = []
+  const withoutCanvas = cleaned.replace(CANVAS_FENCE_RE, (_match, html: string) => {
+    canvasBlocks.push(html.trim())
+    return '' // Remove from text
+  })
+
+  const lines = withoutCanvas.split('\n')
   const toolCalls: string[] = []
   const agentCalls: string[] = []
   const agentResponses: string[] = []
@@ -86,7 +105,7 @@ function parseContent(content: string): {
     agentResponses.push(agentResponseLines.join('\n').trim())
   }
 
-  return { toolCalls, agentCalls, agentResponses, text: textLines.join('\n').trim(), isLoading, loadingText }
+  return { toolCalls, agentCalls, agentResponses, canvasBlocks, text: textLines.join('\n').trim(), isLoading, loadingText }
 }
 
 /** Humanize snake_case/kebab-case tool names → Title Case */
@@ -369,12 +388,16 @@ function MarkdownMessage({
   rawModeIds,
   onToggleRaw,
   showActions,
+  tts,
+  speechLanguage,
 }: {
   text: string
   messageId: string
   rawModeIds: Set<string>
   onToggleRaw: (id: string) => void
   showActions: boolean
+  tts?: SpeechSynthesisHook
+  speechLanguage?: string | null
 }) {
   const { t } = useTranslation('common')
   const isRaw = rawModeIds.has(messageId)
@@ -419,14 +442,35 @@ function MarkdownMessage({
       )}
       {showActions && (
         <div className="mt-2 flex justify-between items-center">
-          <button
-            type="button"
-            onClick={handleCopy}
-            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors py-0.5 -mb-0.5 cursor-pointer"
-            aria-label={t('chat.copy')}
-          >
-            {copied ? t('chat.copied') : t('chat.copy')}
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={handleCopy}
+              className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors py-0.5 -mb-0.5 cursor-pointer"
+              aria-label={t('chat.copy')}
+            >
+              {copied ? t('chat.copied') : t('chat.copy')}
+            </button>
+            {tts?.isSupported && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (tts.speakingMessageId === messageId) {
+                    tts.stop()
+                  } else {
+                    tts.speak(text, messageId, speechLanguage || undefined)
+                  }
+                }}
+                className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors py-0.5 -mb-0.5 cursor-pointer"
+                aria-label={tts.speakingMessageId === messageId ? t('chat.voiceStop') : t('chat.voiceSpeak')}
+              >
+                {tts.speakingMessageId === messageId
+                  ? <><VolumeX className="h-3 w-3" /> {t('chat.voiceStop')}</>
+                  : <><Volume2 className="h-3 w-3" /> {t('chat.voiceSpeak')}</>
+                }
+              </button>
+            )}
+          </div>
           <button
             type="button"
             onClick={() => onToggleRaw(messageId)}
@@ -461,11 +505,15 @@ function MessageBubble({
   rawModeIds,
   onToggleRaw,
   isStreaming,
+  tts,
+  speechLanguage,
 }: {
   message: ChatMessage
   rawModeIds: Set<string>
   onToggleRaw: (id: string) => void
   isStreaming?: boolean
+  tts?: SpeechSynthesisHook
+  speechLanguage?: string | null
 }) {
   const { t } = useTranslation('common')
   const isUser = message.role === 'user'
@@ -493,6 +541,20 @@ function MessageBubble({
 
       {isUser ? (
         <div className="min-w-0 max-w-[85%] sm:max-w-[80%]">
+          {/* User image attachments */}
+          {message.attachments && message.attachments.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mb-1.5 justify-end">
+              {message.attachments.map(att => (
+                <img
+                  key={att.id}
+                  src={`data:${att.mimeType};base64,${att.data}`}
+                  alt=""
+                  className="h-20 max-w-[160px] object-cover rounded-xl border border-primary/20"
+                  loading="lazy"
+                />
+              ))}
+            </div>
+          )}
           <div className="rounded-2xl px-3 py-2 sm:px-4 bg-primary text-primary-foreground">
             <p className="whitespace-pre-wrap break-words text-sm sm:text-base">{message.content}</p>
           </div>
@@ -529,6 +591,24 @@ function MessageBubble({
             <ToolLoadingIndicator loadingText={parsed.loadingText} />
           )}
 
+          {/* Canvas blocks */}
+          {parsed && parsed.canvasBlocks.length > 0 && (
+            <div className="space-y-2">
+              {parsed.canvasBlocks.map((html, i) => (
+                <CanvasBlock key={i} html={html} index={i} />
+              ))}
+            </div>
+          )}
+
+          {/* Image attachments from tool results */}
+          {message.attachments && message.attachments.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {message.attachments.map(att => (
+                <ImageAttachment key={att.id} attachment={att} />
+              ))}
+            </div>
+          )}
+
           {/* Text content */}
           {parsed && parsed.text ? (
             <MarkdownMessage
@@ -537,8 +617,10 @@ function MessageBubble({
               rawModeIds={rawModeIds}
               onToggleRaw={onToggleRaw}
               showActions={!isStreaming}
+              tts={tts}
+              speechLanguage={speechLanguage}
             />
-          ) : !parsed?.isLoading && !parsed?.toolCalls.length && !parsed?.agentCalls.length ? (
+          ) : !parsed?.isLoading && !parsed?.toolCalls.length && !parsed?.agentCalls.length && !parsed?.canvasBlocks.length ? (
             /* Empty assistant message (still generating) */
             <div className="rounded-2xl px-3 py-2 sm:px-4 bg-muted">
               <div className="flex items-center gap-1.5">
@@ -557,7 +639,7 @@ function MessageBubble({
   )
 }
 
-export function MessageList({ messages, isGenerating = false }: MessageListProps) {
+export function MessageList({ messages, isGenerating = false, tts, speechLanguage }: MessageListProps) {
   const { t } = useTranslation('common')
   const bottomRef = useRef<HTMLDivElement>(null)
   const [rawModeIds, setRawModeIds] = useState<Set<string>>(new Set())
@@ -601,6 +683,8 @@ export function MessageList({ messages, isGenerating = false }: MessageListProps
           rawModeIds={rawModeIds}
           onToggleRaw={handleToggleRaw}
           isStreaming={streamingMessageId === message.id}
+          tts={tts}
+          speechLanguage={speechLanguage}
         />
       ))}
       <div ref={bottomRef} />

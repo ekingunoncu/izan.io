@@ -188,20 +188,29 @@ function handler(event) {
   var request = event.request;
   var uri = request.uri;
 
-  // Root: 301 redirect to detected language
+  // Root: serve English content directly, only redirect for de/tr
   if (uri === '/') {
-    var lang = 'en';
     var al = request.headers['accept-language'];
     if (al) {
       var v = al.value.toLowerCase();
-      if (v.substring(0, 2) === 'de') lang = 'de';
-      else if (v.substring(0, 2) === 'tr') lang = 'tr';
+      if (v.substring(0, 2) === 'de') {
+        return {
+          statusCode: 301,
+          statusDescription: 'Moved Permanently',
+          headers: { location: { value: '/de' } }
+        };
+      }
+      if (v.substring(0, 2) === 'tr') {
+        return {
+          statusCode: 301,
+          statusDescription: 'Moved Permanently',
+          headers: { location: { value: '/tr' } }
+        };
+      }
     }
-    return {
-      statusCode: 301,
-      statusDescription: 'Moved Permanently',
-      headers: { location: { value: '/' + lang } }
-    };
+    // English or unknown: serve /index.html (prerendered English content)
+    request.uri = '/index.html';
+    return request;
   }
 
   // Directory → index.html rewrite
@@ -213,7 +222,7 @@ function handler(event) {
   return request;
 }
       `.trim()),
-      comment: 'Root 301 redirect + rewrite path to index.html for React Router prerendered routes',
+      comment: 'Root serves English content, redirects de/tr + rewrite path to index.html for React Router prerendered routes',
     })
 
     const distribution = new cloudfront.Distribution(this, 'Distribution', {

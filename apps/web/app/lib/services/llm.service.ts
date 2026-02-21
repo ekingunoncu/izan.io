@@ -4,6 +4,8 @@ import type {
   ChatCompletionTool,
   ChatCompletionResult,
   LLMGenerationOptions,
+  MessageContentPart,
+  ThinkingLevel,
   TokenUsage,
 } from './interfaces'
 
@@ -35,23 +37,33 @@ export class LLMNetworkError extends Error {
   }
 }
 
+/** Extract text content from a message (handles both string and array content) */
+function getTextContent(content: string | MessageContentPart[]): string {
+  if (typeof content === 'string') return content
+  return content
+    .filter((p): p is { type: 'text'; text: string } => p.type === 'text')
+    .map(p => p.text)
+    .join('\n')
+}
+
 /**
  * Normalize messages for APIs that only accept [user, assistant] roles.
  * Merges system message content into the first user message.
+ * Preserves structured (multimodal) content for vision support.
  */
 function normalizeMessagesForStrictRoles(
   messages: ChatCompletionMessageParam[],
-): Array<{ role: 'user' | 'assistant'; content: string }> {
+): Array<{ role: 'user' | 'assistant'; content: string | MessageContentPart[] }> {
   const systemParts: string[] = []
-  const chatOnly: Array<{ role: 'user' | 'assistant'; content: string }> = []
+  const chatOnly: Array<{ role: 'user' | 'assistant'; content: string | MessageContentPart[] }> = []
 
   for (const msg of messages) {
     const role = msg.role as string
-    const content = typeof msg.content === 'string' ? msg.content : ''
     if (role === 'system') {
-      if (content) systemParts.push(content)
+      const text = getTextContent(msg.content)
+      if (text) systemParts.push(text)
     } else if (role === 'user' || role === 'assistant') {
-      chatOnly.push({ role, content })
+      chatOnly.push({ role, content: msg.content })
     }
     // Skip tool/function messages for plain chat
   }
@@ -65,6 +77,14 @@ function normalizeMessagesForStrictRoles(
 
   const first = chatOnly[0]
   if (first.role === 'user') {
+    // Prepend system content to the first user message
+    if (Array.isArray(first.content)) {
+      // Structured content: prepend system as a text part
+      return [
+        { role: 'user', content: [{ type: 'text' as const, text: systemContent }, ...first.content] },
+        ...chatOnly.slice(1),
+      ]
+    }
     return [
       { role: 'user', content: systemContent + '\n\n' + first.content },
       ...chatOnly.slice(1),
@@ -209,6 +229,53 @@ export class LLMService implements ILLMService {
       }
     }
     if (options?.top_p != null) body.top_p = options.top_p
+    this.applyThinkingOptions(body, options?.thinkingLevel, responsesApi)
+  }
+
+  /** Apply thinking/reasoning level options based on provider */
+  private applyThinkingOptions(body: Record<string, unknown>, level?: ThinkingLevel, responsesApi = false): void {
+    if (!level || level === 'off') return
+    const p = this.provider
+    const m = (this.model ?? '').toLowerCase()
+
+    // OpenAI o-series: reasoning_effort
+    if (p === 'openai' && (m.startsWith('o1') || m.startsWith('o3') || m.startsWith('o4'))) {
+      if (responsesApi) {
+        body.reasoning = { effort: level }
+      } else {
+        body.reasoning_effort = level
+      }
+      return
+    }
+
+    // Google Gemini: thinkingConfig with budget
+    if (p === 'google') {
+      const budgetMap: Record<string, number> = { low: 1024, medium: 8192, high: 24576 }
+      body.thinking = { thinking_budget: budgetMap[level] }
+      return
+    }
+
+    // Qwen (Alibaba): enable_thinking + thinking_budget
+    if (p === 'qwen') {
+      const budgetMap: Record<string, number> = { low: 1024, medium: 4096, high: 16384 }
+      body.enable_thinking = true
+      body.thinking_budget = budgetMap[level]
+      return
+    }
+
+    // OpenRouter: reasoning.effort
+    if (p === 'openrouter') {
+      body.reasoning = { effort: level }
+      return
+    }
+
+    // Groq, TogetherAI, Fireworks, DeepInfra - Qwen3 models need enable_thinking
+    if ((p === 'groq' || p === 'togetherai' || p === 'fireworks' || p === 'deepinfra' || p === 'cerebras') && m.includes('qwen')) {
+      body.enable_thinking = true
+      return
+    }
+
+    // DeepSeek, Perplexity, others: no-op (always reasons, no control)
   }
 
   /** Fetch with abort and network error handling */
@@ -518,6 +585,15 @@ export class LLMService implements ILLMService {
     }
     this.activeControllers.clear()
   }
+}
+
+/** Check if an error is retryable via fallback model (network, 429, 500+) */
+export function isRetryableForFallback(error: unknown): boolean {
+  if (error instanceof LLMNetworkError) return true
+  if (error instanceof LLMApiError) {
+    if (error.status === 429 || error.status >= 500) return true
+  }
+  return false
 }
 
 export const llmService = new LLMService()

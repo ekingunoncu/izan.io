@@ -18,7 +18,6 @@ import {
   Lightbulb,
   Plus,
   Trash2,
-  Link2,
   Unlink,
   RotateCcw,
   Server,
@@ -26,6 +25,7 @@ import {
   ChevronRight,
   Cog,
   Download,
+  Workflow,
 } from 'lucide-react'
 import {
   AlertDialog,
@@ -96,6 +96,7 @@ export function AgentEditPanel() {
   const [resetDialogOpen, setResetDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [linkedAgentSearch, setLinkedAgentSearch] = useState('')
+  const [showLinkAgentPicker, setShowLinkAgentPicker] = useState(false)
   // Sync local state when current agent changes (e.g. user switches agent)
   useEffect(() => {
     if (!currentAgent) return;
@@ -641,44 +642,81 @@ export function AgentEditPanel() {
                 )
               })}
 
-              {linkedAgentsList.length === 0 && (
+              {linkedAgentsList.length === 0 && !showLinkAgentPicker && (
                 <p className="text-sm text-muted-foreground text-center py-2">{t('agents.noLinkedAgents')}</p>
               )}
 
-              {availableAgentsForLinking.length > 3 && (
-                <div className="relative">
-                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                  <Input
-                    value={linkedAgentSearch}
-                    onChange={(e) => setLinkedAgentSearch(e.target.value)}
-                    placeholder={t('agents.searchAgents')}
-                    className="pl-8 h-8 text-sm"
-                  />
-                </div>
+              {/* Link an Agent button / picker */}
+              {availableAgentsForLinking.length > 0 && !showLinkAgentPicker && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="w-full gap-2 text-xs"
+                  onClick={() => setShowLinkAgentPicker(true)}
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  {t('agents.linkAgent')}
+                </Button>
               )}
 
-              {availableAgentsForLinking.length > 0 && (
-                <div className="pt-1 space-y-1">
-                  {filteredAvailableAgents.map(agent => {
-                    const Icon = getIcon(agent.icon)
-                    return (
-                      <button
-                        key={agent.id}
-                        onClick={() => {
-                          setLinkedAgentIds(prev => [...prev, agent.id])
-                          setLinkedAgentSearch('')
-                        }}
-                        className="w-full flex items-center gap-2 rounded-lg border border-dashed p-2.5 text-sm text-muted-foreground hover:bg-muted transition-colors cursor-pointer"
-                      >
-                        <Link2 className="h-3.5 w-3.5 flex-shrink-0" />
-                        <Icon className="h-4 w-4 flex-shrink-0" />
-                        <span className="truncate">{getAgentDisplayName(agent, t)}</span>
-                      </button>
-                    )
-                  })}
-                  {filteredAvailableAgents.length === 0 && linkedAgentSearch && (
-                    <p className="text-xs text-muted-foreground text-center py-2">{t('agents.noSearchResults')}</p>
+              <Link to={`/${lang}/orchestration`}>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="w-full gap-2 text-xs text-muted-foreground"
+                >
+                  <Workflow className="h-3.5 w-3.5" />
+                  {t('agents.flowEditor')}
+                </Button>
+              </Link>
+
+              {showLinkAgentPicker && availableAgentsForLinking.length > 0 && (
+                <div className="rounded-lg border p-2.5 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium">{t('agents.linkAgent')}</span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      onClick={() => { setShowLinkAgentPicker(false); setLinkedAgentSearch('') }}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                  {availableAgentsForLinking.length > 3 && (
+                    <div className="relative">
+                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                      <Input
+                        value={linkedAgentSearch}
+                        onChange={(e) => setLinkedAgentSearch(e.target.value)}
+                        placeholder={t('agents.searchAgents')}
+                        className="pl-8 h-8 text-sm"
+                      />
+                    </div>
                   )}
+                  <div className="max-h-48 overflow-y-auto space-y-1">
+                    {filteredAvailableAgents.map(agent => {
+                      const Icon = getIcon(agent.icon)
+                      return (
+                        <button
+                          key={agent.id}
+                          onClick={() => {
+                            setLinkedAgentIds(prev => [...prev, agent.id])
+                            setLinkedAgentSearch('')
+                          }}
+                          className="w-full flex items-center gap-2 rounded-lg p-2 text-sm text-muted-foreground hover:bg-muted transition-colors cursor-pointer"
+                        >
+                          <Icon className="h-4 w-4 flex-shrink-0" />
+                          <span className="truncate">{getAgentDisplayName(agent, t)}</span>
+                        </button>
+                      )
+                    })}
+                    {filteredAvailableAgents.length === 0 && linkedAgentSearch && (
+                      <p className="text-xs text-muted-foreground text-center py-2">{t('agents.noSearchResults')}</p>
+                    )}
+                  </div>
                 </div>
               )}
 

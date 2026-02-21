@@ -21,10 +21,13 @@ Sie benoetigen nicht zwingend ein kostenpflichtiges Abonnement. Mehrere Anbieter
 
 ## Hauptfunktionen
 
-- **Agenten** -- spezialisierte KI-Assistenten mit vordefinierten Tools und System-Prompts
+- **80+ integrierte Agenten** -- spezialisierte Assistenten fuer Social Media, Forschung, Shopping, Reisen, Finanzen und mehr
 - **MCP-Server** -- erweiterbares Tool-System, das im Browser laeuft
 - **Makros** -- aufgezeichnete Browser-Automatisierungen, die Agenten als Tools ausfuehren koennen
 - **Benutzerdefinierte Agenten** -- erstellen Sie eigene Agenten mit individuellen Anweisungen und Tool-Zuweisungen
+- **Orchestrierungs-Editor** -- visuelle Arbeitsflaeche fuer Multi-Agent-Workflows mit Drag & Drop, Auto-Layout und Drill-Down-Navigation
+- **Ersatzmodell** -- automatischer Wechsel auf einen Backup-Anbieter bei Ausfall des primaeren Modells
+- **Geplante Ausfuehrungen** -- Agenten zeitgesteuert ausfuehren, einmalig oder wiederkehrend
 - **Analytik** -- Token-Nutzung und Kosten nach Modell, Agent und Konversation verfolgen
 - **Agent Export/Import** -- Agenten-Konfigurationen als JSON-Dateien teilen
 

@@ -1,4 +1,4 @@
-import { db, type Chat, type Message, type UserPreferences, type UsageRecord, DEFAULT_PREFERENCES } from '../db'
+import { db, type Chat, type Message, type MessageAttachment, type UserPreferences, type UsageRecord, DEFAULT_PREFERENCES } from '../db'
 import type { IStorageService } from './interfaces'
 
 /**
@@ -59,11 +59,18 @@ export class StorageService implements IStorageService {
 
   // ============ Message Operations ============
 
-  async getMessages(chatId: string): Promise<Message[]> {
-    return db.messages
+  async getMessages(chatId: string, includeCompacted = false): Promise<Message[]> {
+    const messages = await db.messages
       .where('chatId')
       .equals(chatId)
       .sortBy('timestamp')
+    if (includeCompacted) return messages
+    return messages.filter(m => !m.compacted)
+  }
+
+  /** Mark messages as compacted (soft-delete for compaction) */
+  async markMessagesCompacted(messageIds: string[]): Promise<void> {
+    await db.messages.where('id').anyOf(messageIds).modify({ compacted: true })
   }
 
   async createMessage(message: Omit<Message, 'id' | 'timestamp'>): Promise<Message> {
@@ -91,6 +98,10 @@ export class StorageService implements IStorageService {
 
   async updateMessage(messageId: string, content: string): Promise<void> {
     await db.messages.update(messageId, { content })
+  }
+
+  async updateMessageAttachments(messageId: string, attachments: MessageAttachment[]): Promise<void> {
+    await db.messages.update(messageId, { attachments })
   }
 
   async deleteMessage(messageId: string): Promise<void> {
