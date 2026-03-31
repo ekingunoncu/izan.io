@@ -1,115 +1,48 @@
 # Contributing to izan.io
 
-Thank you for your interest in contributing! This guide will help you get started.
-
-## Code of Conduct
-
-By participating, you agree to our [Code of Conduct](./CODE_OF_CONDUCT.md).
+Thank you for your interest in contributing!
 
 ## Getting Started
-
-### Prerequisites
-
-- Node.js 20+
-- npm 10+
-
-### Setup
 
 ```bash
 git clone https://github.com/ekingunoncu/izan.io.git
 cd izan.io
 npm install
-npm run dev
+npm run build
 ```
-
-The web app runs at `http://localhost:5173`.
 
 ### Project Structure
 
 ```
 izan.io/
-├── apps/web/              # React + Vite web app
+├── apps/
+│   ├── web/              # Landing page + docs (izan.io)
+│   └── zihin.io/         # Tool marketplace (zihin.io)
 ├── packages/
-│   ├── agent-core/        # Agent routing, tool execution
-│   ├── mcp-client/         # MCP protocol client
-│   ├── mcp-browser-servers/   # Browser MCP servers (client-side)
-│   ├── mcp-extension-servers/ # Chrome extension MCP servers
-│   └── infra/              # AWS CDK infrastructure
+│   ├── extension/        # Chrome extension (MCP server, side panel, CDP)
+│   └── bridge/           # Bridge CLI (stdio <-> WebSocket)
 ```
 
-## How to Contribute
+## Pull Requests
 
-### Reporting Bugs
+1. Fork the repo and create a branch from `main`
+2. Name your branch: `feat/add-x`, `fix/issue-123`, `docs/update-readme`
+3. Keep PRs focused and small
+4. Test locally
+5. Push and open a Pull Request
 
-Use the [bug report template](https://github.com/ekingunoncu/izan.io/issues/new?template=bug_report.md) on GitHub Issues.
-
-### Requesting Features
-
-Use the [feature request template](https://github.com/ekingunoncu/izan.io/issues/new?template=feature_request.md) on GitHub Issues.
-
-### Pull Requests
-
-1. **Fork** the repo and create a branch from `main`
-2. **Name your branch** descriptively: `feature/add-x`, `fix/issue-123`, `docs/update-readme`
-3. **Make your changes** - keep PRs focused and small
-4. **Test** your changes locally
-5. **Push** and open a Pull Request
-
-### Commit Convention
-
-Use clear, descriptive commit messages:
+## Commit Convention
 
 ```
-feat: add Anthropic provider support
-fix: resolve dark mode flash on refresh
-docs: update contributing guide
-refactor: simplify tool-calling loop
+feat: add new browser API method
+fix: resolve CDP connection timeout
+docs: update getting started guide
+refactor: simplify tool executor
 chore: update dependencies
 ```
 
 Prefix with: `feat`, `fix`, `docs`, `refactor`, `chore`, `test`, `style`, `perf`.
 
-## Code Style
-
-- **TypeScript** with strict mode
-- **ESLint** for linting (`npm run lint`)
-- **Tailwind CSS** for styling
-- Use meaningful variable and function names
-- Keep files focused and reasonably sized
-
-## Running Tests
-
-```bash
-# Browser MCP server tests
-npm run test:crypto
-
-# Lint all packages
-npm run lint
-```
-
-## Adding a New MCP Server
-
-**Browser servers** (`mcp-browser-servers/`):
-1. Create a new directory under `packages/mcp-browser-servers/your-server/`
-2. Add `config.json`, `index.ts`, and `tools.ts`
-3. Run `npm run discover:builtin -w @izan/mcp-client` to regenerate builtin servers
-
-**Extension servers** (`mcp-extension-servers/servers/`):
-1. Create a new directory under `packages/mcp-extension-servers/servers/your-server/`
-2. Add `config.json`, `index.ts`, and `tools.ts`
-3. Run `npm run discover:builtin -w @izan/mcp-client` to regenerate builtin servers
-
-## Adding a New LLM Provider
-
-1. Add provider config in `apps/web/app/lib/providers/index.ts`
-2. Add endpoint in `apps/web/app/lib/llm-providers.ts` if needed
-3. Add i18n translations in all 3 locale files (`en`, `tr`, `de`)
-
 ## License
 
 By contributing, you agree that your contributions will be licensed under [AGPL-3.0](./LICENSE).
-
-This means:
-- Your contributions remain open source
-- Derivative works must also be open source
-- Network-hosted derivatives must provide source code access

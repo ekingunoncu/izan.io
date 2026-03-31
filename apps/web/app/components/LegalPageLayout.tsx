@@ -1,5 +1,4 @@
 import { Link, useParams } from "react-router";
-import { ChevronDown } from "lucide-react";
 import { IzanLogo } from "~/components/ui/izan-logo";
 import { Button } from "~/components/ui/button";
 import type { SupportedLanguage } from "~/i18n";
@@ -94,9 +93,9 @@ export function LegalPageLayout({
               onClick={() => setLangOpen(!langOpen)}
             >
               <span className="text-sm font-medium">{currentLang}</span>
-              <ChevronDown
-                className={cn("h-4 w-4 transition-transform", langOpen && "rotate-180")}
-              />
+              <span className={cn("text-xs transition-transform inline-block", langOpen && "rotate-180")}>
+                &#9662;
+              </span>
             </Button>
             {langOpen && (
               <div className="legal-lang-dropdown absolute right-0 top-full mt-2 py-1.5 rounded-xl border bg-card shadow-xl shadow-black/5 min-w-[7.5rem] overflow-hidden">

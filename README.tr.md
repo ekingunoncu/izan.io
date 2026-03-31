@@ -2,153 +2,98 @@
   <img src="thumbnail.png" alt="izan.io" width="280" />
 </p>
 
+<h1 align="center">izan.io</h1>
+<p align="center">
+  <strong>Chrome Extension MCP Server - Herhangi Bir AI'a Tarayici Kontrolu Ver</strong>
+</p>
+
 <p align="center">
   <img src="https://img.shields.io/badge/license-AGPL--3.0-blue.svg" alt="AGPL-3.0" />
   <img src="https://img.shields.io/badge/TypeScript-007ACC?logo=typescript&logoColor=white" alt="TypeScript" />
-  <img src="https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black" alt="React 19" />
   <img src="https://img.shields.io/badge/MCP-Protocol-green" alt="MCP" />
-</p>
-
-<h1 align="center">izan.io</h1>
-<p align="center">
-  <strong>Yerel AI Asistan - Open Source, Şeffaf, Özgür</strong>
-</p>
-<p align="center">
-  <em>Bilgelik • Anlayış • Akıl</em>
 </p>
 
 <p align="center">
   <a href="README.md">English</a> · <a href="README.de.md">Deutsch</a>
 </p>
-<p align="center">
-  <a href="https://izan.io">🌐 Canlı deneyin → izan.io</a>
-</p>
-
-<br />
 
 <p align="center">
-  <a href="https://www.youtube.com/watch?v=jyZmNIUs-oE">
-    <img src="https://img.youtube.com/vi/jyZmNIUs-oE/maxresdefault.jpg" alt="izan.io demo" width="720" />
-  </a>
+  <a href="https://izan.io"><strong>izan.io</strong></a> · <a href="https://zihin.io"><strong>Tool Marketplace</strong></a>
 </p>
 
 ---
 
-## ⚡ Ne bu?
+## izan.io Nedir?
 
-**izan.io**, tüm AI modellerini tek platformda toplayan, gizliliğinizi ön planda tutan açık kaynak bir AI asistan platformudur. Kendi API anahtarlarınızla kendi verilerinizle çalışın.
+izan.io, tarayicinizi **MCP server**'a donusturen bir Chrome extension'dir. Claude Desktop, Cursor, VS Code, Claude Code gibi MCP client'lar baglantip tarayicinizi tool'lar araciligiyla kontrol edebilir.
 
-> 🚨 **Copyleft:** Bu proje [AGPL-3.0](./LICENSE) altındadır. Fork/ değiştirir/ türev oluşturursanız **kodunuzu da açık kaynak yapmak zorundasınız**. Ağ üzerinden sunulan türevler kaynak kodu sağlamalıdır. Detay: [LICENSE](./LICENSE)
-
----
-
-## ✨ Öne Çıkanlar
-
-| Özellik | Açıklama |
-|--------|----------|
-| 🔐 **Gizlilik** | API anahtarları yalnızca tarayıcınızda. Sunucularımıza gönderilmez. |
-| 🧠 **Çoklu Sağlayıcı** | 17+ AI sağlayıcı desteklenir (aşağıda). |
-| 🤖 **Akıllı Ajanlar** | MCP ile bağlı ajanlar - web araması, kod, vb. |
-| 🔗 **Çoklu Agent Orkestrasyonu** | Agentları birbirine bağlayın - birinin çıktısı diğerinin girdisi olur. 3 seviye derinliğe kadar. |
-| 🌐 **MCP** | Hazır ve özel MCP sunucuları. |
-| 🎬 **Aksiyon Kaydedici** | Tarayıcı aksiyonları kaydedin, CSS veya erişilebilirlik ağacı ile veri çıkarın ve MCP aracı olarak kaydedin; kod gerekmez ([docs/visual-mcp-tool-builder.md](docs/visual-mcp-tool-builder.md)). |
-| ⏱️ **Uzun Süreli Görevler** | Agentlar karmaşık araştırma ve çok adımlı iş akışlarında arka planda çalışır. Sonuçlar hazır olduğunda bildirim alın. |
-| 📅 **Zamanlanmış Otomasyonlar** | Agent görevlerini zamanlayıcıyla çalıştırın - fiyat takibi, veri toplama ve tekrarlayan iş akışları otomatik pilotta. |
+- **JavaScript ile tool yaz** - `browser` API'si ile tikla, yaz, gezin, veri cikar
+- **Topluluk tool'larini yukle** - [zihin.io](https://zihin.io) marketplace'inden
+- **Oturumlariniz sizde kalir** - extension authenticate tarayicinizin icinde calisir
 
 ---
 
-## 🔌 Desteklenen Sağlayıcılar
+## Hizli Baslangic
 
-**OpenAI** · **Google** (Gemini) · **Groq** · **Mistral** · **xAI** (Grok) · **DeepSeek** · **Qwen** (DashScope) · **Together AI** · **Fireworks AI** · **Perplexity** · **Cerebras** · **Deep Infra** · **Cohere** · **Moonshot AI** (Kimi) · **MiniMax** · **OpenRouter** (yüzlerce model) · **Ollama** (yerel) · **Custom** (OpenAI uyumlu uç noktalar)
+**1. Chrome Extension'i kurun** (Chrome Web Store).
+
+**2. MCP client config'inize ekleyin:**
+
+```json
+{
+  "mcpServers": {
+    "izan": {
+      "command": "npx",
+      "args": ["izan-mcp"]
+    }
+  }
+}
+```
+
+**3. Hazir.** Extension otomatik baglanir. Dahili tool'lar (`web_fetch`, `accessibility_snapshot`) kullanima hazir. Yan panelden kendi tool'larinizi olusturun veya marketplace'den yukleyin.
 
 ---
 
-## 🏗️ Mimari
+## Mimari
+
+```
+MCP Client (Claude Desktop, Cursor, VS Code)
+  | stdio (JSON-RPC)
+  v
+packages/bridge/  (izan-mcp CLI)
+  | WebSocket (localhost:3717)
+  v
+Chrome Extension (packages/extension/)
+  | CDP (chrome.debugger)
+  v
+Browser Tab (herhangi bir site)
+```
 
 ```
 izan.io/
-├── apps/web/                    # React + Vite web uygulaması
+├── apps/
+│   ├── web/              # Landing page + dokumantasyon (izan.io)
+│   └── zihin.io/         # Tool marketplace (zihin.io)
 ├── packages/
-│   ├── agent-core/             # Ajan yönlendirme, araç çalıştırma, LLM-bağımsız
-│   ├── mcp-client/              # MCP protokol istemcisi
-│   ├── mcp-browser-servers/     # Tarayıcı MCP sunucuları (TabServerTransport)
-│   │   ├── crypto-analysis/     # CoinGecko, teknik göstergeler
-│   │   ├── domain-check/       # RDAP + DoH domain uygunluğu
-│   │   └── general/            # get_time, random_number, uuid, calculate, generate_password
-│   ├── mcp-extension-servers/   # Chrome extension: yan panel kayıt, dinamik MCP, CDP otomasyon
-│   └── infra/                   # CDK altyapı (S3/CloudFront, /mcp-tools/ dahil)
+│   ├── extension/        # Chrome extension (MCP server, yan panel, CDP otomasyon)
+│   └── bridge/           # Bridge CLI (stdio <-> WebSocket)
 ```
-
-**Aksiyon kaydedici:** Extension (`mcp-extension-servers`) yan panelde tıklama, yazma, scroll kaydı; URL/path parametreleme; CSS veya erişilebilirlik ağacı (ARIA rolleri, tam sayfa snapshot) ile veri çıkarma sunar. Element seçici aktif kayıt olmadan da çalışır. Kayıtlar MCP aracı tanımına dönüşür (JSON olarak IndexedDB veya S3'te). Ajanlara her zaman hazır `accessibility_snapshot` aracı sunulur. Bkz. [docs/visual-mcp-tool-builder.md](docs/visual-mcp-tool-builder.md).
 
 ---
 
-## 🚀 Hızlı Başlangıç
-
-**Gereksinimler:** Node.js 18+, npm 10+
+## Gelistirme
 
 ```bash
 git clone https://github.com/ekingunoncu/izan.io.git
 cd izan.io
 npm install
-npm run dev
+npm run build
 ```
 
-`http://localhost:5173` adresini açın. Ayarlardan sağlayıcı ve API anahtarı ekleyip sohbet etmeye başlayın.
-
-`apps/web/.env.example` dosyasına bakın. API anahtarları tarayıcıda saklanır.
+`packages/extension/dist` klasorunu Chrome'a unpacked extension olarak yukleyin (`chrome://extensions`, gelistirici modu).
 
 ---
 
-## 📦 MCP Sunucuları
+## Lisans
 
-| Tür | Paket | Açıklama |
-|-----|-------|----------|
-| **Tarayıcı** | `mcp-browser-servers/` | crypto-analysis, domain-check (RDAP/DoH), general. TabServerTransport, istemci tarafı. |
-| **Extension** | `mcp-extension-servers/` | Chrome extension: yan panel (React + shadcn), aksiyon kayıt, element seçici (CSS + erişilebilirlik), dinamik MCP sunucusu, dahili `accessibility_snapshot` aracı. Kullanıcı araçları JSON olarak saklanır. |
-
-**MCP kaydı:** Extension'ı kurun, yan paneli açın, **Kaydet**'e tıklayın; aksiyon kaydedici tıklama, yazma, scroll ve URL parametrelerini yakalar. **Liste** / **Tekil** ile CSS, veya **A11y** ile ARIA rolleri ya da tam sayfa erişilebilirlik ağacı kullanarak veri çıkarın. **Tamamla** akışı web uygulamasına gönderir; Ayarlar'dan MCP aracı olarak kaydedin.
-
----
-
-## 🌐 Deploy
-
-`npm run deploy:infra` veya GitHub Actions (main'e push) ile deploy. Stack S3 + CloudFront kullanır.
-
-**Özel domain (izan.io, www.izan.io):** Bu domainler için **us-east-1**'de ACM sertifikası alıp `IZAN_DOMAIN_CERTIFICATE_ARN` ile verin. DNS (A/CNAME) elle yönetilir.
-
----
-
-## 🛠️ Teknoloji
-
-React 19 · React Router 7 · Vite 7 · Tailwind CSS 4 · Zustand · IndexedDB (Dexie) · react-i18next · npm workspaces + Turbo
-
----
-
-## 🤝 Katkı
-
-PR'lar memnuniyetle karşılanır. Detaylar: [CONTRIBUTING.md](./CONTRIBUTING.md)
-
-1. Fork → branch → commit → push → PR
-2. Katkılar AGPL-3.0 ile uyumlu olacaktır.
-
----
-
-## 📜 Lisans
-
-**GNU Affero General Public License v3.0 (AGPL-3.0)**
-
-- ✅ Kullan, değiştir, dağıt
-- ⚠️ Türevler AGPL-3.0 altında olmalı
-- ⚠️ Ağ üzerinden sunulan türevler kaynak sağlamalı
-
-Detay: [LICENSE](./LICENSE)
-
----
-
-<p align="center">
-  <strong>izan.io</strong> - Wisdom • Understanding • Intellect
-</p>
-<p align="center">
-  <sub>Fork et, geliştir, paylaş.</sub>
-</p>
+**AGPL-3.0** - Detay: [LICENSE](./LICENSE).

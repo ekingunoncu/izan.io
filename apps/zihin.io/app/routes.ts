@@ -7,11 +7,9 @@ export default [
   // Language-prefixed routes
   route(":lang", "routes/lang-layout.tsx", [
     index("routes/home.tsx"),
-    route("agents", "routes/agents.tsx"),
-    route("agents/:slug", "routes/agent-detail.tsx"),
+    route("tools", "routes/tools.tsx"),
+    route("tools/:slug", "routes/tool-detail.tsx"),
     route("submit", "routes/submit.tsx"),
   ]),
 
-  // Auth callback (no lang prefix)
-  route("auth/callback", "routes/auth-callback.tsx"),
 ] satisfies RouteConfig;

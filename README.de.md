@@ -2,153 +2,98 @@
   <img src="thumbnail.png" alt="izan.io" width="280" />
 </p>
 
+<h1 align="center">izan.io</h1>
+<p align="center">
+  <strong>Chrome Extension MCP Server - Gib jeder KI die Macht, einen Browser zu nutzen</strong>
+</p>
+
 <p align="center">
   <img src="https://img.shields.io/badge/license-AGPL--3.0-blue.svg" alt="AGPL-3.0" />
   <img src="https://img.shields.io/badge/TypeScript-007ACC?logo=typescript&logoColor=white" alt="TypeScript" />
-  <img src="https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black" alt="React 19" />
   <img src="https://img.shields.io/badge/MCP-Protocol-green" alt="MCP" />
 </p>
 
-<h1 align="center">izan.io</h1>
 <p align="center">
-  <strong>Lokaler KI-Assistent - Open Source, Transparent, Frei</strong>
-</p>
-<p align="center">
-  <em>Weisheit • Verständnis • Intellekt</em>
+  <a href="README.md">English</a> · <a href="README.tr.md">Turkce</a>
 </p>
 
 <p align="center">
-  <a href="README.md">English</a> · <a href="README.tr.md">Türkçe</a>
-</p>
-<p align="center">
-  <a href="https://izan.io">🌐 Live ausprobieren → izan.io</a>
-</p>
-
-<br />
-
-<p align="center">
-  <a href="https://www.youtube.com/watch?v=jyZmNIUs-oE">
-    <img src="https://img.youtube.com/vi/jyZmNIUs-oE/maxresdefault.jpg" alt="izan.io demo" width="720" />
-  </a>
+  <a href="https://izan.io"><strong>izan.io</strong></a> · <a href="https://zihin.io"><strong>Tool Marketplace</strong></a>
 </p>
 
 ---
 
-## ⚡ Was ist das?
+## Was ist izan.io?
 
-**izan.io** ist eine Open-Source-KI-Assistenten-Plattform, die alle KI-Modelle an einem Ort vereint und deine Privatsphäre priorisiert. Nutze deine eigenen API-Keys und deine eigenen Daten.
+izan.io ist eine Chrome-Extension, die deinen Browser in einen **MCP-Server** verwandelt. Jeder MCP-Client - Claude Desktop, Cursor, VS Code, Claude Code - kann sich verbinden und deinen Browser uber Tools steuern.
 
-> 🚨 **Copyleft:** Dieses Projekt steht unter [AGPL-3.0](./LICENSE). Beim Forken, Ändern oder Ableiten **musst du deinen Code ebenfalls Open Source machen**. Netzwerk-weit bereitgestellte Ableitungen müssen den Quellcode bereitstellen. Details: [LICENSE](./LICENSE)
-
----
-
-## ✨ Highlights
-
-| Feature | Beschreibung |
-|---------|--------------|
-| 🔐 **Privatsphäre** | API-Keys nur im Browser. Nie an unsere Server gesendet. |
-| 🧠 **Multi-Provider** | 17+ KI-Provider unterstützt (siehe unten). |
-| 🤖 **Smarte Agents** | MCP-vernetzte Agents - Websuche, Code, und mehr. |
-| 🔗 **Multi-Agent-Orchestrierung** | Agenten verketten - die Ausgabe eines Agenten wird zur Eingabe des nächsten. Bis zu 3 Ebenen tief. |
-| 🌐 **MCP** | Integrierte und eigene MCP-Server. |
-| 🎬 **Aktions-Recorder** | Browser-Aktionen aufzeichnen, Daten per CSS oder Accessibility-Tree extrahieren und als MCP-Tools speichern; kein Code nötig ([docs/visual-mcp-tool-builder.md](docs/visual-mcp-tool-builder.md)). |
-| ⏱️ **Langzeitaufgaben** | Agenten arbeiten im Hintergrund an komplexer Recherche und mehrstufigen Workflows. Benachrichtigung, wenn Ergebnisse bereit sind. |
-| 📅 **Geplante Automatisierungen** | Agent-Aufgaben nach Zeitplan ausführen - Preisverfolgung, Datenerfassung und wiederkehrende Workflows auf Autopilot. |
+- **Schreibe Tools** in JavaScript mit der `browser`-API (klicken, tippen, navigieren, Daten extrahieren)
+- **Installiere Tools** vom [zihin.io](https://zihin.io) Community-Marketplace
+- **Deine Sitzungen bleiben privat** - die Extension lauft in deinem authentifizierten Browser
 
 ---
 
-## 🔌 Unterstützte Provider
+## Schnellstart
 
-**OpenAI** · **Google** (Gemini) · **Groq** · **Mistral** · **xAI** (Grok) · **DeepSeek** · **Qwen** (DashScope) · **Together AI** · **Fireworks AI** · **Perplexity** · **Cerebras** · **Deep Infra** · **Cohere** · **Moonshot AI** (Kimi) · **MiniMax** · **OpenRouter** (Hunderte Modelle) · **Ollama** (lokal) · **Custom** (OpenAI-kompatible Endpoints)
+**1. Chrome Extension installieren** aus dem Chrome Web Store.
+
+**2. In die MCP-Client-Konfiguration einfugen:**
+
+```json
+{
+  "mcpServers": {
+    "izan": {
+      "command": "npx",
+      "args": ["izan-mcp"]
+    }
+  }
+}
+```
+
+**3. Fertig.** Die Extension verbindet sich automatisch. Eingebaute Tools (`web_fetch`, `accessibility_snapshot`) sind sofort einsatzbereit. Offne das Seitenpanel, um eigene Tools zu erstellen oder aus dem Marketplace zu installieren.
 
 ---
 
-## 🏗️ Architektur
+## Architektur
+
+```
+MCP Client (Claude Desktop, Cursor, VS Code)
+  | stdio (JSON-RPC)
+  v
+packages/bridge/  (izan-mcp CLI)
+  | WebSocket (localhost:3717)
+  v
+Chrome Extension (packages/extension/)
+  | CDP (chrome.debugger)
+  v
+Browser Tab (jede Website)
+```
 
 ```
 izan.io/
-├── apps/web/                    # React + Vite Web-App
+├── apps/
+│   ├── web/              # Landing Page + Dokumentation (izan.io)
+│   └── zihin.io/         # Tool Marketplace (zihin.io)
 ├── packages/
-│   ├── agent-core/             # Agent-Routing, Tool-Ausführung, LLM-agnostisch
-│   ├── mcp-client/              # MCP-Protokoll-Client
-│   ├── mcp-browser-servers/     # Browser-MCP-Server (TabServerTransport)
-│   │   ├── crypto-analysis/     # CoinGecko, technische Indikatoren
-│   │   ├── domain-check/       # RDAP + DoH Domain-Verfügbarkeit
-│   │   └── general/            # get_time, random_number, uuid, calculate, generate_password
-│   ├── mcp-extension-servers/   # Chrome-Extension: Seitenpanel-Recorder, dynamischer MCP, CDP-Automatisierung
-│   └── infra/                   # CDK-Infra (S3/CloudFront, inkl. /mcp-tools/)
+│   ├── extension/        # Chrome Extension (MCP Server, Seitenpanel, CDP-Automatisierung)
+│   └── bridge/           # Bridge CLI (stdio <-> WebSocket)
 ```
-
-**Aktions-Recorder:** Die Extension (`mcp-extension-servers`) bietet ein Seitenpanel zum Aufzeichnen von Klicks, Tippen und Scrollen; URL-/Pfad-Parametrisierung; Datenextraktion per CSS-Selektoren oder Accessibility-Tree (ARIA-Rollen, Ganzseitig-Snapshot). Der Element-Picker funktioniert auch ohne aktive Aufnahme. Aufzeichnungen werden zu MCP-Tool-Definitionen (als JSON in IndexedDB oder von S3). Ein integriertes `accessibility_snapshot`-Tool steht Agents jederzeit zur Verfügung. Siehe [docs/visual-mcp-tool-builder.md](docs/visual-mcp-tool-builder.md).
 
 ---
 
-## 🚀 Schnellstart
-
-**Voraussetzungen:** Node.js 18+, npm 10+
+## Entwicklung
 
 ```bash
 git clone https://github.com/ekingunoncu/izan.io.git
 cd izan.io
 npm install
-npm run dev
+npm run build
 ```
 
-Öffne `http://localhost:5173`. In den Einstellungen Provider und API-Key hinzufügen, dann chatten.
-
-Siehe `apps/web/.env.example` für optionale Umgebungsvariablen. API-Keys werden im Browser gespeichert.
+Lade `packages/extension/dist` als entpackte Extension in Chrome (`chrome://extensions`, Entwicklermodus).
 
 ---
 
-## 📦 MCP-Server
+## Lizenz
 
-| Typ | Paket | Beschreibung |
-|-----|-------|--------------|
-| **Browser** | `mcp-browser-servers/` | crypto-analysis, domain-check (RDAP/DoH), general. TabServerTransport, clientseitig. |
-| **Extension** | `mcp-extension-servers/` | Chrome-Extension: Seitenpanel (React + shadcn), Aktions-Recorder, Element-Picker (CSS + Accessibility), dynamischer MCP-Server, integriertes `accessibility_snapshot`-Tool. Nutzer-Tools als JSON gespeichert. |
-
-**MCP aufzeichnen:** Extension installieren, Seitenpanel öffnen, **Aufzeichnen** klicken; der Aktions-Recorder erfasst Klicks, Tippen, Scroll und URL-Parameter. **Liste** / **Einzeln** für CSS-Extraktion, oder **A11y** für ARIA-Rollen bzw. Ganzseitig-Accessibility-Tree. **Fertig** sendet den Ablauf an die Web-App; in den Einstellungen als MCP-Tool speichern.
-
----
-
-## 🌐 Deploy
-
-Deployment per `npm run deploy:infra` oder GitHub Actions (Push auf `main`). Stack nutzt S3 + CloudFront.
-
-**Eigene Domain (izan.io, www.izan.io):** `IZAN_DOMAIN_CERTIFICATE_ARN` auf ein ACM-Zertifikat in **us-east-1** setzen. DNS (A/CNAME) manuell verwalten.
-
----
-
-## 🛠️ Tech-Stack
-
-React 19 · React Router 7 · Vite 7 · Tailwind CSS 4 · Zustand · IndexedDB (Dexie) · react-i18next · npm workspaces + Turbo
-
----
-
-## 🤝 Beitragen
-
-PRs willkommen. Siehe [CONTRIBUTING.md](./CONTRIBUTING.md) für Richtlinien.
-
-1. Fork → Branch → Commit → Push → PR
-2. Mit Beiträgen stimmst du AGPL-3.0 zu.
-
----
-
-## 📜 Lizenz
-
-**GNU Affero General Public License v3.0 (AGPL-3.0)**
-
-- ✅ Verwenden, Ändern, Verteilen
-- ⚠️ Ableitungen müssen unter AGPL-3.0 stehen
-- ⚠️ Netzwerk-gehostete Ableitungen müssen Quellcode bereitstellen
-
-Siehe [LICENSE](./LICENSE).
-
----
-
-<p align="center">
-  <strong>izan.io</strong> - Wisdom • Understanding • Intellect
-</p>
-<p align="center">
-  <sub>Fork it, build it, share it.</sub>
-</p>
+**AGPL-3.0** - Siehe [LICENSE](./LICENSE).

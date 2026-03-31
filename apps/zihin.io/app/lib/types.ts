@@ -1,17 +1,10 @@
-export interface AgentAuthor {
+export interface ToolAuthor {
   githubUsername: string;
   displayName: string;
   avatarUrl: string;
 }
 
-export interface RequiredMCP {
-  name: string;
-  url: string;
-  description: string;
-  headers?: Record<string, string>;
-}
-
-export interface MacroToolParameter {
+export interface ToolParameter {
   name: string;
   type: "string" | "number" | "boolean";
   description: string;
@@ -20,81 +13,46 @@ export interface MacroToolParameter {
   default?: string | number | boolean;
 }
 
-export interface MacroToolStep {
-  action: string;
-  label?: string;
-  continueOnError?: boolean;
-  [key: string]: unknown;
-}
-
-export interface MacroTool {
-  name: string;
-  displayName: string;
-  description: string;
-  version: string;
-  parameters: MacroToolParameter[];
-  steps: MacroToolStep[];
-  lanes?: Array<{ name: string; steps: MacroToolStep[] }>;
-  viewport?: { width: number; height: number };
-}
-
-export interface MacroServer {
-  name: string;
-  description: string;
-  category: string;
-  tools: MacroTool[];
-}
-
-export interface MarketplaceAgent {
+export interface MarketplaceTool {
   id: string;
   slug: string;
   name: string;
+  displayName: string;
   description: string;
-  icon: string;
-  basePrompt: string;
   category: string;
-  author: AgentAuthor;
+  author: ToolAuthor;
   version: string;
   tags: string[];
+  parameters: ToolParameter[];
+  code: string;
   createdAt: string;
   updatedAt: string;
-  examplePrompts: string[];
-  requiredMCPs?: RequiredMCP[];
-  macros?: { servers: MacroServer[] };
-  implicitMCPIds?: string[];
-  extensionMCPIds?: string[];
-  temperature?: number;
-  maxTokens?: number;
-  topP?: number;
-  color?: string;
 }
 
-export interface AgentIndexEntry {
+export interface ToolIndexEntry {
   slug: string;
   name: string;
+  displayName: string;
   description: string;
-  icon: string;
   category: string;
-  author: AgentAuthor;
+  author: ToolAuthor;
   tags: string[];
   updatedAt: string;
 }
 
-export interface AgentFile {
+export interface ToolFile {
   schemaVersion: number;
-  agent: MarketplaceAgent;
+  tool: MarketplaceTool;
 }
 
-export const AGENT_CATEGORIES = [
-  "Development",
-  "Writing",
-  "Marketing",
-  "Data",
-  "Design",
+export const TOOL_CATEGORIES = [
+  "Social Media",
   "Productivity",
-  "Education",
+  "E-Commerce",
   "Finance",
+  "Education",
+  "Entertainment",
+  "Travel",
+  "Development",
   "Other",
 ] as const;
-
-export type AgentCategory = (typeof AGENT_CATEGORIES)[number];

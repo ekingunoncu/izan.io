@@ -9,33 +9,23 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { BUILTIN_AGENT_DEFINITIONS } from "@izan/agents";
-
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const LANGUAGES = ["tr", "en", "de"] as const;
 const DEFAULT_LANG = "en";
 
-/** Built-in agent slugs for sitemap (from packages/agents) */
-const AGENT_SLUGS = BUILTIN_AGENT_DEFINITIONS.map((a) => a.slug);
-
 /** Doc slugs for sitemap */
 const DOC_SLUGS = [
   "getting-started",
-  "agents",
-  "mcp-servers",
-  "macros",
   "chrome-extension",
-  "api-keys-privacy",
-  "providers",
-  "analytics",
-  "scheduled-plans",
+  "tools",
+  "bridge",
+  "marketplace",
 ];
 
-/** Routes to include in sitemap (under :lang). Excludes chat (client-only), settings (private). */
+/** Routes to include in sitemap (under :lang). */
 const SITEMAP_ROUTES = [
   { path: "", priority: 1.0, changefreq: "weekly" as const },
-  { path: "agents", priority: 0.8, changefreq: "weekly" as const },
   { path: "docs", priority: 0.8, changefreq: "weekly" as const },
   { path: "privacy", priority: 0.6, changefreq: "monthly" as const },
   { path: "terms", priority: 0.6, changefreq: "monthly" as const },
@@ -88,34 +78,15 @@ ${xDefault}
     }
   }
 
-  // Agent detail pages: /:lang/agents/:agentSlug
-  for (const slug of AGENT_SLUGS) {
-    const path = `agents/${slug}`;
-    for (const lang of LANGUAGES) {
-      const loc = `${SITE_URL}/${lang}/${path}`;
-      const alternateLinks = LANGUAGES.map(
-        (l) => `    <xhtml:link rel="alternate" hreflang="${l}" href="${SITE_URL}/${l}/${path}" />`
-      ).join("\n");
-      const xDefault = `    <xhtml:link rel="alternate" hreflang="x-default" href="${SITE_URL}/${DEFAULT_LANG}/${path}" />`;
-      urls.push(`  <url>
-    <loc>${loc}</loc>
-${alternateLinks}
-${xDefault}
-    <priority>0.7</priority>
-    <changefreq>weekly</changefreq>
-  </url>`);
-    }
-  }
-
   // Doc detail pages: /:lang/docs/:slug
   for (const slug of DOC_SLUGS) {
-    const path = `docs/${slug}`;
+    const docPath = `docs/${slug}`;
     for (const lang of LANGUAGES) {
-      const loc = `${SITE_URL}/${lang}/${path}`;
+      const loc = `${SITE_URL}/${lang}/${docPath}`;
       const alternateLinks = LANGUAGES.map(
-        (l) => `    <xhtml:link rel="alternate" hreflang="${l}" href="${SITE_URL}/${l}/${path}" />`
+        (l) => `    <xhtml:link rel="alternate" hreflang="${l}" href="${SITE_URL}/${l}/${docPath}" />`
       ).join("\n");
-      const xDefault = `    <xhtml:link rel="alternate" hreflang="x-default" href="${SITE_URL}/${DEFAULT_LANG}/${path}" />`;
+      const xDefault = `    <xhtml:link rel="alternate" hreflang="x-default" href="${SITE_URL}/${DEFAULT_LANG}/${docPath}" />`;
       urls.push(`  <url>
     <loc>${loc}</loc>
 ${alternateLinks}

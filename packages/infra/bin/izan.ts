@@ -1,29 +1,27 @@
 #!/usr/bin/env node
-/**
- * @izan/infra - CDK App Entry Point
- *
- * Deploys two stacks:
- *   - IzanStack: izan.io (S3 + CloudFront + API Gateway + Lambda)
- *   - ZihinStack: zihin.io agent marketplace (S3 + CloudFront + OAuth Lambda)
- */
-
 import * as cdk from 'aws-cdk-lib'
-import { IzanStack } from '../lib/izan-stack'
-import { ZihinStack } from '../lib/zihin-stack'
+import { StaticSiteStack } from '../lib/static-site-stack'
+import { resolve } from 'path'
 
 const app = new cdk.App()
 
 const env = {
   account: process.env.CDK_DEFAULT_ACCOUNT,
-  region: process.env.CDK_DEFAULT_REGION || 'eu-west-1',
+  region: process.env.CDK_DEFAULT_REGION || 'eu-central-1',
 }
 
-new IzanStack(app, 'IzanStack', {
+new StaticSiteStack(app, 'IzanStack', {
   env,
-  description: 'izan.io - AI Agent Platform',
+  domainName: 'izan.io',
+  alternateNames: ['www.izan.io'],
+  buildOutputPath: resolve(__dirname, '../../../apps/web/build/client'),
+  certificateArn: process.env.IZAN_DOMAIN_CERTIFICATE_ARN,
 })
 
-new ZihinStack(app, 'ZihinStack', {
+new StaticSiteStack(app, 'ZihinStack', {
   env,
-  description: 'zihin.io - Agent Marketplace',
+  domainName: 'zihin.io',
+  alternateNames: ['www.zihin.io'],
+  buildOutputPath: resolve(__dirname, '../../../apps/zihin.io/build/client'),
+  certificateArn: process.env.ZIHIN_DOMAIN_CERTIFICATE_ARN,
 })

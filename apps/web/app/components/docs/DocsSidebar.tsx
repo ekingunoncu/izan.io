@@ -1,6 +1,5 @@
 import { Link, useParams } from "react-router";
 import { useTranslation } from "react-i18next";
-import { ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { DOC_CATEGORIES, DOC_ENTRIES } from "~/docs/manifest";
 
@@ -29,9 +28,9 @@ export function DocsSidebar({ onNavigate }: DocsSidebarProps) {
               className="flex w-full items-center justify-between px-3 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
             >
               {t(cat.titleKey)}
-              <ChevronDown
-                className={`h-3.5 w-3.5 transition-transform ${isCollapsed ? "-rotate-90" : ""}`}
-              />
+              <span className={`text-[10px] transition-transform ${isCollapsed ? "-rotate-90" : ""}`}>
+                &#9662;
+              </span>
             </button>
             {!isCollapsed && (
               <div className="flex flex-col gap-0.5">

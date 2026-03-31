@@ -1,18 +1,5 @@
 import { useParams } from "react-router";
 import { useTranslation } from "react-i18next";
-import {
-  FileCheck,
-  ShieldCheck,
-  AlertTriangle,
-  Power,
-  Mail,
-} from "lucide-react";
-import {
-  Card,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "~/components/ui/card";
 import { LegalPageLayout } from "~/components/LegalPageLayout";
 import type { Route } from "./+types/terms";
 import { SUPPORTED_LANGUAGES } from "~/i18n";
@@ -69,24 +56,16 @@ export function meta({ params }: Route.MetaArgs) {
   ];
 }
 
-const SECTION_ICONS = {
-  acceptance: FileCheck,
-  useOfService: ShieldCheck,
-  disclaimer: AlertTriangle,
-  termination: Power,
-  contact: Mail,
-} as const;
-
 export default function Terms() {
   const { t } = useTranslation("legal");
   const { lang } = useParams();
 
   const sections = [
-    { key: "acceptance", title: t("terms.sections.acceptance") },
-    { key: "useOfService", title: t("terms.sections.useOfService") },
-    { key: "disclaimer", title: t("terms.sections.disclaimer") },
-    { key: "termination", title: t("terms.sections.termination") },
-    { key: "contact", title: t("terms.sections.contact") },
+    "acceptance",
+    "useOfService",
+    "disclaimer",
+    "termination",
+    "contact",
   ] as const;
 
   return (
@@ -99,31 +78,16 @@ export default function Terms() {
       otherPageLink={{ to: `/${lang}/privacy`, label: t("nav.privacy") }}
     >
       <article className="space-y-5">
-        {sections.map(({ key, title }) => {
-          const Icon = SECTION_ICONS[key];
-          return (
-            <Card
-              key={key}
-              className="legal-section-card group rounded-2xl border-2 border-border/60 bg-card/80 shadow-sm hover:border-blue-500/25 hover:shadow-xl hover:shadow-blue-500/5"
-            >
-              <CardHeader className="p-6 sm:p-7">
-                <div className="flex items-start gap-5">
-                  <div className="legal-icon-badge flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-400/80 to-blue-500/60 text-blue-900 dark:from-blue-500/20 dark:to-blue-600/10 dark:text-blue-400">
-                    <Icon className="h-5 w-5" strokeWidth={2} />
-                  </div>
-                  <div className="space-y-2 min-w-0 flex-1">
-                    <CardTitle className="text-lg font-semibold tracking-tight">
-                      {title}
-                    </CardTitle>
-                    <CardDescription className="text-[15px] leading-[1.65] text-muted-foreground">
-                      {t(`terms.sections.${key}Desc`)}
-                    </CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-            </Card>
-          );
-        })}
+        {sections.map((key) => (
+          <section key={key} className="rounded-xl border p-6">
+            <h2 className="text-lg font-semibold mb-2">
+              {t(`terms.sections.${key}`)}
+            </h2>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              {t(`terms.sections.${key}Desc`)}
+            </p>
+          </section>
+        ))}
       </article>
     </LegalPageLayout>
   );

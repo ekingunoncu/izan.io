@@ -1,31 +1,52 @@
-# Baslarken
+# Baslangic
 
-izan.io, 17'den fazla LLM saglayicisini tek bir arayuzde birlestiren **acik kaynakli bir AI agent platformudur**. Model Context Protocol (MCP) arac destegi sayesinde agentlariniz web'de arama yapabilir, hesaplama gerceklestirebilir, domain sorgulayabilir ve cok daha fazlasini yapabilir. Platform **gizlilik oncelikli** olarak tasarlanmistir: API anahtarlariniz ve konusmalariniz tamamen tarayicinizda kalir, hicbir sunucuya gonderilmez.
+izan.io, tarayicinizi bir MCP sunucusuna donusturen bir Chrome eklentisidir. Claude Desktop, Cursor ve VS Code gibi MCP istemcileri, bir kopru CLI araciligiyla baglanir ve tarayiciyi otomatizan araclar calistirir.
 
-## Hizli Baslangic
+## 1. Chrome Eklentisini Kurun
 
-1. **izan.io'yu ziyaret edin** -- Hesap olusturmaniza gerek yoktur.
-2. **Ayarlar** sayfasina gidin ve kullanmak istediginiz saglayicinin API anahtarini ekleyin.
-3. Bir **agent** secin (ornegin Genel Asistan veya Domain Uzmani).
-4. Sohbet ekranindan mesajinizi yazin ve **konusmayi baslatin**.
+izan.io eklentisini [Chrome Web Magazasi](https://chromewebstore.google.com)'ndan yukleyin. Kurulduktan sonra tarayici arac cubugunda izan.io simgesini goreceksiniz.
 
-## Ucretsiz Saglayicilar
+## 2. Kopruyu Kurun
 
-Hemen denemek icin ucretli bir API anahtarina ihtiyaciniz yok. Su saglayicilar ucretsiz katman sunmaktadir:
+Kopru (`izan-mcp`), MCP istemcilerini Chrome eklentisine baglar. Calistirmak icin:
 
-- **Google AI Studio** -- Gunde 250 istek
-- **Groq** -- Hizli ve ucretsiz erisim
-- **Cerebras** -- Gunde 1 milyon token
-- **Ollama** -- Kendi bilgisayarinizda calisan tamamen ucretsiz yerel modeller
+```bash
+npx izan-mcp
+```
 
-## Temel Ozellikler
+Bu komut, MCP istemciniz ile eklenti arasindaki mesajlari ileten yerel bir WebSocket sunucusu baslatir.
 
-- **80+ Yerlesik Agent**: Sosyal medya, arastirma, alisveris, seyahat, finans ve daha fazlasi icin uzman asistanlar
-- **MCP Sunuculari**: Agentlara arac kazandiran standart protokol sunuculari
-- **Makrolar**: Chrome eklentisi ile kaydedilen tarayici otomasyon makrolari
-- **Ozel Agentlar**: Kendi sistem prompt'unuz, model parametreleriniz ve arac atamalarinizla ozellestirilmis agentlar
-- **Orkestrasyon Editoru**: Coklu agent is akislarini surukle-birak, otomatik duzenleme ve detaya inme ile gorsel olarak tasarlayin
-- **Yedek Model**: Birincil model basarisiz oldugunda otomatik olarak yedek provider'a gecis
-- **Zamanlanmis Planlar**: Agentlari tek seferlik veya tekrarlayan zamanlamalarla otomasyona alma
-- **Analitik**: Model, agent ve sohbet bazinda token kullanimi ve maliyet takibi
-- **Agent Dis/Ic Aktarim**: Agent yapilandirmalarini JSON dosyasi olarak paylasma
+## 3. MCP Istemcinizi Yapilandirin
+
+izan.io'yu MCP istemci yapilandirmaniza ekleyin. Claude Desktop icin `claude_desktop_config.json` dosyasini duzenleyin:
+
+```json
+{
+  "mcpServers": {
+    "izan": {
+      "command": "npx",
+      "args": ["izan-mcp"]
+    }
+  }
+}
+```
+
+Kaydettikten sonra MCP istemcinizi yeniden baslatin.
+
+## 4. Yerlesik Bir Araci Deneyin
+
+MCP istemcinizi acin ve yerlesik araclardan birini deneyin:
+
+- **web_fetch** -- Bir URL'nin icerigini getirir
+- **accessibility_snapshot** -- Mevcut sayfanin erisilebilirlik agacini dondurur
+
+Ornek istem: *"web_fetch kullanarak https://example.com icerigini getir"*
+
+Eklenti, istegi tarayicide calistirir ve sonucu MCP istemcinize dondurur.
+
+## Sonraki Adimlar
+
+- [Chrome Eklentisi](/docs/chrome-extension) -- Eklenti yan panelini ve arac yonetimini ogrenin
+- [Araclar](/docs/tools) -- Tarayici API'si ile ozel araclar olusturun
+- [Kopru](/docs/bridge) -- Farkli MCP istemcileri icin kopruyu yapilandirin
+- [Pazar Yeri](/docs/marketplace) -- Topluluk araclarini kesfedip yukleyin

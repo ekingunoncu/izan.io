@@ -14,7 +14,7 @@ const DEFAULT_LANG = "en";
 
 const SITEMAP_ROUTES = [
   { path: "", priority: 1.0, changefreq: "weekly" as const },
-  { path: "agents", priority: 0.8, changefreq: "weekly" as const },
+  { path: "tools", priority: 0.8, changefreq: "weekly" as const },
   { path: "submit", priority: 0.7, changefreq: "monthly" as const },
 ];
 

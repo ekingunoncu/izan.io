@@ -9,10 +9,8 @@ import {
 } from "react-router";
 
 import "./index.css";
-import { ClientInit } from "~/components/ClientInit";
 import { CookieConsent } from "~/components/CookieConsent";
 import { TooltipProvider } from "~/components/ui/tooltip";
-import { GitHubFeedbackWidget } from "~/components/GitHubFeedbackWidget";
 import { GoogleAnalytics } from "~/components/GoogleAnalytics";
 import { MicrosoftClarity } from "~/components/MicrosoftClarity";
 import i18n, {
@@ -31,7 +29,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
     langMatch?.params?.lang && isSupportedLanguage(langMatch.params.lang)
       ? langMatch.params.lang
       : null;
-  // When route has no lang (e.g. /chat), use stored preference; otherwise default to "en"
   const lang =
     langFromParams ??
     (typeof globalThis.window === "undefined"
@@ -39,9 +36,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       : getStoredLanguagePreference() ?? "en");
 
   // Sync i18n with URL lang so /en/agents shows English (BOTH server and client).
-  // Must run synchronously before render to avoid hydration mismatch.
   if (i18n.language !== lang) {
-    // eslint-disable-next-line react-hooks/immutability -- intentional sync for i18n hydration
     i18n.language = lang;
   }
 
@@ -49,7 +44,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
     i18n.changeLanguage(lang);
   }, [lang]);
 
-  // Persist lang when from URL params so /chat and redirects use it
+  // Persist lang when from URL params so redirects use it
   useEffect(() => {
     if (langFromParams) {
       setStoredLanguagePreference(langFromParams);
@@ -82,12 +77,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </head>
       <body>
         <TooltipProvider delayDuration={300}>
-          <ClientInit />
           <GoogleAnalytics />
           <MicrosoftClarity />
           {children}
-        <GitHubFeedbackWidget />
-        <CookieConsent />
+          <CookieConsent />
         </TooltipProvider>
         <ScrollRestoration />
         <Scripts />
@@ -101,7 +94,6 @@ export function HydrateFallback() {
     <div className="flex items-center justify-center min-h-screen">
       <div className="text-center">
         <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-        <p className="mt-4 text-muted-foreground">Yükleniyor...</p>
       </div>
     </div>
   );

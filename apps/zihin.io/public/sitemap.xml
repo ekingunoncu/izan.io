@@ -33,31 +33,31 @@
   </url>
 
   <url>
-    <loc>https://zihin.io/tr/agents</loc>
-    <xhtml:link rel="alternate" hreflang="tr" href="https://zihin.io/tr/agents" />
-    <xhtml:link rel="alternate" hreflang="en" href="https://zihin.io/en/agents" />
-    <xhtml:link rel="alternate" hreflang="de" href="https://zihin.io/de/agents" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://zihin.io/en/agents" />
+    <loc>https://zihin.io/tr/tools</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://zihin.io/tr/tools" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://zihin.io/en/tools" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://zihin.io/de/tools" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://zihin.io/en/tools" />
     <priority>0.8</priority>
     <changefreq>weekly</changefreq>
   </url>
 
   <url>
-    <loc>https://zihin.io/en/agents</loc>
-    <xhtml:link rel="alternate" hreflang="tr" href="https://zihin.io/tr/agents" />
-    <xhtml:link rel="alternate" hreflang="en" href="https://zihin.io/en/agents" />
-    <xhtml:link rel="alternate" hreflang="de" href="https://zihin.io/de/agents" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://zihin.io/en/agents" />
+    <loc>https://zihin.io/en/tools</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://zihin.io/tr/tools" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://zihin.io/en/tools" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://zihin.io/de/tools" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://zihin.io/en/tools" />
     <priority>0.8</priority>
     <changefreq>weekly</changefreq>
   </url>
 
   <url>
-    <loc>https://zihin.io/de/agents</loc>
-    <xhtml:link rel="alternate" hreflang="tr" href="https://zihin.io/tr/agents" />
-    <xhtml:link rel="alternate" hreflang="en" href="https://zihin.io/en/agents" />
-    <xhtml:link rel="alternate" hreflang="de" href="https://zihin.io/de/agents" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://zihin.io/en/agents" />
+    <loc>https://zihin.io/de/tools</loc>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://zihin.io/tr/tools" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://zihin.io/en/tools" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://zihin.io/de/tools" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://zihin.io/en/tools" />
     <priority>0.8</priority>
     <changefreq>weekly</changefreq>
   </url>

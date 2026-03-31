@@ -1,36 +1,52 @@
 # Getting Started
 
-## What is izan.io?
+izan.io is a Chrome extension that turns your browser into an MCP server. External MCP clients like Claude Desktop, Cursor, and VS Code connect through a bridge CLI and can call tools that automate the browser.
 
-izan.io is an **open-source AI assistant platform** that brings together 17+ LLM providers in a single interface. It supports **MCP (Model Context Protocol) tools**, allowing agents to perform real actions like checking domains, generating passwords, running calculations, and executing browser automations.
+## 1. Install the Chrome Extension
 
-Your **API keys and conversations never leave your browser**. Everything is stored locally in IndexedDB -- no account required, no backend database.
+Install the izan.io extension from the [Chrome Web Store](https://chromewebstore.google.com). Once installed, you will see the izan.io icon in your browser toolbar.
 
-## Quick Start
+## 2. Install the Bridge
 
-1. Visit [izan.io](https://izan.io)
-2. Open **Settings** from the sidebar
-3. Add an **API key** for your preferred provider
-4. Pick an **agent** from the agents page (or use the General Assistant)
-5. Start chatting
+The bridge (`izan-mcp`) connects MCP clients to the Chrome extension. Run:
 
-## Free Tier Providers
+```bash
+npx izan-mcp
+```
 
-You can get started without spending anything. Several providers offer generous free tiers:
+This starts a local WebSocket server that relays messages between your MCP client and the extension.
 
-- **Google AI Studio** -- 250 requests per day
-- **Groq** -- free access to fast inference
-- **Cerebras** -- 1 million tokens per day
-- **Ollama** -- fully free, runs models locally on your machine
+## 3. Configure Your MCP Client
 
-## Key Features
+Add izan.io to your MCP client configuration. For Claude Desktop, edit `claude_desktop_config.json`:
 
-- **80+ Built-in Agents** -- specialized assistants for social media, research, shopping, travel, finance, and more
-- **MCP Servers** -- connect any MCP-compatible tool server to expand agent capabilities
-- **Macros** -- record browser automations and let agents execute them
-- **Custom Agents** -- create your own agents with tailored instructions, model settings, and tool assignments
-- **Flow Orchestration** -- visual canvas for designing multi-agent workflows with drag-and-drop, auto-layout, and drill-down navigation
-- **Fallback Model** -- automatic failover to a backup provider when the primary model fails
-- **Scheduled Plans** -- automate agents on a schedule with one-time or recurring execution
-- **Analytics** -- track token usage and costs per model, agent, and conversation
-- **Agent Export/Import** -- share agent configurations as JSON files
+```json
+{
+  "mcpServers": {
+    "izan": {
+      "command": "npx",
+      "args": ["izan-mcp"]
+    }
+  }
+}
+```
+
+Restart your MCP client after saving.
+
+## 4. Try a Built-in Tool
+
+Open your MCP client and try one of the built-in tools:
+
+- **web_fetch** -- Fetches the content of a URL
+- **accessibility_snapshot** -- Returns the accessibility tree of the current page
+
+Example prompt: *"Use web_fetch to get the content of https://example.com"*
+
+The extension will execute the request in the browser and return the result to your MCP client.
+
+## Next Steps
+
+- [Chrome Extension](/docs/chrome-extension) -- Learn about the extension side panel and tool management
+- [Tools](/docs/tools) -- Create custom tools with the browser API
+- [Bridge](/docs/bridge) -- Configure the bridge for different MCP clients
+- [Marketplace](/docs/marketplace) -- Browse and install community tools

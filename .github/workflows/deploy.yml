@@ -10,60 +10,65 @@ env:
 
 jobs:
   deploy:
+    name: Build & Deploy
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "npm"
+      - run: npm ci
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build extension & create download ZIP
-        run: npm run prepare:extension-download
-
-      - name: Build web app
+      # Build everything
+      - run: npm run build:extension
+      - run: npm run build -w @izan/web
         env:
-          # Web build (Vite) - set via GitHub Secrets or leave empty
           VITE_GA_MEASUREMENT_ID: ${{ secrets.VITE_GA_MEASUREMENT_ID }}
           VITE_CLARITY_PROJECT_ID: ${{ secrets.VITE_CLARITY_PROJECT_ID }}
-          PUBLIC_SITE_URL: ${{ secrets.PUBLIC_SITE_URL || 'https://izan.io' }}
-          # Same-origin: leave empty. Separate API: set CloudFront URL + /api
-          VITE_MCP_BASE_URL: ${{ secrets.VITE_MCP_BASE_URL }}
-          # zihin.io GitHub OAuth
+      - run: npm run build -w @izan/zihin
+        env:
           VITE_GITHUB_CLIENT_ID: ${{ secrets.VITE_GITHUB_CLIENT_ID }}
-        run: npm run build
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+      # Deploy to AWS via CDK
+      - uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_DEFAULT_REGION || 'eu-central-1' }}
-
-      - name: Deploy IzanStack to AWS
+      - name: CDK Deploy
+        working-directory: packages/infra
+        run: npx cdk deploy --all --require-approval never
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION || 'eu-central-1' }}
-          NAMECHEAP_API_USER: ${{ secrets.NAMECHEAP_API_USER }}
-          NAMECHEAP_API_KEY: ${{ secrets.NAMECHEAP_API_KEY }}
-          NAMECHEAP_CLIENT_IP: ${{ secrets.NAMECHEAP_CLIENT_IP }}
-          NAMECHEAP_API_URL: ${{ secrets.NAMECHEAP_API_URL }}
           IZAN_DOMAIN_CERTIFICATE_ARN: ${{ secrets.IZAN_DOMAIN_CERTIFICATE_ARN }}
-        run: cd packages/infra && npx cdk deploy IzanStack --require-approval never
-
-      - name: Deploy ZihinStack to AWS
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION || 'eu-central-1' }}
-          VITE_GITHUB_CLIENT_ID: ${{ secrets.VITE_GITHUB_CLIENT_ID }}
-          CLIENT_SECRET_GITHUB: ${{ secrets.CLIENT_SECRET_GITHUB }}
           ZIHIN_DOMAIN_CERTIFICATE_ARN: ${{ secrets.ZIHIN_DOMAIN_CERTIFICATE_ARN }}
-        run: cd packages/infra && npx cdk deploy ZihinStack --require-approval never
+
+  publish-bridge:
+    name: Publish izan-mcp
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          registry-url: "https://registry.npmjs.org"
+      - run: npm ci
+      - run: npm run build -w izan-mcp
+      - name: Check if version changed
+        id: version
+        working-directory: packages/bridge
+        run: |
+          CURRENT=$(node -p "require('./package.json').version")
+          PUBLISHED=$(npm view izan-mcp version 2>/dev/null || echo "0.0.0")
+          if [ "$CURRENT" != "$PUBLISHED" ]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+      - name: Publish to npm
+        if: steps.version.outputs.changed == 'true'
+        working-directory: packages/bridge
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

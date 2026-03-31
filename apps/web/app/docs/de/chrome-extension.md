@@ -1,47 +1,36 @@
 # Chrome-Erweiterung
 
-Die izan.io Chrome-Erweiterung ermoeglicht die **Aufzeichnung und Ausfuehrung von Makros** -- Browser-Automatisierungen, die Agenten als Tools nutzen koennen. Ohne die Erweiterung stehen Makro-Funktionen nicht zur Verfuegung.
+Die izan.io Chrome-Erweiterung betreibt einen MCP-Server direkt in Ihrem Browser. MCP-Clients verbinden sich ueber die Bridge-CLI und koennen Tools aufrufen, die mit Webseiten interagieren.
 
-## Installation
+## Was die Erweiterung macht
 
-### Herunterladen & Installieren (Empfohlen)
-
-1. [**Erweiterungs-ZIP herunterladen**](/downloads/izan-macros.zip)
-2. Entpacken Sie die heruntergeladene Datei
-3. Oeffnen Sie `chrome://extensions` in Chrome
-4. Aktivieren Sie den **Entwicklermodus** (Schalter oben rechts)
-5. Klicken Sie auf **Entpackte Erweiterung laden**
-6. Waehlen Sie den entpackten Ordner aus
-7. Das Erweiterungssymbol erscheint in der Symbolleiste -- fertig!
-
-### Chrome Web Store
-
-Die Erweiterung wird in Kuerze im Chrome Web Store verfuegbar sein. Verwenden Sie bis dahin die obige Download-Methode.
-
-### Aus Quellcode bauen
-
-Klonen Sie das Repository und fuehren Sie `npm run build:extension` aus. Laden Sie den Build-Ordner anschliessend unter `chrome://extensions` als entpackte Erweiterung.
+Die Erweiterung stellt Browser-Automatisierungsfunktionen als MCP-Tools bereit. Wenn ein MCP-Client ein Tool aufruft, fuehrt die Erweiterung es im Browser-Kontext aus -- sie navigiert Seiten, klickt auf Elemente, extrahiert Daten und gibt Ergebnisse zurueck.
 
 ## Seitenpanel
 
-Das Seitenpanel ist die zentrale Oberflaeche der Erweiterung:
+Klicken Sie auf das izan.io-Symbol in der Symbolleiste, um das Seitenpanel zu oeffnen. Von hier aus koennen Sie:
 
-1. Klicken Sie auf das **izan.io-Erweiterungssymbol** in der Chrome-Symbolleiste.
-2. Das Seitenpanel oeffnet sich am rechten Bildschirmrand.
-3. Hier finden Sie die **Aufnahmesteuerungen**, eine Liste gespeicherter Makros und Statusanzeigen.
+- **Tools erstellen** -- Neue Tools mit dem integrierten Editor schreiben
+- **Tools bearbeiten** -- Bestehende Tool-Definitionen aendern
+- **Tools testen** -- Tools manuell mit Testparametern ausfuehren
+- **Tools verwalten** -- Tools aktivieren, deaktivieren oder loeschen
 
-## Aufnahme-Workflow
+Jedes Tool hat einen Namen, eine Beschreibung, Parameterdefinitionen und einen JavaScript-Funktionskoerper.
 
-1. Oeffnen Sie das Seitenpanel und klicken Sie auf **Aufnehmen**.
-2. Navigieren Sie zur gewuenschten Website und **interagieren** Sie wie gewohnt -- Klicks, Texteingaben, Scrollen und Seitenwechsel werden erfasst.
-3. Klicken Sie auf **Stopp**, um die Aufnahme zu beenden.
-4. Vergeben Sie einen **Namen** und speichern Sie das Makro.
-5. Das Makro steht nun in izan.io zur Zuweisung an Agenten bereit.
+## Tool-Speicherung
 
-## Kommunikation mit izan.io
+Tools werden lokal in `chrome.storage.local` gespeichert. Sie verlassen Ihren Browser nur, wenn Sie sie explizit exportieren oder veroeffentlichen. Das bedeutet:
 
-Die Erweiterung kommuniziert mit der izan.io-Webseite ueber **postMessage-Nachrichten** zwischen dem Content Script und der Seite. Alle Nachrichten verwenden das `izan:*`-Protokoll. Dadurch kann die Webseite Makros registrieren, ausfuehren lassen und Ergebnisse empfangen, ohne dass ein externer Server benoetigt wird.
+- Tools bleiben ueber Browser-Neustarts hinweg erhalten
+- Tools sind an Ihr Chrome-Profil gebunden
+- Das Deinstallieren der Erweiterung entfernt alle Tools
 
-## Voraussetzung fuer Agenten mit Makros
+## Verbindungsstatus
 
-Die Chrome-Erweiterung ist **zwingend erforderlich**, wenn Agenten Makros ausfuehren sollen. Ohne installierte Erweiterung werden Makro-Tools im Chat nicht ausgefuehrt. Alle anderen Funktionen von izan.io -- einschliesslich integrierter MCP-Server und benutzerdefinierter Server -- funktionieren auch ohne die Erweiterung.
+Das Seitenpanel zeigt den aktuellen Verbindungsstatus:
+
+- **Verbunden** -- Die Bridge laeuft und ein MCP-Client ist verbunden
+- **Warten** -- Die Erweiterung ist bereit, aber keine Bridge ist verbunden
+- **Getrennt** -- Die Erweiterung kann nicht mit der Bridge kommunizieren
+
+Wenn Sie "Getrennt" sehen, stellen Sie sicher, dass die Bridge laeuft (`npx izan-mcp`) und Ihr MCP-Client korrekt konfiguriert ist.

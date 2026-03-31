@@ -1,0 +1,36 @@
+{
+  "manifest_version": 3,
+  "name": "izan.io - Browser Tools for AI",
+  "version": "0.2.0",
+  "description": "Give any AI the power to control a browser. MCP server for Claude Desktop, Cursor, and more.",
+  "permissions": ["tabs", "scripting", "debugger", "sidePanel", "storage", "offscreen"],
+  "host_permissions": ["<all_urls>"],
+  "content_scripts": [
+    {
+      "matches": ["https://izan.io/*", "https://*.izan.io/*", "https://zihin.io/*", "https://*.zihin.io/*", "http://localhost/*", "http://127.0.0.1/*"],
+      "js": ["content.js"],
+      "world": "ISOLATED",
+      "run_at": "document_idle"
+    }
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "side_panel": {
+    "default_path": "sidepanel/index.html"
+  },
+  "action": {
+    "default_title": "izan.io Browser Tools"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "sandbox": {
+    "pages": ["sandbox.html"]
+  },
+  "homepage_url": "https://izan.io",
+  "minimum_chrome_version": "116"
+}

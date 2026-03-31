@@ -4,10 +4,8 @@
  */
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { Star } from "lucide-react";
 import { Button } from "~/components/ui/button";
 
-/** GitHub logo SVG (Lucide's Github icon is deprecated; using inline SVG) */
 function GitHubIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
@@ -26,32 +24,20 @@ export function GitHubStarButton() {
 
   useEffect(() => {
     async function fetchStars() {
-      // 1. Try our proxy first (avoids GitHub rate limit)
       try {
         const res = await fetch(GITHUB_STARS_PROXY, { cache: "no-store" });
         const data = await res.json();
         const n = data?.stars;
-        if (typeof n === "number") {
-          setStars(n);
-          return;
-        }
-      } catch {
-        // proxy failed, fall through to GitHub
-      }
+        if (typeof n === "number") { setStars(n); return; }
+      } catch { /* proxy failed */ }
 
-      // 2. Fallback: direct GitHub API (60 req/hour per IP)
       try {
         const res = await fetch(GITHUB_API_URL, { cache: "no-store" });
         const data = await res.json();
         const n = data?.stargazers_count;
-        if (typeof n === "number") {
-          setStars(n);
-        }
-      } catch {
-        // show button without count
-      }
+        if (typeof n === "number") setStars(n);
+      } catch { /* show button without count */ }
     }
-
     fetchStars();
   }, []);
 
@@ -70,8 +56,7 @@ export function GitHubStarButton() {
         <GitHubIcon className="h-4 w-4" />
         {t("github.starOnGitHub")}
         {stars != null && stars > 0 && (
-          <span className="flex items-center gap-0.5 text-muted-foreground">
-            <Star className="h-3.5 w-3.5 fill-current text-yellow-500" />
+          <span className="text-muted-foreground">
             {stars >= 1000 ? `${(stars / 1000).toFixed(1)}k` : stars}
           </span>
         )}

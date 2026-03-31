@@ -1,47 +1,36 @@
 # Chrome Eklentisi
 
-## Eklenti Ne Yapar?
+izan.io Chrome eklentisi, dogrudan tarayicinizda bir MCP sunucusu calistirir. MCP istemcileri, kopru CLI araciligiyla eklentiye baglanir ve web sayfalariyla etkilesim kuran araclari cagirabilir.
 
-izan.io Chrome eklentisi, **makro kaydetme ve yurutme** islevselligini saglar. Eklenti sayesinde tarayicidaki etkilesimlerinizi kaydedebilir, bu kayitlari makro olarak saklayabilir ve AI agentlarinin bu makrolari otomatik olarak calistirmasina olanak taniyabilirsiniz. Makro kullanan agentlar icin eklentinin kurulu ve aktif olmasi **zorunludur**.
+## Eklenti Ne Yapar
 
-## Kurulum
-
-### Indir ve Kur (Onerilen)
-
-1. [**Eklenti ZIP dosyasini indirin**](/downloads/izan-macros.zip)
-2. Indirilen dosyayi cikartin (unzip)
-3. Chrome'da `chrome://extensions` adresini acin
-4. Sag ustteki **Gelistirici modu** anahtarini aktif edin
-5. **Paketlenmemis oge yukle** butonuna tiklayin
-6. Cikardiginiz klasoru secin
-7. Eklenti simgesi arac cubugunda gorunur -- kurulum tamamlandi!
-
-### Chrome Web Store
-
-Eklenti yakin zamanda Chrome Web Store'da yayinlanacaktir. O zamana kadar yukaridaki indirme yontemini kullanabilirsiniz.
-
-### Kaynaktan Derleme
-
-Projeyi klonlayin, `npm run build:extension` komutunu calistirin ve olusturulan dosyalari Chrome'a `chrome://extensions` uzerinden "Paketlenmemis uzanti yukle" secenegiyle ekleyin.
+Eklenti, tarayici otomasyon yeteneklerini MCP araclari olarak sunar. Bir MCP istemcisi bir araci cagirdiginda, eklenti bunu tarayici baglaminda calistirir -- sayfalarda gezinir, elemanlara tiklar, veri cikarir ve sonuclari dondurur.
 
 ## Yan Panel
 
-Eklenti simgesine tikladiginizda **yan panel** acilir. Yan panel su kontrolleri icerir:
+Yan paneli acmak icin arac cubugundaki izan.io simgesine tiklayin. Buradan sunlari yapabilirsiniz:
 
-- **Kayit kontrolleri**: Kaydi baslatma, duraklatma ve durdurma
-- **Makro listesi**: Kaydedilmis makrolarin listesi
-- **Durum gostergesi**: Kayit veya yurutme durumu hakkinda bilgi
+- **Arac olusturma** -- Yerlesik duzenleyici ile yeni araclar yazin
+- **Arac duzenleme** -- Mevcut arac tanimlarini degistirin
+- **Arac test etme** -- Araclari test parametreleriyle manuel olarak calistirin
+- **Arac yonetimi** -- Araclari etkinlestirin, devre disi birakin veya silin
 
-## Kayit Is Akisi
+Her aracin bir adi, aciklamasi, parametre tanimlari ve bir JavaScript fonksiyon govdesi vardir.
 
-1. Yan paneli acin ve **Kaydet** dugmesine tiklayin
-2. Kaydetmek istediginiz web sayfasina gidin
-3. Normal sekilde **etkilesimlerinizi gerceklestirin** (tiklama, metin girisi, sayfa gecisleri)
-4. Islemleri tamamladiginizda **Durdur** dugmesine basin
-5. Makroya bir **isim** verin ve kaydedin
+## Arac Depolama
 
-Kaydedilen makro artik izan.io uzerinden agentlara atanabilir ve otomatik olarak calistirtilabilir.
+Araclar yerel olarak `chrome.storage.local` icinde saklanir. Siz acikca disa aktarmadikca veya yayinlamadikca tarayicinizdan cikmaz. Bu su anlama gelir:
 
-## izan.io ile Iletisim
+- Araclar tarayici yeniden baslatmalarina ragmen korunur
+- Araclar Chrome profilinize baglidir
+- Eklentiyi kaldirmak tum araclari siler
 
-Eklenti, izan.io web uygulamasiyla **content script ve sayfa arasi postMessage** mekanizmasi uzerinden iletisim kurar. `izan:*` protokol etiketleri kullanilarak mesajlar guvenli bir sekilde iletilir. Bu iletisim, makro calistirma komutlarinin ve sonuclarinin web uygulamasi ile eklenti arasinda tasinmasini saglar.
+## Baglanti Durumu
+
+Yan panel mevcut baglanti durumunu gosterir:
+
+- **Bagli** -- Kopru calisiyor ve bir MCP istemcisi bagli
+- **Bekliyor** -- Eklenti hazir ama kopru bagli degil
+- **Baglanti Kesildi** -- Eklenti kopru ile iletisim kuramiyor
+
+"Baglanti Kesildi" goruyorsaniz, koprunun calistigindan (`npx izan-mcp`) ve MCP istemcinizin dogru yapilandirildigindan emin olun.

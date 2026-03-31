@@ -5,18 +5,16 @@
   "scripts": {
     "build": "tsc",
     "cdk": "cdk",
-    "synth": "cdk synth",
-    "deploy": "dotenv -e ../../.env -- cdk deploy --require-approval never",
+    "deploy": "cdk deploy --all --require-approval never",
     "diff": "cdk diff",
-    "destroy": "cdk destroy"
+    "synth": "cdk synth"
   },
   "dependencies": {
-    "aws-cdk-lib": "^2.175.0",
+    "aws-cdk-lib": "^2.170.0",
     "constructs": "^10.4.0"
   },
   "devDependencies": {
-    "aws-cdk": "^2.175.0",
-    "ts-node": "^10.9.0",
+    "aws-cdk": "^2.170.0",
     "typescript": "^5.6.0"
   }
 }

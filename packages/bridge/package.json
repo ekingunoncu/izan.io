@@ -1,0 +1,41 @@
+{
+  "name": "izan-mcp",
+  "version": "0.1.0",
+  "description": "Bridge between the izan.io Chrome extension and MCP clients (Claude Desktop, Cursor, VS Code)",
+  "license": "AGPL-3.0",
+  "type": "module",
+  "bin": {
+    "izan-mcp": "./dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "keywords": [
+    "mcp",
+    "chrome-extension",
+    "browser-automation",
+    "claude-desktop",
+    "cursor",
+    "ai-tools"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ekingunoncu/izan.io.git",
+    "directory": "packages/bridge"
+  },
+  "homepage": "https://izan.io",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.26.0",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/ws": "^8.18.0",
+    "typescript": "^5.6.0"
+  }
+}

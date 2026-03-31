@@ -35,7 +35,7 @@ export function loader() {
   return { lang: "en" as const };
 }
 
-// Client: detect browser language. Non-English → redirect, English → stay
+// Client: detect browser language. Non-English -> redirect, English -> stay
 export function clientLoader() {
   const lang = detectBrowserLanguage();
   if (lang !== "en") {

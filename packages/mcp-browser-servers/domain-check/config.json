@@ -1,6 +1,0 @@
-{
-  "id": "domain-check-client",
-  "name": "Domain Check (Client)",
-  "description": "Fast RDAP bulk availability check. No API key. 1–15 domains.",
-  "category": "custom"
-}

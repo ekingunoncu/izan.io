@@ -1,51 +1,36 @@
 # Chrome Extension
 
-## What Does the Extension Do?
+The izan.io Chrome extension runs an MCP server directly in your browser. MCP clients connect to it through the bridge CLI and can invoke tools that interact with web pages.
 
-The izan.io Chrome extension enables **macro recording and execution** directly in your browser. It is the bridge between the izan.io web app and real browser interactions -- without it, agents cannot record or run macros.
+## What the Extension Does
 
-## Installation
-
-### Download & Install (Recommended)
-
-1. [**Download the extension ZIP**](/downloads/izan-macros.zip)
-2. Unzip the downloaded file
-3. Open `chrome://extensions` in Chrome
-4. Enable **Developer mode** (top-right toggle)
-5. Click **Load unpacked**
-6. Select the unzipped folder
-7. The extension icon appears in the toolbar -- done!
-
-### Chrome Web Store
-
-The extension will be available on the Chrome Web Store soon. In the meantime, use the download method above.
-
-### Build from Source
-
-Clone the repository, run `npm run build:extension`, and load the `dist` folder as an unpacked extension in `chrome://extensions`.
+The extension exposes browser automation capabilities as MCP tools. When an MCP client calls a tool, the extension executes it in the browser context -- navigating pages, clicking elements, extracting data, and returning results.
 
 ## Side Panel
 
-Click the **extension icon** in Chrome's toolbar to open the side panel. The side panel provides:
+Click the izan.io icon in the toolbar to open the side panel. From here you can:
 
-- **Recording controls** -- start, stop, and manage macro recordings
-- **Macro list** -- view and manage your saved macros
-- **Status indicators** -- see whether the extension is connected to izan.io
+- **Create tools** -- Write new tools with the built-in editor
+- **Edit tools** -- Modify existing tool definitions
+- **Test tools** -- Run tools manually with test parameters
+- **Manage tools** -- Enable, disable, or delete tools
 
-## Recording Workflow
+Each tool has a name, description, parameter definitions, and a JavaScript function body.
 
-1. Open the side panel from the extension icon
-2. Click **Record** to begin capturing
-3. Interact with any website -- the extension tracks clicks, text input, navigation, and other actions
-4. Click **Stop** to finish recording
-5. Name the macro and save it
+## Tool Storage
 
-Each recorded interaction is stored as a step with the target element's selector, the action type, and any input values.
+Tools are stored locally in `chrome.storage.local`. They never leave your browser unless you explicitly export or publish them. This means:
 
-## Communication with izan.io
+- Tools persist across browser restarts
+- Tools are tied to your Chrome profile
+- Uninstalling the extension removes all tools
 
-The extension communicates with the izan.io web app using **`window.postMessage`** messages between the content script and the page. All messages follow the `izan:*` protocol prefix. This allows the web app to trigger macro execution and receive results without any external network calls.
+## Connection Status
 
-## When Is the Extension Required?
+The side panel shows the current connection status:
 
-The extension is **required for any agent that uses macros**. If you only use built-in MCP tools and custom MCP servers, the extension is not needed. Install it when you want to record browser automations or let agents interact with websites on your behalf.
+- **Connected** -- The bridge is running and an MCP client is connected
+- **Waiting** -- The extension is ready but no bridge is connected
+- **Disconnected** -- The extension cannot communicate with the bridge
+
+If you see "Disconnected", make sure the bridge is running (`npx izan-mcp`) and your MCP client is configured correctly.

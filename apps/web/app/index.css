@@ -507,24 +507,28 @@ body {
 }
 .docs-content code {
   font-size: 0.875em;
-  background: var(--color-muted);
-  padding: 0.15em 0.4em;
+  background: var(--color-muted) !important;
+  padding: 0.2em 0.4em;
   border-radius: 0.25rem;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  border: 1px solid hsl(240 3.7% 15.9% / 0.5);
 }
 .docs-content pre {
-  margin: 1rem 0;
-  padding: 1rem;
+  margin: 1.25rem 0;
+  padding: 1rem 1.25rem;
   border-radius: 0.5rem;
-  background: hsl(240 10% 3.9%);
-  color: hsl(0 0% 90%);
+  background: #0a0a0a !important;
+  color: #e5e5e5 !important;
   overflow-x: auto;
+  border: 1px solid hsl(240 3.7% 15.9%);
+  line-height: 1.7;
 }
 .docs-content pre code {
-  background: none;
+  background: none !important;
   padding: 0;
   font-size: 0.85rem;
   color: inherit;
+  line-height: inherit;
 }
 .docs-content table {
   width: 100%;

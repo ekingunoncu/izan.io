@@ -1,9 +1,9 @@
 {
   "name": "izan",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
-  "description": "Open-source AI assistant platform with MCP agent support - https://izan.io",
-  "keywords": ["ai", "assistant", "mcp", "agents", "open-source", "llm", "chatbot"],
+  "description": "Chrome extension MCP server - give any AI the power to use a browser",
+  "keywords": ["mcp", "chrome-extension", "browser-automation", "ai-tools", "claude-desktop"],
   "repository": {
     "type": "git",
     "url": "https://github.com/ekingunoncu/izan.io.git"
@@ -16,22 +16,17 @@
   "license": "AGPL-3.0",
   "workspaces": [
     "apps/*",
-    "packages/*",
-    "packages/agents"
+    "packages/*"
   ],
   "scripts": {
     "dev": "turbo dev",
     "build": "turbo build",
     "lint": "turbo lint",
-    "deploy": "turbo deploy",
-    "deploy:infra": "npm run build && dotenv -e .env -- npm run deploy --workspace=@izan/infra",
     "clean": "turbo clean",
-    "build:extension": "npm run build -w @izan/mcp-extension-servers",
-    "prepare:extension-download": "npm run build -w @izan/mcp-extension-servers && npm run zip -w @izan/mcp-extension-servers",
-    "test:mcp": "npm run test -w @izan/mcp-browser-servers"
+    "build:extension": "npm run build -w @izan/extension",
+    "build:bridge": "npm run build -w izan-mcp"
   },
   "devDependencies": {
-    "dotenv-cli": "^11.0.0",
     "turbo": "^2.3.0",
     "typescript": "^5.6.0"
   },

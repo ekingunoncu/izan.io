@@ -1,34 +1,52 @@
 # Erste Schritte
 
-izan.io ist eine **Open-Source KI-Agent-Plattform**, die mehr als 17 LLM-Anbieter unter einer einheitlichen Oberflaeche vereint. Alle API-Schluessel werden ausschliesslich lokal im Browser gespeichert -- es gibt kein Benutzerkonto und keinen Server, der Ihre Daten verarbeitet. Dank des **Model Context Protocol (MCP)** koennen Agenten auf Tools zugreifen, die direkt im Browser oder ueber eine Chrome-Erweiterung ausgefuehrt werden.
+izan.io ist eine Chrome-Erweiterung, die Ihren Browser in einen MCP-Server verwandelt. Externe MCP-Clients wie Claude Desktop, Cursor und VS Code verbinden sich ueber eine Bridge-CLI und koennen Tools ausfuehren, die den Browser automatisieren.
 
-## Schnellstart
+## 1. Chrome-Erweiterung installieren
 
-1. Besuchen Sie [izan.io](https://izan.io).
-2. Oeffnen Sie die **Einstellungen** ueber das Zahnrad-Symbol.
-3. Waehlen Sie einen Anbieter und tragen Sie Ihren **API-Schluessel** ein.
-4. Waehlen Sie einen **Agenten** aus der Seitenleiste.
-5. Starten Sie den Chat -- der Agent nutzt automatisch seine zugewiesenen Tools.
+Installieren Sie die izan.io-Erweiterung aus dem [Chrome Web Store](https://chromewebstore.google.com). Nach der Installation sehen Sie das izan.io-Symbol in Ihrer Browser-Symbolleiste.
 
-## Kostenlose Anbieter
+## 2. Bridge installieren
 
-Sie benoetigen nicht zwingend ein kostenpflichtiges Abonnement. Mehrere Anbieter bieten grosszuegige kostenlose Kontingente:
+Die Bridge (`izan-mcp`) verbindet MCP-Clients mit der Chrome-Erweiterung. Fuehren Sie folgenden Befehl aus:
 
-- **Google AI Studio** -- bis zu 250 Anfragen pro Tag
-- **Groq** -- schnelle Inferenz mit kostenlosem Kontingent
-- **Cerebras** -- bis zu 1 Million Tokens pro Tag
-- **Ollama** -- vollstaendig kostenlos, laeuft lokal auf Ihrem Rechner
+```bash
+npx izan-mcp
+```
 
-## Hauptfunktionen
+Dieser Befehl startet einen lokalen WebSocket-Server, der Nachrichten zwischen Ihrem MCP-Client und der Erweiterung weiterleitet.
 
-- **80+ integrierte Agenten** -- spezialisierte Assistenten fuer Social Media, Forschung, Shopping, Reisen, Finanzen und mehr
-- **MCP-Server** -- erweiterbares Tool-System, das im Browser laeuft
-- **Makros** -- aufgezeichnete Browser-Automatisierungen, die Agenten als Tools ausfuehren koennen
-- **Benutzerdefinierte Agenten** -- erstellen Sie eigene Agenten mit individuellen Anweisungen und Tool-Zuweisungen
-- **Orchestrierungs-Editor** -- visuelle Arbeitsflaeche fuer Multi-Agent-Workflows mit Drag & Drop, Auto-Layout und Drill-Down-Navigation
-- **Ersatzmodell** -- automatischer Wechsel auf einen Backup-Anbieter bei Ausfall des primaeren Modells
-- **Geplante Ausfuehrungen** -- Agenten zeitgesteuert ausfuehren, einmalig oder wiederkehrend
-- **Analytik** -- Token-Nutzung und Kosten nach Modell, Agent und Konversation verfolgen
-- **Agent Export/Import** -- Agenten-Konfigurationen als JSON-Dateien teilen
+## 3. MCP-Client konfigurieren
 
-Im naechsten Schritt erfahren Sie mehr ueber Agenten und wie Sie diese konfigurieren.
+Fuegen Sie izan.io zu Ihrer MCP-Client-Konfiguration hinzu. Fuer Claude Desktop bearbeiten Sie die Datei `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "izan": {
+      "command": "npx",
+      "args": ["izan-mcp"]
+    }
+  }
+}
+```
+
+Starten Sie Ihren MCP-Client nach dem Speichern neu.
+
+## 4. Ein integriertes Tool ausprobieren
+
+Oeffnen Sie Ihren MCP-Client und probieren Sie eines der integrierten Tools aus:
+
+- **web_fetch** -- Ruft den Inhalt einer URL ab
+- **accessibility_snapshot** -- Gibt den Accessibility-Baum der aktuellen Seite zurueck
+
+Beispiel-Prompt: *"Verwende web_fetch, um den Inhalt von https://example.com abzurufen"*
+
+Die Erweiterung fuehrt die Anfrage im Browser aus und gibt das Ergebnis an Ihren MCP-Client zurueck.
+
+## Naechste Schritte
+
+- [Chrome-Erweiterung](/docs/chrome-extension) -- Seitenpanel und Tool-Verwaltung kennenlernen
+- [Tools](/docs/tools) -- Eigene Tools mit der Browser-API erstellen
+- [Bridge](/docs/bridge) -- Bridge fuer verschiedene MCP-Clients konfigurieren
+- [Marktplatz](/docs/marketplace) -- Community-Tools entdecken und installieren

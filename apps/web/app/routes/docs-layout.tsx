@@ -1,10 +1,13 @@
 import { Outlet, Link, useParams } from "react-router";
 import { useTranslation } from "react-i18next";
-import { Menu, X } from "lucide-react";
+import { SUPPORTED_LANGUAGES } from "~/i18n";
 import { IzanLogo } from "~/components/ui/izan-logo";
 import { useState } from "react";
 import { DocsSidebar } from "~/components/docs/DocsSidebar";
-import { Button } from "~/components/ui/button";
+
+const HEADER_H = "h-12";
+const HEADER_TOP = "top-12";
+const HEADER_PT = "pt-12";
 
 export default function DocsLayout() {
   const { t } = useTranslation("common");
@@ -13,65 +16,55 @@ export default function DocsLayout() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-50 border-b bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
-        <div className="flex items-center justify-between px-4 py-3 sm:px-6">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="lg:hidden p-2 -ml-2 rounded-lg hover:bg-muted transition-colors cursor-pointer"
-            >
-              {sidebarOpen ? (
-                <X className="h-5 w-5" />
-              ) : (
-                <Menu className="h-5 w-5" />
-              )}
-            </button>
-            <Link
-              to={`/${lang}`}
-              className="flex items-center gap-2 hover:opacity-80 transition-opacity"
-            >
-              <IzanLogo className="h-7 w-7 text-primary" />
-              <span className="text-base font-semibold tracking-tight">
-                izan.io
-              </span>
-            </Link>
-            <span className="text-muted-foreground">/</span>
-            <span className="text-sm font-medium">{t("docs.title")}</span>
-          </div>
-          <nav className="flex items-center gap-2">
-            <Link to={`/${lang}`}>
-              <Button variant="ghost" size="sm" className="text-sm">
-                {t("nav.agents")}
-              </Button>
-            </Link>
-            <Link to="/chat">
-              <Button size="sm" className="text-sm">
-                {t("nav.startChat")}
-              </Button>
-            </Link>
-          </nav>
+      {/* Fixed header */}
+      <header className={`fixed inset-x-0 top-0 z-50 ${HEADER_H} flex items-center justify-between px-4 sm:px-6 border-b bg-background/90 backdrop-blur-md`}>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="lg:hidden p-1.5 -ml-1.5 rounded hover:bg-muted cursor-pointer text-sm"
+          >
+            {sidebarOpen ? "\u2715" : "\u2630"}
+          </button>
+          <Link to={`/${lang}`} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+            <IzanLogo className="h-6 w-6 text-primary" />
+            <span className="text-sm font-semibold tracking-tight">izan.io</span>
+          </Link>
+          <span className="text-muted-foreground/50">/</span>
+          <span className="text-sm text-muted-foreground">{t("docs.title")}</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <Link to={`/${lang}`} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            {t("nav.home")}
+          </Link>
+          <span className="text-xs">
+            {SUPPORTED_LANGUAGES.map((l) => (
+              <Link
+                key={l}
+                to={`/${l}/docs`}
+                className={`px-1 transition-colors ${l === lang ? "text-foreground" : "text-muted-foreground/60 hover:text-foreground"}`}
+              >
+                {l}
+              </Link>
+            ))}
+          </span>
         </div>
       </header>
 
-      <div className="flex">
-        {/* Spacer so main content doesn't sit under the fixed sidebar */}
-        <div className="hidden lg:block w-64 min-w-64 shrink-0" aria-hidden />
-        {/* Desktop sidebar - fixed so it stays visible when scrolling long pages */}
-        <aside className="hidden lg:block fixed left-0 top-[57px] w-64 h-[calc(100vh-57px)] overflow-y-auto border-r bg-muted/30 dark:bg-muted/10 z-10">
+      {/* Body below fixed header */}
+      <div className={`${HEADER_PT} flex`}>
+        {/* Desktop sidebar */}
+        <aside className={`hidden lg:block fixed left-0 ${HEADER_TOP} w-60 h-[calc(100vh-3rem)] overflow-y-auto border-r`}>
           <div className="p-4">
             <DocsSidebar />
           </div>
         </aside>
+        <div className="hidden lg:block w-60 shrink-0" aria-hidden />
 
-        {/* Mobile sidebar overlay */}
+        {/* Mobile sidebar */}
         {sidebarOpen && (
           <>
-            <div
-              className="fixed inset-0 z-40 bg-black/50 lg:hidden"
-              onClick={() => setSidebarOpen(false)}
-            />
-            <aside className="fixed inset-y-0 left-0 z-50 w-72 bg-background border-r shadow-xl lg:hidden pt-[57px] overflow-y-auto">
+            <div className="fixed inset-0 z-40 bg-black/40 lg:hidden" onClick={() => setSidebarOpen(false)} />
+            <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-background border-r shadow-xl lg:hidden ${HEADER_PT} overflow-y-auto`}>
               <div className="p-4">
                 <DocsSidebar onNavigate={() => setSidebarOpen(false)} />
               </div>

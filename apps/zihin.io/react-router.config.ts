@@ -7,8 +7,7 @@ export default {
   prerender: [
     "/",
     ...LANGS.map((l) => `/${l}`),
-    ...LANGS.map((l) => `/${l}/agents`),
+    ...LANGS.map((l) => `/${l}/tools`),
     ...LANGS.map((l) => `/${l}/submit`),
-    "/auth/callback",
   ],
 } satisfies Config;
