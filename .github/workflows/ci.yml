@@ -19,5 +19,5 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "npm"
-      - run: npm ci --include=optional
+      - run: npm ci
       - run: npm run build
