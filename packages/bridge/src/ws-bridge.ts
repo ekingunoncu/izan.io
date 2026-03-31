@@ -31,18 +31,36 @@ export class WSBridge {
   constructor(private port: number) {}
 
   start(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      this.wss = new WebSocketServer({ port: this.port, host: '127.0.0.1' })
+    return this.tryListen(this.port)
+  }
 
-      this.wss.on('listening', () => {
-        process.stderr.write(`[izan-mcp] WebSocket server listening on ws://127.0.0.1:${this.port}\n`)
+  private tryListen(port: number, retries = 5): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const wss = new WebSocketServer({ port, host: '127.0.0.1' })
+
+      wss.on('listening', () => {
+        this.wss = wss
+        this.port = port
+        process.stderr.write(`[izan-mcp] WebSocket server listening on ws://127.0.0.1:${port}\n`)
+        this.setupWss()
         resolve()
       })
 
-      this.wss.on('error', (err) => {
-        process.stderr.write(`[izan-mcp] WebSocket server error: ${err.message}\n`)
-        reject(err)
+      wss.on('error', (err: NodeJS.ErrnoException) => {
+        wss.close()
+        if (err.code === 'EADDRINUSE' && retries > 0) {
+          const nextPort = port + 1
+          process.stderr.write(`[izan-mcp] Port ${port} in use, trying ${nextPort}...\n`)
+          this.tryListen(nextPort, retries - 1).then(resolve, reject)
+        } else {
+          reject(err)
+        }
       })
+    })
+  }
+
+  private setupWss(): void {
+    if (!this.wss) return
 
       this.wss.on('connection', (ws) => {
         // Only allow one extension connection at a time
@@ -76,7 +94,6 @@ export class WSBridge {
           process.stderr.write(`[izan-mcp] Extension socket error: ${err.message}\n`)
         })
       })
-    })
   }
 
   private handleExtensionMessage(msg: ExtensionMessage): void {

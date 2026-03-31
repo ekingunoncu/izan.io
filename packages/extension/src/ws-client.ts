@@ -9,7 +9,7 @@
 import type { CodeToolDefinition } from './code-tool-types.js'
 import { executeCodeTool } from './code-tool-executor.js'
 
-const DEFAULT_BRIDGE_URL = 'ws://127.0.0.1:3717'
+const BRIDGE_PORTS = [3717, 3718, 3719, 3720, 3721]
 const RECONNECT_INTERVAL_MS = 5_000
 const MAX_RECONNECT_INTERVAL_MS = 30_000
 
@@ -84,18 +84,22 @@ export function isBridgeConnected(): boolean {
 
 // ─── Connection ─────────────────────────────────────────────────────────────
 
+let currentPortIndex = 0
+
 function connect(): void {
   if (isShuttingDown) return
 
+  const port = BRIDGE_PORTS[currentPortIndex % BRIDGE_PORTS.length]
   try {
-    ws = new WebSocket(DEFAULT_BRIDGE_URL)
+    ws = new WebSocket(`ws://127.0.0.1:${port}`)
   } catch {
+    currentPortIndex++
     scheduleReconnect()
     return
   }
 
   ws.onopen = () => {
-    console.log('[izan-ext] Bridge: connected')
+    console.log(`[izan-ext] Bridge: connected on port ${BRIDGE_PORTS[currentPortIndex % BRIDGE_PORTS.length]}`)
     _connected = true
     reconnectDelay = RECONNECT_INTERVAL_MS
 
@@ -120,7 +124,8 @@ function connect(): void {
     _connected = false
     ws = null
     if (!isShuttingDown) {
-      console.log('[izan-ext] Bridge: disconnected, scheduling reconnect')
+      currentPortIndex++
+      console.log('[izan-ext] Bridge: disconnected, trying next port')
       scheduleReconnect()
     }
   }
@@ -132,11 +137,14 @@ function connect(): void {
 
 function scheduleReconnect(): void {
   if (isShuttingDown || reconnectTimer) return
+  // Fast cycle through ports (500ms), slow retry after all ports tried
+  const allPortsTried = currentPortIndex > 0 && currentPortIndex % BRIDGE_PORTS.length === 0
+  const delay = allPortsTried ? reconnectDelay : 500
   reconnectTimer = setTimeout(() => {
     reconnectTimer = null
-    reconnectDelay = Math.min(reconnectDelay * 1.5, MAX_RECONNECT_INTERVAL_MS)
+    if (allPortsTried) reconnectDelay = Math.min(reconnectDelay * 1.5, MAX_RECONNECT_INTERVAL_MS)
     connect()
-  }, reconnectDelay)
+  }, delay)
 }
 
 // ─── Message Handling ───────────────────────────────────────────────────────

@@ -368,9 +368,10 @@ async function handleEvaluate(p: P): Promise<R> {
     return { success: false, error: 'CDP not attached' }
   }
   try {
-    const exprPreview = (p.expression as string).slice(0, 120).replace(/\n/g, ' ')
+    const expr = p.expression as string
+    const exprPreview = expr.slice(0, 120).replace(/\n/g, ' ')
     console.log(`[izan-ext] handleEvaluate: tab=${tid} lane=${knownLane} expr="${exprPreview}..."`)
-    const data = await cdpEval(tid, p.expression as string)
+    const data = await cdpEval(tid, expr)
     const preview = data == null ? 'null' : Array.isArray(data) ? `array(${data.length})` : typeof data === 'object' ? `object(${Object.keys(data as Record<string, unknown>).length})` : String(data).slice(0, 100)
     console.log(`[izan-ext] handleEvaluate: result=${preview}`)
     return { success: true, data }

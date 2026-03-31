@@ -52,7 +52,7 @@ function browserRpc(execId: string, method: string, payload: Record<string, unkn
 }
 
 /** Create a browser API proxy that mirrors BrowserWindow's interface */
-function createBrowserProxy(execId: string, laneId: string) {
+function createBrowserProxy(execId: string, laneId: string, params: Record<string, unknown>) {
   let tabId: number | null = null
 
   const send = (action: string, extra: Record<string, unknown> = {}) =>
@@ -101,7 +101,9 @@ function createBrowserProxy(execId: string, laneId: string) {
       })
     },
     async evaluate<T = unknown>(expression: string): Promise<T> {
-      return (await send('evaluate', { expression })) as T
+      // Inject params into page context so evaluate expressions can reference them
+      const wrapped = `(function(params){${expression}})(${JSON.stringify(params)})`
+      return (await send('evaluate', { expression: wrapped })) as T
     },
     async waitForSelector(selector: string, timeout?: number) {
       await send('waitForSelector', { selector, timeout: timeout ?? 10_000 })
@@ -141,8 +143,9 @@ async function executeTool(
   laneId: string,
 ): Promise<void> {
   try {
-    const browser = createBrowserProxy(execId, laneId)
-    const normalized = code.trim()
+    const browser = createBrowserProxy(execId, laneId, params)
+    // Strip JSDoc preamble if present
+    const normalized = code.trim().replace(/^\/\*\*\s*@type\s*\{[^}]*\}\s*\*\/\n?/, '')
 
     // eslint-disable-next-line no-new-func
     const fn = new Function('return (' + normalized + ')')()

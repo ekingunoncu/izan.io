@@ -1,5 +1,10 @@
 # Dependencies
 node_modules/
+
+# Secrets
+.npmrc
+.env
+.env.*
 .pnp
 .pnp.js
 

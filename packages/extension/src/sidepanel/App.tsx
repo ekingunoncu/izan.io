@@ -107,7 +107,9 @@ export function App() {
   const saveTool = useCallback(async () => {
     if (!editing || !editing.name.trim()) return
     const now = Date.now()
-    const t = { ...editing, name: editing.name.trim().toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, ''), updatedAt: now, createdAt: editing.createdAt || now }
+    // Strip JSDoc preamble if it leaked into the code
+    const cleanCode = editing.code.replace(/^\/\*\*\s*@type\s*\{[^}]*\}\s*\*\/\n?/, '')
+    const t = { ...editing, code: cleanCode, name: editing.name.trim().toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, ''), updatedAt: now, createdAt: editing.createdAt || now }
     await saveTools(tools.some(x => x.id === t.id) ? tools.map(x => x.id === t.id ? t : x) : [...tools, t])
     setEditing(null)
     setOutput(null)
@@ -117,15 +119,17 @@ export function App() {
 
   const runTool = useCallback(async (tool: CodeToolDefinition, args: Record<string, unknown> = {}) => {
     setRunning(true); setOutput(null)
+    // Strip JSDoc preamble if present
+    const cleanTool = { ...tool, code: tool.code.replace(/^\/\*\*\s*@type\s*\{[^}]*\}\s*\*\/\n?/, '') }
     // Fill in default values for params not provided
     const fullArgs = { ...args }
-    for (const p of tool.parameters) {
+    for (const p of cleanTool.parameters) {
       if (fullArgs[p.name] === undefined && p.default !== undefined) {
         fullArgs[p.name] = p.default
       }
     }
     try {
-      const r = await chrome.runtime.sendMessage({ type: 'izan-test-tool', tool, args: fullArgs })
+      const r = await chrome.runtime.sendMessage({ type: 'izan-test-tool', tool: cleanTool, args: fullArgs })
       setOutput(JSON.stringify(r, null, 2))
     } catch (e) { setOutput(`Error: ${e instanceof Error ? e.message : String(e)}`) }
     finally { setRunning(false) }

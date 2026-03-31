@@ -15,7 +15,7 @@
  */
 
 import { WSBridge } from './ws-bridge.js'
-import { startStdioServer, stopStdioServer } from './stdio-server.js'
+import { startStdioServer, stopStdioServer, notifyToolListChanged } from './stdio-server.js'
 import { DEFAULT_WS_PORT } from './protocol.js'
 import type { CodeToolDefinition } from './protocol.js'
 
@@ -72,16 +72,23 @@ async function main(): Promise<void> {
 
   const bridge = new WSBridge(port)
 
-  // When extension connects and sends tools, start/restart the MCP server
   let currentTools: CodeToolDefinition[] = []
+  let serverStarted = false
 
   bridge.setToolsReadyHandler(async (tools) => {
     currentTools = tools
-    process.stderr.write(`[izan-mcp] Registering ${tools.length} tool(s) on MCP server\n`)
-    try {
-      await startStdioServer(tools, bridge)
-    } catch (err) {
-      process.stderr.write(`[izan-mcp] Failed to start MCP server: ${err}\n`)
+    process.stderr.write(`[izan-mcp] Extension sent ${tools.length} tool(s)\n`)
+
+    if (!serverStarted) {
+      serverStarted = true
+      try {
+        await startStdioServer(bridge, () => currentTools)
+      } catch (err) {
+        process.stderr.write(`[izan-mcp] Failed to start MCP server: ${err}\n`)
+      }
+    } else {
+      // Tool list changed — notify the MCP client to re-fetch
+      await notifyToolListChanged()
     }
   })
 
@@ -91,11 +98,8 @@ async function main(): Promise<void> {
     }
   })
 
-  // Start WebSocket server
+  // Start WebSocket server and wait for extension
   await bridge.start()
-
-  // Start MCP server with empty tools (will be populated when extension connects)
-  await startStdioServer([], bridge)
 
   // Graceful shutdown
   const shutdown = async () => {
