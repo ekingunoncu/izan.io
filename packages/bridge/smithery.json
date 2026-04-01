@@ -1,0 +1,12 @@
+{
+  "name": "@ekingunoncu/izan-mcp",
+  "displayName": "izan.io — Browser Tools for AI",
+  "description": "Chrome extension that turns your browser into an MCP server. Any MCP client can control the browser — click, type, navigate, extract data. Uses your real browser session with cookies and logins.",
+  "homepage": "https://izan.io",
+  "repository": "https://github.com/ekingunoncu/izan.io",
+  "license": "AGPL-3.0",
+  "keywords": ["browser", "automation", "chrome-extension", "web-scraping", "browser-tools"],
+  "transport": "stdio",
+  "command": "npx",
+  "args": ["izan-mcp"]
+}

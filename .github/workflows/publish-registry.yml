@@ -1,0 +1,30 @@
+name: Publish to MCP Registry
+
+on:
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install MCP Publisher
+        run: |
+          git clone --depth 1 https://github.com/modelcontextprotocol/registry.git /tmp/mcp-registry
+          cd /tmp/mcp-registry && make publisher
+
+      - name: Publish to MCP Registry
+        run: |
+          /tmp/mcp-registry/bin/mcp-publisher publish \
+            --name "io.github.ekingunoncu/izan-mcp" \
+            --display-name "izan.io — Browser Tools for AI" \
+            --description "Chrome extension that turns your browser into an MCP server. Control the browser with tools — click, type, navigate, extract data." \
+            --repository "https://github.com/ekingunoncu/izan.io" \
+            --homepage "https://izan.io" \
+            --license "AGPL-3.0" \
+            --transport stdio \
+            --command "npx" \
+            --args "izan-mcp"

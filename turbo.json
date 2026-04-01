@@ -10,13 +10,11 @@
         "PUBLIC_SITE_URL",
         "VITE_MCP_BASE_URL",
         "VITE_GITHUB_CLIENT_ID",
-        "CLIENT_SECRET_GITHUB",
-        "ZIHIN_DOMAIN_CERTIFICATE_ARN"
+        "CLIENT_SECRET_GITHUB"
       ]
     },
     "dev": { "cache": false, "persistent": true },
     "lint": { "dependsOn": ["^lint"] },
-    "deploy": { "dependsOn": ["build"], "cache": false },
     "clean": { "cache": false }
   }
 }

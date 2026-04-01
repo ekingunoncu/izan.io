@@ -18,9 +18,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "npm"
-      - run: rm -rf node_modules package-lock.json && npm install
-
-      # Build everything
+      - run: npm ci
       - run: npm run build:extension
       - run: npm run build -w @izan/web
         env:
@@ -30,18 +28,19 @@ jobs:
         env:
           VITE_GITHUB_CLIENT_ID: ${{ secrets.VITE_GITHUB_CLIENT_ID }}
 
-      # Deploy to AWS via CDK
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_DEFAULT_REGION || 'eu-central-1' }}
-      - name: CDK Deploy
-        working-directory: packages/infra
-        run: npx cdk deploy --all --require-approval never
-        env:
-          IZAN_DOMAIN_CERTIFICATE_ARN: ${{ secrets.IZAN_DOMAIN_CERTIFICATE_ARN }}
-          ZIHIN_DOMAIN_CERTIFICATE_ARN: ${{ secrets.ZIHIN_DOMAIN_CERTIFICATE_ARN }}
+          aws-region: eu-west-1
+
+      # izan.io
+      - run: aws s3 sync apps/web/build/client s3://izan-web-154630982620-eu-west-1 --delete
+      - run: aws cloudfront create-invalidation --distribution-id E2S9PXCZIPV3PY --paths "/*"
+
+      # zihin.io
+      - run: aws s3 sync apps/zihin.io/build/client s3://zihin-web-154630982620-eu-west-1 --delete
+      - run: aws cloudfront create-invalidation --distribution-id EJEARIY287PZC --paths "/*"
 
   publish-bridge:
     name: Publish izan-mcp
@@ -53,7 +52,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: "npm"
           registry-url: "https://registry.npmjs.org"
-      - run: rm -rf node_modules package-lock.json && npm install
+      - run: npm ci
       - run: npm run build -w izan-mcp
       - name: Check if version changed
         id: version
