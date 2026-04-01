@@ -19,7 +19,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: "npm"
       - run: npm ci
-      - run: npm install @rollup/rollup-linux-x64-gnu lightningcss-linux-x64-gnu --no-save
+      - run: npm install @rollup/rollup-linux-x64-gnu lightningcss-linux-x64-gnu @tailwindcss/oxide-linux-x64-gnu --no-save
       - run: npm run build:extension
       - run: npm run build -w @izan/web
         env:
