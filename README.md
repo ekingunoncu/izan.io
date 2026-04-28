@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/ekingunoncu-izan-io-badge.png)](https://mseep.ai/app/ekingunoncu-izan-io)
+
 <p align="center">
   <img src="thumbnail.png" alt="izan.io" width="280" />
 </p>
